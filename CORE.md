@@ -1,6 +1,6 @@
 # OpenLaw Core
 
-The Scala core of the OpenLaw project contains two sub-projects, `shared` and `client`.
+The Scala core of the OpenLaw project contains two sub-projects, `shared` and `client`. The `client`. The `client` library is well documented [elsewhere](https://docs.openlaw.io/openlaw-object).
 
 The `shared` sub-project contains four key components: the oracles (in the `oracles` folder), a set of custom value types related to contracts and templates (in the `values` folder), the OpenLaw Markup Language parser and associated types and rules (in the `parser` folder), and the OpenLaw Virtual Machine (hereafter called "the VM") (in the `vm` folder).
 
