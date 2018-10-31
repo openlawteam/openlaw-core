@@ -14,7 +14,7 @@ Under the hood, much of the workflow above is managed and moderated by the OpenL
 
 Second, the VM keeps track of the state of the contract itself at any given time using the `OpenlawVmState` private variable. One important aspect of state involves the status of smart contracts embedded in the contract. The VM uses OpenLaw's Action API to query and store actions in the life of smart contracts. These actions may include starting, stopping, and resuming smart contract executions at time intervals which the user has specified.
 
-In order for the legal agreement to be interpreted properly, the OpenLaw Markup Language, like many other computer languages, needs to know how to interpret and compile custom language types. The `VariableExecutionEngine` and its sub-type the `OpenlawExecutionEngine` handle the logic for this. For example, the `processExecutedElement` function in the `OpenlawExecutionEngine` pattern matches on the [type of the variable](https://docs.openlaw.io/markup-language/#variables), providing different execution instructions for each case.
+In order for the legal agreement to be interpreted properly, the OpenLaw Markup Language, like many other computer languages, needs to know how to interpret and compile custom language types. The `VariableExecutionEngine` and its sub-type the `OpenlawExecutionEngine` handle some of the logic for this. For example, the `processExecutedElement` function in the `OpenlawExecutionEngine` pattern matches on the [type of the variable](https://docs.openlaw.io/markup-language/#variables), providing different execution instructions for each case.
 
 The `OpenlawVmProvider` class contains just one method, `create`, which returns an `OpenlawVm` type. This is useful for integrating the `OpenlawVm` into server and other applications.
 
@@ -48,6 +48,18 @@ In addition to the seven oracles mentioned above, the `oracles` folder also cont
 
 ## Parser
 
+The parser stores information regarding custom types in the OpenLaw Markup Language and how they should be processed. This folder has three sub-folders: `contract`, `field`, and `template`.
 
+The `contract` folder is the simplest, containing just the `ParagraphEdits` type, which is used to represent paragraphs added to templates by the user.
+
+The `fields` folder contains various `case objects` which extend the base type `ContractField`. They provide mappings between custom Scala types and field names in the `TemplateEditor` for an agreement. For example, a `Name` field in the editor corresponds to a custom `FullName` type internally.
+
+The `template` folder is the most complex of the three. Definitions of features of the OpenLaw Markup Language and their expected behavior can be found here. In general, [the Markup Language docs](https://docs.openlaw.io/markup-language) are a solid companion to keep open while perusing this part of the codebase.
+
+For example, the `formatters` folder contains all classes extending the `Formatter` trait, which clearly corresponds to the formatting features of the markup language discussed [here](https://docs.openlaw.io/markup-language/#formatting). [Smart contracts](https://docs.openlaw.io/markup-language/#smart-contracts) clearly correspond to the logic defined in the `EthereumSmartContractCall` type declared in `variableTypes`. (The eagle-eyed may also notice the correspondence with the `EthereumSmartContractCallEvent` we mentioned in our `EthereumSmartContractOracle` above). The custom `IdentityType`, also in `variableTypes`, corresponds to the `Identity` types [which must be added to any agreement before it can be sent for signature](https://docs.openlaw.io/markup-language/#identity-and-signatures). 
+
+Another key utility here is the `printers` sub-folder. This contains case classes extending the `HTMLAgreementPrinter` trait. These custom types specify various means of outputting a marked-up legal agreement in HTML, which may be useful if integrating an OpenLaw legal agreement into a custom web application.
+
+Finally, but perhaps most crucially, the `OpenlawTemplateLanguageParserService` provides many essential methods for interacting with marked-up legal agreements: compiling templates, parsing expressions, and rendering output based on variable type.
 
 ## Values
