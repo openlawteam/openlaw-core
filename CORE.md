@@ -4,12 +4,39 @@ The Scala core of the OpenLaw project contains two sub-projects, `shared` and `c
 
 The `shared` sub-project contains four key components: the oracles (in the `oracles` folder), a set of custom value types related to contracts and templates (in the `values` folder), the OpenLaw Markup Language parser (in the `parser` folder), and the OpenLaw Virtual Machine, or VM, (in the `vm` folder).
 
+## General Concepts
+
 In order to understand these components, we need to understand some fundamental concepts within the OpenLaw protocol. The lifecycle of an agreement on the OpenLaw platform is as follows. It starts as a template: a legal agreement, marked up using [the OpenLaw Markup Language](https://docs.openlaw.io), with empty fields corresponding to various provisions. When the user fills out some, but not all, of the fields, it becomes a draft. Once all fields have been filled out, the draft becomes a contract. A contract can be sent to signatories and its signing will be registered and verified on the Ethereum blockchain. Signing by all parties will also cause any smart contracts embedded in the document to execute according to the provisions which the user has specified.
 
-Under the hood, much of the workflow above is managed and moderated by the OpenLaw VM. The VM is a secure execution environment for contracts. It has several functions. First, it keeps track of the series of events over the contract's lifetime using the custom `OpenlawVmEvent` type. The VM uses `Oracles` to verify event requests. The oracles are designed in a modular way so that they can be integrated with mainnet, testnet, or other backends without much extra customization. In general, OpenLaw prefers to develop high-level components which are broadly functional, so that they can be plugged into a wide variety of environments and use cases, and the oracles are an example of that. They will be discussed in greater detail below.
+## VM
+
+Under the hood, much of the workflow above is managed and moderated by the OpenLaw VM. The VM is a secure execution environment for contracts. It has several functions. First, it keeps track of the series of events over the contract's lifetime using the custom `OpenlawVmEvent` type. The VM uses `Oracles` to verify event requests. They will be discussed in greater detail below.
 
 Second, the VM keeps track of the state of the contract itself at any given time using the `OpenlawVmState` private variable. One important aspect of state involves the status of smart contracts embedded in the contract. The VM uses OpenLaw's Action API to query and store actions in the life of smart contracts. These actions may include starting, stopping, and resuming smart contract executions at time intervals which the user has specified.
 
 In order for the legal agreement to be interpreted properly, the OpenLaw Markup Language, like many other computer languages, needs to know how to interpret and compile custom language types. The `VariableExecutionEngine` and its sub-type the `OpenlawExecutionEngine` handle the logic for this. For example, the `processExecutedElement` function in the `OpenlawExecutionEngine` pattern matches on the [type of the variable](https://docs.openlaw.io/markup-language/#variables), providing different execution instructions for each case.
 
 The `OpenlawVmProvider` class contains just one method, `create`, which returns an `OpenlawVm` type. This is useful for integrating the `OpenlawVm` into server and other applications.
+
+## Oracles
+
+OpenLaw's oracles are designed in a modular way so that they can be integrated with mainnet, testnet, or other backends without much extra customization. In general, OpenLaw prefers to develop high-level components which are broadly functional, so that they can be plugged into a wide variety of environments and use cases, and the oracles are an example of that.
+
+All oracles share a similar workflow:
+  -Validate the event being passed to the VM. This is typically done using a cryptographic proof.
+  -If the validation check passes, allow the event to occur.
+
+Currently, the following oracles exist:
+`OpenlawOracle`: This is a trait which `EthereumSmartContractOracle`, `ResumeContractOracle`, `StopContractOracle`, and `TemplateLoadOracle` extend. It requires passing in the type of the event to be executed if the validation is successful. For example, `EthereumSmartContractOracle` executes an `EthereumSmartContractCallEvent` if successful.
+`EthereumSmartContractOracle`: This handles validation of `EthereumSmartContractCallEvent`s to process calls to execute embedded smart contracts.
+`StopContractOracle`: This handles validation of `StopExecutionEvent`s to stop calls to execute embedded smart contracts.
+`ResumeContractOracle`: This handles validation of `ResumeExecutionEvent`s to resume calls to execute embedded smart contracts which have previously been stopped with a `StopExecutionEvent`.
+`TemplateLoadOracle`: This handles validation of `LoadTemplate` events to load an altered version of a template into the VM.
+`OpenlawIdentityOracle`: This is a trait which `OpenlawSignatureOracle` extends. It contains helper functions and values such as `isSignatureValid` (for checking the validity of an incoming signature) and `providerId` (for storing the identity provider).
+`OpenlawSignatureOracle`:  This handles validation of `SignatureEvent`s to process a signature on the Etheruem blockchain once the signature and address of the signee have been verified. 
+
+In addition to the seven oracles mentioned above, the `oracles` folder also contains a `CryptoService` with helper functions for sha256 checksums and validating ECS signatures.
+
+## Parser
+
+## Values
