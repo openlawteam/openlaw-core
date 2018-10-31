@@ -23,27 +23,31 @@ The `OpenlawVmProvider` class contains just one method, `create`, which returns 
 OpenLaw's oracles are designed in a modular way so that they can be integrated with mainnet, testnet, or other backends without much extra customization. In general, OpenLaw prefers to develop high-level components which are broadly functional, so that they can be plugged into a wide variety of environments and use cases, and the oracles are an example of that.
 
 All oracles share a similar workflow:
+
   -Validate the event being passed to the VM. This is typically done using a cryptographic proof.
+
   -If the validation check passes, allow the event to occur.
 
 Currently, the following oracles exist:
 
 `OpenlawOracle`: This is a trait which `EthereumSmartContractOracle`, `ResumeContractOracle`, `StopContractOracle`, and `TemplateLoadOracle` extend. It requires passing in the type of the event to be executed if the validation is successful. For example, `EthereumSmartContractOracle` executes an `EthereumSmartContractCallEvent` if successful.
 
-`EthereumSmartContractOracle`: This handles validation of `EthereumSmartContractCallEvent`s to process calls to execute embedded smart contracts.
+`EthereumSmartContractOracle`: This handles validation of events of type `EthereumSmartContractCallEvent` to process calls to execute embedded smart contracts.
 
-`StopContractOracle`: This handles validation of `StopExecutionEvent`s to stop calls to execute embedded smart contracts.
+`StopContractOracle`: This handles validation of events of type `StopExecutionEvent` to stop calls to execute embedded smart contracts.
 
-`ResumeContractOracle`: This handles validation of `ResumeExecutionEvent`s to resume calls to execute embedded smart contracts which have previously been stopped with a `StopExecutionEvent`.
+`ResumeContractOracle`: This handles validation of events of type `ResumeExecutionEvent` to resume calls to execute embedded smart contracts which had previously been stopped with a `StopExecutionEvent`.
 
-`TemplateLoadOracle`: This handles validation of `LoadTemplate` events to load an altered version of a template into the VM.
+`TemplateLoadOracle`: This handles validation of events of type `LoadTemplate` to load an altered version of a template into the VM.
 
 `OpenlawIdentityOracle`: This is a trait which `OpenlawSignatureOracle` extends. It contains helper functions and values such as `isSignatureValid` (for checking the validity of an incoming signature) and `providerId` (for storing the identity provider).
 
-`OpenlawSignatureOracle`:  This handles validation of `SignatureEvent`s to process a signature on the Etheruem blockchain once the signature and address of the signee have been verified.
+`OpenlawSignatureOracle`:  This handles validation of events of type `SignatureEvent` to process a signature on the Ethereum blockchain once the signature and address of the signee have been verified.
 
 In addition to the seven oracles mentioned above, the `oracles` folder also contains a `CryptoService` with helper functions for sha256 checksums and validating ECS signatures.
 
 ## Parser
+
+
 
 ## Values
