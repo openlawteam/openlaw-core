@@ -1,0 +1,252 @@
+package org.adridadou.openlaw.parser.template
+
+import java.time.Clock
+
+import org.adridadou.openlaw.parser.contract.ParagraphEdits
+import org.adridadou.openlaw.parser.template.printers.{AgreementPrinter, PreviewHtmlAgreementPrinter, ReviewHtmlAgreementPrinter}
+import org.adridadou.openlaw.parser.template.variableTypes.YesNoType
+import org.parboiled2.ParseError
+
+import scala.util.{Failure, Success, Try}
+import cats.implicits._
+import org.adridadou.openlaw.parser.template.expressions.Expression
+
+/**
+  * Created by davidroon on 05.06.17.
+  */
+class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
+
+  def parseExpression(str: String):Either[String, Expression] = new ExpressionParser(str).root.run() match {
+    case Success(result) => Right(result)
+    case Failure(ex) => Left(ex.getMessage)
+  }
+
+  def compileTemplateOrThrow(content: String):CompiledTemplate = compileTemplate(content) match {
+    case Right(document) => document
+    case Left(ex) => throw new RuntimeException(ex)
+  }
+
+  def compileTemplate(source: String, clock:Clock = internalClock):Either[String, CompiledTemplate] = {
+    val compiler = createTemplateCompiler(source, clock)
+
+    Try(compiler.rootRule.run().toEither match {
+      case Left(parseError:ParseError) =>
+        Left(compiler.formatError(parseError))
+      case Left(ex) =>
+        Left(Option(ex.getMessage).getOrElse(""))
+      case Right(result) =>
+        validate(result)
+    }) match {
+      case Success(result) =>
+        result
+      case Failure(ex) =>
+        Left(Option(ex.getMessage).getOrElse(""))
+    }
+  }
+
+  private def validate(template:CompiledTemplate):Either[String, CompiledTemplate] = {
+    variableTypesMap(template.block.elems, VariableRedefinition()) map template.withRedefinition
+  }
+
+  private def variableTypesMap(elems:Seq[TemplatePart], redefinition:VariableRedefinition):Either[String, VariableRedefinition] = {
+    val initialValue:Either[String, VariableRedefinition] = Right(redefinition)
+    elems.foldLeft(initialValue)((currentTypeMap, elem) => currentTypeMap.flatMap(variableTypesMap(elem, _)))
+  }
+
+  private def redefine(redefinition: VariableRedefinition, name:String, varTypeDefinition:VariableTypeDefinition, description:Option[String]):VariableRedefinition = {
+    val typeMap = redefinition.typeMap + (name -> varTypeDefinition)
+    val descriptions = description match {
+      case Some(desc) => redefinition.descriptions + (name -> desc)
+      case None => redefinition.descriptions
+    }
+    redefinition.copy(
+      typeMap = typeMap,
+      descriptions = descriptions)
+  }
+
+  private def variableTypesMap(elem:TemplatePart, redefinition:VariableRedefinition):Either[String, VariableRedefinition] = elem match {
+    case variable:VariableDefinition if variable.nameOnly =>
+      Right(redefinition)
+
+    case variable:VariableDefinition =>
+      redefinition.typeMap.get(variable.name.name) match {
+        case _ if variable.isAnonymous => Right(redefinition)
+        case Some(otherType) if variable.variableTypeDefinition.exists(_ === otherType) =>
+          Right(redefinition)
+        case Some(otherType) =>
+          Left(s"error mismatch for ${variable.name}. Was previously defined as $otherType but then as ${variable.variableTypeDefinition}")
+        case None =>
+          variable.variableTypeDefinition
+            .map(typeDefinition => redefine(redefinition, variable.name.name, typeDefinition, variable.description))
+            .toRight(s"${variable.name} is missing a variable type name")
+      }
+
+    case _:VariableName =>
+      Right(redefinition)
+
+    case ConditionalBlock(block, conditionalExpression) =>
+      val newTypeMap = conditionalExpression match {
+        case variable:VariableDefinition =>
+          redefinition.typeMap.get(variable.name.name) match {
+            case Some(otherType) if otherType === VariableTypeDefinition(YesNoType.name) =>
+              Right(redefinition)
+            case Some(otherType) =>
+              Left(s"error mismatch for ${variable.name}. Was previously defined as $otherType but then as ${variable.variableTypeDefinition}")
+            case None =>
+              Right(redefine(redefinition, variable.name.name, VariableTypeDefinition(YesNoType.name), variable.description))
+          }
+        case _ =>
+          Right(redefinition)
+      }
+      block.elems.foldLeft(newTypeMap)((currentTypeMap, elem) => currentTypeMap.flatMap(variableTypesMap(elem, _)))
+
+    case CodeBlock(elems) =>
+      variableTypesMap(elems, redefinition)
+
+    case VariableSection(_, variables) =>
+      variableTypesMap(variables, redefinition)
+
+    case ConditionalBlockSet(blocks) =>
+      val initialValue:Either[String, VariableRedefinition] = Right(redefinition)
+      blocks.foldLeft(initialValue)((currentTypeMap, block) => currentTypeMap.flatMap(variableTypesMap(block, _)))
+    case _ =>
+      Right(redefinition)
+  }
+
+  def parseMarkdown(markdown:String):Either[String, Seq[TextElement]] = {
+    val compiler = createMarkdownParser(markdown)
+
+    compiler.rootRule.run().toEither match {
+      case Left(parseError:ParseError) => Left(compiler.formatError(parseError))
+      case Left(ex) => Left(ex.getClass + ":" + ex.getMessage)
+      case Right(result) => Right(result)
+    }
+  }
+
+  def forPreview(structuredAgreement: StructuredAgreement, overriddenParagraphs:ParagraphEdits):String =
+    render(structuredAgreement, overriddenParagraphs, PreviewHtmlAgreementPrinter(), Set()).result
+
+  def forPreview(structuredAgreement: StructuredAgreement, overriddenParagraphs:ParagraphEdits, hiddenVariables:Seq[String]):String =
+    render(structuredAgreement, overriddenParagraphs, PreviewHtmlAgreementPrinter(), hiddenVariables.toSet).result
+
+  def forPreview(paragraph:Paragraph, variables:Seq[String]):String =
+    renderParagraph(paragraph,ParagraphEdits(), variables.toSet, PreviewHtmlAgreementPrinter()).result
+
+  def forReview(structuredAgreement: StructuredAgreement, overriddenParagraphs:ParagraphEdits):String =
+    forReview(structuredAgreement, overriddenParagraphs, structuredAgreement.executionResult.getVariables.map(_.name.name))
+
+  def forReview(structuredAgreement: StructuredAgreement, overriddenParagraphs:ParagraphEdits, variables:Seq[String]):String =
+    render(structuredAgreement, overriddenParagraphs, ReviewHtmlAgreementPrinter(), variables.toSet).result
+
+  def forReview(paragraph: Paragraph, variables:Seq[String]):String =
+    renderParagraph(paragraph, ParagraphEdits(), variables.toSet, ReviewHtmlAgreementPrinter()).result
+
+  def forReviewEdit(paragraph:Paragraph):String = {
+    renderParagraph(prepareSingleParagraph(paragraph),ParagraphEdits(), Set(), ReviewHtmlAgreementPrinter()).result
+  }
+
+  private def prepareSingleParagraph(paragraph: Paragraph):Paragraph = Paragraph(paragraph.elements.filter({
+      case _:FreeText => true
+      case _:VariableElement => true
+      case _ => false
+    }))
+
+  def render[T](structuredAgreement: StructuredAgreement, overriddenParagraphs:ParagraphEdits, agreementPrinter: AgreementPrinter[T], hiddenVariables:Set[String]):AgreementPrinter[T] =
+    structuredAgreement.paragraphs
+    .foldLeft(agreementPrinter)({
+      case (printer,paragraph) =>
+        renderParagraph(paragraph, overriddenParagraphs, hiddenVariables, printer)
+    })
+
+  def handleOverriddenParagraph[T](p: AgreementPrinter[T], str: String):AgreementPrinter[T] = {
+    val newP = parseMarkdown(str) match {
+      case Left(ex) => throw new RuntimeException("error while parsing the markdown:" + ex)
+      case Right(result) => result
+        .foldLeft(p)({case (printer, elem) =>
+          renderElement(FreeText(elem), Paragraph(), None, Set(), printer)
+        })
+    }
+    newP.newState(p.state.copy(overriddenParagraphGenerated = true))
+  }
+
+  def getOrThrow(either:Either[String, CompiledTemplate]):CompiledTemplate = either match {
+    case Right(compiledTemplate) => compiledTemplate
+    case Left(ex) => throw new RuntimeException(ex)
+  }
+
+  private def renderParagraph[T](paragraph: Paragraph, overriddenParagraphs:ParagraphEdits, hiddenVariables:Set[String], agreementPrinter: AgreementPrinter[T]): AgreementPrinter[T] = {
+    if(hasContent(paragraph)) {
+      val p = agreementPrinter
+          .paragraphStart()
+
+      val optParagraph = overriddenParagraphs.edits.get(agreementPrinter.state.paragraphIndex)
+            paragraph
+              .elements.foldLeft(p)({case (printer, element) => renderElement(element, paragraph, optParagraph, hiddenVariables, printer)})
+              .paragraphFooter.paragraphEnd()
+    }else {
+      paragraph
+        .elements.foldLeft(agreementPrinter)({case (printer, element) => renderElement(element, paragraph, None, hiddenVariables, printer)})
+    }
+  }
+
+  private def hasContent(paragraph:Paragraph):Boolean = paragraph.elements.exists({
+    case _:FreeText => true
+    case _:VariableElement => true
+    case _:SectionElement => true
+    case _ => false
+  })
+
+  private def renderElement[T](element: AgreementElement, docParagraph:Paragraph, optParagraph:Option[String], hiddenVariables:Set[String], agreementPrinter: AgreementPrinter[T]): AgreementPrinter[T] = {
+    (element, optParagraph) match {
+      case (table:TableElement, _) =>
+        agreementPrinter.table(table) { (element: AgreementElement, printer: AgreementPrinter[T]) => renderElement(element, docParagraph, optParagraph, hiddenVariables, printer) }
+      case (_:FreeText, _) if !agreementPrinter.state.headerGenerated =>
+        renderElement(element, docParagraph, optParagraph, hiddenVariables, agreementPrinter.paragraphHeader(docParagraph))
+      case (_:VariableElement, _) if !agreementPrinter.state.headerGenerated =>
+        renderElement(element,docParagraph, optParagraph, hiddenVariables, agreementPrinter.paragraphHeader(docParagraph))
+      case (_:FreeText, Some(paragraph)) if !agreementPrinter.state.overriddenParagraphGenerated =>
+        handleOverriddenParagraph(agreementPrinter, paragraph)
+      case (_:VariableElement, Some(paragraph)) if !agreementPrinter.state.overriddenParagraphGenerated =>
+        handleOverriddenParagraph(agreementPrinter,  paragraph)
+      case (_:SectionElement, Some(paragraph)) if !agreementPrinter.state.overriddenParagraphGenerated =>
+        handleOverriddenParagraph(agreementPrinter, paragraph)
+      case (_:FreeText, _) if agreementPrinter.state.overriddenParagraphGenerated =>
+        agreementPrinter
+      case (_:VariableElement,_) if agreementPrinter.state.overriddenParagraphGenerated =>
+        agreementPrinter
+      case (_:SectionElement,_) if agreementPrinter.state.overriddenParagraphGenerated =>
+        agreementPrinter
+      case (txt:FreeText,_) if agreementPrinter.state.conditionalDepth > 0 =>
+        agreementPrinter.conditionalTextStart().text(txt.elem).conditionalTextEnd()
+      case (txt:FreeText,_) =>
+        agreementPrinter.text(txt.elem)
+      case (link:Link,_) =>
+        agreementPrinter.link(link)
+      case (variable:VariableElement,_) if variable.dependencies.forall(variable => !hiddenVariables.contains(variable)) =>
+        agreementPrinter.variableStart(variable.name)
+        variable.content
+          .foldLeft(agreementPrinter)((p, elem) => renderElement(elem, docParagraph, optParagraph, hiddenVariables, p))
+            .variableEnd()
+      case (variable:VariableElement,_) =>
+        variable.content
+          .foldLeft(agreementPrinter)((p, elem) => renderElement(elem, docParagraph, optParagraph, hiddenVariables, p))
+      case (ConditionalStart(dependencies),_) if dependencies.forall(variable => !hiddenVariables.contains(variable)) =>
+        agreementPrinter.conditionalStart()
+      case (ConditionalEnd(dependencies),_) if dependencies.forall(variable => !hiddenVariables.contains(variable)) =>
+        agreementPrinter.conditionalEnd()
+      case (section:SectionElement, _) =>
+        agreementPrinter
+          .sectionStart(section)
+          .paragraphHeader(docParagraph)
+          .sectionHeader(section)
+      case _ =>
+        agreementPrinter
+    }
+  }
+
+  private def createTemplateCompiler(markdown:String, clock:Clock):OpenlawTemplateLanguageParser = new OpenlawTemplateLanguageParser(markdown, clock)
+  private def createMarkdownParser(markdown:String):MarkdownParser = new MarkdownParser(markdown)
+}
+
+
+case class VariableRedefinition(typeMap:Map[String, VariableTypeDefinition] = Map(), descriptions:Map[String,String] = Map())

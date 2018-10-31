@@ -1,0 +1,57 @@
+*.class
+*.log
+
+# sbt specific
+.cache
+.history
+.lib/
+dist/*
+target/
+!target/scala-2.12/api/lib
+!target/scala-2.12/api/org
+!target/scala-2.12/api/index.html
+!target/scala-2.12/api/index.js
+lib_managed/
+src_managed/
+project/boot/
+project/plugins/project/
+
+# Scala-IDE specific
+.scala_dependencies
+.worksheet
+/.idea/
+!/project/.sbtserver
+!/project/.sbtserver.lock
+/project/.sbtserver.lock
+/project/.sbtserver
+/bin/
+/logs/
+/database/
+/elastic_data/
+
+# NPM
+/node_modules/
+*.tgz
+
+# JS Bundles
+/client/build
+
+# OS-specific
+.directory
+.DS_Store
+conf/generated_documents/.directory
+client/src/main/scala/org/adridadou/openlaw/client/react/
+client/src/test/scala/ui/react/
+ls
+
+# SASS
+.sass-cache
+/journal.bak/
+
+project/.idea
+project/project
+
+.DS_Store
+client/src/main/scala/org/adridadou/openlaw/.DS_Store
+client/src/main/scala/org/adridadou/openlaw/client/.DS_Store
+
