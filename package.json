@@ -45,7 +45,7 @@
     "url": "https://github.com/openlawteam/openlaw-core.git"
   },
   "author": "openlawteam <opensource@openlaw.io>",
-  "license": "ISC",
+  "license": "Apache-2.0",
   "bugs": "https://github.com/openlawteam/openlaw-core/issues",
   "homepage": "https://openlaw.io",
   "devDependencies": {

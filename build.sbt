@@ -70,7 +70,7 @@ lazy val dependencySettings = Seq(
 
 lazy val publishSettings = Seq(
   homepage := Some(url(s"https://github.com/$username/$repo")),
-  licenses ++= Seq(("ISC", url("http://opensource.org/licenses/ISC"))),
+  licenses ++= Seq(("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0"))),
   bintrayOrganization := Some("openlaw"),
   bintrayRepository := "openlaw-core",
   bintrayPackageLabels := Seq("shared", "client"),
