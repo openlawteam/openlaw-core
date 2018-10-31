@@ -66,16 +66,17 @@ Finally, but perhaps most crucially, the `OpenlawTemplateLanguageParserService` 
 
 Finally, the `values` folder contains several other types which are key to OpenLaw's formulation of templates and contracts.
 
-`ContractAccess` defines permission levels for contracts, which, when integrated elsewhere, enables granularity of access based on the use case.
+`ContractAccess` defines permission levels for contracts, which, when integrated elsewhere, enable granularity of access based on the use case.
 
 `ContractDefinition` holds the definition of a contract and contains the following parameters:
 
   `creatorId`: The creator of the contract with type `UserId`.
   `mainTemplate`: The main template of the contract with type `TemplateId`, analogous to the main class in a program. The `TemplateId` type is defined elsewhere in the `values` folder.
   `templates`: Other templates which may be included in the contract with type `Map[TemplateSourceIdentifier, TemplateId]`.
-  `parameters`: The parameters of the contract, as input by the user in the form in the editor, with type `TemplateParameters`. The `TemplateParameters` type is defined elsewhere in the `values` folder.
+  `parameters`: The parameters of the contract, as input by the user in the template editor, with type `TemplateParameters`. The `TemplateParameters` type is defined elsewhere in the `values` folder.
   `paragraphs`: Paragraphs within the contract which have been edited by the user in the template editor, with type `Map[Int, ParagraphEdits]`.
-On its own, a `ContractDefinition` type simply holds information. It needs the VM in order to be executed.
+
+Note that a `ContractDefinition` needs the VM in order to be executed.
 
 More broadly speaking, on the OpenLaw platform, a contract has an id which is a hash representing the contract, based on the creator ID, ID of the main template, all the parameters, and the template scope. This hash gives significant security advantages. First, as with any hash, since its id will change if any of the above changes, it serves as a useful, unique means of identifying the contract, as well as determining if it has been tampered with. Second, though the hash will be stored on the Ethereum blockchain, it will be difficult to derive any useful information from the hash alone. Finally, since a contract has multiple signatories, any attempts at tampering from one signatory's side will not get very far, since the versions between the two signatories have diverged, as indicated by the conflicting hashes, and thus the consensus will fail.
 
