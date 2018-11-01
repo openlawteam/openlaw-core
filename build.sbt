@@ -1,5 +1,5 @@
-import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
-import sbt.Keys.credentials
+import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
+import ReleaseTransformations._
 
 import scala.language.postfixOps
 import sbt.{Credentials, file, _}
@@ -73,7 +73,7 @@ lazy val publishSettings = Seq(
   publishTo in ThisBuild := Some("Bintray" at "https://api.bintray.com/maven/openlaw/maven/openlaw-core"),
   credentials += Credentials(Path.userHome / ".ivy2" / ".credentials"),
 )
-/*
+
 lazy val releaseSettings = releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,              // : ReleaseStep
   inquireVersions,                        // : ReleaseStep
@@ -82,9 +82,9 @@ lazy val releaseSettings = releaseProcess := Seq[ReleaseStep](
   tagRelease,                             // : ReleaseStep
   setNextVersion,                         // : ReleaseStep
   commitNextVersion,                      // : ReleaseStep
-  pushChanges                             // : ReleaseStep, also checks that an upstream branch is properly configured
+  pushChanges,                            // : ReleaseStep, also checks that an upstream branch is properly configured
+  publishArtifacts
 )
-*/
 
 val rules = Seq(Wart.ArrayEquals, Wart.OptionPartial, Wart.EitherProjectionPartial, Wart.Enumeration, Wart.ExplicitImplicitTypes, Wart.FinalVal, Wart.JavaConversions, Wart.JavaSerializable, Wart.LeakingSealed)
 
@@ -105,7 +105,7 @@ lazy val openlawCoreJvm = (project in file("openlawCoreJvm")).settings(
   .dependsOn(sharedJvm)
   .settings(dependencySettings: _*)
   .settings(publishSettings: _*)
-  //.settings(releaseSettings: _*)
+  .settings(releaseSettings: _*)
 
 lazy val openlawCoreJs = (project in file("openlawCoreJs")).settings(
   scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule)},
@@ -122,7 +122,7 @@ lazy val openlawCoreJs = (project in file("openlawCoreJs")).settings(
   .dependsOn(sharedJs)
   .settings(dependencySettings: _*)
   .settings(publishSettings: _*)
-  //.settings(releaseSettings: _*)
+  .settings(releaseSettings: _*)
 
 lazy val shared = crossProject(JSPlatform, JVMPlatform)
   .withoutSuffixFor(JVMPlatform)
