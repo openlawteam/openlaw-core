@@ -32,8 +32,8 @@ We also have an active OpenLaw Community Slack:
 
 * [Join the Openlaw Community Slack Team](https://join.slack.com/t/openlaw-community/shared_invite/enQtMzY1MTA2ODY3ODg5LTc0ZGQ4OTEwMDEyMGUxMzJmMDVmNzM1ODRmNTdkNDIyNDkyOGU0NmRkMmRlMmY3ZTMwYzNlOTFiMzUwZjJkOTk)
     * Even though Slack is a chat service, sometimes it takes several hours for OpenLaw team members to respond &mdash; however, we'll get to your query as soon as we can! Our team is distributed across timezones and wants to help you.
-    * Use the `#general` channel for general questions or discussion about OpenLaw
-    * Use the `#bugs` channel for reporting bugs with the OpenLaw application (as distinct from bugs you encounter in running one of our core libraries - for those, you should open an issue as discussed [below](#reporting-bugs).
+    * Use the `#general` channel for general questions or discussion about OpenLaw.
+    * Use the `#bugs` channel for reporting bugs with the OpenLaw application (as distinct from bugs you encounter in running one of our core libraries &mdash; for those, you should open an issue as discussed [below](#reporting-bugs).
 
 ## How Can I Contribute?
 
@@ -47,7 +47,7 @@ Before creating bug reports, please check [this list](#before-submitting-a-bug-r
 
 #### Before Submitting A Bug Report
 
-* **Reach out to our team on Slack in the `#bugs` channel.
+* **Reach out to our team on Slack in the `#bugs` channel.**
 * **Perform a [cursory 
 search](https://github.com/openlawteam/openlaw-core/issues)** 
 to see if the problem has already 
@@ -70,7 +70,7 @@ When creating an issue, explain the problem and include additional details to he
 
 Provide more context by answering these questions:
 
-* **Did the problem start happening recently** (e.g. after updating to a new version of `openlaw-core`) or was this always a problem?
+* **Did the problem start happening recently** (e.g., after updating to a new version of `openlaw-core`) or was this always a problem?
 * If the problem started happening recently, **can you reproduce the problem in an older version of openlaw-core?** What's the most recent version in which the problem doesn't happen?
 * **Can you reliably reproduce the issue?** If not, provide details about how often the problem happens and under which conditions it normally happens.
 
@@ -102,5 +102,5 @@ Enhancement suggestions are tracked as [GitHub issues](https://guides.github.com
 * **Provide a step-by-step description of the suggested enhancement** in as many details as possible.
 * **Provide specific examples to demonstrate the steps**. Include copy/pasteable snippets which you use in those examples, as [Markdown code blocks](https://help.github.com/articles/markdown-basics/#multiple-lines).
 * **Describe the current behavior** and **explain which behavior you expected to see instead** and why.
-* * **Include screenshots and videos** which show you following the described steps and clearly demonstrate the problem. We recommend [Loom](useloom.com).
+* **Include screenshots and videos** which show you following the described steps and clearly demonstrate the problem. We recommend [Loom](useloom.com).
 * **Explain why this enhancement would be useful** to users of OpenLaw.
