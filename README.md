@@ -1,8 +1,22 @@
 Shared libraries for the OpenLaw project.
 
-To release to Bintray:
+## Getting started
+If you want to know more about this library, please read [this](CORE.md)
 
-`sbt release`
+To use Openlaw core in your javascript project, you can use our npm package with 
+`npm install openlaw --save`
+
+If you want to use Openlaw core in your scala project, here is how to add it to your sbt project:
+
+```scala
+// First add our repository 
+resolvers += "https://openlaw.bintray.com/openlaw-core"
+
+//add the dependency
+libraryDependencies += "org.openlaw" % "openlaw-core" & "<last version>"
+
+```
+
 
 ## License
 

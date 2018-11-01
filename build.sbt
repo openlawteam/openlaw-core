@@ -1,31 +1,20 @@
-import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
+import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
 import ReleaseTransformations._
 
 import scala.language.postfixOps
 import sbt.{file, _}
 
 name := "core"
-
 organization := "org.openlaw"
-
 homepage := Some(url("https://openlaw.io"))
-
 lazy val username = "openlaw"
-
 lazy val repo     = "openlaw-core"
 
 lazy val scalaV = "2.12.7"
-
-lazy val propellerV = "0.30"
-
+lazy val propellerV = "0.35"
 lazy val catsV = "1.4.0"
-
 lazy val parboiledV = "2.1.5"
-
-lazy val circeV = "0.10.0"
-
-lazy val poiV = "4.0.0"
-
+lazy val circeV = "0.10.1"
 lazy val akkaV = "2.5.17"
 
 lazy val repositories = Seq(
@@ -41,13 +30,6 @@ lazy val repositories = Seq(
   Resolver.mavenLocal
 )
 
-/*publishTo in ThisBuild := {
-  val nexus = "https://nexus.build.openlaw.io/repository/"
-  if (isSnapshot.value)
-    Some("Snapshot" at nexus + "maven-snapshots")
-  else
-    Some("Releases"  at nexus + "maven-releases")
-}*/
 coursierUseSbtCredentials := true
 
 packageOptions += Package.ManifestAttributes(
@@ -62,7 +44,6 @@ javacOptions ++= Seq("-Xms512M", "-Xmx1024M", "-Xss1M", "-XX:+CMSClassUnloadingE
 
 lazy val dependencySettings = Seq(
   organization := "org.openlaw",
-  version := "0.1.-SNAPSHOT",
   scalaVersion := scalaV,
   // Add your sbt-dependency-check settings
   dependencyCheckOutputDirectory := Some(file("owasp"))
@@ -79,9 +60,15 @@ lazy val publishSettings = Seq(
   developers := List(
     Developer(
       id = username,
+      name = "David Roon",
+      email = "david.roon@consensys.net",
+      url = new URL(s"http://github.com/adridadou")
+    ),
+    Developer(
+      id = username,
       name = "Jacqueline Outka",
       email = "jacqueline@outka.xyz",
-      url = new URL(s"http://github.com/${username}")
+      url = new URL(s"http://github.com/$username")
     )
   ),
   publishTo in ThisBuild := Some("Bintray" at "https://api.bintray.com/maven/openlaw/maven/openlaw-core")
@@ -100,9 +87,29 @@ lazy val releaseSettings = releaseProcess := Seq[ReleaseStep](
 
 val rules = Seq(Wart.ArrayEquals, Wart.OptionPartial, Wart.EitherProjectionPartial, Wart.Enumeration, Wart.ExplicitImplicitTypes, Wart.FinalVal, Wart.JavaConversions, Wart.JavaSerializable, Wart.LeakingSealed)
 
-lazy val client = (project in file("client")).settings(
+lazy val openlawCoreJvm = (project in file("openlawCoreJvm")).settings(
+  wartremoverErrors ++= rules,
+  scalaVersion := scalaV,
+  name := "openlaw-core",
+  resolvers ++= repositories,
+  libraryDependencies ++= Seq(
+    //Test
+    "org.scalacheck"          %% "scalacheck"          % "1.14.0"       % Test,
+    "org.scalatest"           %% "scalatest"           % "3.0.6-SNAP2"  % Test,
+    "org.mockito"             %  "mockito-all"         % "1.10.19"      % Test,
+    "org.adridadou"           %% "eth-propeller-scala" % propellerV % Test,
+  ),
+  publishArtifact in (Compile, packageDoc) := false
+).enablePlugins(WartRemover)
+  .dependsOn(sharedJvm)
+  .settings(dependencySettings: _*)
+  .settings(publishSettings: _*)
+  .settings(releaseSettings: _*)
+
+lazy val openlawCoreJs = (project in file("openlawCoreJs")).settings(
   scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule)},
   scalaVersion := scalaV,
+  name := "openlaw-core-js",
   resolvers ++= repositories,
   libraryDependencies ++= Seq(
     "org.scala-js"  %%% "scalajs-dom"             % "0.9.6",
@@ -125,26 +132,21 @@ lazy val shared = crossProject(JSPlatform, JVMPlatform)
     resolvers ++= repositories,
     scalaVersion := scalaV,
     libraryDependencies ++= Seq(
-      "io.circe"                %% "circe-iteratee"  % "0.11.0",
-      "io.iteratee"             %% "iteratee-monix"  % "0.18.0",
-      "io.monix"                %% "monix-eval"      % "3.0.0-fbcb270",
-      "io.monix"                %% "monix-execution" % "3.0.0-fbcb270",
-      "io.circe"                %% "circe-core"      % circeV,
-      "io.circe"                %% "circe-generic"   % circeV,
-      "io.circe"                %% "circe-parser"    % circeV,
-      "com.typesafe.play"       %% "play-json"       % "2.6.10",
-      "org.parboiled"           %% "parboiled"       % parboiledV,
-      "org.typelevel"           %% "cats-core"       % catsV,
-      "org.typelevel"           %% "cats-free"       % catsV,
-      "io.github.cquiroz"       %% "scala-java-time" % "2.0.0-M13",
-      "biz.enef"                %% "slogging-slf4j"  % "0.6.1",
-      "org.scalacheck"          %% "scalacheck"      % "1.14.0"       % Test,
-      "org.scalatest"           %% "scalatest"       % "3.0.6-SNAP2"  % Test,
-      "org.mockito"             % "mockito-all"      % "1.10.19"      % Test,
-      "org.adridadou"           %% "eth-propeller-scala" % propellerV % Test,
+      "io.circe"                %% "circe-iteratee"      % "0.11.0",
+      "io.iteratee"             %% "iteratee-monix"      % "0.18.0",
+      "io.monix"                %% "monix-eval"          % "3.0.0-fbcb270",
+      "io.monix"                %% "monix-execution"     % "3.0.0-fbcb270",
+      "io.circe"                %% "circe-core"          % circeV,
+      "io.circe"                %% "circe-generic"       % circeV,
+      "io.circe"                %% "circe-parser"        % circeV,
+      "com.typesafe.play"       %% "play-json"           % "2.6.10",
+      "org.parboiled"           %% "parboiled"           % parboiledV,
+      "org.typelevel"           %% "cats-core"           % catsV,
+      "org.typelevel"           %% "cats-free"           % catsV,
+      "io.github.cquiroz"       %% "scala-java-time"     % "2.0.0-M13",
+      "biz.enef"                %% "slogging-slf4j"      % "0.6.1"
     )
-  ).
-  jsSettings(
+  ).jsSettings(
     resolvers ++= repositories,
     scalaVersion := scalaV,
     libraryDependencies ++= Seq(
@@ -162,8 +164,6 @@ lazy val shared = crossProject(JSPlatform, JVMPlatform)
     )
   )
   .settings(dependencySettings: _*)
-  .settings(publishSettings: _*)
-  .settings(releaseSettings: _*)
   .enablePlugins(WartRemover)
 
 lazy val sharedJvm = shared.jvm
