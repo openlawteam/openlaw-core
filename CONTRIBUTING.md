@@ -2,7 +2,9 @@
 
 :+1::tada: First off, thanks for being interested in contributing to OpenLaw! :tada::+1:
 
-The following is a set of guidelines for contributing to OpenLaw and its packages, which are hosted in the [OpenLaw Organization](https://github.com/openlawteam) on GitHub.
+The following is a set of guidelines for contributing to OpenLaw and 
+its open-source repositories, which are hosted in the [OpenLaw 
+Organization](https://github.com/openlawteam) on GitHub.
 
 #### Table Of Contents
 
@@ -13,18 +15,6 @@ The following is a set of guidelines for contributing to OpenLaw and its package
 [How Can I Contribute?](#how-can-i-contribute)
   * [Reporting Bugs](#reporting-bugs)
   * [Suggesting Enhancements](#suggesting-enhancements)
-  * [Your First Code Contribution](#your-first-code-contribution)
-  * [Pull Requests](#pull-requests)
-
-[Styleguides](#styleguides)
-  * [Git Commit Messages](#git-commit-messages)
-  * [JavaScript Styleguide](#javascript-styleguide)
-  * [CoffeeScript Styleguide](#coffeescript-styleguide)
-  * [Specs Styleguide](#specs-styleguide)
-  * [Documentation Styleguide](#documentation-styleguide)
-
-[Additional Notes](#additional-notes)
-  * [Issue and Pull Request Labels](#issue-and-pull-request-labels)
 
 ## Code of Conduct
 
@@ -58,7 +48,10 @@ Before creating bug reports, please check [this list](#before-submitting-a-bug-r
 #### Before Submitting A Bug Report
 
 * **Reach out to our team on Slack in the `#bugs` channel.
-* **Perform a [cursory search](https://github.com/search?q=+is%3Aissue+user%3Aopenlaw-core)** to see if the problem has already been reported. If it has **and the issue is still open**, add a comment to the existing issue instead of opening a new one.
+* **Perform a [cursory 
+search](https://github.com/openlawteam/openlaw-core/issues)** 
+to see if the problem has already 
+been reported. If it has **and the issue is still open**, add a comment to the existing issue instead of opening a new one.
 
 #### How Do I Submit A (Good) Bug Report?
 
@@ -95,7 +88,10 @@ Before creating enhancement suggestions, please check [this list](#before-submit
 
 #### Before Submitting An Enhancement Suggestion
 
-* **Perform a [cursory search](https://github.com/search?q=+is%3Aissue+user%3Aopenlaw-core)** to see if the enhancement has already been suggested. If it has, add a comment to the existing issue instead of opening a new one.
+* **Perform a [cursory 
+search](https://github.com/openlawteam/openlaw-core/issues)** 
+to see if the enhancement has 
+already been suggested. If it has, add a comment to the existing issue instead of opening a new one.
 
 #### How Do I Submit A (Good) Enhancement Suggestion?
 

@@ -17,6 +17,8 @@ libraryDependencies += "org.openlaw" % "openlaw-core" & "<last version>"
 
 ```
 
+## Contributing 
+See information about contributing [here](CONTRIBUTING.md).
 
 ## License
 
