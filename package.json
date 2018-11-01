@@ -1,6 +1,6 @@
 {
   "name": "openlaw",
-  "version": "1.0.1",
+  "version": "0.1.0",
   "description": "JavaScript library for integrating the OpenLaw protocol to store, edit, and manage smart legal agreements.",
   "keywords": [
     "openlaw",
