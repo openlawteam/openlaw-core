@@ -14,7 +14,7 @@ addSbtPlugin("org.scala-js" % "sbt-scalajs" % "0.6.25")
 addSbtPlugin("org.portable-scala" % "sbt-scalajs-crossproject" % "0.6.0")
 addSbtPlugin("com.typesafe.sbt" % "sbt-digest" % "1.1.4")
 addSbtPlugin("net.virtual-void" % "sbt-dependency-graph" % "0.9.0")
-addSbtPlugin("org.foundweekends" % "sbt-bintray" % "0.5.1")
+addSbtPlugin("org.foundweekends" % "sbt-bintray" % "0.5.4")
 addSbtPlugin("com.github.gseitz" % "sbt-release" % "1.0.7")
 
 addSbtPlugin("org.lyranthe.sbt" % "partial-unification" % "1.1.0")
