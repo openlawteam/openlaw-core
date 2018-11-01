@@ -30,8 +30,6 @@ lazy val repositories = Seq(
   Resolver.mavenLocal
 )
 
-coursierUseSbtCredentials := true
-
 packageOptions += Package.ManifestAttributes(
   "Implementation-Version" -> (version in ThisBuild).value,
   "Implementation-Title" -> name.value
@@ -117,7 +115,7 @@ lazy val openlawCoreJs = (project in file("openlawCoreJs")).settings(
   relativeSourceMaps := true,
   artifactPath in (Compile, fastOptJS) := crossTarget.value / "client.js",
   artifactPath in (Compile, fullOptJS) := crossTarget.value / "client.js"
-).enablePlugins(ScalaJSPlugin, ScalaJSWeb)
+).enablePlugins(ScalaJSPlugin)
   .dependsOn(sharedJs)
   .settings(dependencySettings: _*)
   .settings(publishSettings: _*)
