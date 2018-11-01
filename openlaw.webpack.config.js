@@ -2,7 +2,7 @@ let path = require('path');
 
 module.exports = {
   entry: {
-    Openlaw: path.resolve(__dirname, './client/target/scala-2.12/client.js'),
+    Openlaw: path.resolve(__dirname, './openlawCoreJs/target/scala-2.12/client.js'),
   },
   output: {
     filename: '[name].bundle.js',

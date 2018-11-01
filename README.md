@@ -1,7 +1,7 @@
 # Shared libraries for the OpenLaw project.
 
 ## Getting started
-If you want to learn more about this library, please read our [OpenLaw core overview](CORE.md).
+If you want to learn more about this library, please read our [OpenLaw core overview](https://docs.openlaw.io/openlaw-core/), which describes the Scala portion of the code.
 
 To use OpenLaw core in your JavaScript project, you can use our npm package with 
 `npm install openlaw --save`. You can find further instructions for how to use the library [here](npm.README.md) and in our [docs](https://docs.openlaw.io).
@@ -17,7 +17,16 @@ libraryDependencies += "org.openlaw" % "openlaw-core" & "<last version>"
 
 ```
 
+## Troubleshooting 
+
+You need to do `sbt "project openlawCoreJs" fullOptJS` before the first time you run `npm run build`. Otherwise, you will see an error like the below:
+
+```
+ERROR in Entry module not found: Error: Can't resolve '/$YOUR_DIR/openlaw-core/client/target/scala-2.12/client.js' in '/$YOUR_DIR/openlaw-core'.
+```
+
 ## Contributing 
+
 See information about contributing [here](CONTRIBUTING.md).
 
 ## License
