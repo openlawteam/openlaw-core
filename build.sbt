@@ -109,7 +109,7 @@ lazy val openlawCoreJvm = (project in file("openlawCoreJvm")).settings(
 lazy val openlawCoreJs = (project in file("openlawCoreJs")).settings(
   scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule)},
   scalaVersion := scalaV,
-  name := "openlaw-core-js",
+  name := "openlaw-core",
   resolvers ++= repositories,
   libraryDependencies ++= Seq(
     "org.scala-js"  %%% "scalajs-dom"             % "0.9.6",
