@@ -1,8 +1,8 @@
 # OpenLaw Core
 
-The Scala core of the OpenLaw project contains two sub-projects, `shared` and `client`. The `client`. The `client` library is well documented [elsewhere](https://docs.openlaw.io/openlaw-object).
+The Scala core of the OpenLaw project contains two sub-projects, `shared` and `client`. The `client` library is well documented elsewhere in our [docs](https://docs.openlaw.io/openlaw-object).
 
-The `shared` sub-project contains four key components: the oracles (in the `oracles` folder), a set of custom value types related to contracts and templates (in the `values` folder), the OpenLaw Markup Language parser and associated types and rules (in the `parser` folder), and the OpenLaw Virtual Machine (hereafter called "the VM") (in the `vm` folder).
+The `shared` sub-project contains four key components: (1) the oracles (in the `oracles` folder), (2) a set of custom value types related to contracts and templates (in the `values` folder), (3) the OpenLaw Markup Language parser and associated types and rules (in the `parser` folder), and (4) the OpenLaw Virtual Machine (hereafter called the "VM") (in the `vm` folder).
 
 ## General Concepts
 
@@ -10,13 +10,13 @@ In order to understand these components, we need to understand some fundamental 
 
 ## VM
 
-Under the hood, much of the workflow above is managed and moderated by the OpenLaw VM. The VM is a secure execution environment for contracts. It has several functions. First, it keeps track of the series of events over the contract's lifetime using the custom `OpenlawVmEvent` type. The VM uses `Oracles` to verify event requests. They will be discussed in greater detail [#Oracles](below).
+Under the hood, much of the workflow above is managed and moderated by the OpenLaw VM. The VM is a secure execution environment for contracts. It has several functions. First, it keeps track of the series of events over the contract's lifetime using the custom `OpenlawVmEvent` type. The VM uses `Oracles` to verify event requests. They will be discussed in greater detail [below](#oracles).
 
 Second, the VM keeps track of the state of the contract itself at any given time using the `OpenlawVmState` private variable. One important aspect of state involves the status of smart contracts embedded in the contract. The VM uses OpenLaw's Action API to query and store actions in the life of smart contracts. These actions may include starting, stopping, and resuming smart contract executions at time intervals which the user has specified.
 
 In order for the legal agreement to be interpreted properly, the OpenLaw Markup Language, like many other computer languages, needs to know how to interpret and compile custom language types. The `VariableExecutionEngine` and its sub-type the `OpenlawExecutionEngine` help handle some of the logic for this. For example, the `processExecutedElement` function in the `OpenlawExecutionEngine` pattern matches on the [type of the variable](https://docs.openlaw.io/markup-language/#variables) to provide specific execution instructions.
 
-The `OpenlawVmProvider` class contains just one method, `create`, which returns an `OpenlawVm` type. This is useful for integrating the `OpenlawVm` into server and other applications.
+The `OpenlawVmProvider` class contains just one method, `create`, which returns an `OpenlawVm` type. This is useful for integrating the `OpenlawVm` into the server and other applications.
 
 ## Oracles
 
@@ -24,9 +24,9 @@ OpenLaw's oracles are designed in a modular way so that they can be integrated w
 
 All oracles share a similar workflow:
 
-  -Validate the event being passed to the VM. This is typically done using a cryptographic proof.
+- Validate the event being passed to the VM. This is typically done using a cryptographic proof.
 
-  -If the validation check passes, allow the event to occur.
+- If the validation check passes, allow the event to occur.
 
 Currently, the following oracles exist:
 
@@ -56,7 +56,7 @@ The `fields` folder contains various `case objects` which extend the base type `
 
 The `template` folder is the most complex of the three. Definitions of features of the OpenLaw Markup Language and their expected behavior can be found here. In general, [the Markup Language docs](https://docs.openlaw.io/markup-language) are a solid companion to keep open while perusing this part of the codebase.
 
-For example, the `formatters` folder contains all classes extending the `Formatter` trait, which corresponds to the formatting features of the markup language as discussed [in the documentation](https://docs.openlaw.io/markup-language/#formatting). The `EthereumSmartContractCall` type declared in `variableTypes` defines the logic for the [smart contracts](https://docs.openlaw.io/markup-language/#smart-contracts) described in the docs. (The eagle-eyed may also notice the correspondence with the `EthereumSmartContractCallEvent` we mentioned in our `EthereumSmartContractOracle` above). The custom `IdentityType`, also in `variableTypes`, corresponds to the `Identity` type [which must be added to any agreement before it can be sent for signature](https://docs.openlaw.io/markup-language/#identity-and-signatures).
+For example, the `formatters` folder contains all classes extending the `Formatter` trait, which corresponds to the [formatting features](https://docs.openlaw.io/markup-language/#formatting) of the markup language as discussed in the documentation. The `EthereumSmartContractCall` type declared in `variableTypes` defines the logic for the [smart contracts](https://docs.openlaw.io/markup-language/#smart-contracts) described in the docs. (The eagle-eyed may also notice the correspondence with the `EthereumSmartContractCallEvent` we mentioned in our `EthereumSmartContractOracle` above). The custom `IdentityType`, also in `variableTypes`, corresponds to the `Identity` type [which must be added to any agreement before it can be sent for signature](https://docs.openlaw.io/markup-language/#identity-and-signatures).
 
 Another key utility here is the `printers` sub-folder. This contains case classes extending the `HTMLAgreementPrinter` trait. These custom types specify various means of outputting a marked-up legal agreement in HTML, which may be useful if integrating an OpenLaw legal agreement into a custom web application.
 
@@ -70,14 +70,14 @@ Finally, the `values` folder contains several other types which are key to OpenL
 
 `ContractDefinition` holds the definition of a contract and contains the following parameters:
 
-  `creatorId`: The creator of the contract with type `UserId`.
-  `mainTemplate`: The main template of the contract with type `TemplateId`, analogous to the main class in a program. The `TemplateId` type is defined elsewhere in the `values` folder.
-  `templates`: Other templates which may be included in the contract with type `Map[TemplateSourceIdentifier, TemplateId]`.
-  `parameters`: The parameters of the contract, as input by the user in the template editor, with type `TemplateParameters`. The `TemplateParameters` type is defined elsewhere in the `values` folder.
-  `paragraphs`: Paragraphs within the contract which have been edited by the user in the template editor, with type `Map[Int, ParagraphEdits]`.
+- `creatorId`: The creator of the contract with type `UserId`.
+- `mainTemplate`: The main template of the contract with type `TemplateId`, analogous to the main class in a program. The `TemplateId` type is defined elsewhere in the `values` folder.
+- `templates`: Other templates which may be included in the contract with type `Map[TemplateSourceIdentifier, TemplateId]`.
+- `parameters`: The parameters of the contract, as input by the user in the template editor, with type `TemplateParameters`. The `TemplateParameters` type is defined elsewhere in the `values` folder.
+- `paragraphs`: Paragraphs within the contract which have been edited by the user in the template editor, with type `Map[Int, ParagraphEdits]`.
 
 Note that a `ContractDefinition` needs the VM in order to be executed.
 
-More broadly speaking, on the OpenLaw platform, a contract has an id which is a hash representing the contract, based on the creator ID, ID of the main template, all the parameters, and the template scope. This hash gives significant security advantages. First, as with any hash, since its id will change if any of the above changes, it serves as a useful, unique means of identifying the contract, as well as determining if it has been tampered with. Second, though the hash will be stored on the Ethereum blockchain, it will be difficult to derive any useful information from the hash alone. Finally, since a contract has multiple signatories, any attempts at tampering from one signatory's side will not get very far, since the versions between the two signatories have diverged, as indicated by the conflicting hashes, and thus the consensus will fail.
+More broadly speaking, on the OpenLaw platform, a contract has an ID which is a hash representing the contract, based on the creator ID, ID of the main template, all the parameters, and the template scope. This hash gives significant security advantages. First, as with any hash, since its ID will change if any of the above changes, it serves as a useful, unique means of identifying the contract, as well as determining if it has been tampered with. Second, though the hash will be stored on the Ethereum blockchain, it will be difficult to derive any useful information from the hash alone. Finally, since a contract has multiple signatories, any attempts at tampering from one signatory's side will not get very far, since the versions between the two signatories have diverged, as indicated by the conflicting hashes, and thus the consensus will fail.
 
-Functionality relating to the id is stored in the `ContractId` case class and corresponding object.
+Functionality relating to the ID is stored in the `ContractId` case class and corresponding object.
