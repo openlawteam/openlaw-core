@@ -19,13 +19,14 @@ libraryDependencies += "org.openlaw" % "openlaw-core" & "<last version>"
 
 ## Troubleshooting 
 
-You need to do `sbt "project openlawCoreJs" fullOptJs` before the first time you run `npm run build`. Otherwise, you will see an error like the below:
+You need to do `sbt "project openlawCoreJs" fullOptJS` before the first time you run `npm run build`. Otherwise, you will see an error like the below:
 
 ```
 ERROR in Entry module not found: Error: Can't resolve '/$YOUR_DIR/openlaw-core/client/target/scala-2.12/client.js' in '/$YOUR_DIR/openlaw-core'.
 ```
 
 ## Contributing 
+
 See information about contributing [here](CONTRIBUTING.md).
 
 ## License
