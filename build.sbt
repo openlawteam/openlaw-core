@@ -54,8 +54,6 @@ lazy val publishSettings = Seq(
   bintrayOrganization := Some("openlaw"),
   bintrayRepository := "openlaw-core",
   bintrayPackageLabels := Seq("shared", "client"),
-  publishTo := Some("Bintray" at "https://api.bintray.com/maven/openlaw/maven/openlaw-core"),
-  credentials += Credentials(Path.userHome / ".ivy2" / ".credentials"),
   scmInfo := Some(ScmInfo(url(s"https://github.com/$username/$repo"), s"git@github.com:$username/$repo.git")),
   releaseCrossBuild := true,
   developers := List(
@@ -72,9 +70,10 @@ lazy val publishSettings = Seq(
       url = new URL(s"http://github.com/$username")
     )
   ),
-  publishTo in ThisBuild := Some("Bintray" at "https://api.bintray.com/maven/openlaw/maven/openlaw-core")
+  publishTo in ThisBuild := Some("Bintray" at "https://api.bintray.com/maven/openlaw/maven/openlaw-core"),
+  credentials += Credentials(Path.userHome / ".ivy2" / ".credentials"),
 )
-
+/*
 lazy val releaseSettings = releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,              // : ReleaseStep
   inquireVersions,                        // : ReleaseStep
@@ -85,6 +84,7 @@ lazy val releaseSettings = releaseProcess := Seq[ReleaseStep](
   commitNextVersion,                      // : ReleaseStep
   pushChanges                             // : ReleaseStep, also checks that an upstream branch is properly configured
 )
+*/
 
 val rules = Seq(Wart.ArrayEquals, Wart.OptionPartial, Wart.EitherProjectionPartial, Wart.Enumeration, Wart.ExplicitImplicitTypes, Wart.FinalVal, Wart.JavaConversions, Wart.JavaSerializable, Wart.LeakingSealed)
 
@@ -105,7 +105,7 @@ lazy val openlawCoreJvm = (project in file("openlawCoreJvm")).settings(
   .dependsOn(sharedJvm)
   .settings(dependencySettings: _*)
   .settings(publishSettings: _*)
-  .settings(releaseSettings: _*)
+  //.settings(releaseSettings: _*)
 
 lazy val openlawCoreJs = (project in file("openlawCoreJs")).settings(
   scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule)},
@@ -122,7 +122,7 @@ lazy val openlawCoreJs = (project in file("openlawCoreJs")).settings(
   .dependsOn(sharedJs)
   .settings(dependencySettings: _*)
   .settings(publishSettings: _*)
-  .settings(releaseSettings: _*)
+  //.settings(releaseSettings: _*)
 
 lazy val shared = crossProject(JSPlatform, JVMPlatform)
   .withoutSuffixFor(JVMPlatform)
