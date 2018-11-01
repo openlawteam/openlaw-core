@@ -1,10 +1,10 @@
 Shared libraries for the OpenLaw project.
 
 ## Getting started
-If you want to know more about this library, please read [this](CORE.md)
+If you want to know more about this library, please read [this](CORE.md).
 
 To use Openlaw core in your javascript project, you can use our npm package with 
-`npm install openlaw --save`
+`npm install openlaw --save`. You can find further instructions for how to use the library [here](npm.README.md).
 
 If you want to use Openlaw core in your scala project, here is how to add it to your sbt project:
 
