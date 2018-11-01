@@ -18,7 +18,7 @@ Organization](https://github.com/openlawteam) on GitHub.
 
 ## Code of Conduct
 
-This project and everyone participating in it is governed by the [OpenLaw Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to [hello@openlaw.io](mailto:hello@openlaw.io).
+This project and everyone participating in it is governed by the [OpenLaw Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to [opensource@openlaw.io](mailto:opensource@openlaw.io).
 
 ## Questions
 
