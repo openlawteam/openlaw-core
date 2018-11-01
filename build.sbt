@@ -9,6 +9,8 @@ organization := "org.openlaw"
 homepage := Some(url("https://openlaw.io"))
 lazy val username = "openlaw"
 lazy val repo     = "openlaw-core"
+publishTo := Some("Bintray" at "https://api.bintray.com/maven/openlaw/maven/openlaw-core")
+credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
 
 lazy val scalaV = "2.12.7"
 lazy val propellerV = "0.35"
