@@ -1,16 +1,15 @@
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
 import ReleaseTransformations._
+import sbt.Keys.credentials
 
 import scala.language.postfixOps
-import sbt.{file, _}
+import sbt.{Credentials, file, _}
 
 name := "core"
 organization := "org.openlaw"
 homepage := Some(url("https://openlaw.io"))
 lazy val username = "openlaw"
 lazy val repo     = "openlaw-core"
-publishTo := Some("Bintray" at "https://api.bintray.com/maven/openlaw/maven/openlaw-core")
-credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
 
 lazy val scalaV = "2.12.7"
 lazy val propellerV = "0.35"
@@ -55,6 +54,8 @@ lazy val publishSettings = Seq(
   bintrayOrganization := Some("openlaw"),
   bintrayRepository := "openlaw-core",
   bintrayPackageLabels := Seq("shared", "client"),
+  publishTo := Some("Bintray" at "https://api.bintray.com/maven/openlaw/maven/openlaw-core"),
+  credentials += Credentials(Path.userHome / ".ivy2" / ".credentials"),
   scmInfo := Some(ScmInfo(url(s"https://github.com/$username/$repo"), s"git@github.com:$username/$repo.git")),
   releaseCrossBuild := true,
   developers := List(
