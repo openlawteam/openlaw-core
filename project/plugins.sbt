@@ -9,16 +9,13 @@ resolvers += Resolver.url("sbt-plugins", url("https://dl.bintray.com/ssidorenko/
 
 resolvers += "nexus-snapshots" at "https://nexus.build.openlaw.io/repository/maven-snapshots"
 resolvers += "nexus-releases" at "https://nexus.build.openlaw.io/repository/maven-releases"
-libraryDependencies += "org.webjars.npm" % "amdefine" % "0.1.0"
 
 addSbtPlugin("org.scala-js" % "sbt-scalajs" % "0.6.25")
-addSbtPlugin("com.vmunier" % "sbt-web-scalajs" % "1.0.7")
 addSbtPlugin("org.portable-scala" % "sbt-scalajs-crossproject" % "0.6.0")
 addSbtPlugin("com.typesafe.sbt" % "sbt-digest" % "1.1.4")
 addSbtPlugin("net.virtual-void" % "sbt-dependency-graph" % "0.9.0")
-addSbtPlugin("com.eed3si9n" % "sbt-buildinfo" % "0.7.0")
-addSbtPlugin("org.foundweekends" % "sbt-bintray" % "0.5.1")
-addSbtPlugin("com.github.gseitz" % "sbt-release" % "1.0.6")
+addSbtPlugin("org.foundweekends" % "sbt-bintray" % "0.5.4")
+addSbtPlugin("com.github.gseitz" % "sbt-release" % "1.0.7")
 
 addSbtPlugin("org.lyranthe.sbt" % "partial-unification" % "1.1.0")
 addSbtPlugin("com.timushev.sbt" % "sbt-updates" % "0.3.4")
@@ -30,5 +27,3 @@ addSbtPlugin("org.scalastyle" %% "scalastyle-sbt-plugin" % "1.0.0")
 addSbtPlugin("org.wartremover" % "sbt-wartremover" % "2.3.7")
 
 addSbtPlugin("com.thoughtworks.sbt-scala-js-map" % "sbt-scala-js-map" % "3.0.0")
-
-addSbtPlugin("io.get-coursier" % "sbt-coursier" % "1.0.1")
