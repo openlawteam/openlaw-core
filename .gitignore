@@ -55,3 +55,4 @@ project/project
 client/src/main/scala/org/adridadou/openlaw/.DS_Store
 client/src/main/scala/org/adridadou/openlaw/client/.DS_Store
 
+owasp/
