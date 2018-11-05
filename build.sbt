@@ -85,6 +85,23 @@ lazy val releaseSettings = releaseProcess := Seq[ReleaseStep](
 
 val rules = Seq(Wart.ArrayEquals, Wart.OptionPartial, Wart.EitherProjectionPartial, Wart.Enumeration, Wart.ExplicitImplicitTypes, Wart.FinalVal, Wart.JavaConversions, Wart.JavaSerializable, Wart.LeakingSealed)
 
+lazy val openlawCoreJs = (project in file("openlawCoreJs")).settings(
+  scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule)},
+  scalaVersion := scalaV,
+  name := "openlaw-core",
+  resolvers ++= repositories,
+  libraryDependencies ++= Seq(
+    "org.scala-js"  %%% "scalajs-dom"             % "0.9.6",
+  ),
+  relativeSourceMaps := true,
+  artifactPath in (Compile, fastOptJS) := crossTarget.value / "client.js",
+  artifactPath in (Compile, fullOptJS) := crossTarget.value / "client.js"
+).enablePlugins(ScalaJSPlugin)
+  .dependsOn(sharedJs)
+  .settings(dependencySettings: _*)
+  .settings(publishSettings: _*)
+  .settings(releaseSettings: _*)
+
 lazy val shared = crossProject(JSPlatform, JVMPlatform)
   .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Pure) // [Pure, Full, Dummy], default: CrossType.Full
