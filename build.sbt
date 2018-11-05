@@ -48,6 +48,7 @@ lazy val publishSettings = Seq(
   bintrayReleaseOnPublish in ThisBuild := true,
   bintrayOrganization := Some("openlaw"),
   bintrayRepository := "openlaw-core",
+  licenses += ("Apache-2.0", url("https://choosealicense.com/licenses/apache-2.0/")),
   bintrayPackageLabels := Seq("openlaw-core"),
   scmInfo := Some(ScmInfo(url(s"https://github.com/$username/$repo"), s"git@github.com:$username/$repo.git")),
   releaseCrossBuild := true,
