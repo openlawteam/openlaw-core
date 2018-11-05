@@ -11,15 +11,12 @@ lazy val username = "openlaw"
 lazy val repo     = "openlaw-core"
 
 lazy val scalaV = "2.12.7"
-lazy val propellerV = "0.35"
 lazy val catsV = "1.4.0"
 lazy val parboiledV = "2.1.5"
 lazy val circeV = "0.10.1"
 lazy val akkaV = "2.5.17"
 
 lazy val repositories = Seq(
-  "nexus-snapshots" at "https://nexus.build.openlaw.io/repository/maven-snapshots",
-  "nexus-releases" at "https://nexus.build.openlaw.io/repository/maven-releases",
   Resolver.jcenterRepo,
   "central" at "http://central.maven.org/maven2/",
   "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases",
@@ -88,42 +85,6 @@ lazy val releaseSettings = releaseProcess := Seq[ReleaseStep](
 
 val rules = Seq(Wart.ArrayEquals, Wart.OptionPartial, Wart.EitherProjectionPartial, Wart.Enumeration, Wart.ExplicitImplicitTypes, Wart.FinalVal, Wart.JavaConversions, Wart.JavaSerializable, Wart.LeakingSealed)
 
-lazy val openlawCoreJvm = (project in file("openlawCoreJvm")).settings(
-  wartremoverErrors ++= rules,
-  scalaVersion := scalaV,
-  name := "openlaw-core",
-  resolvers ++= repositories,
-  libraryDependencies ++= Seq(
-    //Test
-    "org.scalacheck"          %% "scalacheck"          % "1.14.0"       % Test,
-    "org.scalatest"           %% "scalatest"           % "3.0.6-SNAP2"  % Test,
-    "org.mockito"             %  "mockito-all"         % "1.10.19"      % Test,
-    "org.adridadou"           %% "eth-propeller-scala" % propellerV % Test,
-  ),
-  publishArtifact in (Compile, packageDoc) := false
-).enablePlugins(WartRemover)
-  .dependsOn(sharedJvm)
-  .settings(dependencySettings: _*)
-  .settings(publishSettings: _*)
-  .settings(releaseSettings: _*)
-
-lazy val openlawCoreJs = (project in file("openlawCoreJs")).settings(
-  scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule)},
-  scalaVersion := scalaV,
-  name := "openlaw-core",
-  resolvers ++= repositories,
-  libraryDependencies ++= Seq(
-    "org.scala-js"  %%% "scalajs-dom"             % "0.9.6",
-  ),
-  relativeSourceMaps := true,
-  artifactPath in (Compile, fastOptJS) := crossTarget.value / "client.js",
-  artifactPath in (Compile, fullOptJS) := crossTarget.value / "client.js"
-).enablePlugins(ScalaJSPlugin)
-  .dependsOn(sharedJs)
-  .settings(dependencySettings: _*)
-  .settings(publishSettings: _*)
-  .settings(releaseSettings: _*)
-
 lazy val shared = crossProject(JSPlatform, JVMPlatform)
   .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Pure) // [Pure, Full, Dummy], default: CrossType.Full
@@ -145,7 +106,10 @@ lazy val shared = crossProject(JSPlatform, JVMPlatform)
       "org.typelevel"           %% "cats-core"           % catsV,
       "org.typelevel"           %% "cats-free"           % catsV,
       "io.github.cquiroz"       %% "scala-java-time"     % "2.0.0-M13",
-      "biz.enef"                %% "slogging-slf4j"      % "0.6.1"
+      "biz.enef"                %% "slogging-slf4j"      % "0.6.1",
+      //Test
+      "org.scalacheck"          %% "scalacheck"          % "1.14.0"       % Test,
+      "org.scalatest"           %% "scalatest"           % "3.0.6-SNAP2"  % Test,
     )
   ).jsSettings(
     resolvers ++= repositories,
@@ -162,12 +126,21 @@ lazy val shared = crossProject(JSPlatform, JVMPlatform)
       "io.circe"                %%% "circe-generic"        % circeV,
       "io.circe"                %%% "circe-parser"         % circeV,
       "com.typesafe.play"       %%% "play-json"            % "2.6.10",
+      //Test
+      "org.scalacheck"          %%% "scalacheck"          % "1.14.0"       % Test,
+      "org.scalatest"           %%% "scalatest"           % "3.0.6-SNAP2"  % Test
     )
   )
   .settings(dependencySettings: _*)
+  .settings(publishSettings: _*)
+  .settings(releaseSettings: _*)
   .enablePlugins(WartRemover)
 
 lazy val sharedJvm = shared.jvm
 lazy val sharedJs = shared.js
 
+
+val root = (project in file("."))
+  .dependsOn(sharedJvm, sharedJs)
+  .aggregate(sharedJvm, sharedJs)
 
