@@ -36,10 +36,11 @@ updateOptions := updateOptions.value.withCachedResolution(true)
 scalacOptions ++= Seq("-Xlog-implicits", "-unchecked", "-deprecation", "-feature")
 javacOptions ++= Seq("-Xms512M", "-Xmx1024M", "-Xss1M", "-XX:+CMSClassUnloadingEnabled")
 
-lazy val dependencySettings = Seq(
+lazy val commonSettings = Seq(
   organization := "org.openlaw",
   name := "openlaw-core",
   scalaVersion := scalaV,
+  wartremoverErrors ++= rules
 )
 
 lazy val publishSettings = Seq(
@@ -48,7 +49,6 @@ lazy val publishSettings = Seq(
   bintrayReleaseOnPublish in ThisBuild := true,
   bintrayOrganization := Some("openlaw"),
   bintrayRepository := "openlaw-core",
-  licenses += ("Apache-2.0", url("https://choosealicense.com/licenses/apache-2.0/")),
   bintrayPackageLabels := Seq("openlaw-core"),
   scmInfo := Some(ScmInfo(url(s"https://github.com/$username/$repo"), s"git@github.com:$username/$repo.git")),
   releaseCrossBuild := true,
@@ -86,9 +86,7 @@ val rules = Seq(Wart.ArrayEquals, Wart.OptionPartial, Wart.EitherProjectionParti
 
 lazy val openlawCoreJs = (project in file("openlawCoreJs")).settings(
   scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule)},
-  scalaVersion := scalaV,
   name := "openlaw-core-client",
-  resolvers ++= repositories,
   libraryDependencies ++= Seq(
     "org.scala-js"  %%% "scalajs-dom"             % "0.9.6",
   ),
@@ -97,18 +95,13 @@ lazy val openlawCoreJs = (project in file("openlawCoreJs")).settings(
   artifactPath in (Compile, fullOptJS) := crossTarget.value / "client.js"
 ).enablePlugins(ScalaJSPlugin)
   .dependsOn(sharedJs)
-  .settings(dependencySettings: _*)
-  .settings(publishSettings: _*)
-  .settings(releaseSettings: _*)
+  .settings(commonSettings: _*)
 
 lazy val shared = crossProject(JSPlatform, JVMPlatform)
   .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Pure) // [Pure, Full, Dummy], default: CrossType.Full
   .in(file("shared"))
   .jvmSettings(
-    wartremoverErrors ++= rules,
-    resolvers ++= repositories,
-    scalaVersion := scalaV,
     libraryDependencies ++= Seq(
       "io.circe"                %% "circe-iteratee"      % "0.11.0",
       "io.iteratee"             %% "iteratee-monix"      % "0.18.0",
@@ -128,8 +121,6 @@ lazy val shared = crossProject(JSPlatform, JVMPlatform)
       "org.scalatest"           %% "scalatest"           % "3.0.6-SNAP2"  % Test,
     )
   ).jsSettings(
-    resolvers ++= repositories,
-    scalaVersion := scalaV,
     libraryDependencies ++= Seq(
       "io.github.cquiroz"       %%% "scala-java-time"      % "2.0.0-M13",
       "io.github.cquiroz"       %%% "scala-java-time-tzdb" % "2.0.0-M13_2018c",
@@ -147,7 +138,7 @@ lazy val shared = crossProject(JSPlatform, JVMPlatform)
       "org.scalatest"           %%% "scalatest"           % "3.0.6-SNAP2"  % Test
     )
   )
-  .settings(dependencySettings: _*)
+  .settings(commonSettings: _*)
   .settings(publishSettings: _*)
   .settings(releaseSettings: _*)
   .enablePlugins(WartRemover)
