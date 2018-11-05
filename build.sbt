@@ -4,9 +4,6 @@ import ReleaseTransformations._
 import scala.language.postfixOps
 import sbt.{Credentials, file, _}
 
-name := "core"
-organization := "org.openlaw"
-homepage := Some(url("https://openlaw.io"))
 lazy val username = "openlaw"
 lazy val repo     = "openlaw-core"
 
@@ -15,6 +12,9 @@ lazy val catsV = "1.4.0"
 lazy val parboiledV = "2.1.5"
 lazy val circeV = "0.10.1"
 lazy val akkaV = "2.5.17"
+
+licenses ++= Seq(("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0")))
+homepage := Some(url(s"https://github.com/$username/$repo"))
 
 lazy val repositories = Seq(
   Resolver.jcenterRepo,
@@ -25,13 +25,6 @@ lazy val repositories = Seq(
   "jitpack.io" at "https://jitpack.io",
   Resolver.mavenLocal
 )
-
-packageOptions += Package.ManifestAttributes(
-  "Implementation-Version" -> (version in ThisBuild).value,
-  "Implementation-Title" -> name.value
-)
-
-updateOptions := updateOptions.value.withCachedResolution(true)
 
 scalacOptions ++= Seq("-Xlog-implicits", "-unchecked", "-deprecation", "-feature")
 javacOptions ++= Seq("-Xms512M", "-Xmx1024M", "-Xss1M", "-XX:+CMSClassUnloadingEnabled")
@@ -44,8 +37,7 @@ lazy val commonSettings = Seq(
 )
 
 lazy val publishSettings = Seq(
-  homepage := Some(url(s"https://github.com/$username/$repo")),
-  licenses ++= Seq(("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0"))),
+  
   bintrayReleaseOnPublish in ThisBuild := true,
   bintrayOrganization := Some("openlaw"),
   bintrayRepository := "openlaw-core",
