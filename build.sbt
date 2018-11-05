@@ -78,7 +78,10 @@ val rules = Seq(Wart.ArrayEquals, Wart.OptionPartial, Wart.EitherProjectionParti
 
 lazy val openlawCoreJs = (project in file("openlawCoreJs")).settings(
   scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule)},
+  organization := "org.openlaw",
   name := "openlaw-core-client",
+  scalaVersion := scalaV,
+  wartremoverErrors ++= rules,
   libraryDependencies ++= Seq(
     "org.scala-js"  %%% "scalajs-dom"             % "0.9.6",
   ),
@@ -87,7 +90,6 @@ lazy val openlawCoreJs = (project in file("openlawCoreJs")).settings(
   artifactPath in (Compile, fullOptJS) := crossTarget.value / "client.js"
 ).enablePlugins(ScalaJSPlugin)
   .dependsOn(sharedJs)
-  .settings(commonSettings: _*)
 
 lazy val shared = crossProject(JSPlatform, JVMPlatform)
   .withoutSuffixFor(JVMPlatform)
