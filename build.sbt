@@ -7,6 +7,8 @@ import sbt.{Credentials, file, _}
 lazy val username = "openlaw"
 lazy val repo     = "openlaw-core"
 
+licenses += ("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0"))
+
 lazy val scalaV = "2.12.7"
 lazy val catsV = "1.4.0"
 lazy val parboiledV = "2.1.5"
