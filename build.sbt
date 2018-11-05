@@ -13,9 +13,6 @@ lazy val parboiledV = "2.1.5"
 lazy val circeV = "0.10.1"
 lazy val akkaV = "2.5.17"
 
-licenses ++= Seq(("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0")))
-homepage := Some(url(s"https://github.com/$username/$repo"))
-
 lazy val repositories = Seq(
   Resolver.jcenterRepo,
   "central" at "http://central.maven.org/maven2/",
@@ -37,7 +34,8 @@ lazy val commonSettings = Seq(
 )
 
 lazy val publishSettings = Seq(
-  
+  homepage := Some(url(s"https://github.com/$username/$repo")),
+  bintrayOmitLicense := true,
   bintrayReleaseOnPublish in ThisBuild := true,
   bintrayOrganization := Some("openlaw"),
   bintrayRepository := "openlaw-core",
