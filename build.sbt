@@ -39,9 +39,8 @@ javacOptions ++= Seq("-Xms512M", "-Xmx1024M", "-Xss1M", "-XX:+CMSClassUnloadingE
 
 lazy val dependencySettings = Seq(
   organization := "org.openlaw",
+  name := "openlaw-core",
   scalaVersion := scalaV,
-  // Add your sbt-dependency-check settings
-  dependencyCheckOutputDirectory := Some(file("owasp"))
 )
 
 lazy val publishSettings = Seq(
@@ -88,7 +87,7 @@ val rules = Seq(Wart.ArrayEquals, Wart.OptionPartial, Wart.EitherProjectionParti
 lazy val openlawCoreJs = (project in file("openlawCoreJs")).settings(
   scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule)},
   scalaVersion := scalaV,
-  name := "openlaw-core",
+  name := "openlaw-core-client",
   resolvers ++= repositories,
   libraryDependencies ++= Seq(
     "org.scala-js"  %%% "scalajs-dom"             % "0.9.6",
