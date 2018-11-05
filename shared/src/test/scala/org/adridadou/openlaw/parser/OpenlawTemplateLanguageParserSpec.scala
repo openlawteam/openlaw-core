@@ -372,7 +372,10 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
 
     structureAgreement(clauseText) match {
       case Right(t) => t.executionResult.getVariable("contractor") match {
-        case Some(variable) => variable.defaultValue shouldBe Some(OneValueParameter(NumberConstant(BigDecimal("24"))))
+        case Some(variable) => variable.defaultValue match {
+          case Some(OneValueParameter(NumberConstant(n,_))) => n shouldBe BigDecimal("24")
+          case something => fail("default value is not correct:" + something)
+        }
         case None => fail("variable not found")
       }
       case Left(ex) => fail(ex)
@@ -383,7 +386,10 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     val clauseText = "This is my clause. [[contractor:Date(\"2017-06-24\")]]"
     structureAgreement(clauseText) match {
       case Right(t) => t.executionResult.getVariable("contractor") match {
-        case Some(variable) => variable.defaultValue shouldBe Some(OneValueParameter(StringConstant("2017-06-24")))
+        case Some(variable) => variable.defaultValue match {
+          case Some(OneValueParameter(StringConstant(text,_))) => text shouldBe "2017-06-24"
+          case something => fail("default value is not correct:" + something)
+        }
         case None => fail("contractor variable not found")
       }
       case Left(ex) => fail(ex)
@@ -394,7 +400,10 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     val clauseText = "This is my clause. [[contractor:DateTime(\"2017-06-24 13:45:00\")]]"
 
     structureAgreement(clauseText) match {
-      case Right(t) => t.executionResult.getVariable("contractor").flatMap(_.defaultValue) shouldBe Some(OneValueParameter(StringConstant("2017-06-24 13:45:00")))
+      case Right(t) => t.executionResult.getVariable("contractor").flatMap(_.defaultValue) match {
+        case Some(OneValueParameter(StringConstant(text,_))) => text shouldBe "2017-06-24 13:45:00"
+        case something => fail("default value is not correct:" + something)
+      }
       case Left(ex) => fail(ex)
     }
   }

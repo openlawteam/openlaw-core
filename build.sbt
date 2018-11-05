@@ -4,52 +4,40 @@ import ReleaseTransformations._
 import scala.language.postfixOps
 import sbt.{Credentials, file, _}
 
-name := "core"
-organization := "org.openlaw"
-homepage := Some(url("https://openlaw.io"))
 lazy val username = "openlaw"
 lazy val repo     = "openlaw-core"
 
+licenses += ("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0"))
+
 lazy val scalaV = "2.12.7"
-lazy val propellerV = "0.35"
 lazy val catsV = "1.4.0"
 lazy val parboiledV = "2.1.5"
 lazy val circeV = "0.10.1"
 lazy val akkaV = "2.5.17"
 
 lazy val repositories = Seq(
-  "nexus-snapshots" at "https://nexus.build.openlaw.io/repository/maven-snapshots",
-  "nexus-releases" at "https://nexus.build.openlaw.io/repository/maven-releases",
   Resolver.jcenterRepo,
   "central" at "http://central.maven.org/maven2/",
   "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases",
-  "cubefriendly bintray repository" at "http://dl.bintray.com/cubefriendly/maven",
   "ethereumj repository" at "http://dl.bintray.com/ethereum/maven",
   "maven central" at "https://mvnrepository.com/repos/central",
   "jitpack.io" at "https://jitpack.io",
   Resolver.mavenLocal
 )
 
-packageOptions += Package.ManifestAttributes(
-  "Implementation-Version" -> (version in ThisBuild).value,
-  "Implementation-Title" -> name.value
-)
-
-updateOptions := updateOptions.value.withCachedResolution(true)
-
 scalacOptions ++= Seq("-Xlog-implicits", "-unchecked", "-deprecation", "-feature")
 javacOptions ++= Seq("-Xms512M", "-Xmx1024M", "-Xss1M", "-XX:+CMSClassUnloadingEnabled")
 
-lazy val dependencySettings = Seq(
+lazy val commonSettings = Seq(
   organization := "org.openlaw",
+  name := "openlaw-core",
   scalaVersion := scalaV,
-  // Add your sbt-dependency-check settings
-  dependencyCheckOutputDirectory := Some(file("owasp"))
+  wartremoverErrors ++= rules
 )
 
 lazy val publishSettings = Seq(
   homepage := Some(url(s"https://github.com/$username/$repo")),
-  licenses ++= Seq(("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0"))),
+  licenses += ("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0")),
   bintrayReleaseOnPublish in ThisBuild := true,
   bintrayOrganization := Some("openlaw"),
   bintrayRepository := "openlaw-core",
@@ -88,30 +76,12 @@ lazy val releaseSettings = releaseProcess := Seq[ReleaseStep](
 
 val rules = Seq(Wart.ArrayEquals, Wart.OptionPartial, Wart.EitherProjectionPartial, Wart.Enumeration, Wart.ExplicitImplicitTypes, Wart.FinalVal, Wart.JavaConversions, Wart.JavaSerializable, Wart.LeakingSealed)
 
-lazy val openlawCoreJvm = (project in file("openlawCoreJvm")).settings(
-  wartremoverErrors ++= rules,
-  scalaVersion := scalaV,
-  name := "openlaw-core",
-  resolvers ++= repositories,
-  libraryDependencies ++= Seq(
-    //Test
-    "org.scalacheck"          %% "scalacheck"          % "1.14.0"       % Test,
-    "org.scalatest"           %% "scalatest"           % "3.0.6-SNAP2"  % Test,
-    "org.mockito"             %  "mockito-all"         % "1.10.19"      % Test,
-    "org.adridadou"           %% "eth-propeller-scala" % propellerV % Test,
-  ),
-  publishArtifact in (Compile, packageDoc) := false
-).enablePlugins(WartRemover)
-  .dependsOn(sharedJvm)
-  .settings(dependencySettings: _*)
-  .settings(publishSettings: _*)
-  .settings(releaseSettings: _*)
-
 lazy val openlawCoreJs = (project in file("openlawCoreJs")).settings(
   scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule)},
+  organization := "org.openlaw",
+  name := "openlaw-core-client",
   scalaVersion := scalaV,
-  name := "openlaw-core",
-  resolvers ++= repositories,
+  wartremoverErrors ++= rules,
   libraryDependencies ++= Seq(
     "org.scala-js"  %%% "scalajs-dom"             % "0.9.6",
   ),
@@ -120,18 +90,12 @@ lazy val openlawCoreJs = (project in file("openlawCoreJs")).settings(
   artifactPath in (Compile, fullOptJS) := crossTarget.value / "client.js"
 ).enablePlugins(ScalaJSPlugin)
   .dependsOn(sharedJs)
-  .settings(dependencySettings: _*)
-  .settings(publishSettings: _*)
-  .settings(releaseSettings: _*)
 
 lazy val shared = crossProject(JSPlatform, JVMPlatform)
   .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Pure) // [Pure, Full, Dummy], default: CrossType.Full
   .in(file("shared"))
   .jvmSettings(
-    wartremoverErrors ++= rules,
-    resolvers ++= repositories,
-    scalaVersion := scalaV,
     libraryDependencies ++= Seq(
       "io.circe"                %% "circe-iteratee"      % "0.11.0",
       "io.iteratee"             %% "iteratee-monix"      % "0.18.0",
@@ -145,11 +109,12 @@ lazy val shared = crossProject(JSPlatform, JVMPlatform)
       "org.typelevel"           %% "cats-core"           % catsV,
       "org.typelevel"           %% "cats-free"           % catsV,
       "io.github.cquiroz"       %% "scala-java-time"     % "2.0.0-M13",
-      "biz.enef"                %% "slogging-slf4j"      % "0.6.1"
+      "biz.enef"                %% "slogging-slf4j"      % "0.6.1",
+      //Test
+      "org.scalacheck"          %% "scalacheck"          % "1.14.0"       % Test,
+      "org.scalatest"           %% "scalatest"           % "3.0.6-SNAP2"  % Test,
     )
   ).jsSettings(
-    resolvers ++= repositories,
-    scalaVersion := scalaV,
     libraryDependencies ++= Seq(
       "io.github.cquiroz"       %%% "scala-java-time"      % "2.0.0-M13",
       "io.github.cquiroz"       %%% "scala-java-time-tzdb" % "2.0.0-M13_2018c",
@@ -162,12 +127,21 @@ lazy val shared = crossProject(JSPlatform, JVMPlatform)
       "io.circe"                %%% "circe-generic"        % circeV,
       "io.circe"                %%% "circe-parser"         % circeV,
       "com.typesafe.play"       %%% "play-json"            % "2.6.10",
+      //Test
+      "org.scalacheck"          %%% "scalacheck"          % "1.14.0"       % Test,
+      "org.scalatest"           %%% "scalatest"           % "3.0.6-SNAP2"  % Test
     )
   )
-  .settings(dependencySettings: _*)
+  .settings(commonSettings: _*)
+  .settings(publishSettings: _*)
+  .settings(releaseSettings: _*)
   .enablePlugins(WartRemover)
 
 lazy val sharedJvm = shared.jvm
 lazy val sharedJs = shared.js
 
+
+val root = (project in file("."))
+  .dependsOn(sharedJvm, sharedJs)
+  .aggregate(sharedJvm, sharedJs)
 

@@ -1,19 +1,15 @@
 package org.adridadou.openlaw.vm
 
 import java.time.{Clock, LocalDateTime}
-import java.util.UUID
 
-import org.adridadou.ethereum.propeller.keystore.AccountProvider
-import org.adridadou.ethereum.propeller.values.EthData
 import org.adridadou.openlaw.oracles
 import org.adridadou.openlaw.oracles._
 import org.adridadou.openlaw.parser.template.{ExecutionFinished, OpenlawTemplateLanguageParserService, VariableName}
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.values.{ContractDefinition, ContractId, TemplateId, TemplateParameters}
-import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{FlatSpec, Matchers}
 
-class OpenlawVmSpec extends FlatSpec with Matchers with MockitoSugar {
+class OpenlawVmSpec extends FlatSpec with Matchers {
   val parser:OpenlawTemplateLanguageParserService = new OpenlawTemplateLanguageParserService(Clock.systemUTC())
   val vmProvider:OpenlawVmProvider = new OpenlawVmProvider(TestCryptoService, parser)
   val clock: Clock = Clock.systemUTC()
@@ -201,24 +197,24 @@ class OpenlawVmSpec extends FlatSpec with Matchers with MockitoSugar {
   }
 
   private def sign(userId: UserId, contractId: ContractId): SignatureResult = {
-    val account = AccountProvider.fromSeed(UUID.randomUUID().toString)
-    val signature = EthereumSignature(account.sign(EthData.of(contractId.id)).toData.data)
-    val address = EthereumAddress(account.getAddress.address)
+    val account = TestAccount.newRandom
+    val signature = account.sign(EthereumData(contractId.id))
+    val address = account.address
     SignatureResult(userId, address, signature)
   }
 
   private def signForStopping(userId: UserId, contractId: ContractId): SignatureResult = {
-    val account = AccountProvider.fromSeed(UUID.randomUUID().toString)
-    val signature = EthereumSignature(account.sign(EthData.of(contractId.stopContract(TestCryptoService).data)).toData.data)
-    val address = EthereumAddress(account.getAddress.address)
+    val account = TestAccount.newRandom
+    val signature = account.sign(contractId.stopContract(TestCryptoService).data)
+    val address = account.address
     SignatureResult(userId, address, signature)
   }
 
   private def signForResuming(userId: UserId, contractId: ContractId): SignatureResult = {
-    val account = AccountProvider.fromSeed(UUID.randomUUID().toString)
-    val data = EthData.of(contractId.resumeContract(TestCryptoService).data)
-    val signature = EthereumSignature(account.sign(data).toData.data)
-    val address = EthereumAddress(account.getAddress.address)
+    val account = TestAccount.newRandom
+    val data = contractId.resumeContract(TestCryptoService)
+    val signature = account.sign(data)
+    val address = account.address
     SignatureResult(userId, address, signature)
   }
 }
