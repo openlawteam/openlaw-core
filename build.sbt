@@ -20,7 +20,6 @@ lazy val repositories = Seq(
   Resolver.jcenterRepo,
   "central" at "http://central.maven.org/maven2/",
   "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases",
-  "cubefriendly bintray repository" at "http://dl.bintray.com/cubefriendly/maven",
   "ethereumj repository" at "http://dl.bintray.com/ethereum/maven",
   "maven central" at "https://mvnrepository.com/repos/central",
   "jitpack.io" at "https://jitpack.io",
