@@ -16,25 +16,33 @@ export type uploadContractParams = {|
   draftVersion: number,
 |};
 
+type AuthConfiguration = {
+    username: string,
+    password: string
+}
+
+type Configuration = {
+    root: string,
+    auth: ?AuthConfiguration
+}
+
 import type {Template} from './shared-types.js';
 
 class APIClient {
 
-  root: string = '';
+  conf: Configuration;
   jwt: string = '';
-  loginPromise: ?Promise<Object> = undefined;
+  loginPromise: Promise<Object> = Promise.resolve({});
 
-  constructor(root: string) {
-    if(root) {
-      this.root = root;
+  constructor(conf: Configuration | string) {
+    if(typeof conf === 'string') {
+      this.conf = {root: conf, auth: undefined};
+    } else {
+      this.conf = Object.assign({}, conf);
     }
   }
 
   async waitForLogin(): Promise<Object> {
-    if(!this.loginPromise) {
-      return Promise.resolve({});
-    }
-
     return this.loginPromise;
   }
 
@@ -49,12 +57,19 @@ class APIClient {
 
       const data = typeof params === 'string' ? params : queryString.stringify(params);
 
-      return axios({
+      const postCallDetails = {
         method: 'post',
-        url: this.root + url,
+        url: this.conf.root + url,
         data: data,
-        headers: callHeaders
-      }).then(result => {
+        headers: callHeaders,
+        auth: undefined
+      };
+
+      if(this.conf.auth) {
+        postCallDetails.auth = Object.assign({}, this.conf.auth);
+      }
+
+      return axios(postCallDetails).then(result => {
         if (result.headers['openlaw_jwt']) {
           this.jwt = result.headers['openlaw_jwt'];
         }
@@ -75,9 +90,17 @@ class APIClient {
       if(this.jwt) {
         callHeaders['OPENLAW_JWT'] = this.jwt;
       }
-      return axios.get(this.root + url + paramsUrl, {
-        headers: callHeaders
-      }).then(result => {
+
+      const getCallDetails = {
+        headers: callHeaders,
+        auth: undefined
+      };
+
+      if(this.conf.auth) {
+        getCallDetails.auth = Object.assign({}, this.conf.auth);
+      }
+
+      return axios.get(this.conf.root + url + paramsUrl, getCallDetails).then(result => {
         if(result.headers['openlaw_jwt']) {
           this.jwt = result.headers['openlaw_jwt'];
         }
