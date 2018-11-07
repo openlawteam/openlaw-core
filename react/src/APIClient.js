@@ -36,7 +36,7 @@ class APIClient {
 
   constructor(conf: Configuration | string) {
     if(typeof conf === 'string') {
-      this.conf.root = conf;
+      this.conf = {root: conf, auth: undefined};
     } else {
       this.conf = Object.assign({}, conf);
     }
