@@ -16,15 +16,25 @@ export type uploadContractParams = {|
   draftVersion: number,
 |};
 
+type AuthConfiguration = {
+    username:string,
+    password:string
+}
+
+type Configuration = {
+    root:string,
+    auth:?AuthConfiguration
+}
+
 import type {Template} from './shared-types.js';
 
 class APIClient {
 
-  conf: {};
+  conf:Configuration;
   jwt: string = '';
-  loginPromise: ?Promise<Object> = Promise.resolve({});
+  loginPromise: Promise<Object> = Promise.resolve({});
 
-  constructor(conf: any) {
+  constructor(conf: Configuration | string) {
     if(typeof conf === 'string') {
       this.conf.root = conf;
     } else {
@@ -51,7 +61,8 @@ class APIClient {
           method: 'post',
           url: this.conf.root + url,
           data: data,
-          headers: callHeaders
+          headers: callHeaders,
+          auth:undefined
       };
 
       if(this.conf.auth) {
@@ -81,7 +92,8 @@ class APIClient {
       }
 
       const getCallDetails = {
-          headers: callHeaders
+          headers: callHeaders,
+          auth:undefined
       };
 
       if(this.conf.auth) {
