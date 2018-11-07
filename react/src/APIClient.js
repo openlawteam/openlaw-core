@@ -17,20 +17,20 @@ export type uploadContractParams = {|
 |};
 
 type AuthConfiguration = {
-    username:string,
-    password:string
+    username: string,
+    password: string
 }
 
 type Configuration = {
-    root:string,
-    auth:?AuthConfiguration
+    root: string,
+    auth: ?AuthConfiguration
 }
 
 import type {Template} from './shared-types.js';
 
 class APIClient {
 
-  conf:Configuration;
+  conf: Configuration;
   jwt: string = '';
   loginPromise: Promise<Object> = Promise.resolve({});
 
@@ -58,15 +58,15 @@ class APIClient {
       const data = typeof params === 'string' ? params : queryString.stringify(params);
 
       const postCallDetails = {
-          method: 'post',
-          url: this.conf.root + url,
-          data: data,
-          headers: callHeaders,
-          auth:undefined
+        method: 'post',
+        url: this.conf.root + url,
+        data: data,
+        headers: callHeaders,
+        auth: undefined
       };
 
       if(this.conf.auth) {
-          postCallDetails.auth = Object.assign({}, this.conf.auth);
+        postCallDetails.auth = Object.assign({}, this.conf.auth);
       }
 
       return axios(postCallDetails).then(result => {
@@ -92,12 +92,12 @@ class APIClient {
       }
 
       const getCallDetails = {
-          headers: callHeaders,
-          auth:undefined
+        headers: callHeaders,
+        auth: undefined
       };
 
       if(this.conf.auth) {
-          getCallDetails.auth = Object.assign({}, this.conf.auth);
+        getCallDetails.auth = Object.assign({}, this.conf.auth);
       }
 
       return axios.get(this.conf.root + url + paramsUrl, getCallDetails).then(result => {
