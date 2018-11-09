@@ -60,7 +60,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     tableElement shouldBe a [TableElement]
     tableElement.asInstanceOf[TableElement].header should contain inOrderOnly (Seq(FreeText(Text("head1"))), Seq(FreeText(Text("head2"))), Seq(FreeText(Text("head3"))))
 
-    resultShouldBe(forReview(text), "<table class='markdown-table'><tr class='markdown-table-row'><th class='markdown-table-header'>head1</th><th class='markdown-table-header'>head2</th><th class='markdown-table-header'>head3</th></tr><tr class='markdown-table-row'><td class='markdown-table-data'>val11</td><td class='markdown-table-data'>val12</td><td class='markdown-table-data'>val13</td></tr><tr class='markdown-table-row'><td class='markdown-table-data'>val21</td><td class='markdown-table-data'>val22</td><td class='markdown-table-data'>val23</td></tr></table>")
+    resultShouldBe(forReview(text), """<p class="no-section"><table class="markdown-table"><tr class="markdown-table-row"><th class="markdown-table-header">head1</th><th class="markdown-table-header">head2</th><th class="markdown-table-header">head3</th></tr><tr class="markdown-table-row"><td class="markdown-table-data">val11</td><td class="markdown-table-data">val12</td><td class="markdown-table-data">val13</td></tr><tr class="markdown-table-row"><td class="markdown-table-data">val21</td><td class="markdown-table-data">val22</td><td class="markdown-table-data">val23</td></tr></table></p>""")
   }
 
   it should "handle tables following other elements" in {
@@ -136,7 +136,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     resultShouldBe(forReview(clauseText, Map(
       "contractor" -> "My contractor name",
       "contractorBirthdate" -> "January 13th 1983"
-    )), "<p class='no-section'>This is my clause. My contractor name. And I am born in January 13th 1983</p>")
+    )), """<p class="no-section">This is my clause. My contractor name. And I am born in January 13th 1983</p>""")
   }
 
   it should "compile the document and the compiled version can be then parsed" in {
@@ -146,7 +146,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
       "contractorBirthdate" -> "January 13th 1983")
 
 
-    resultShouldBe(forReview(clauseText, parameters), "<p class='no-section'>This is my clause. My contractor name. And I am born in January 13th 1983</p>")
+    resultShouldBe(forReview(clauseText, parameters), """<p class="no-section">This is my clause. My contractor name. And I am born in January 13th 1983</p>""")
   }
 
   it should "be able to extract the variable definitions" in {
@@ -170,12 +170,12 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
       "contractor" -> "David Roon",
       "shouldShowBirthdate" -> "true",
       "contractorBirthdate" -> "01.13.1983"
-    )) , "<p class='no-section'>This is my clause. David Roon. And I am born in 01.13.1983</p>")
+    )) , """<p class="no-section">This is my clause. David Roon. And I am born in 01.13.1983</p>""")
 
     resultShouldBe(forReview(clauseText, Map(
       "contractor" -> "David Roon",
       "shouldShowBirthdate" -> "false"
-    )), "<p class='no-section'>This is my clause. David Roon. </p>")
+    )), """<p class="no-section">This is my clause. David Roon. </p>""")
   }
 
   it should "do post processing for lists" in {
@@ -192,7 +192,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
       """.stripMargin
 
     val text2 =
-      """<div class='openlaw-paragraph paragraph-1'><p class='no-section'>a small title</p></div><ul class='list-lvl-1'><li><div class='openlaw-paragraph paragraph-2'><p>1. this is a first element<br/></p></div></li><li><div class='openlaw-paragraph paragraph-3'><p>2. this is a second element<br/></p></div><ul class='list-lvl-2'><li><div class='openlaw-paragraph paragraph-4'><p>(a) this is a first sub element<br/></p></div><ul class='list-lvl-3'><li><div class='openlaw-paragraph paragraph-5'><p>(i) this is a first sub sub element<br/></p></div></li><li><div class='openlaw-paragraph paragraph-6'><p>(ii) this is a second sub sub element<br/></p></div></li></ul></li></ul></li><li><div class='openlaw-paragraph paragraph-7'><p>3. this is a third element<br/></p></div><ul class='list-lvl-2'><li><div class='openlaw-paragraph paragraph-8'><p>(a) this is yet another sub element<br/>      </p></div></li></ul></li></ul>""".stripMargin
+      """<div class="openlaw-paragraph paragraph-1"><p class="no-section">a small title</p></div><ul class="list-lvl-1"><li><div class="openlaw-paragraph paragraph-2"><p>1. this is a first element<br /></p></div></li><li><div class="openlaw-paragraph paragraph-3"><p>2. this is a second element<br /></p></div><ul class="list-lvl-2"><li><div class="openlaw-paragraph paragraph-4"><p>(a) this is a first sub element<br /></p></div><ul class="list-lvl-3"><li><div class="openlaw-paragraph paragraph-5"><p>(i) this is a first sub sub element<br /></p></div></li><li><div class="openlaw-paragraph paragraph-6"><p>(ii) this is a second sub sub element<br /></p></div></li></ul></li></ul></li><li><div class="openlaw-paragraph paragraph-7"><p>3. this is a third element<br /></p></div><ul class="list-lvl-2"><li><div class="openlaw-paragraph paragraph-8"><p>(a) this is yet another sub element<br />      </p></div></li></ul></li></ul>""".stripMargin
 
     val result = forPreview(text)
     resultShouldBe(result, text2)
@@ -206,10 +206,10 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
         |""".stripMargin
 
     val text2 =
-      """<p class='no-section'></p><ul class='list-lvl-1'><li><p>1.  <strong>Services</strong>. This is a test.<br/></p></li></ul>"""
+      """<p class="no-section"></p><ul class="list-lvl-1"><li><p>1.  <strong>Services</strong>. This is a test.<br /></p></li></ul>"""
 
     val text3 =
-      """<div class='openlaw-paragraph paragraph-1'><p class='no-section'><span class='markdown-variable markdown-variable-Id'></span></p></div><ul class='list-lvl-1'><li><div class='openlaw-paragraph paragraph-2'><p>1.  <strong>Services</strong>. This is a test.<br/></p></div></li></ul>"""
+      """<div class="openlaw-paragraph paragraph-1"><p class="no-section"><span class="markdown-variable markdown-variable-Id"></span></p></div><ul class="list-lvl-1"><li><div class="openlaw-paragraph paragraph-2"><p>1.  <strong>Services</strong>. This is a test.<br /></p></div></li></ul>"""
 
     resultShouldBe(forReview(text), text2)
     resultShouldBe(forPreview(text), text3)
@@ -231,7 +231,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
       """.stripMargin
 
     val text2 =
-      """<div class='openlaw-paragraph paragraph-1'><p class='no-section'><br/>a small title<br/></p></div><ul class='list-lvl-1'><li><div class='openlaw-paragraph paragraph-2'><p>1. this is a first element<br/></p></div></li><li><div class='openlaw-paragraph paragraph-3'><p>2. this is a second element<br/></p></div><ul class='list-lvl-2'><li><div class='openlaw-paragraph paragraph-4'><p>(a) this is a first sub element<br/></p></div><ul class='list-lvl-3'><li><div class='openlaw-paragraph paragraph-5'><p>(i) this is a first sub sub element<br/></p></div><ul class='list-lvl-4'><li><div class='openlaw-paragraph paragraph-6'><p>(1) this is a first sub sub sub element<br/></p></div></li><li><div class='openlaw-paragraph paragraph-7'><p>(2) this is a second sub sub sub element<br/></p></div></li></ul></li><li><div class='openlaw-paragraph paragraph-8'><p>(ii) this is a second sub sub element<br/></p></div></li></ul></li></ul></li><li><div class='openlaw-paragraph paragraph-9'><p>3. this is a third element<br/></p></div><ul class='list-lvl-2'><li><div class='openlaw-paragraph paragraph-10'><p>(a) this is yet another sub element<br/>      </p></div></li></ul></li></ul>""".stripMargin
+      """<div class="openlaw-paragraph paragraph-1"><p class="no-section"><br />a small title<br /></p></div><ul class="list-lvl-1"><li><div class="openlaw-paragraph paragraph-2"><p>1. this is a first element<br /></p></div></li><li><div class="openlaw-paragraph paragraph-3"><p>2. this is a second element<br /></p></div><ul class="list-lvl-2"><li><div class="openlaw-paragraph paragraph-4"><p>(a) this is a first sub element<br /></p></div><ul class="list-lvl-3"><li><div class="openlaw-paragraph paragraph-5"><p>(i) this is a first sub sub element<br /></p></div><ul class="list-lvl-4"><li><div class="openlaw-paragraph paragraph-6"><p>(1) this is a first sub sub sub element<br /></p></div></li><li><div class="openlaw-paragraph paragraph-7"><p>(2) this is a second sub sub sub element<br /></p></div></li></ul></li><li><div class="openlaw-paragraph paragraph-8"><p>(ii) this is a second sub sub element<br /></p></div></li></ul></li></ul></li><li><div class="openlaw-paragraph paragraph-9"><p>3. this is a third element<br /></p></div><ul class="list-lvl-2"><li><div class="openlaw-paragraph paragraph-10"><p>(a) this is yet another sub element<br />      </p></div></li></ul></li></ul>""".stripMargin
 
     val result = forPreview(text)
     resultShouldBe(result, text2)
@@ -268,74 +268,106 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
 
   it should "be able to have pipe characters" in {
     val text = "This is a | test."
-    resultShouldBe(forReview(text, Map("Var" -> "hello world")), "<p class='no-section'>This is a | test.</p>")
+    resultShouldBe(forReview(text, Map("Var" -> "hello world")), """<p class="no-section">This is a | test.</p>""")
   }
 
   it should "be able to emphasize variables" in {
     val text = "* [[Var]] * ** [[Var]] ** *** [[Var]] ***"
-    resultShouldBe(forReview(text, Map("Var" -> "hello world")), "<p class='no-section'><em> hello world </em> <strong> hello world </strong> <strong><em> hello world </em></strong></p>")
+    resultShouldBe(forReview(text, Map("Var" -> "hello world")), """<p class="no-section"><em> hello world </em> <strong> hello world </strong> <strong><em> hello world </em></strong></p>""")
+  }
+
+  it should "be able to override section symbols" in {
+    resultShouldBe(forReview("^ Section 1", Map()), "<ul class='list-lvl-1'><li><p>1.  Section 1</p></li></ul>")
+    resultShouldBe(forReview("^(_(symbol: 'Decimal')) Section 1", Map()), "<ul class='list-lvl-1'><li><p>1.  Section 1</p></li></ul>")
+    resultShouldBe(forReview("^(_(symbol: 'Fake')) Section 1", Map()), "<ul class='list-lvl-1'><li><p>1.  Section 1</p></li></ul>")
+    resultShouldBe(forReview("^(_(symbol: 'LowerLetter')) Section 1", Map()), "<ul class='list-lvl-1'><li><p>a.  Section 1</p></li></ul>")
+    resultShouldBe(forReview("^(_(symbol: 'UpperLetter')) Section 1", Map()), "<ul class='list-lvl-1'><li><p>A.  Section 1</p></li></ul>")
+    resultShouldBe(forReview("^(_(symbol: 'LowerRoman')) Section 1", Map()), "<ul class='list-lvl-1'><li><p>i.  Section 1</p></li></ul>")
+    resultShouldBe(forReview("^(_(symbol: 'UpperRoman')) Section 1", Map()), "<ul class='list-lvl-1'><li><p>I.  Section 1</p></li></ul>")
+    resultShouldBe(forReview("^(_(symbol: 'Hide')) Section 1", Map()), "<ul class='list-lvl-1'><li><p>  Section 1</p></li></ul>")
+  }
+
+  it should "be able to override section formats" in {
+    resultShouldBe(forReview("^ Section 1", Map()), "<ul class='list-lvl-1'><li><p>1.  Section 1</p></li></ul>")
+    resultShouldBe(forReview("^(_(format: 'Period')) Section 1", Map()), "<ul class='list-lvl-1'><li><p>1.  Section 1</p></li></ul>")
+    resultShouldBe(forReview("^(_(format: 'Parens')) Section 1", Map()), "<ul class='list-lvl-1'><li><p>(1)  Section 1</p></li></ul>")
+    resultShouldBe(forReview("^(_(format: 'RightParen')) Section 1", Map()), "<ul class='list-lvl-1'><li><p>1)  Section 1</p></li></ul>")
+  }
+
+  it should "be able to override section symbols and formats" in {
+    resultShouldBe(forReview("^ Section 1", Map()), "<ul class='list-lvl-1'><li><p>1.  Section 1</p></li></ul>")
+    resultShouldBe(forReview("^(_(symbol: 'UpperRoman'; format: 'Period')) Section 1", Map()), "<ul class='list-lvl-1'><li><p>I.  Section 1</p></li></ul>")
+    resultShouldBe(forReview("^(_(symbol: 'LowerLetter'; format: 'Parens')) Section 1", Map()), "<ul class='list-lvl-1'><li><p>(a)  Section 1</p></li></ul>")
+    resultShouldBe(forReview("^(_(symbol: 'UpperLetter'; format: 'RightParen')) Section 1", Map()), "<ul class='list-lvl-1'><li><p>A)  Section 1</p></li></ul>")
+    resultShouldBe(forReview("^(_(symbol: 'Hide'; format: 'RightParen')) Section 1", Map()), "<ul class='list-lvl-1'><li><p>  Section 1</p></li></ul>")
+  }
+
+  it should "be able to override subsequent section symbols and formats" in {
+    resultShouldBe(forReview("^ Section 1^ Section 2", Map()), "<ul class='list-lvl-1'><li><p>1.  Section 1</p></li><li><p>2.  Section 2</p></li></ul>")
+    resultShouldBe(forReview("^(_(symbol: 'LowerLetter'; format: 'Parens')) Section 1^ Section 2", Map()), "<ul class='list-lvl-1'><li><p>(a)  Section 1</p></li><li><p>(b)  Section 2</p></li></ul>")
+    resultShouldBe(forReview("^(_(symbol: 'LowerLetter')) Section 1^ Section 2^(_(format: 'Parens')) Section 3^ Section 4", Map()), "<ul class='list-lvl-1'><li><p>a.  Section 1</p></li><li><p>b.  Section 2</p></li><li><p>(c)  Section 3</p></li><li><p>(d)  Section 4</p></li></ul>")
   }
 
   it should "not be able to emphasize sections" in {
-    resultShouldBe(forReview("* ^ Section 1 *", Map()), "<p class='no-section'>* </p><ul class='list-lvl-1'><li><p>1.  Section 1 *</p></li></ul>")
-    resultShouldBe(forReview("** ^ Section 1 **", Map()), "<p class='no-section'>** </p><ul class='list-lvl-1'><li><p>1.  Section 1 **</p></li></ul>")
-    resultShouldBe(forReview("*** ^ Section 1 ***", Map()), "<p class='no-section'>*** </p><ul class='list-lvl-1'><li><p>1.  Section 1 ***</p></li></ul>")
+    resultShouldBe(forReview("* ^ Section 1 *", Map()), """<p class="no-section">* </p><ul class="list-lvl-1"><li><p>1.  Section 1 *</p></li></ul>""")
+    resultShouldBe(forReview("** ^ Section 1 **", Map()), """<p class="no-section">** </p><ul class="list-lvl-1"><li><p>1.  Section 1 **</p></li></ul>""")
+    resultShouldBe(forReview("*** ^ Section 1 ***", Map()), """<p class="no-section">*** </p><ul class="list-lvl-1"><li><p>1.  Section 1 ***</p></li></ul>""")
   }
 
   it should "not be able to emphasize conditionals" in {
-    resultShouldBe(forReview("* <%[[var1:Number]]%>{{var1 > 0 => test}} *", Map("var1" -> "1")), "<p class='no-section'>* test *</p>")
-    resultShouldBe(forReview("** <%[[var1:Number]]%>{{var1 > 0 => test}} **", Map("var1" -> "1")), "<p class='no-section'>** test **</p>")
-    resultShouldBe(forReview("*** <%[[var1:Number]]%>{{var1 > 0 => test}} ***", Map("var1" -> "1")), "<p class='no-section'>*** test ***</p>")
+    resultShouldBe(forReview("* <%[[var1:Number]]%>{{var1 > 0 => test}} *", Map("var1" -> "1")), """<p class="no-section">* test *</p>""")
+    resultShouldBe(forReview("** <%[[var1:Number]]%>{{var1 > 0 => test}} **", Map("var1" -> "1")), """<p class="no-section">** test **</p>""")
+    resultShouldBe(forReview("*** <%[[var1:Number]]%>{{var1 > 0 => test}} ***", Map("var1" -> "1")), """<p class="no-section">*** test ***</p>""")
   }
 
   it should "not be able to emphasize across newlines" in {
-    resultShouldBe(forReview("* This is \n text. *", Map()), "<p class='no-section'>* This is <br/> text. *</p>")
-    resultShouldBe(forReview("** This is \n text. **", Map()), "<p class='no-section'>** This is <br/> text. **</p>")
-    resultShouldBe(forReview("*** This is \n text. ***", Map()), "<p class='no-section'>*** This is <br/> text. ***</p>")
+    resultShouldBe(forReview("* This is \n text. *", Map()), """<p class="no-section">* This is <br /> text. *</p>""")
+    resultShouldBe(forReview("** This is \n text. **", Map()), """<p class="no-section">** This is <br /> text. **</p>""")
+    resultShouldBe(forReview("*** This is \n text. ***", Map()), """<p class="no-section">*** This is <br /> text. ***</p>""")
   }
 
   it should "parse unterminated emphasis as a normal star character" in {
     val text = "lorem * ipsum"
-    resultShouldBe(forReview(text), "<p class='no-section'>lorem * ipsum</p>")
+    resultShouldBe(forReview(text), """<p class="no-section">lorem * ipsum</p>""")
   }
 
   it should "parse eth address and render them properly" in {
     val text = "[[my address:EthAddress]]"
-    resultShouldBe(forReview(text, Map("my address" -> "0x30c6738E9A5CC946D6ae1f176Dc69Fa1663b3b2C")), "<p class='no-section'>30c6738e9a5cc946d6ae1f176dc69fa1663b3b2c</p>")
+    resultShouldBe(forReview(text, Map("my address" -> "0x30c6738E9A5CC946D6ae1f176Dc69Fa1663b3b2C")), """<p class="no-section">30c6738e9a5cc946d6ae1f176dc69fa1663b3b2c</p>""")
   }
 
   it should "accept expressions for conditional blocks greater than" in {
     val text =
       """<%[[var1:Number]][[var2:Number]]%>{{var1 > var2 => iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj}}""".stripMargin
-    resultShouldBe(forReview(text, Map("var1" -> "112", "var2" -> "16")), "<p class='no-section'>iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj</p>")
+    resultShouldBe(forReview(text, Map("var1" -> "112", "var2" -> "16")), """<p class="no-section">iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj</p>""")
   }
 
   it should "accept expressions for conditional blocks greater or equal" in {
     val text =
       """<%[[var1:Number]][[var2:Number]]%>{{var1 >= var2 => iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj}}""".stripMargin
-    resultShouldBe(forReview(text, Map("var1" -> "112", "var2" -> "16")), "<p class='no-section'>iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj</p>")
-    resultShouldBe(forReview(text, Map("var1" -> "16", "var2" -> "16")), "<p class='no-section'>iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj</p>")
+    resultShouldBe(forReview(text, Map("var1" -> "112", "var2" -> "16")), """<p class="no-section">iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj</p>""")
+    resultShouldBe(forReview(text, Map("var1" -> "16", "var2" -> "16")), """<p class="no-section">iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj</p>""")
     resultShouldBe(forReview(text, Map("var1" -> "15", "var2" -> "16")), "")
   }
 
   it should "accept expressions with just a variable" in {
     val text =
       """{{var1 "this is a variable" => iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj}}""".stripMargin
-    resultShouldBe(forReview(text, Map("var1" -> "true")), "<p class='no-section'>iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj</p>")
+    resultShouldBe(forReview(text, Map("var1" -> "true")), """<p class="no-section">iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj</p>""")
   }
 
   it should "accept expressions for conditional blocks lesser than" in {
     val text =
       """[[#var1:Number]][[#var2:Number]]{{var1 < var2 => iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj}}""".stripMargin
 
-    resultShouldBe(forReview(text, Map("var1" -> "12", "var2" -> "16")), "<p class='no-section'>iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj</p>")
+    resultShouldBe(forReview(text, Map("var1" -> "12", "var2" -> "16")), """<p class="no-section">iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj</p>""")
   }
 
   it should "accept nested expressions for conditional" in {
     val text =
       """<%[[var1:Number]] [[var2:Number]]%>{{(var1 < var2) && (var1 < var2) => iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj}}""".stripMargin
 
-    resultShouldBe(forReview(text, Map("var1" -> "12", "var2" -> "116")), "<p class='no-section'>iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj</p>")
+    resultShouldBe(forReview(text, Map("var1" -> "12", "var2" -> "116")), """<p class="no-section">iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj</p>""")
   }
 
   it should "be able to define a default value" in {
@@ -412,47 +444,47 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     val text =
       """<%[[var1:YesNo]][[var2:YesNo]]%>{{var1 && var2 => iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj}}""".stripMargin
 
-    resultShouldBe(forReview(text, Map("var1" -> "true", "var2" -> "true")), "<p class='no-section'>iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj</p>")
+    resultShouldBe(forReview(text, Map("var1" -> "true", "var2" -> "true")), """<p class="no-section">iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj</p>""")
   }
 
   it should "be able to use constants in comparaison expressions" in {
     val text =
       """[[#var1:Number]]{{var1 > 10 => iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj}}""".stripMargin
 
-    resultShouldBe(forReview(text, Map("var1" -> "12")), "<p class='no-section'>iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj</p>")
+    resultShouldBe(forReview(text, Map("var1" -> "12")), """<p class="no-section">iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj</p>""")
   }
 
   it should "be able to use constants in comparaison expressions with equals too" in {
     val text =
       """[[#var1:Number]]{{var1 = 12 => iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj}}""".stripMargin
 
-    resultShouldBe(forReview(text, Map("var1" -> "12")), "<p class='no-section'>iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj</p>")
+    resultShouldBe(forReview(text, Map("var1" -> "12")), """<p class="no-section">iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj</p>""")
   }
 
   it should "be able to use constants in equals expressions" in {
     val text =
       """[[#var1:Number]]{{var1 = 10 => iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj}}""".stripMargin
 
-    resultShouldBe(forReview(text, Map("var1" -> "10")), "<p class='no-section'>iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj</p>")
+    resultShouldBe(forReview(text, Map("var1" -> "10")), """<p class="no-section">iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj</p>""")
   }
   it should "be able to use aliasing " in {
     val text =
       """[[#var2:Number]][[@var1 = var2 + 10]]{{var1 > 10 => iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj}}""".stripMargin
 
-    resultShouldBe(forReview(text, Map("var2" -> "10")), "<p class='no-section'>iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj</p>")
+    resultShouldBe(forReview(text, Map("var2" -> "10")), """<p class="no-section">iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj</p>""")
   }
 
   it should "be able to use aliasing 2" in {
     val text =
       """[[#var2:Number]][[@var1 = 10 + var2]]{{var1 > 10 => iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj}}""".stripMargin
 
-    resultShouldBe(forReview(text, Map("var2" -> "10")), "<p class='no-section'>iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj</p>")
+    resultShouldBe(forReview(text, Map("var2" -> "10")), """<p class="no-section">iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj</p>""")
   }
 
   it should "be able to use aliasing 3" in {
     val text = """[[#var2:Number]][[#var1:Number]][[@var3 = var1 + var2]][[var3]]{{var3 > 39 =>iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj}}""".stripMargin
 
-    resultShouldBe(forReview(text, Map("var2" -> "10", "var1" -> "30")), "<p class='no-section'>40iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj</p>")
+    resultShouldBe(forReview(text, Map("var2" -> "10", "var1" -> "30")), """<p class="no-section">40iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj</p>""")
   }
 
   it should "handle cyclic dependencies" in {
@@ -483,7 +515,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     val text =
       """[[@var1 = 10]][[@var2 = var1 + 10]][[var1]][[var2]]""".stripMargin
 
-    forReview(text) shouldBe Right("<p class='no-section'>1020</p>")
+    forReview(text) shouldBe Right("""<p class="no-section">1020</p>""")
   }
 
   it should "handle cyclic dependencies with only aliases" in {
@@ -529,7 +561,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
         |)]]
         |%>[[Var2]]""".stripMargin
 
-    resultShouldBe(forReview(text, Map("Var1" -> "2202")), "<p class='no-section'>2,206</p>")
+    resultShouldBe(forReview(text, Map("Var1" -> "2202")), """<p class="no-section">2,206</p>""")
   }
 
   it should "handle not logic" in {
@@ -582,7 +614,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
       .withMinute(10)
       .withSecond(0)
       .toEpochSecond(ZoneOffset.UTC) * 1000).toString
-    )),"<p class='no-section'>January 2, 2018 10:10:00</p>")
+    )),"""<p class="no-section">January 2, 2018 10:10:00</p>""")
   }
 
   it should "let use calculation between periods and dates with constants" in {
@@ -598,7 +630,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
       .withMinute(10)
       .withSecond(0)
       .toEpochSecond(ZoneOffset.UTC) * 1000).toString
-    )), "<p class='no-section'>January 2, 2018 10:10:00</p>")
+    )), """<p class="no-section">January 2, 2018 10:10:00</p>""")
   }
 
   it should "handle a set of conditionals " in {
@@ -616,17 +648,17 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     resultShouldBe(forReview(text, Map(
       "Condition 1" -> "true",
       "Condition 2" -> "false"
-    )), "<p class='no-section'>Condition 1</p>")
+    )), """<p class="no-section">Condition 1</p>""")
 
     resultShouldBe(forReview(text, Map(
       "Condition 1" -> "false",
       "Condition 2" -> "true"
-    )), "<p class='no-section'>Condition 2</p>")
+    )), """<p class="no-section">Condition 2</p>""")
 
     resultShouldBe(forReview(text, Map(
       "Condition 1" -> "true",
       "Condition 2" -> "true"
-    )), "<p class='no-section'>Condition 1</p>")
+    )), """<p class="no-section">Condition 1</p>""")
   }
 
   it should "clean the text if there is too many returns" in {
@@ -642,7 +674,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
         |
         |here too""".stripMargin
     resultShouldBe(forReview(text),
-          """<p class='no-section'>this is a first line</p><p class='no-section'>this should not be changed<br/><br/></p><p class='no-section'>but here yes<br/></p><p class='no-section'>here too</p>""".stripMargin)
+          """<p class="no-section">this is a first line</p><p class="no-section">this should not be changed<br /><br /></p><p class="no-section">but here yes<br /></p><p class="no-section">here too</p>""".stripMargin)
   }
 
   it should "be able to break pages" in {
@@ -651,7 +683,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
       |\pagebreak
       |second paragraph of text""".stripMargin
     resultShouldBe(forReview(text),
-      """<p class='no-section'>first paragraph of text<br/></p><p class='no-section'><hr/></p><p class='no-section'>second paragraph of text</p>""")
+      """<p class="no-section">first paragraph of text<br /></p><p class="no-section"><hr /></p><p class="no-section">second paragraph of text</p>""")
   }
 
   it should "be able to align lines centered" in {
@@ -662,7 +694,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
       |
       |third paragraph of text""".stripMargin
     resultShouldBe(forReview(text),
-      """<p class='no-section'>first paragraph of text</p><p class='no-section align-center'>second paragraph of text</p><p class='no-section'>third paragraph of text</p>""")
+      """<p class="no-section">first paragraph of text</p><p class="no-section align-center">second paragraph of text</p><p class="no-section">third paragraph of text</p>""")
   }
 
   it should "clean the text if there is invisible variables in the middle" in {
@@ -678,7 +710,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
         |
         |here too""".stripMargin
     resultShouldBe(forReview(text),
-      """<p class='no-section'>this is a first line</p><p class='no-section'>this should not be changed<br/><br/></p><p class='no-section'>but here yes<br/></p><p class='no-section'>here too</p>""".stripMargin)
+      """<p class="no-section">this is a first line</p><p class="no-section">this should not be changed<br /><br /></p><p class="no-section">but here yes<br /></p><p class="no-section">here too</p>""".stripMargin)
   }
 
   it should "clean the text if there is a space before a dot" in {
@@ -688,14 +720,15 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
         |even with multiple spaces      .""".stripMargin
 
     resultShouldBe(forReview(text),
-        """<p class='no-section'>this is a first line.<br/>this is another line ...<br/>even with multiple spaces.</p>""".stripMargin)
+        """<p class="no-section">this is a first line.<br />this is another line ...<br />even with multiple spaces.</p>""".stripMargin)
   }
 
+ // this is the tricky handling for conditionals, make sure that this works properly
   it should "handle properly conditional blocks highlights with sections" in {
     val text="""{{Try "try this logic" => ^ This is a test}}""".stripMargin
 
     resultShouldBe(forPreview(text, Map("Try" -> "true")),
-    "<ul class='list-lvl-1'><li><div class='openlaw-paragraph paragraph-1'><p>1. <span class='markdown-conditional-block'> This is a test</span></p></div></li></ul>")
+    """<ul class="list-lvl-1"><li><div class="openlaw-paragraph paragraph-1"><p>1. <span class="markdown-conditional-block"> This is a test</span></p></div></li></ul>""")
   }
 
   it should "handle decimals in constants as well" in {
@@ -705,7 +738,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
         |[[@My Alias = Variable1 + 0.56]]
         |[[My Alias | noTrailingZeros]]""".stripMargin.replaceAll("\n","")
 
-    resultShouldBe(forReview(text, Map("Variable1" -> "0.34")), "<p class='no-section'>0.9</p>")
+    resultShouldBe(forReview(text, Map("Variable1" -> "0.34")), """<p class="no-section">0.9</p>""")
   }
 
   it should "handle decimals in divisions" in {
@@ -715,7 +748,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
         |[[@My Alias = (Variable1 / 100) * 4 ]]
         |[[My Alias | noTrailingZeros]]""".stripMargin.replaceAll("\n","")
 
-    resultShouldBe(forReview(text, Map("Variable1" -> "34")), "<p class='no-section'>1.36</p>")
+    resultShouldBe(forReview(text, Map("Variable1" -> "34")), """<p class="no-section">1.36</p>""")
   }
 
   it should "be able to organize sections for variables" in {
@@ -765,7 +798,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
                    |^^ **Nondisclosure; Recognition of Company’s Rights.**  I will not, at any time, without the Company’s prior written permission, either during or after my Service Relationship with the Company, disclose any Confidential Information to anyone outside of the Company, or use or permit to be used any Confidential Information for any purpose other than the performance of my duties as a Service Provider of the Company. I will cooperate with the Company and use my best efforts to prevent the unauthorized disclosure of all Proprietary Information. I will deliver to the Company all copies of Confidential Information in my possession or control upon the earlier of a request by the Company or termination of my service relationship with the Company.""".stripMargin
 
     (forReview(source, Map(),ParagraphEdits(Map(2 -> "hello world"))),
-    """<p class='no-section'>Effective Date:  [[Effective Date]]</p><p class='no-section'>In consideration and as a condition of my employment, continued employment, or payment for services rendered as an independent contractor, consultant, or advisor ("Service Relationship") by [[Company]]     or any of its current or future subsidiaries, affiliates, successors or assigns (collectively, the "Company"), and my receipt of compensation now and hereafter paid to me by the Company, I hereby agree as follows:</p><ul class='list-lvl-1'><li><p>1. hello world</p><ul class='list-lvl-2'><li><p>(a) 	<strong>Confidential Information.</strong>  I agree that all information, whether or not in writing, concerning the Company’s business, technology, business relationships or financial affairs which the Company has not released to the general public (collectively, "Confidential Information") is and will be the exclusive property of the Company. By way of illustration, Confidential Information may include information or material which has not been made generally available to the public, such as: (i) corporate information, including plans, strategies, methods, policies, resolutions, negotiations, or litigation; (ii) marketing information, including strategies, methods, customer identities or other information about customers, prospect identities or other information about prospects, or market analyses or projections; (iii) financial information, including cost and performance data, debt arrangements, equity structure, investors and holdings, purchasing and sales data and price lists; and (d) operational and technological information, including plans, specifications, manuals, forms, templates, software, designs, methods, procedures, formulas, discoveries, inventions, improvements, concepts and ideas; and (e) personnel information, including personnel lists, reporting or organizational structure, resumes, personnel data, compensation structure, performance evaluations and termination arrangements or documents. Confidential Information also includes information received in confidence by the Company from its customers or suppliers or other third parties.</p></li><li><p>(b)  <strong>Nondisclosure; Recognition of Company’s Rights.</strong>  I will not, at any time, without the Company’s prior written permission, either during or after my Service Relationship with the Company, disclose any Confidential Information to anyone outside of the Company, or use or permit to be used any Confidential Information for any purpose other than the performance of my duties as a Service Provider of the Company. I will cooperate with the Company and use my best efforts to prevent the unauthorized disclosure of all Proprietary Information. I will deliver to the Company all copies of Confidential Information in my possession or control upon the earlier of a request by the Company or termination of my service relationship with the Company.</p></li></ul></li></ul>""")
+    """<p class="no-section">Effective Date:  [[Effective Date]]</p><p class="no-section">In consideration and as a condition of my employment, continued employment, or payment for services rendered as an independent contractor, consultant, or advisor ("Service Relationship") by [[Company]]     or any of its current or future subsidiaries, affiliates, successors or assigns (collectively, the "Company"), and my receipt of compensation now and hereafter paid to me by the Company, I hereby agree as follows:</p><ul class="list-lvl-1"><li><p>1. hello world</p><ul class="list-lvl-2"><li><p>(a) 	<strong>Confidential Information.</strong>  I agree that all information, whether or not in writing, concerning the Company’s business, technology, business relationships or financial affairs which the Company has not released to the general public (collectively, "Confidential Information") is and will be the exclusive property of the Company. By way of illustration, Confidential Information may include information or material which has not been made generally available to the public, such as: (i) corporate information, including plans, strategies, methods, policies, resolutions, negotiations, or litigation; (ii) marketing information, including strategies, methods, customer identities or other information about customers, prospect identities or other information about prospects, or market analyses or projections; (iii) financial information, including cost and performance data, debt arrangements, equity structure, investors and holdings, purchasing and sales data and price lists; and (d) operational and technological information, including plans, specifications, manuals, forms, templates, software, designs, methods, procedures, formulas, discoveries, inventions, improvements, concepts and ideas; and (e) personnel information, including personnel lists, reporting or organizational structure, resumes, personnel data, compensation structure, performance evaluations and termination arrangements or documents. Confidential Information also includes information received in confidence by the Company from its customers or suppliers or other third parties.</p></li><li><p>(b)  <strong>Nondisclosure; Recognition of Company’s Rights.</strong>  I will not, at any time, without the Company’s prior written permission, either during or after my Service Relationship with the Company, disclose any Confidential Information to anyone outside of the Company, or use or permit to be used any Confidential Information for any purpose other than the performance of my duties as a Service Provider of the Company. I will cooperate with the Company and use my best efforts to prevent the unauthorized disclosure of all Proprietary Information. I will deliver to the Company all copies of Confidential Information in my possession or control upon the earlier of a request by the Company or termination of my service relationship with the Company.</p></li></ul></li></ul>""")
   }
 
   it should "compile this piece" in {
@@ -831,7 +864,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
         |We're excited to offer you a position with""".stripMargin
 
     resultShouldBe(forReview(text,Map()),
-      """<p class='no-section'><br/><strong>[[Company Name]]</strong><br/>[[Company Street]]<br/>[[Company City]], [[Company State]] [[Company Zip]]</p><p class='no-section'>[[Effective Date]]</p><p class='no-section'>[[Employee First Name]] [[Employee Last Name]]<br/>[[Employee Street]]<br/>[[Employee City]], [[Employee State]] [[Employee Zip]]</p><p class='no-section'><strong>Re:  Offer Letter</strong></p><p class='no-section'>Dear [[Employee First Name]]:</p><p class='no-section'>We're excited to offer you a position with</p>""".stripMargin)
+      """<p class="no-section"><br /><strong>[[Company Name]]</strong><br />[[Company Street]]<br />[[Company City]], [[Company State]] [[Company Zip]]</p><p class="no-section">[[Effective Date]]</p><p class="no-section">[[Employee First Name]] [[Employee Last Name]]<br />[[Employee Street]]<br />[[Employee City]], [[Employee State]] [[Employee Zip]]</p><p class="no-section"><strong>Re:  Offer Letter</strong></p><p class="no-section">Dear [[Employee First Name]]:</p><p class="no-section">We're excited to offer you a position with</p>""".stripMargin)
   }
 
 
@@ -844,7 +877,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
         |and this is too
       """.stripMargin
 
-    resultShouldBe(forReview(text = text, paragraphs = ParagraphEdits(Map(2 -> "now I want this new text [[My Variable]]"))), "<p class='no-section'>hello my friend</p><ul class='list-lvl-1'><li><p>1.  this is a new paragraph [[My Variable]]</p><p class='no-section'>now I want this new text [[My Variable]]</p></li></ul>")
+    resultShouldBe(forReview(text = text, paragraphs = ParagraphEdits(Map(2 -> "now I want this new text [[My Variable]]"))), """<p class="no-section">hello my friend</p><ul class="list-lvl-1"><li><p>1.  this is a new paragraph [[My Variable]]</p><p>now I want this new text [[My Variable]]</p></li></ul>""")
   }
 
   it should "not eat some of the content" in {
@@ -862,7 +895,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
         |By: [[Contractor First Name]] [[Contractor Last Name]]
       """.stripMargin
 
-    resultShouldBe(forReview(text = text, params = Map()), "<p class='no-section'><br/></p><p class='no-section'>_______________________<br/>Joseph Lubin, Mitglied des Verwaltungsrates (Board Member) ConsenSys AG</p><p class='no-section'>On behalf of the Contractor:</p><p class='no-section'><br/>_______________________<br/>By: [[Contractor First Name]] [[Contractor Last Name]]<br/>      </p>")
+    resultShouldBe(forReview(text = text, params = Map()), """<p class="no-section"><br /></p><p class="no-section">_______________________<br />Joseph Lubin, Mitglied des Verwaltungsrates (Board Member) ConsenSys AG</p><p class="no-section">On behalf of the Contractor:</p><p class="no-section"><br />_______________________<br />By: [[Contractor First Name]] [[Contractor Last Name]]<br />      </p>""")
   }
 
   it should "give you the list of used variables in the template" in {
@@ -981,7 +1014,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
   it should "take the default value expression if none has been specified" in {
     val text = """[[My Number:Number(12)]][[My Number 2:Number(My Number + 10)]]""".stripMargin
 
-    resultShouldBe(forReview(text, Map()), "<p class='no-section'>1222</p>")
+    resultShouldBe(forReview(text, Map()), """<p class="no-section">1222</p>""")
   }
 
   it should "read a property from an address" in {
@@ -993,7 +1026,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
       country = "United States",
       zipCode = "102030392",
       formattedAddress = "some kind of formatted address"
-    )))), "<p class='no-section'>United States</p>")
+    )))), """<p class="no-section">United States</p>""")
   }
 
   it should "validate and make sure you do not use an invalid property" in {
@@ -1008,19 +1041,19 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
   it should "round number" in {
     val text ="<%[[My Number:Number]]%>[[My Number | rounding(2)]]"
 
-    resultShouldBe(forReview(text, Map("My Number" -> "0.33333333333")),"<p class='no-section'>0.33</p>")
+    resultShouldBe(forReview(text, Map("My Number" -> "0.33333333333")),"""<p class="no-section">0.33</p>""")
   }
 
   it should "format number" in {
     val text ="<%[[My Number:Number]]%>[[My Number]]"
 
-    resultShouldBe(forReview(text, Map("My Number" -> "1000000000")),"<p class='no-section'>1,000,000,000</p>")
+    resultShouldBe(forReview(text, Map("My Number" -> "1000000000")),"""<p class="no-section">1,000,000,000</p>""")
   }
 
   it should "round number with expression" in {
     val text ="<%[[My Number:Number]] [[Rounding Number:Number]]%>[[My Number | rounding(Rounding Number)]]"
 
-    resultShouldBe(forReview(text, Map("My Number" -> "0.333333333333333", "Rounding Number" -> "2")), "<p class='no-section'>0.33</p>")
+    resultShouldBe(forReview(text, Map("My Number" -> "0.333333333333333", "Rounding Number" -> "2")), """<p class="no-section">0.33</p>""")
   }
 
   it should "handle validation" in {
@@ -1063,7 +1096,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
          [[my city:City]]
          %>{{ my city = "Zurich" => hello world}}""".stripMargin
 
-    resultShouldBe(forReview(text, Map("my city" -> "Zurich")), "<p class='no-section'>hello world</p>")
+    resultShouldBe(forReview(text, Map("my city" -> "Zurich")), """<p class="no-section">hello world</p>""")
   }
 
   it should "throw an exception if we have an unknown type" in {
@@ -1295,7 +1328,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
   it should "parse [ and ] as characters if it is not the right variable format" in {
     val text = "[this is some text]"
 
-    resultShouldBe(forReview(text), "<p class='no-section'>[this is some text]</p>")
+    resultShouldBe(forReview(text), """<p class="no-section">[this is some text]</p>""")
   }
 
   it should "be able to define a header in the template" in {
@@ -1312,7 +1345,7 @@ here;
 
     val Right(template) = compiledAgreement(text)
 
-    resultShouldBe(forReview(text), "<p class='no-section'>hello world</p>")
+    resultShouldBe(forReview(text), """<p class="no-section">hello world</p>""")
 
     val actualHeader = template.header
 

@@ -97,7 +97,60 @@ sealed trait ValidationResult
 case object ValidationSuccess extends ValidationResult
 case object ValidationError extends ValidationResult
 
-case class Section(uuid:String, definition:Option[SectionDefinition], lvl:Int) extends TemplatePart
+case class Section(uuid:String, definition:Option[SectionDefinition], lvl:Int) extends TemplatePart {
+
+  private def getSingleExpression(param: Parameter): Option[Expression] = param match {
+    case OneValueParameter(expr) => Some(expr)
+    case _ => None
+  }
+
+  def overrideSymbol(executionResult: TemplateExecutionResult): Option[SectionSymbol] =
+    localOverrideSymbol(executionResult) match {
+      case symbol @ Some(_) => symbol
+      case None =>
+        executionResult
+          .allProcessedSections
+          .map(_._1)
+          .reverse
+          .filter(s => s.lvl == lvl)
+          .map(s => s.localOverrideSymbol(executionResult))
+          .collectFirst { case Some(symbol) => symbol }
+    }
+
+  def overrideFormat(executionResult: TemplateExecutionResult): Option[SectionFormat] =
+    localOverrideFormat(executionResult) match {
+      case symbol @ Some(_) => symbol
+      case None =>
+        executionResult
+          .allProcessedSections
+          .map(_._1)
+          .reverse
+          .dropWhile(s => s == this)
+          .filter(s => s.lvl == lvl)
+          .map(s => s.localOverrideFormat(executionResult))
+          .collectFirst { case Some(format) => format }
+    }
+
+  private def localOverrideSymbol(executionResult: TemplateExecutionResult): Option[SectionSymbol] =
+    for {
+      definition <- definition
+      parameters <- definition.parameters
+      parameter <- parameters.parameterMap.toMap.get("symbol")
+      expr <- getSingleExpression(parameter)
+      name <- expr.evaluate(executionResult)
+      result <- SectionSymbol.withNameOption(VariableType.convert[String](name))
+    } yield result
+
+  private def localOverrideFormat(executionResult: TemplateExecutionResult): Option[SectionFormat] =
+    for {
+      definition <- definition
+      parameters <- definition.parameters
+      parameter <- parameters.parameterMap.toMap.get("format")
+      expr <- getSingleExpression(parameter)
+      name <- expr.evaluate(executionResult)
+      result <- SectionFormat.withNameOption(VariableType.convert[String](name))
+    } yield result
+}
 
 object TextElement {
   def isEmpty(elem: TextElement): Boolean = elem match {

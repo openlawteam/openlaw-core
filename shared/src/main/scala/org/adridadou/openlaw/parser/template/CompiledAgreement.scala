@@ -1,6 +1,8 @@
 package org.adridadou.openlaw.parser.template
 
 import java.time.Clock
+
+import org.adridadou.openlaw.parser.template.printers.SectionHelper
 import org.adridadou.openlaw.parser.template.variableTypes._
 
 case class CompiledAgreement(
@@ -115,7 +117,7 @@ case class CompiledAgreement(
         val subExecution = executionResult.finishedEmbeddedExecutions.remove(0)
         subElements ++ getAgreementElements(subBlock.elems, subExecution)
       })
-    case Section(uuid, definition, lvl) =>
+    case section @ Section(uuid, definition, lvl) =>
       val resetNumbering = definition
         .flatMap(_.parameters)
         .flatMap(_.parameterMap.toMap.get("numbering"))
@@ -124,18 +126,25 @@ case class CompiledAgreement(
             case _ => None
           })
 
+      val overrideSymbol = section.overrideSymbol(executionResult)
+      val overrideFormat = section.overrideFormat(executionResult)
+      val number = executionResult
+        .allProcessedSections
+        .collectFirst { case (s, number) if s == section => number }
+        .getOrElse(throw new RuntimeException(s"unexpected condition, section not found in processed sections"))
+
       definition
         .flatMap(definition => executionResult.getVariable(definition.name))
           .flatMap(_.evaluate(executionResult)) match {
         case Some(value:SectionInfo) =>
-          elems.:+(SectionElement(value.numbering, lvl, resetNumbering = resetNumbering))
+          elems.:+(SectionElement(value.numbering, lvl, number, resetNumbering, overrideSymbol, overrideFormat))
 
         case None =>
           val name = executionResult.sectionNameMapping(uuid)
           val Some(value) = executionResult.getVariable(name)
             .flatMap(_.evaluate(executionResult))
           val info = VariableType.convert[SectionInfo](value)
-          elems.:+(SectionElement(info.numbering, lvl, resetNumbering = resetNumbering))
+          elems.:+(SectionElement(info.numbering, lvl, number, resetNumbering, overrideSymbol, overrideFormat))
         case Some(v) =>
           throw new RuntimeException(s"error while rendering sections the variable should be a section but is ${v.getClass.getSimpleName}")
       }
