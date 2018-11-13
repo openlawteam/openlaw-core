@@ -2,6 +2,8 @@ package org.adridadou.openlaw.parser.template
 
 import java.time.Clock
 
+import cats.Eq
+import cats.implicits._
 import org.adridadou.openlaw.parser.template.printers.SectionHelper
 import org.adridadou.openlaw.parser.template.variableTypes._
 
@@ -130,7 +132,7 @@ case class CompiledAgreement(
       val overrideFormat = section.overrideFormat(executionResult)
       val number = executionResult
         .allProcessedSections
-        .collectFirst { case (s, number) if s == section => number }
+        .collectFirst { case (s, number) if s === section => number }
         .getOrElse(throw new RuntimeException(s"unexpected condition, section not found in processed sections"))
 
       definition

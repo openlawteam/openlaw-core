@@ -1,5 +1,6 @@
 package org.adridadou.openlaw.parser.template
 
+import cats.implicits._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.values.TemplateParameters
@@ -112,7 +113,7 @@ case class Section(uuid:String, definition:Option[SectionDefinition], lvl:Int) e
           .allProcessedSections
           .map(_._1)
           .reverse
-          .filter(s => s.lvl == lvl)
+          .filter(s => s.lvl === lvl)
           .map(s => s.localOverrideSymbol(executionResult))
           .collectFirst { case Some(symbol) => symbol }
     }
@@ -125,8 +126,8 @@ case class Section(uuid:String, definition:Option[SectionDefinition], lvl:Int) e
           .allProcessedSections
           .map(_._1)
           .reverse
-          .dropWhile(s => s == this)
-          .filter(s => s.lvl == lvl)
+          .dropWhile(s => s === this)
+          .filter(s => s.lvl === lvl)
           .map(s => s.localOverrideFormat(executionResult))
           .collectFirst { case Some(format) => format }
     }

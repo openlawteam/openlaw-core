@@ -240,7 +240,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       case None =>
         previous
           .reverse
-          .filter(s => s.lvl == section.lvl)
+          .filter(s => s.lvl === section.lvl)
           .map(s => s.overrideFormat(executionResult))
           .collectFirst { case Some(format) => format }
     }

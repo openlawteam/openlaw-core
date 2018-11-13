@@ -2,6 +2,7 @@ package org.adridadou.openlaw.parser.template.printers
 
 import java.util.concurrent.atomic.AtomicInteger
 
+import cats.implicits._
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template._
 import scalatags.Text.all._
@@ -39,7 +40,7 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
   private def partitionSections(level: Int, seq: Seq[AgreementElement]): Seq[(SectionElement, Seq[AgreementElement])] = seq match {
     case Seq() => Seq()
     case Seq(section: SectionElement, xs @ _*) =>
-      val (content, remaining) = partitionAt(seq.drop(1)) { case SectionElement(_, thisLevel, _, _, _, _) if thisLevel == level => true }
+      val (content, remaining) = partitionAt(seq.drop(1)) { case SectionElement(_, thisLevel, _, _, _, _) if thisLevel === level => true }
       (section -> content) +: partitionSections(level, remaining)
   }
 
@@ -149,7 +150,7 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
         case section@SectionElement(value, level, resetNumbering, _, _, _) =>
           // partition out all content that will be within the newly defined sections
           val higherLevel = level - 1
-          val (content, remaining) = partitionAt(xs) { case SectionElement(_, thisLevel, _, _, _, _) if thisLevel == higherLevel => true }
+          val (content, remaining) = partitionAt(xs) { case SectionElement(_, thisLevel, _, _, _, _) if thisLevel === higherLevel => true }
 
           // Partition the elements into sections at this level
           val sections = partitionSections(level, section +: content)
@@ -188,7 +189,7 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
         case FreeText(t: Text) =>
 
           // Consume any following text elements which are only newlines
-          val remaining = xs.dropWhile { case element => element.equals(FreeText(Text("\n"))) }
+          val remaining = xs.dropWhile { case element => element === FreeText(Text("\n")) }
 
           // Generate text output
           val innerFrag = text(t.str)

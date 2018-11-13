@@ -1,8 +1,27 @@
 package org.adridadou.openlaw.parser
 
-import scala.util.Try
+import cats.Eq
+import cats.implicits._
 
 package object template {
+
+  implicit val agreementElementEq = new Eq[AgreementElement] {
+    override def eqv(x: AgreementElement, y: AgreementElement): Boolean = x.equals(y)
+  }
+
+  implicit val parametersEq = new Eq[Parameters] {
+    override def eqv(x: Parameters, y: Parameters): Boolean = x.parameterMap.equals(y.parameterMap)
+  }
+
+  implicit val sectionDefinitionEq = new Eq[SectionDefinition] {
+    override def eqv(x: SectionDefinition, y: SectionDefinition): Boolean = x.name === y.name && x.parameters === y.parameters
+  }
+
+  implicit val sectionEq = new Eq[Section] {
+    override def eqv(x: Section, y: Section): Boolean = {
+      x.definition === y.definition && x.lvl === y.lvl && x.uuid === y.uuid
+    }
+  }
 
   val SectionFormats: List[(SectionSymbol, SectionAlign, SectionFormat, Int, Int)] =
     (Decimal, AlignLeft, Period, 0, 360) ::
