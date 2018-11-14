@@ -277,35 +277,35 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
   }
 
   it should "be able to override section symbols" in {
-    resultShouldBe(forReview("^ Section 1", Map()), "<ul class='list-lvl-1'><li><p>1.  Section 1</p></li></ul>")
-    resultShouldBe(forReview("^(_(symbol: 'Decimal')) Section 1", Map()), "<ul class='list-lvl-1'><li><p>1.  Section 1</p></li></ul>")
-    resultShouldBe(forReview("^(_(symbol: 'Fake')) Section 1", Map()), "<ul class='list-lvl-1'><li><p>1.  Section 1</p></li></ul>")
-    resultShouldBe(forReview("^(_(symbol: 'LowerLetter')) Section 1", Map()), "<ul class='list-lvl-1'><li><p>a.  Section 1</p></li></ul>")
-    resultShouldBe(forReview("^(_(symbol: 'UpperLetter')) Section 1", Map()), "<ul class='list-lvl-1'><li><p>A.  Section 1</p></li></ul>")
-    resultShouldBe(forReview("^(_(symbol: 'LowerRoman')) Section 1", Map()), "<ul class='list-lvl-1'><li><p>i.  Section 1</p></li></ul>")
-    resultShouldBe(forReview("^(_(symbol: 'UpperRoman')) Section 1", Map()), "<ul class='list-lvl-1'><li><p>I.  Section 1</p></li></ul>")
-    resultShouldBe(forReview("^(_(symbol: 'Hide')) Section 1", Map()), "<ul class='list-lvl-1'><li><p>  Section 1</p></li></ul>")
+    resultShouldBe(forReview("^ Section 1", Map()), """<ul class="list-lvl-1"><li><p>1.  Section 1</p></li></ul>""")
+    resultShouldBe(forReview("^(_(symbol: 'Decimal')) Section 1", Map()), """<ul class="list-lvl-1"><li><p>1.  Section 1</p></li></ul>""")
+    resultShouldBe(forReview("^(_(symbol: 'Fake')) Section 1", Map()), """<ul class="list-lvl-1"><li><p>1.  Section 1</p></li></ul>""")
+    resultShouldBe(forReview("^(_(symbol: 'LowerLetter')) Section 1", Map()), """<ul class="list-lvl-1"><li><p>a.  Section 1</p></li></ul>""")
+    resultShouldBe(forReview("^(_(symbol: 'UpperLetter')) Section 1", Map()), """<ul class="list-lvl-1"><li><p>A.  Section 1</p></li></ul>""")
+    resultShouldBe(forReview("^(_(symbol: 'LowerRoman')) Section 1", Map()), """<ul class="list-lvl-1"><li><p>i.  Section 1</p></li></ul>""")
+    resultShouldBe(forReview("^(_(symbol: 'UpperRoman')) Section 1", Map()), """<ul class="list-lvl-1"><li><p>I.  Section 1</p></li></ul>""")
+    resultShouldBe(forReview("^(_(symbol: 'Hide')) Section 1", Map()), """<ul class="list-lvl-1"><li><p>  Section 1</p></li></ul>""")
   }
 
   it should "be able to override section formats" in {
-    resultShouldBe(forReview("^ Section 1", Map()), "<ul class='list-lvl-1'><li><p>1.  Section 1</p></li></ul>")
-    resultShouldBe(forReview("^(_(format: 'Period')) Section 1", Map()), "<ul class='list-lvl-1'><li><p>1.  Section 1</p></li></ul>")
-    resultShouldBe(forReview("^(_(format: 'Parens')) Section 1", Map()), "<ul class='list-lvl-1'><li><p>(1)  Section 1</p></li></ul>")
-    resultShouldBe(forReview("^(_(format: 'RightParen')) Section 1", Map()), "<ul class='list-lvl-1'><li><p>1)  Section 1</p></li></ul>")
+    resultShouldBe(forReview("^ Section 1", Map()), """<ul class="list-lvl-1"><li><p>1.  Section 1</p></li></ul>""")
+    resultShouldBe(forReview("^(_(format: 'Period')) Section 1", Map()), """<ul class="list-lvl-1"><li><p>1.  Section 1</p></li></ul>""")
+    resultShouldBe(forReview("^(_(format: 'Parens')) Section 1", Map()), """<ul class="list-lvl-1"><li><p>(1)  Section 1</p></li></ul>""")
+    resultShouldBe(forReview("^(_(format: 'RightParen')) Section 1", Map()), """<ul class="list-lvl-1"><li><p>1)  Section 1</p></li></ul>""")
   }
 
   it should "be able to override section symbols and formats" in {
-    resultShouldBe(forReview("^ Section 1", Map()), "<ul class='list-lvl-1'><li><p>1.  Section 1</p></li></ul>")
-    resultShouldBe(forReview("^(_(symbol: 'UpperRoman'; format: 'Period')) Section 1", Map()), "<ul class='list-lvl-1'><li><p>I.  Section 1</p></li></ul>")
-    resultShouldBe(forReview("^(_(symbol: 'LowerLetter'; format: 'Parens')) Section 1", Map()), "<ul class='list-lvl-1'><li><p>(a)  Section 1</p></li></ul>")
-    resultShouldBe(forReview("^(_(symbol: 'UpperLetter'; format: 'RightParen')) Section 1", Map()), "<ul class='list-lvl-1'><li><p>A)  Section 1</p></li></ul>")
-    resultShouldBe(forReview("^(_(symbol: 'Hide'; format: 'RightParen')) Section 1", Map()), "<ul class='list-lvl-1'><li><p>  Section 1</p></li></ul>")
+    resultShouldBe(forReview("^ Section 1", Map()), """<ul class="list-lvl-1"><li><p>1.  Section 1</p></li></ul>""")
+    resultShouldBe(forReview("^(_(symbol: 'UpperRoman'; format: 'Period')) Section 1", Map()), """<ul class="list-lvl-1"><li><p>I.  Section 1</p></li></ul>""")
+    resultShouldBe(forReview("^(_(symbol: 'LowerLetter'; format: 'Parens')) Section 1", Map()), """<ul class="list-lvl-1"><li><p>(a)  Section 1</p></li></ul>""")
+    resultShouldBe(forReview("^(_(symbol: 'UpperLetter'; format: 'RightParen')) Section 1", Map()), """<ul class="list-lvl-1"><li><p>A)  Section 1</p></li></ul>""")
+    resultShouldBe(forReview("^(_(symbol: 'Hide'; format: 'RightParen')) Section 1", Map()), """<ul class="list-lvl-1"><li><p>  Section 1</p></li></ul>""")
   }
 
   it should "be able to override subsequent section symbols and formats" in {
-    resultShouldBe(forReview("^ Section 1^ Section 2", Map()), "<ul class='list-lvl-1'><li><p>1.  Section 1</p></li><li><p>2.  Section 2</p></li></ul>")
-    resultShouldBe(forReview("^(_(symbol: 'LowerLetter'; format: 'Parens')) Section 1^ Section 2", Map()), "<ul class='list-lvl-1'><li><p>(a)  Section 1</p></li><li><p>(b)  Section 2</p></li></ul>")
-    resultShouldBe(forReview("^(_(symbol: 'LowerLetter')) Section 1^ Section 2^(_(format: 'Parens')) Section 3^ Section 4", Map()), "<ul class='list-lvl-1'><li><p>a.  Section 1</p></li><li><p>b.  Section 2</p></li><li><p>(c)  Section 3</p></li><li><p>(d)  Section 4</p></li></ul>")
+    resultShouldBe(forReview("^ Section 1^ Section 2", Map()), """<ul class="list-lvl-1"><li><p>1.  Section 1</p></li><li><p>2.  Section 2</p></li></ul>""")
+    resultShouldBe(forReview("^(_(symbol: 'LowerLetter'; format: 'Parens')) Section 1^ Section 2", Map()), """<ul class="list-lvl-1"><li><p>(a)  Section 1</p></li><li><p>(b)  Section 2</p></li></ul>""")
+    resultShouldBe(forReview("^(_(symbol: 'LowerLetter')) Section 1^ Section 2^(_(format: 'Parens')) Section 3^ Section 4", Map()), """<ul class="list-lvl-1"><li><p>a.  Section 1</p></li><li><p>b.  Section 2</p></li><li><p>(c)  Section 3</p></li><li><p>(d)  Section 4</p></li></ul>""")
   }
 
   it should "not be able to emphasize sections" in {
@@ -404,10 +404,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
 
     structureAgreement(clauseText) match {
       case Right(t) => t.executionResult.getVariable("contractor") match {
-        case Some(variable) => variable.defaultValue match {
-          case Some(OneValueParameter(NumberConstant(n,_))) => n shouldBe BigDecimal("24")
-          case something => fail("default value is not correct:" + something)
-        }
+        case Some(variable) => variable.defaultValue shouldBe Some(OneValueParameter(NumberConstant(BigDecimal("24"))))
         case None => fail("variable not found")
       }
       case Left(ex) => fail(ex)
@@ -418,10 +415,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     val clauseText = "This is my clause. [[contractor:Date(\"2017-06-24\")]]"
     structureAgreement(clauseText) match {
       case Right(t) => t.executionResult.getVariable("contractor") match {
-        case Some(variable) => variable.defaultValue match {
-          case Some(OneValueParameter(StringConstant(text,_))) => text shouldBe "2017-06-24"
-          case something => fail("default value is not correct:" + something)
-        }
+        case Some(variable) => variable.defaultValue shouldBe Some(OneValueParameter(StringConstant("2017-06-24")))
         case None => fail("contractor variable not found")
       }
       case Left(ex) => fail(ex)
@@ -432,10 +426,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     val clauseText = "This is my clause. [[contractor:DateTime(\"2017-06-24 13:45:00\")]]"
 
     structureAgreement(clauseText) match {
-      case Right(t) => t.executionResult.getVariable("contractor").flatMap(_.defaultValue) match {
-        case Some(OneValueParameter(StringConstant(text,_))) => text shouldBe "2017-06-24 13:45:00"
-        case something => fail("default value is not correct:" + something)
-      }
+      case Right(t) => t.executionResult.getVariable("contractor").flatMap(_.defaultValue) shouldBe Some(OneValueParameter(StringConstant("2017-06-24 13:45:00")))
       case Left(ex) => fail(ex)
     }
   }
