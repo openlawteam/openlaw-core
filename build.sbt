@@ -19,9 +19,7 @@ lazy val repositories = Seq(
   Resolver.jcenterRepo,
   "central" at "http://central.maven.org/maven2/",
   "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases",
-  "ethereumj repository" at "http://dl.bintray.com/ethereum/maven",
   "maven central" at "https://mvnrepository.com/repos/central",
-  "jitpack.io" at "https://jitpack.io",
   Resolver.mavenLocal
 )
 
@@ -82,9 +80,6 @@ lazy val openlawCoreJs = (project in file("openlawCoreJs")).settings(
   name := "openlaw-core-client",
   scalaVersion := scalaV,
   wartremoverErrors ++= rules,
-  libraryDependencies ++= Seq(
-    "org.scala-js"  %%% "scalajs-dom"             % "0.9.6",
-  ),
   relativeSourceMaps := true,
   artifactPath in (Compile, fastOptJS) := crossTarget.value / "client.js",
   artifactPath in (Compile, fullOptJS) := crossTarget.value / "client.js"
