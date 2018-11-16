@@ -110,6 +110,7 @@ lazy val shared = crossProject(JSPlatform, JVMPlatform)
       "org.typelevel"           %% "cats-free"           % catsV,
       "io.github.cquiroz"       %% "scala-java-time"     % "2.0.0-M13",
       "biz.enef"                %% "slogging-slf4j"      % "0.6.1",
+      "com.lihaoyi"             %% "scalatags"           % "0.6.7",
       //Test
       "org.scalacheck"          %% "scalacheck"          % "1.14.0"       % Test,
       "org.scalatest"           %% "scalatest"           % "3.0.6-SNAP2"  % Test,
@@ -127,6 +128,7 @@ lazy val shared = crossProject(JSPlatform, JVMPlatform)
       "io.circe"                %%% "circe-generic"        % circeV,
       "io.circe"                %%% "circe-parser"         % circeV,
       "com.typesafe.play"       %%% "play-json"            % "2.6.10",
+      "com.lihaoyi"             %%% "scalatags"            % "0.6.7",
       //Test
       "org.scalacheck"          %%% "scalacheck"          % "1.14.0"       % Test,
       "org.scalatest"           %%% "scalatest"           % "3.0.6-SNAP2"  % Test

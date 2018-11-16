@@ -208,7 +208,9 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       case None =>
         Right(executionResult.sectionLevelStack, Nil)
     }).map({ case (numbering, newSectionValues) =>
-      val sectionValue = SectionHelper.generateListNumber(section.lvl, numbering)
+      val overrideSymbol = section.overrideSymbol(executionResult)
+      val overrideFormat = section.overrideFormat(executionResult)
+      val sectionValue = SectionHelper.generateListNumber(section.lvl, numbering, overrideSymbol, overrideFormat)
       val params = Seq(
         "reference value" -> OneValueParameter(StringConstant(generateFullSectionValue(section, sectionValue, executionResult))),
         "numbering" -> OneValueParameter(StringConstant(sectionValue))
@@ -225,10 +227,23 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       executionResult.sectionNameMapping put (section.uuid , name)
       executionResult.addLastSectionByLevel(section.lvl, sectionValue)
       executionResult.addSectionLevelStack(newSectionValues)
+      executionResult.addProcessedSection(section, SectionHelper.calculateNumberInList(section.lvl, numbering))
 
       executionResult
     })
   }
+
+
+  private def findOverriddenFormat(executionResult: TemplateExecutionResult, section: Section, previous: Seq[Section]): Option[SectionFormat] =
+    section.overrideFormat(executionResult) match {
+      case format @ Some(_) => format
+      case None =>
+        previous
+          .reverse
+          .filter(s => s.lvl === section.lvl)
+          .map(s => s.overrideFormat(executionResult))
+          .collectFirst { case Some(format) => format }
+    }
 
   private def executeForEachBlock(executionResult: TemplateExecutionResult, foreachBlock: ForEachBlock):Either[String, TemplateExecutionResult] = {
     foreachBlock.toCompiledTemplate(executionResult).flatMap({ case (template, expressionType) =>
