@@ -80,27 +80,30 @@ object SectionHelper {
 
   }
 
-  def generateListNumber(lvl: Int, sections: Seq[Int]): String = {
+  def generateListNumber(lvl: Int, sections: Seq[Int], overrideSymbol: Option[SectionSymbol], overrideFormat: Option[SectionFormat]): String = {
     val numberInList = calculateNumberInList(lvl, sections)
-    lvl match {
-      case 1 => lvl1Index(numberInList)
-      case 2 => lvl2Index(numberInList)
-      case 3 => lvl3Index(numberInList)
-      case 4 => lvl4Index(numberInList)
-      case _ => throw new RuntimeException("we handle only 4 levels for now")
-    }
+    val defaultFormat = SectionFormats.get(lvl - 1).getOrElse(throw new RuntimeException(s"we handle only ${SectionFormats.size} levels for now"))
+    val sectionSymbol = overrideSymbol.getOrElse(defaultFormat._1)
+    val sectionFormat = overrideFormat.getOrElse(defaultFormat._3)
+
+    formatSectionValue(numberInList, sectionSymbol, sectionFormat)
   }
 
   def calculateNumberInList(lvl: Int, sections: Seq[Int]): Int =
     sections.reverse.takeWhile(_ >= lvl).count(_ === lvl)
 
-  private def lvl1Index(index: Int) = s"$index."
+  private def formatSectionValue(index: Int, sectionSymbol: SectionSymbol, sectionFormat: SectionFormat): String = {
+    sectionSymbol match {
+      case Decimal => sectionFormat.formatString.format(index.toString)
+      case LowerLetter => sectionFormat.formatString.format(lowerLetter(index))
+      case UpperLetter => sectionFormat.formatString.format(lowerLetter(index).toUpperCase)
+      case LowerRoman => sectionFormat.formatString.format(toRomanNumerals(index))
+      case UpperRoman => sectionFormat.formatString.format(toRomanNumerals(index).toUpperCase)
+      case Hide => ""
+    }
+  }
 
-  private def lvl2Index(index: Int) = s"(${('a' + ((index - 1) % 26)).toChar.toString * ((index - 1) / 26 + 1)})"
-
-  private def lvl3Index(index: Int) = s"(${toRomanNumerals(index)})"
-
-  private def lvl4Index(index: Int) = s"($index)"
+  private def lowerLetter(index: Int): String = ('a' + ((index - 1) % 26)).toChar.toString * ((index - 1) / 26 + 1)
 
   private def toRomanNumerals( number: Int): String = {
     toRomanNumerals( number, List( ("m", 1000),("cm", 900), ("d", 500), ("cd", 400), ("c", 100), ("xc", 90),
@@ -128,24 +131,24 @@ object FileCreator {
 }
 
 abstract class DocumentGenerator[T : FileCreator] {
-  def printer(path:TemplatePath):AgreementPrinter[T]
+  def printer(path:TemplatePath, executionResult: TemplateExecutionResult):AgreementPrinter[T]
   def apply(path:TemplatePath, agreementPrinter: AgreementPrinter[T]):DocumentGenerator[T]
   def printers:Seq[(TemplatePath, AgreementPrinter[T])]
 }
 
 case class OneDocumentGenerator[T : FileCreator](aggregatedPrinter:AgreementPrinter[T], title:TemplateTitle) extends DocumentGenerator[T] {
-  override def printer(path:TemplatePath):AgreementPrinter[T] = aggregatedPrinter
+  override def printer(path:TemplatePath, executionResult: TemplateExecutionResult):AgreementPrinter[T] = aggregatedPrinter
   override def apply(path:TemplatePath, printer: AgreementPrinter[T]):DocumentGenerator[T] = this.copy(aggregatedPrinter = printer.newState(printer.state))
   override def printers:Seq[(TemplatePath, AgreementPrinter[T])] = Seq((TemplatePath(Seq()), aggregatedPrinter))
 }
 
-case class MultipleDocumentGenerator[T : FileCreator](printers:Seq[(TemplatePath, AgreementPrinter[T])] = Seq(), constructor: TemplatePath => (TemplatePath, AgreementPrinter[T])) extends DocumentGenerator[T] {
+case class MultipleDocumentGenerator[T : FileCreator](printers:Seq[(TemplatePath, AgreementPrinter[T])] = Seq(), constructor: (TemplatePath, TemplateExecutionResult) => (TemplatePath, AgreementPrinter[T])) extends DocumentGenerator[T] {
 
-  override def printer(path:TemplatePath):AgreementPrinter[T] = printers.find({case (p,_) => p === path}) match {
+  override def printer(path:TemplatePath, executionResult: TemplateExecutionResult):AgreementPrinter[T] = printers.find({case (p,_) => p === path}) match {
     case Some((_, printer)) =>
       printer
     case None =>
-      val (_, agreement) = constructor(path)
+      val (_, agreement) = constructor(path, executionResult)
       agreement
   }
 

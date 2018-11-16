@@ -3,7 +3,8 @@ package org.adridadou.openlaw.parser.template
 import java.time.Clock
 
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
-import org.adridadou.openlaw.parser.template.printers.{AgreementPrinter, PreviewHtmlAgreementPrinter, ReviewHtmlAgreementPrinter}
+import org.adridadou.openlaw.parser.template.printers.{AgreementPrinter, XHtmlAgreementPrinter}
+import org.adridadou.openlaw.parser.template.printers.XHtmlAgreementPrinter.FragsPrinter
 import org.adridadou.openlaw.parser.template.variableTypes.YesNoType
 import org.parboiled2.ParseError
 
@@ -16,21 +17,21 @@ import org.adridadou.openlaw.parser.template.expressions.Expression
   */
 class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
 
-  def parseExpression(str: String):Either[String, Expression] = new ExpressionParser(str).root.run() match {
+  def parseExpression(str: String): Either[String, Expression] = new ExpressionParser(str).root.run() match {
     case Success(result) => Right(result)
     case Failure(ex) => Left(ex.getMessage)
   }
 
-  def compileTemplateOrThrow(content: String):CompiledTemplate = compileTemplate(content) match {
+  def compileTemplateOrThrow(content: String): CompiledTemplate = compileTemplate(content) match {
     case Right(document) => document
     case Left(ex) => throw new RuntimeException(ex)
   }
 
-  def compileTemplate(source: String, clock:Clock = internalClock):Either[String, CompiledTemplate] = {
+  def compileTemplate(source: String, clock: Clock = internalClock): Either[String, CompiledTemplate] = {
     val compiler = createTemplateCompiler(source, clock)
 
     Try(compiler.rootRule.run().toEither match {
-      case Left(parseError:ParseError) =>
+      case Left(parseError: ParseError) =>
         Left(compiler.formatError(parseError))
       case Left(ex) =>
         Left(Option(ex.getMessage).getOrElse(""))
@@ -44,16 +45,16 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
     }
   }
 
-  private def validate(template:CompiledTemplate):Either[String, CompiledTemplate] = {
+  private def validate(template: CompiledTemplate): Either[String, CompiledTemplate] = {
     variableTypesMap(template.block.elems, VariableRedefinition()) map template.withRedefinition
   }
 
-  private def variableTypesMap(elems:Seq[TemplatePart], redefinition:VariableRedefinition):Either[String, VariableRedefinition] = {
-    val initialValue:Either[String, VariableRedefinition] = Right(redefinition)
+  private def variableTypesMap(elems: Seq[TemplatePart], redefinition: VariableRedefinition): Either[String, VariableRedefinition] = {
+    val initialValue: Either[String, VariableRedefinition] = Right(redefinition)
     elems.foldLeft(initialValue)((currentTypeMap, elem) => currentTypeMap.flatMap(variableTypesMap(elem, _)))
   }
 
-  private def redefine(redefinition: VariableRedefinition, name:String, varTypeDefinition:VariableTypeDefinition, description:Option[String]):VariableRedefinition = {
+  private def redefine(redefinition: VariableRedefinition, name: String, varTypeDefinition: VariableTypeDefinition, description: Option[String]): VariableRedefinition = {
     val typeMap = redefinition.typeMap + (name -> varTypeDefinition)
     val descriptions = description match {
       case Some(desc) => redefinition.descriptions + (name -> desc)
@@ -64,11 +65,11 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
       descriptions = descriptions)
   }
 
-  private def variableTypesMap(elem:TemplatePart, redefinition:VariableRedefinition):Either[String, VariableRedefinition] = elem match {
-    case variable:VariableDefinition if variable.nameOnly =>
+  private def variableTypesMap(elem: TemplatePart, redefinition: VariableRedefinition): Either[String, VariableRedefinition] = elem match {
+    case variable: VariableDefinition if variable.nameOnly =>
       Right(redefinition)
 
-    case variable:VariableDefinition =>
+    case variable: VariableDefinition =>
       redefinition.typeMap.get(variable.name.name) match {
         case _ if variable.isAnonymous => Right(redefinition)
         case Some(otherType) if variable.variableTypeDefinition.exists(_ === otherType) =>
@@ -81,12 +82,12 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
             .toRight(s"${variable.name} is missing a variable type name")
       }
 
-    case _:VariableName =>
+    case _: VariableName =>
       Right(redefinition)
 
     case ConditionalBlock(block, conditionalExpression) =>
       val newTypeMap = conditionalExpression match {
-        case variable:VariableDefinition =>
+        case variable: VariableDefinition =>
           redefinition.typeMap.get(variable.name.name) match {
             case Some(otherType) if otherType === VariableTypeDefinition(YesNoType.name) =>
               Right(redefinition)
@@ -107,42 +108,32 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
       variableTypesMap(variables, redefinition)
 
     case ConditionalBlockSet(blocks) =>
-      val initialValue:Either[String, VariableRedefinition] = Right(redefinition)
+      val initialValue: Either[String, VariableRedefinition] = Right(redefinition)
       blocks.foldLeft(initialValue)((currentTypeMap, block) => currentTypeMap.flatMap(variableTypesMap(block, _)))
     case _ =>
       Right(redefinition)
   }
 
-  def parseMarkdown(markdown:String):Either[String, Seq[TextElement]] = {
-    val compiler = createMarkdownParser(markdown)
+  def forPreview(structuredAgreement: StructuredAgreement, overriddenParagraphs: ParagraphEdits): String =
+    XHtmlAgreementPrinter(true, paragraphEdits = overriddenParagraphs).printParagraphs(structuredAgreement.paragraphs).print
 
-    compiler.rootRule.run().toEither match {
-      case Left(parseError:ParseError) => Left(compiler.formatError(parseError))
-      case Left(ex) => Left(ex.getClass + ":" + ex.getMessage)
-      case Right(result) => Right(result)
-    }
-  }
+  def forPreview(structuredAgreement: StructuredAgreement, overriddenParagraphs: ParagraphEdits, hiddenVariables: Seq[String]): String =
+    XHtmlAgreementPrinter(true, paragraphEdits = overriddenParagraphs, hiddenVariables = hiddenVariables).printParagraphs(structuredAgreement.paragraphs).print
 
-  def forPreview(structuredAgreement: StructuredAgreement, overriddenParagraphs:ParagraphEdits):String =
-    render(structuredAgreement, overriddenParagraphs, PreviewHtmlAgreementPrinter(), Set()).result
+  def forPreview(paragraph: Paragraph, variables: Seq[String]): String =
+    XHtmlAgreementPrinter(true, hiddenVariables = variables).printParagraphs(Seq(paragraph)).print
 
-  def forPreview(structuredAgreement: StructuredAgreement, overriddenParagraphs:ParagraphEdits, hiddenVariables:Seq[String]):String =
-    render(structuredAgreement, overriddenParagraphs, PreviewHtmlAgreementPrinter(), hiddenVariables.toSet).result
-
-  def forPreview(paragraph:Paragraph, variables:Seq[String]):String =
-    renderParagraph(paragraph,ParagraphEdits(), variables.toSet, PreviewHtmlAgreementPrinter()).result
-
-  def forReview(structuredAgreement: StructuredAgreement, overriddenParagraphs:ParagraphEdits):String =
-    forReview(structuredAgreement, overriddenParagraphs, structuredAgreement.executionResult.getVariables.map(_.name.name))
+  def forReview(structuredAgreement: StructuredAgreement, overriddenParagraphs: ParagraphEdits): String =
+    XHtmlAgreementPrinter(false, overriddenParagraphs, structuredAgreement.executionResult.getVariables.map(_.name.name)).printParagraphs(structuredAgreement.paragraphs).print
 
   def forReview(structuredAgreement: StructuredAgreement, overriddenParagraphs:ParagraphEdits, variables:Seq[String]):String =
-    render(structuredAgreement, overriddenParagraphs, ReviewHtmlAgreementPrinter(), variables.toSet).result
+    XHtmlAgreementPrinter(false, overriddenParagraphs, variables).printParagraphs(structuredAgreement.paragraphs).print
 
   def forReview(paragraph: Paragraph, variables:Seq[String]):String =
-    renderParagraph(paragraph, ParagraphEdits(), variables.toSet, ReviewHtmlAgreementPrinter()).result
+    XHtmlAgreementPrinter(false, hiddenVariables = variables).printParagraphs(Seq(paragraph)).print
 
   def forReviewEdit(paragraph:Paragraph):String = {
-    renderParagraph(prepareSingleParagraph(paragraph),ParagraphEdits(), Set(), ReviewHtmlAgreementPrinter()).result
+    XHtmlAgreementPrinter(false).printParagraphs(Seq(paragraph)).print
   }
 
   private def prepareSingleParagraph(paragraph: Paragraph):Paragraph = Paragraph(paragraph.elements.filter({
@@ -159,7 +150,7 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
     })
 
   def handleOverriddenParagraph[T](p: AgreementPrinter[T], str: String):AgreementPrinter[T] = {
-    val newP = parseMarkdown(str) match {
+    val newP = MarkdownParser.parseMarkdown(str) match {
       case Left(ex) => throw new RuntimeException("error while parsing the markdown:" + ex)
       case Right(result) => result
         .foldLeft(p)({case (printer, elem) =>
@@ -180,9 +171,9 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
           .paragraphStart()
 
       val optParagraph = overriddenParagraphs.edits.get(agreementPrinter.state.paragraphIndex)
-            paragraph
-              .elements.foldLeft(p)({case (printer, element) => renderElement(element, paragraph, optParagraph, hiddenVariables, printer)})
-              .paragraphFooter.paragraphEnd()
+      paragraph
+        .elements.foldLeft(p)({case (printer, element) => renderElement(element, paragraph, optParagraph, hiddenVariables, printer)})
+        .paragraphFooter.paragraphEnd()
     }else {
       paragraph
         .elements.foldLeft(agreementPrinter)({case (printer, element) => renderElement(element, paragraph, None, hiddenVariables, printer)})
@@ -204,7 +195,7 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
         renderElement(element, docParagraph, optParagraph, hiddenVariables, agreementPrinter.paragraphHeader(docParagraph))
       case (_:VariableElement, _) if !agreementPrinter.state.headerGenerated =>
         renderElement(element,docParagraph, optParagraph, hiddenVariables, agreementPrinter.paragraphHeader(docParagraph))
-      case (_:FreeText, Some(paragraph)) if !agreementPrinter.state.overriddenParagraphGenerated =>
+      case (_:FreeText,Some(paragraph)) if !agreementPrinter.state.overriddenParagraphGenerated =>
         handleOverriddenParagraph(agreementPrinter, paragraph)
       case (_:VariableElement, Some(paragraph)) if !agreementPrinter.state.overriddenParagraphGenerated =>
         handleOverriddenParagraph(agreementPrinter,  paragraph)
@@ -245,7 +236,6 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
   }
 
   private def createTemplateCompiler(markdown:String, clock:Clock):OpenlawTemplateLanguageParser = new OpenlawTemplateLanguageParser(markdown, clock)
-  private def createMarkdownParser(markdown:String):MarkdownParser = new MarkdownParser(markdown)
 }
 
 

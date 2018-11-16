@@ -43,6 +43,7 @@ case class TemplateExecutionResult(
                                     variableTypes: mutable.Buffer[VariableType] = mutable.Buffer(VariableType.allTypes() : _*),
                                     sectionLevelStack: mutable.Buffer[Int] = mutable.Buffer(),
                                     sectionNameMapping: mutable.Map[String, VariableName] = mutable.Map(),
+                                    processedSections: mutable.Buffer[(Section, Int)] = mutable.Buffer(),
                                     lastSectionByLevel:mutable.Map[Int, String] = mutable.Map(),
                                     clock:Clock) {
   def addLastSectionByLevel(lvl: Int, sectionValue: String):Unit = {
@@ -65,6 +66,16 @@ case class TemplateExecutionResult(
     } else {
       lastSectionByLevel.getOrElse(idx,"")
     }
+  }
+
+  def addProcessedSection(section: Section, number: Int):Unit = (embedded, parentExecution) match {
+    case (true, Some(parent)) => parent.addProcessedSection(section, number)
+    case _ => processedSections append (section -> number)
+  }
+
+  def allProcessedSections:mutable.Buffer[(Section, Int)] = (embedded, parentExecution)  match {
+    case (true, Some(parent)) => parent.allProcessedSections ++ processedSections
+    case _ => processedSections
   }
 
   def addSectionLevelStack(newSectionValues: Seq[Int]):Unit = {
@@ -438,7 +449,6 @@ case class StructuredAgreement(executionResult: TemplateExecutionResult, mainTem
     }
   }
 
-
   def name: String =
     executionResult.templateDefinition.map(template => template.path.map(_.path.mkString("/") + "/").getOrElse("") + template.name.name.title).getOrElse("")
 
@@ -450,7 +460,7 @@ trait AgreementElement
 case class FreeText(elem: TextElement) extends AgreementElement
 case class Link(label:String, url:String) extends AgreementElement
 case class VariableElement(name: String, content:Seq[AgreementElement], dependencies: Seq[String]) extends AgreementElement
-case class SectionElement(value: String, lvl:Int, resetNumbering:Option[Int]) extends AgreementElement
+case class SectionElement(value: String, lvl:Int, number:Int, resetNumbering:Option[Int], overriddenSymbol: Option[SectionSymbol], overridenFormat: Option[SectionFormat]) extends AgreementElement
 case class ConditionalStart(dependencies: Seq[String]) extends AgreementElement
 case class ConditionalEnd(dependencies: Seq[String]) extends AgreementElement
 
@@ -465,7 +475,7 @@ case class ParagraphBuilder(paragraphs:List[Paragraph] = List(), lastParagraph:P
 
 }
 
-case class Paragraph(elements: List[AgreementElement] = List()) {
+case class Paragraph(elements: List[AgreementElement] = List()) extends AgreementElement {
   def appendElement(element: AgreementElement): Paragraph = this.copy(elements :+ element)
 }
 
