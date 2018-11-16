@@ -6,6 +6,7 @@ import cats.implicits._
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template._
 import scalatags.Text.all._
+import slogging._
 
 import scala.annotation.tailrec
 
@@ -24,7 +25,7 @@ object XHtmlAgreementPrinter {
   }
 }
 
-case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdits = ParagraphEdits(), hiddenVariables: Seq[String] = Seq()) {
+case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdits = ParagraphEdits(), hiddenVariables: Seq[String] = Seq()) extends LazyLogging {
 
   private def partitionAtItem[T](seq: Seq[T], t: T): (Seq[T], Seq[T]) = partitionAt(seq) { case item if item.equals(t) => true }
 
@@ -214,6 +215,13 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
 
         case FreeText(PageBreak) =>
           hr() +: recurse(xs)
+
+        case FreeText(Centered) =>
+          recurse(xs)
+
+        case x =>
+          logger.warn(s"unhandled element: $x")
+          recurse(xs)
       }
     }
   }
