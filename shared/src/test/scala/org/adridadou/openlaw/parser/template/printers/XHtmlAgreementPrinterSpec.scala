@@ -86,4 +86,21 @@ class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues
     html shouldBe """<p class="no-section">This is a test<br /></p><p class="no-section">Another line</p>"""
   }
 
+  it should "handle agreements with multiple centered sections" in {
+    val text = """\centered **BYLAWS**
+                 |\centered **OF**
+                 |\centered **[[Company Name | Uppercase]]**
+                 |\centered (A DELAWARE CORPORATION)
+                 |
+                 |
+                 |^ **Offices**
+                 |
+                 |^^ **Registered Office**.  The registered office of the corporation in the State of Delaware shall be [[Registered Agent Address: Address]], and the name of the registered agent of the corporation in the State of Delaware at such address is [[Registered Agent Name]].
+                 |""".stripMargin
+
+    val agreement = structureAgreement(text)
+    val html = XHtmlAgreementPrinter(false).printParagraphs(agreement.right.value.paragraphs).print
+    html shouldBe """<p class="no-section align-center"> <strong>BYLAWS</strong><br /> <strong>OF</strong><br /> <strong>[[Company Name]]</strong><br /> (A DELAWARE CORPORATION)<br /></p><ul class="list-lvl-1"><li><p>1.  <strong>Offices</strong></p><ul class="list-lvl-2"><li><p>(a)  <strong>Registered Office</strong>.  The registered office of the corporation in the State of Delaware shall be [[Registered Agent Address]], and the name of the registered agent of the corporation in the State of Delaware at such address is [[Registered Agent Name]].<br /></p></li></ul></li></ul>"""
+
+  }
 }
