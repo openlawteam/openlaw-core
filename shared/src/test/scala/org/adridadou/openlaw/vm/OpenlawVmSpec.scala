@@ -13,6 +13,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
   val parser:OpenlawTemplateLanguageParserService = new OpenlawTemplateLanguageParserService(Clock.systemUTC())
   val vmProvider:OpenlawVmProvider = new OpenlawVmProvider(TestCryptoService, parser)
   val clock: Clock = Clock.systemUTC()
+  val adminAccount = AccountProvider.fromSeed("openlawseed")
 
   "Openlaw Virtual Machine" should "be instantiated by giving a template, parameters and paragraph overrides" in {
     val definition = ContractDefinition(
