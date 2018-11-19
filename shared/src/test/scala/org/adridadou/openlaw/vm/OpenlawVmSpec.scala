@@ -2,6 +2,7 @@ package org.adridadou.openlaw.vm
 
 import java.time.{Clock, LocalDateTime}
 
+import cats.data
 import org.adridadou.openlaw.oracles
 import org.adridadou.openlaw.oracles._
 import org.adridadou.openlaw.parser.template.{ExecutionFinished, OpenlawTemplateLanguageParserService, VariableName}
@@ -13,7 +14,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
   val parser:OpenlawTemplateLanguageParserService = new OpenlawTemplateLanguageParserService(Clock.systemUTC())
   val vmProvider:OpenlawVmProvider = new OpenlawVmProvider(TestCryptoService, parser)
   val clock: Clock = Clock.systemUTC()
-  val adminAccount = AccountProvider.fromSeed("openlawseed")
+  val serverAccount:TestAccount = TestAccount.newRandom
 
   "Openlaw Virtual Machine" should "be instantiated by giving a template, parameters and paragraph overrides" in {
     val definition = ContractDefinition(
@@ -64,8 +65,8 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
       templates = Map(),
       parameters = TemplateParameters(Map(VariableName("Signatory") -> IdentityType.internalFormat(identity1)))
     )
-    val vm1 = vmProvider.create(definition1, Seq(OpenlawSignatureOracle(TestCryptoService)), Seq())
-    val vm2 = vmProvider.create(definition2, Seq(OpenlawSignatureOracle(TestCryptoService)), Seq())
+    val vm1 = vmProvider.create(definition1, Seq(OpenlawSignatureOracle(TestCryptoService, serverAccount.address)), Seq())
+    val vm2 = vmProvider.create(definition2, Seq(OpenlawSignatureOracle(TestCryptoService, serverAccount.address)), Seq())
     vm1(LoadTemplate(template))
     vm2(LoadTemplate(template))
     val result1 = sign(identity1, vm1.contractId)
@@ -105,7 +106,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
       parameters = TemplateParameters()
     )
 
-    val vm = vmProvider.create(definition, Seq(OpenlawSignatureOracle(TestCryptoService)), Seq())
+    val vm = vmProvider.create(definition, Seq(OpenlawSignatureOracle(TestCryptoService, serverAccount.address)), Seq())
     vm(LoadTemplate(template))
     vm.executionResultState shouldBe ExecutionFinished
 
@@ -141,8 +142,8 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
       templates = Map(),
       parameters = TemplateParameters("Signatory" -> IdentityType.internalFormat(identity2))
     )
-    val vm1 = vmProvider.create(definition1, Seq(OpenlawSignatureOracle(TestCryptoService)), Seq(StopContractOracle(TestCryptoService), ResumeContractOracle(TestCryptoService)))
-    val vm2 = vmProvider.create(definition2, Seq(OpenlawSignatureOracle(TestCryptoService)), Seq(StopContractOracle(TestCryptoService), ResumeContractOracle(TestCryptoService)))
+    val vm1 = vmProvider.create(definition1, Seq(OpenlawSignatureOracle(TestCryptoService, serverAccount.address)), Seq(StopContractOracle(TestCryptoService), ResumeContractOracle(TestCryptoService)))
+    val vm2 = vmProvider.create(definition2, Seq(OpenlawSignatureOracle(TestCryptoService, serverAccount.address)), Seq(StopContractOracle(TestCryptoService), ResumeContractOracle(TestCryptoService)))
 
     vm1(LoadTemplate(template))
     vm2(LoadTemplate(template))
@@ -204,6 +205,6 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
   }
 
   private def signByEmail(email:Email, data:EthereumData):EthereumSignature =
-    EthereumSignature(account.sign(EthereumData(TestCryptoService.sha256(email.email))
-      .merge(EthereumData(TestCryptoService.sha256(data.data)))).toData.data)
+    EthereumSignature(serverAccount.sign(EthereumData(TestCryptoService.sha256(email.email))
+      .merge(EthereumData(TestCryptoService.sha256(data.data)))).signature)
 }
