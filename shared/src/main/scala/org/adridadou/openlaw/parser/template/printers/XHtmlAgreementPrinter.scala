@@ -108,13 +108,15 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
           }
 
           // See if this paragraph is centered
-          val (centered, remaining) = overridden match {
-            case Seq(FreeText(Centered), xs @ _*) => (true, xs)
-            case seq => (false, seq)
+          val (align, remaining) = overridden match {
+            case Seq(FreeText(Centered), xs @ _*) => (Seq("align-center"), xs)
+            case Seq(FreeText(RightAlign), xs @ _*) => (Seq("align-right"), xs)
+            case Seq(FreeText(RightThreeQuarters), xs @ _*) => (Seq("align-right-three-quarters"), xs)
+            case seq => (Seq(), seq)
           }
 
           // Setup classes to be added to this paragraph element
-          val classes = Seq() ++ (if (!inSection) Seq("no-section") else Nil) ++ (if (centered) Seq("align-center") else Nil)
+          val classes = Seq() ++ (if (!inSection) Seq("no-section") else Nil) ++ align
 
           val paragraph = if (classes.isEmpty) {
             p(recurse(remaining))
