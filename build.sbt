@@ -14,13 +14,11 @@ lazy val catsV = "1.4.0"
 lazy val parboiledV = "2.1.5"
 lazy val circeV = "0.10.1"
 lazy val akkaV = "2.5.17"
-lazy val propellerV = "0.39"
 
 lazy val repositories = Seq(
   Resolver.jcenterRepo,
   "central" at "http://central.maven.org/maven2/",
   "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases",
-  "cubefriendly bintray repository" at "http://dl.bintray.com/cubefriendly/maven",
   "maven central" at "https://mvnrepository.com/repos/central",
   Resolver.mavenLocal
 )
@@ -111,7 +109,6 @@ lazy val shared = crossProject(JSPlatform, JVMPlatform)
       //Test
       "org.scalacheck"          %% "scalacheck"          % "1.14.0"       % Test,
       "org.scalatest"           %% "scalatest"           % "3.0.6-SNAP2"  % Test,
-      "org.adridadou"           %% "eth-propeller-scala" % propellerV     % Test,
     )
   ).jsSettings(
     libraryDependencies ++= Seq(
