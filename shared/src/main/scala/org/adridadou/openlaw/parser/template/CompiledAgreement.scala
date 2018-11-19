@@ -143,10 +143,14 @@ case class CompiledAgreement(
 
         case None =>
           val name = executionResult.sectionNameMapping(uuid)
-          val Some(value) = executionResult.getVariable(name)
-            .flatMap(_.evaluate(executionResult))
-          val info = VariableType.convert[SectionInfo](value)
-          elems.:+(SectionElement(info.numbering, lvl, number, resetNumbering, overrideSymbol, overrideFormat))
+          executionResult.getVariable(name)
+            .flatMap(_.evaluate(executionResult)) match {
+            case Some(value) =>
+              val info = VariableType.convert[SectionInfo](value)
+              elems.:+(SectionElement(info.numbering, lvl, number, resetNumbering, overrideSymbol, overrideFormat))
+            case None =>
+              throw new RuntimeException("Section referenced before it has been rendered. The executor can't guess the section number before rendering it yet.")
+          }
         case Some(v) =>
           throw new RuntimeException(s"error while rendering sections the variable should be a section but is ${v.getClass.getSimpleName}")
       }
