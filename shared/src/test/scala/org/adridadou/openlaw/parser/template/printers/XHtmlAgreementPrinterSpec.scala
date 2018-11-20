@@ -86,6 +86,20 @@ class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues
     html shouldBe """<p class="no-section">This is a test<br /></p><p class="no-section">Another line</p>"""
   }
 
+  it should "handle right aligned section" in {
+    val text = """\right **[[Company Name | Uppercase]]**"""
+    val agreement = structureAgreement(text)
+    val html = XHtmlAgreementPrinter(false).printParagraphs(agreement.right.value.paragraphs).print
+    html shouldBe """<p class="no-section align-right"> <strong>[[Company Name]]</strong></p>"""
+  }
+
+  it should "handle right 3/4 aligned section" in {
+    val text = """\right-three-quarters **[[Company Name | Uppercase]]**"""
+    val agreement = structureAgreement(text)
+    val html = XHtmlAgreementPrinter(false).printParagraphs(agreement.right.value.paragraphs).print
+    html shouldBe """<p class="no-section align-right-three-quarters"> <strong>[[Company Name]]</strong></p>"""
+  }
+
   it should "handle agreements with multiple centered sections" in {
     val text = """\centered **BYLAWS**
                  |\centered **OF**
