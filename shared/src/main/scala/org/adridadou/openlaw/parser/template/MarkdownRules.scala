@@ -5,11 +5,19 @@ import org.parboiled2._
 trait MarkdownRules extends GlobalRules {
 
   def loosenTextElement: Rule1[Seq[TextElement]] = rule {
-    centeredLine | pageBreak | loosenStrongWord | loosenEmWord | textLoosen
+    centeredLine | rightThreeQuartersLine | rightLine | pageBreak | loosenStrongWord | loosenEmWord | textLoosen
   }
 
   def centeredLine: Rule1[Seq[TextElement]] = rule {
     capture(centered) ~> ((s: String) => Seq(Centered))
+  }
+
+  def rightLine: Rule1[Seq[TextElement]] = rule {
+    capture(right) ~> ((s: String) => Seq(RightAlign))
+  }
+
+  def rightThreeQuartersLine: Rule1[Seq[TextElement]] = rule {
+    capture(rightThreeQuarters) ~> ((s: String) => Seq(RightThreeQuarters))
   }
 
   def pageBreak: Rule1[Seq[TextElement]] = rule {

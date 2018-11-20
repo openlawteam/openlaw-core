@@ -11,13 +11,13 @@ import org.parboiled2.{Parser, Rule0, Rule1}
   */
 trait BlockRules extends Parser with ExpressionRules with GlobalRules {
 
-  def blockRule:Rule1[Block] = rule { zeroOrMore(centeredLine | pageBreak | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | textPart) ~> ((s: Seq[TemplatePart]) => Block(s))}
+  def blockRule:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | pageBreak | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | textPart) ~> ((s: Seq[TemplatePart]) => Block(s))}
 
-  def blockNoStrong:Rule1[Block] = rule { zeroOrMore(centeredLine | varAliasKey | varKey | varMemberKey | textPartNoStrong) ~> ((s: Seq[TemplatePart]) => Block(s))}
+  def blockNoStrong:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | varAliasKey | varKey | varMemberKey | textPartNoStrong) ~> ((s: Seq[TemplatePart]) => Block(s))}
 
-  def blockNoEm:Rule1[Block] = rule { zeroOrMore(centeredLine | varAliasKey | varKey | varMemberKey | textPartNoEm) ~> ((s: Seq[TemplatePart]) => Block(s))}
+  def blockNoEm:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | varAliasKey | varKey | varMemberKey | textPartNoEm) ~> ((s: Seq[TemplatePart]) => Block(s))}
 
-  def blockNoStrongNoEm:Rule1[Block] = rule { zeroOrMore(centeredLine | varAliasKey | varKey | varMemberKey | textPartNoStrongNoEm) ~> ((s: Seq[TemplatePart]) => Block(s))}
+  def blockNoStrongNoEm:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | varAliasKey | varKey | varMemberKey | textPartNoStrongNoEm) ~> ((s: Seq[TemplatePart]) => Block(s))}
 
   def conditionalBlockSetKey:Rule1[ConditionalBlockSet]= rule { openB ~ oneOrMore(ws ~ conditionalBlockKey ~ ws) ~ closeB ~> ((blocks:Seq[ConditionalBlock]) => ConditionalBlockSet(blocks)) }
 
@@ -67,6 +67,14 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
 
   def centeredLine: Rule1[TemplateText] = rule {
     capture(centered) ~> ((_: String) => TemplateText(Seq(Centered)))
+  }
+
+  def rightLine: Rule1[TemplateText] = rule {
+    capture(right) ~> ((_: String) => TemplateText(Seq(RightAlign)))
+  }
+
+  def rightThreeQuartersLine: Rule1[TemplateText] = rule {
+    capture(rightThreeQuarters) ~> ((_: String) => TemplateText(Seq(RightThreeQuarters)))
   }
 
   def pageBreak: Rule1[TemplateText] = rule {
