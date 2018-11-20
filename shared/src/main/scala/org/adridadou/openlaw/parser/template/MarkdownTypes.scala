@@ -165,4 +165,6 @@ case object Em extends TextElement
 case object Strong extends TextElement
 case object PageBreak extends TextElement
 case object Centered extends TextElement
+case object RightAlign extends TextElement
+case object RightThreeQuarters extends TextElement
 case object ParagraphSeparator extends TextElement

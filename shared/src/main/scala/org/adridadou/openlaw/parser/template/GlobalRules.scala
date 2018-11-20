@@ -29,19 +29,20 @@ trait GlobalRules extends Parser {
   val strong = "**"
 
   val pagebreak = "\\pagebreak"
-
   val centered = "\\centered"
+  val right = "\\right"
+  val rightThreeQuarters = "\\right-three-quarters"
 
   def ws:Rule0 = rule {zeroOrMore(" " | "\n" | "\t" | "\r") }
   def wsNoReturn:Rule0 = rule {zeroOrMore(" " | "\t" | "\r") }
 
   def quote: Rule0 = rule {"“" | "\"" | "”" | "'" }
 
-  def loosenChar: Rule0 = rule { !(centered | pagebreak | em) ~  ANY }
+  def loosenChar: Rule0 = rule { !(centered | rightThreeQuarters | right | pagebreak | em) ~  ANY }
 
-  def normalChar: Rule0 = rule { !( "|" | centered | pagebreak | em | openS | closeS | openB | closeB | openC | closeC | openA | closeA | sectionChar | variableSectionChar ) ~  ANY }
+  def normalChar: Rule0 = rule { !( "|" | centered | rightThreeQuarters | right | pagebreak | em | openS | closeS | openB | closeB | openC | closeC | openA | closeA | sectionChar | variableSectionChar ) ~  ANY }
 
-  def normalCharNoReturn: Rule0 = rule { !( "\n" | "|" | centered | pagebreak | em | openS | closeS | openB | closeB | openC | closeC | openA | closeA | sectionChar | variableSectionChar ) ~  ANY }
+  def normalCharNoReturn: Rule0 = rule { !( "\n" | "|" | centered | rightThreeQuarters | right | pagebreak | em | openS | closeS | openB | closeB | openC | closeC | openA | closeA | sectionChar | variableSectionChar ) ~  ANY }
 
   def commentsChar: Rule0 = rule {zeroOrMore(noneOf("\n"))}
 
@@ -56,7 +57,7 @@ trait GlobalRules extends Parser {
   def keyChar: Rule0 = rule { !forbiddenChar ~ ANY }
 
   def forbiddenChar: Rule0 =  rule {
-    centered | pagebreak | em | openS | closeS | openB | closeB | openC | closeC | sectionChar | ":" | "|" | "&" | "@" | "#" | quote | "\n" | "," | "." | "->" | ">" | "<" | "=" | ")" | "(" | "+" | "-" | "*" | "/" | ";" | "!" | "{" | "}" | "[" | "]"
+    centered | rightThreeQuarters | right | pagebreak | em | openS | closeS | openB | closeB | openC | closeC | sectionChar | ":" | "|" | "&" | "@" | "#" | quote | "\n" | "," | "." | "->" | ">" | "<" | "=" | ")" | "(" | "+" | "-" | "*" | "/" | ";" | "!" | "{" | "}" | "[" | "]"
   }
 
   def charsKeyAST: Rule1[String] = rule { capture(firstKeyChar ~ zeroOrMore(keyChar)) }
