@@ -1,7 +1,5 @@
 logLevel := Level.Warn
 
-credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
-
 resolvers += "Typesafe repository" at "http://repo.typesafe.com/typesafe/releases/"
 resolvers += "Typesafe Repository" at "https://repo.typesafe.com/typesafe/releases/"
 resolvers += "Bintray sbt-reactjs" at "https://dl.bintray.com/ddispaltro/sbt-plugins/"
