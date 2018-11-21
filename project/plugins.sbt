@@ -5,9 +5,6 @@ resolvers += "Typesafe Repository" at "https://repo.typesafe.com/typesafe/releas
 resolvers += "Bintray sbt-reactjs" at "https://dl.bintray.com/ddispaltro/sbt-plugins/"
 resolvers += Resolver.url("sbt-plugins", url("https://dl.bintray.com/ssidorenko/sbt-plugins/"))(Resolver.ivyStylePatterns)
 
-resolvers += "nexus-snapshots" at "https://nexus.build.openlaw.io/repository/maven-snapshots"
-resolvers += "nexus-releases" at "https://nexus.build.openlaw.io/repository/maven-releases"
-
 addSbtPlugin("org.scala-js" % "sbt-scalajs" % "0.6.25")
 addSbtPlugin("org.portable-scala" % "sbt-scalajs-crossproject" % "0.6.0")
 addSbtPlugin("com.typesafe.sbt" % "sbt-digest" % "1.1.4")
