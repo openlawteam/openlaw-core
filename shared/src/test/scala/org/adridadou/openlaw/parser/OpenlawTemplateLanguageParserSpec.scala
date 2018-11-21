@@ -1158,10 +1158,8 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
          [[option:Options]]
       """.stripMargin
 
-    val ex = intercept[Exception] {
-      structureAgreement(text, Map("option" -> "four"))
-    }
-    ex.getMessage shouldBe "the value four is not part of the type Options"
+    val result = structureAgreement(text, Map("option" -> "four"))
+    result shouldBe Left("the value four is not part of the type Options")
   }
 
   it should "allow specifying values from a structure" in {
