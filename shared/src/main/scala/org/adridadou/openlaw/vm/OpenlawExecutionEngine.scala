@@ -38,7 +38,6 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     resumeExecution(executionResult, templates).flatMap(newResult => {
       mainTemplate match {
         case agreement:CompiledAgreement if newResult.agreements.isEmpty =>
-          newResult.agreements.append(executionResult.structuredMainTemplate(agreement))
           Try(executionResult.structuredMainTemplate(agreement))
             .map { t =>
               newResult.agreements.append(t)
