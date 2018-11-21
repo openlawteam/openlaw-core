@@ -1,5 +1,8 @@
 # Shared libraries for the OpenLaw project.
 
+[![CircleCI](https://circleci.com/gh/openlawteam/openlaw-core.svg?style=svg)](https://circleci.com/gh/openlawteam/openlaw-core)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/4fe8f703ef3546738530fdcc585ccd2d)](https://www.codacy.com?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=openlawteam/openlaw-core&amp;utm_campaign=Badge_Grade)
+
 [![Waffle.io - Columns and their card count](https://badge.waffle.io/openlawteam/openlaw-core.svg?columns=all)](https://waffle.io/openlawteam/openlaw-core)
 
 ## Getting started
