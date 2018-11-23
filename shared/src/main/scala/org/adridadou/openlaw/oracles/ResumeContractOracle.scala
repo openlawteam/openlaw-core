@@ -14,7 +14,7 @@ case class ResumeContractOracle(crypto:CryptoService) extends OpenlawOracle[Resu
       .map({case (id,variable) => (variable.name, vm.evaluate[Identity](id, variable.name))})
       .find({
         case (_, Right(identity)) =>
-          vm.isSignatureValid(vm.contractDefinition.id(crypto).resumeContract(crypto), identity, OpenlawSignatureEvent(vm.contractId, identity.userId, identity.email, event.fullName, event.address, event.signature, EthereumHash.empty))
+          vm.isSignatureValid(vm.contractDefinition.id(crypto).resumeContract(crypto), identity, OpenlawSignatureEvent(vm.contractId, identity.userId, identity.email, "", event.signature, EthereumHash.empty))
         case _ => false
       }) match {
       case Some((name:VariableName, Right(identity:Identity))) => processEvent(vm, event, name.name, identity)
@@ -38,7 +38,7 @@ object ResumeExecutionEvent {
   implicit val resumeExecutionEventDec:Decoder[ResumeExecutionEvent] = deriveDecoder[ResumeExecutionEvent]
 }
 
-case class ResumeExecutionEvent(userId: UserId, fullName:String, address: EthereumAddress, signature: EthereumSignature) extends OpenlawVmEvent {
+case class ResumeExecutionEvent(signature: EthereumSignature) extends OpenlawVmEvent {
   override def typeIdentifier: String = className[ResumeExecutionEvent]
   override def serialize: String = this.asJson.noSpaces
 }

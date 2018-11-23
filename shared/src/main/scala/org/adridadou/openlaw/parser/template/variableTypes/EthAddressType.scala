@@ -133,6 +133,8 @@ case class EthereumData(data: Array[Byte]) {
     case EthereumData(otherData) => util.Arrays.equals(otherData, data)
     case _ => false
   }
+
+  def merge(data:EthereumData):EthereumData = EthereumData(this.data ++ data.data)
 }
 
 object EthereumHash {
@@ -155,7 +157,5 @@ case class EthereumHash(data: Array[Byte]) {
     case _ => false
   }
 }
-
-case class SignatureResult(userId: UserId, address: EthereumAddress, signature: EthereumSignature)
 
 case class OpenlawKeyIdentifier(userId: UserId, contractId: ContractId)

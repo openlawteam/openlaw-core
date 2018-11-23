@@ -2,6 +2,7 @@ package org.adridadou.openlaw.vm
 
 import java.time.{Clock, LocalDateTime}
 
+import cats.data
 import org.adridadou.openlaw.oracles
 import org.adridadou.openlaw.oracles._
 import org.adridadou.openlaw.parser.template.{ExecutionFinished, OpenlawTemplateLanguageParserService, VariableName}
@@ -13,6 +14,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
   val parser:OpenlawTemplateLanguageParserService = new OpenlawTemplateLanguageParserService(Clock.systemUTC())
   val vmProvider:OpenlawVmProvider = new OpenlawVmProvider(TestCryptoService, parser)
   val clock: Clock = Clock.systemUTC()
+  val serverAccount:TestAccount = TestAccount.newRandom
 
   "Openlaw Virtual Machine" should "be instantiated by giving a template, parameters and paragraph overrides" in {
     val definition = ContractDefinition(
@@ -63,21 +65,20 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
       templates = Map(),
       parameters = TemplateParameters(Map(VariableName("Signatory") -> IdentityType.internalFormat(identity1)))
     )
-    val vm1 = vmProvider.create(definition1, Seq(OpenlawSignatureOracle(TestCryptoService)), Seq())
-    val vm2 = vmProvider.create(definition2, Seq(OpenlawSignatureOracle(TestCryptoService)), Seq())
+    val vm1 = vmProvider.create(definition1, Seq(OpenlawSignatureOracle(TestCryptoService, serverAccount.address)), Seq())
+    val vm2 = vmProvider.create(definition2, Seq(OpenlawSignatureOracle(TestCryptoService, serverAccount.address)), Seq())
     vm1(LoadTemplate(template))
     vm2(LoadTemplate(template))
-    val result1 = sign(identity1.userId, vm1.contractId)
-    val address1 = result1.address
-    val signature1 = result1.signature
-    val signatureEvent = oracles.OpenlawSignatureEvent(definition1.id(TestCryptoService), identity1.userId, identity1.email, "", address1, signature1, EthereumHash.empty)
+    val result1 = sign(identity1, vm1.contractId)
+    val signature1 = EthereumSignature(result1.signature)
+    val signatureEvent = oracles.OpenlawSignatureEvent(definition1.id(TestCryptoService), identity1.userId, identity1.email, "", signature1, EthereumHash.empty)
 
-    val result2 = sign(identity1.userId, vm2.contractId)
-    val signature2 = result2.signature
+    val result2 = sign(identity1, vm2.contractId)
+    val signature2 = EthereumSignature(result2.signature)
 
 
     vm1(signatureEvent)
-    vm1(oracles.OpenlawSignatureEvent(definition2.id(TestCryptoService), identity1.userId, identity1.email, "", address1, signature2, EthereumHash.empty))
+    vm1(oracles.OpenlawSignatureEvent(definition2.id(TestCryptoService), identity1.userId, identity1.email, "", signature2, EthereumHash.empty))
     vm1.signature(identity1.userId) shouldBe Some(signatureEvent)
     vm1.signature(identity2.userId) shouldBe None
   }
@@ -105,7 +106,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
       parameters = TemplateParameters()
     )
 
-    val vm = vmProvider.create(definition, Seq(OpenlawSignatureOracle(TestCryptoService)), Seq())
+    val vm = vmProvider.create(definition, Seq(OpenlawSignatureOracle(TestCryptoService, serverAccount.address)), Seq())
     vm(LoadTemplate(template))
     vm.executionResultState shouldBe ExecutionFinished
 
@@ -141,8 +142,8 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
       templates = Map(),
       parameters = TemplateParameters("Signatory" -> IdentityType.internalFormat(identity2))
     )
-    val vm1 = vmProvider.create(definition1, Seq(OpenlawSignatureOracle(TestCryptoService)), Seq(StopContractOracle(TestCryptoService), ResumeContractOracle(TestCryptoService)))
-    val vm2 = vmProvider.create(definition2, Seq(OpenlawSignatureOracle(TestCryptoService)), Seq(StopContractOracle(TestCryptoService), ResumeContractOracle(TestCryptoService)))
+    val vm1 = vmProvider.create(definition1, Seq(OpenlawSignatureOracle(TestCryptoService, serverAccount.address)), Seq(StopContractOracle(TestCryptoService), ResumeContractOracle(TestCryptoService)))
+    val vm2 = vmProvider.create(definition2, Seq(OpenlawSignatureOracle(TestCryptoService, serverAccount.address)), Seq(StopContractOracle(TestCryptoService), ResumeContractOracle(TestCryptoService)))
 
     vm1(LoadTemplate(template))
     vm2(LoadTemplate(template))
@@ -152,69 +153,58 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
 
     vm1.executionState shouldBe ContractCreated
 
-    val signature = sign(identity1.userId, contractId1)
-    val addressFromNoStopping1 = signature.address
-    val signatureFromNoStopping1 = signature.signature
-    val signatureEvent = oracles.OpenlawSignatureEvent(definition1.id(TestCryptoService), identity1.userId, identity1.email, "", addressFromNoStopping1, signatureFromNoStopping1, EthereumHash.empty)
+    val signature = sign(identity1, contractId1)
+    val signatureFromNoStopping1 = EthereumSignature(signature.signature)
+    val signatureEvent = oracles.OpenlawSignatureEvent(definition1.id(TestCryptoService), identity1.userId, identity1.email, "", signatureFromNoStopping1, EthereumHash.empty)
     vm1(signatureEvent)
     vm1.executionState shouldBe ContractRunning
 
-    val signature2 = sign(identity2.userId, contractId2)
-    val addressFromNoStopping2 = signature2.address
-    val signatureFromNoStopping2 = signature2.signature
-    val signatureEvent2 = oracles.OpenlawSignatureEvent(definition2.id(TestCryptoService), identity2.userId, identity2.email, "", addressFromNoStopping2, signatureFromNoStopping2, EthereumHash.empty)
+    val signature2 = sign(identity2, contractId2)
+    val signatureFromNoStopping2 = EthereumSignature(signature2.signature)
+    val signatureEvent2 = oracles.OpenlawSignatureEvent(definition2.id(TestCryptoService), identity2.userId, identity2.email, "", signatureFromNoStopping2, EthereumHash.empty)
     vm2(signatureEvent2)
     vm2.executionState shouldBe ContractRunning
 
-    val result1 = signForStopping(identity1.userId, contractId1)
-    val addressFromStopping1 = result1.address
-    val signatureFromStopping1 = result1.signature
+    val result1 = signForStopping(identity1, contractId1)
+    val signatureFromStopping1 = EthereumSignature(result1.signature)
 
-    val result2 = signForStopping(identity2.userId, contractId2)
-    val addressFromStopping2 = result2.address
-    val signatureFromStopping2 = result2.signature
+    val result2 = signForStopping(identity2, contractId2)
+    val signatureFromStopping2 = EthereumSignature(result2.signature)
 
-    vm2(StopExecutionEvent(identity2.userId, "", addressFromStopping1, signatureFromStopping1))
+    vm2(StopExecutionEvent(signatureFromStopping1))
     vm2.executionState shouldBe ContractRunning
-    vm2(StopExecutionEvent(identity2.userId, "", addressFromStopping2, signatureFromStopping2))
+    vm2(StopExecutionEvent(signatureFromStopping2))
     vm2.executionState shouldBe ContractStopped
     vm1.executionState shouldBe ContractRunning
 
-    vm1(StopExecutionEvent(identity1.userId, "", addressFromStopping1, signatureFromStopping1))
+    vm1(StopExecutionEvent(signatureFromStopping1))
     vm1.executionState shouldBe ContractStopped
     vm1.signature(identity1.id.getOrElse(UserId.generateNew)) shouldBe Some(signatureEvent)
     vm1.signature(identity2.id.getOrElse(UserId.generateNew)) shouldBe None
 
-    val result3 = signForResuming(identity2.userId, contractId2)
-    val addressForResuming2 = result3.address
-    val signatureForResuming2 = result3.signature
+    val result3 = signForResuming(identity2, contractId2)
+    val signatureForResuming2 = EthereumSignature(result3.signature)
 
-    vm2(ResumeExecutionEvent(identity2.userId, "", addressForResuming2, signatureForResuming2))
+    vm2(ResumeExecutionEvent(signatureForResuming2))
     vm2.executionState shouldBe ContractResumed
-    vm1(ResumeExecutionEvent(identity1.userId, "", addressForResuming2, signatureForResuming2))
+    vm1(ResumeExecutionEvent(signatureForResuming2))
     vm1.executionState shouldBe ContractStopped
 
   }
 
-  private def sign(userId: UserId, contractId: ContractId): SignatureResult = {
-    val account = TestAccount.newRandom
-    val signature = account.sign(EthereumData(contractId.id))
-    val address = account.address
-    SignatureResult(userId, address, signature)
+  def sign(identity: Identity, contractId: ContractId): EthereumSignature = {
+    signByEmail(identity.email, contractId.data)
   }
 
-  private def signForStopping(userId: UserId, contractId: ContractId): SignatureResult = {
-    val account = TestAccount.newRandom
-    val signature = account.sign(contractId.stopContract(TestCryptoService).data)
-    val address = account.address
-    SignatureResult(userId, address, signature)
+  def signForStopping(identity: Identity, contractId: ContractId): EthereumSignature = {
+    signByEmail(identity.email, contractId.stopContract(TestCryptoService))
   }
 
-  private def signForResuming(userId: UserId, contractId: ContractId): SignatureResult = {
-    val account = TestAccount.newRandom
-    val data = contractId.resumeContract(TestCryptoService)
-    val signature = account.sign(data)
-    val address = account.address
-    SignatureResult(userId, address, signature)
+  def signForResuming(identity:Identity, contractId: ContractId): EthereumSignature = {
+    signByEmail(identity.email, contractId.resumeContract(TestCryptoService))
   }
+
+  private def signByEmail(email:Email, data:EthereumData):EthereumSignature =
+    EthereumSignature(serverAccount.sign(EthereumData(TestCryptoService.sha256(email.email))
+      .merge(EthereumData(TestCryptoService.sha256(data.data)))).signature)
 }

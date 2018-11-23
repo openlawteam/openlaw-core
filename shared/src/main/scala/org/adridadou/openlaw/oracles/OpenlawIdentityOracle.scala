@@ -20,8 +20,8 @@ object OpenlawSignatureProof {
   def deserialize(json:String):Either[Error, OpenlawSignatureProof] = decode[OpenlawSignatureProof](json)
 }
 
-case class OpenlawSignatureProof(contractId:ContractId, userId:UserId, fullName:String, address:EthereumAddress, signature:EthereumSignature, txHash:EthereumHash) extends SignatureProof {
+case class OpenlawSignatureProof(contractId:ContractId, fullName:String, signature:EthereumSignature, txHash:EthereumHash) extends SignatureProof {
   override def serialize: String = this.asJson.noSpaces
 
-  override def validationLink: Link = Link("verify signature",s"/signature/validate?contractId=${contractId.id}&userId=${userId.id}&signature=${signature.toString}")
+  override def validationLink: Link = Link("verify signature",s"/signature/validate?contractId=${contractId.id}&signature=${signature.toString}")
 }

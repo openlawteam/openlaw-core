@@ -14,7 +14,7 @@ case class StopContractOracle(crypto:CryptoService) extends OpenlawOracle[StopEx
       .map({case (id,variable) => (variable.name, vm.evaluate[Identity](id, variable.name))})
       .find({
         case (_, Right(identity)) =>
-          vm.isSignatureValid(vm.contractDefinition.id(crypto).stopContract(crypto), identity, OpenlawSignatureEvent(vm.contractId, identity.userId, identity.email, event.fullName, event.address, event.signature, EthereumHash.empty))
+          vm.isSignatureValid(vm.contractDefinition.id(crypto).stopContract(crypto), identity, OpenlawSignatureEvent(vm.contractId, identity.userId, identity.email, "", event.signature, EthereumHash.empty))
         case _ => false
       }) match {
       case Some((name:VariableName, Right(identity:Identity))) => processEvent(vm, event, name.name, identity)
@@ -38,7 +38,7 @@ object StopExecutionEvent {
   implicit val stopExecutionEventDec:Decoder[StopExecutionEvent] = deriveDecoder[StopExecutionEvent]
 }
 
-case class StopExecutionEvent(userId: UserId, fullName:String, address: EthereumAddress, signature: EthereumSignature) extends OpenlawVmEvent {
+case class StopExecutionEvent(signature: EthereumSignature) extends OpenlawVmEvent {
   override def typeIdentifier: String = className[StopExecutionEvent]
   override def serialize: String = this.asJson.noSpaces
 }
