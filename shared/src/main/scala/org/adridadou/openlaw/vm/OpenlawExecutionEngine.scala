@@ -35,13 +35,20 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       signatureProofs = signatureProofs
     )
 
-    resumeExecution(executionResult, templates).map(newResult => {
+    resumeExecution(executionResult, templates).flatMap(newResult => {
       mainTemplate match {
         case agreement:CompiledAgreement if newResult.agreements.isEmpty =>
-          newResult.agreements.append(executionResult.structuredMainTemplate(agreement))
+          Try(executionResult.structuredMainTemplate(agreement))
+            .map { t =>
+              newResult.agreements.append(t)
+              newResult
+            }
+            .toEither
+            .left
+            .map(_.getMessage)
         case _ =>
+          Right(newResult)
       }
-      newResult
     })
   }
 
@@ -97,7 +104,11 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       } yield {
         executionResult.template match {
           case agreement:CompiledAgreement =>
-            getRoot(parent).agreements.append(executionResult.structuredInternal(agreement))
+            Try(getRoot(parent).agreements.append(executionResult.structuredInternal(agreement)))
+              .toEither
+              .left
+              .map(_.getMessage )
+
           case _ =>
         }
 

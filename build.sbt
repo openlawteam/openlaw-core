@@ -2,7 +2,7 @@ import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 import ReleaseTransformations._
 
 import scala.language.postfixOps
-import sbt.{Credentials, file, _}
+import sbt.{file, _}
 
 lazy val username = "openlaw"
 lazy val repo     = "openlaw-core"
@@ -57,7 +57,6 @@ lazy val publishSettings = Seq(
     )
   ),
   publishTo in ThisBuild := Some("Bintray" at "https://api.bintray.com/maven/openlaw/maven/openlaw-core"),
-  credentials += Credentials(Path.userHome / ".ivy2" / ".credentials"),
 )
 
 lazy val releaseSettings = releaseProcess := Seq[ReleaseStep](
@@ -81,7 +80,6 @@ lazy val openlawCoreJs = (project in file("openlawCoreJs")).settings(
   scalaVersion := scalaV,
   wartremoverErrors ++= rules,
   relativeSourceMaps := true,
-  artifactPath in (Compile, fastOptJS) := crossTarget.value / "client.js",
   artifactPath in (Compile, fullOptJS) := crossTarget.value / "client.js"
 ).enablePlugins(ScalaJSPlugin)
   .dependsOn(sharedJs)

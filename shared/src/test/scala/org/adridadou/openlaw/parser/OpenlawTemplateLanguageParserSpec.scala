@@ -697,6 +697,28 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
       """<p class="no-section">first paragraph of text</p><p class="no-section align-center">second paragraph of text</p><p class="no-section">third paragraph of text</p>""")
   }
 
+  it should "be able to align lines to the right" in {
+    val text =
+      """first paragraph of text
+      |
+      |\rightsecond paragraph of text
+      |
+      |third paragraph of text""".stripMargin
+    resultShouldBe(forReview(text),
+      """<p class="no-section">first paragraph of text</p><p class="no-section align-right">second paragraph of text</p><p class="no-section">third paragraph of text</p>""")
+  }
+
+  it should "be able to align lines to the right with three-quarters spacing" in {
+    val text =
+      """first paragraph of text
+      |
+      |\right-three-quarterssecond paragraph of text
+      |
+      |third paragraph of text""".stripMargin
+    resultShouldBe(forReview(text),
+      """<p class="no-section">first paragraph of text</p><p class="no-section align-right-three-quarters">second paragraph of text</p><p class="no-section">third paragraph of text</p>""")
+  }
+
   it should "clean the text if there is invisible variables in the middle" in {
     val text=
       """this is a first line
@@ -1136,10 +1158,8 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
          [[option:Options]]
       """.stripMargin
 
-    val ex = intercept[Exception] {
-      structureAgreement(text, Map("option" -> "four"))
-    }
-    ex.getMessage shouldBe "the value four is not part of the type Options"
+    val result = structureAgreement(text, Map("option" -> "four"))
+    result shouldBe Left("the value four is not part of the type Options")
   }
 
   it should "allow specifying values from a structure" in {

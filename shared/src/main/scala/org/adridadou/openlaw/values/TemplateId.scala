@@ -38,3 +38,12 @@ object TemplateTitle {
   implicit val templateTitleEnc:Encoder[TemplateTitle] = deriveEncoder[TemplateTitle]
   implicit val templateTitleDec:Decoder[TemplateTitle] = deriveDecoder[TemplateTitle]
 }
+
+
+case class TemplateCommentId(id:Int = -1) extends Comparable[TemplateCommentId] {
+  override def compareTo(o: TemplateCommentId): Int = id.compareTo(o.id)
+}
+
+object TemplateCommentId {
+  implicit val templateCommentIdEq:Eq[TemplateCommentId] = Eq.fromUniversalEquals
+}
