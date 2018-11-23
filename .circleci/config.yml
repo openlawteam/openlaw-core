@@ -39,4 +39,13 @@ jobs:
           key: v1-dependencies--{{ checksum "build.sbt" }}
         
       # run tests!
-      - run: cat /dev/null | sbt test:test
+      - run: cat /dev/null | sbt clean coverage test
+
+      # test coverage
+      - run: cat /dev/null | sbt coverageReport
+
+      # test coverage
+      - run: cat /dev/null | sbt coverageAggregate
+
+      # upload result to codacy
+      - run: cat /dev/null | sbt codacyCoverage

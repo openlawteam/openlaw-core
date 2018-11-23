@@ -22,3 +22,6 @@ addSbtPlugin("org.scalastyle" %% "scalastyle-sbt-plugin" % "1.0.0")
 addSbtPlugin("org.wartremover" % "sbt-wartremover" % "2.3.7")
 
 addSbtPlugin("com.thoughtworks.sbt-scala-js-map" % "sbt-scala-js-map" % "3.0.0")
+
+addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.5.1")
+addSbtPlugin("com.codacy" % "sbt-codacy-coverage" % "1.3.15")
