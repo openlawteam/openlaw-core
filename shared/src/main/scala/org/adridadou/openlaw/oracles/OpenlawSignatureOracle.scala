@@ -13,11 +13,14 @@ import io.circe.syntax._
 import org.adridadou.openlaw.parser.template.SignatureProof
 import org.adridadou.openlaw.values.ContractId
 
-case class OpenlawSignatureOracle(crypto:CryptoService) extends OpenlawIdentityOracle {
+case class OpenlawSignatureOracle(crypto:CryptoService, serverAccount:EthereumAddress) extends OpenlawIdentityOracle {
   override def isSignatureValid(data:EthereumData, identifier: IdentityIdentifier, signatureEvent: SignatureEvent): Boolean = signatureEvent match {
     case event:OpenlawSignatureEvent =>
-      val expectedAddress = EthereumAddress(crypto.validateECSignature(data.data, event.signature.signature))
-      event.email === Email(identifier.identifier) && event.address === expectedAddress
+      val actualAddress = EthereumAddress(crypto.validateECSignature(EthereumData(crypto.sha256(event.email.email))
+        .merge(EthereumData(crypto.sha256(data.data))).data, event.signature.signature))
+
+      actualAddress === serverAccount
+
     case _ => false
   }
 
@@ -35,15 +38,13 @@ object OpenlawSignatureEvent {
   implicit val openlawSignatureEventDec: Decoder[OpenlawSignatureEvent] = deriveDecoder[OpenlawSignatureEvent]
 }
 
-case class OpenlawSignatureEvent(contractId:ContractId, userId:UserId, email:Email, fullName:String, address: EthereumAddress, signature: EthereumSignature, ethereumHash:EthereumHash) extends SignatureEvent {
+case class OpenlawSignatureEvent(contractId:ContractId, userId:UserId, email:Email, fullName:String, signature: EthereumSignature, ethereumHash:EthereumHash) extends SignatureEvent {
   override def typeIdentifier: String = className[OpenlawSignatureEvent]
   override def serialize: String = this.asJson.noSpaces
 
   override def proof: OpenlawSignatureProof = OpenlawSignatureProof(
     contractId = contractId,
-    userId = userId,
     fullName = fullName,
-    address = address,
     signature = signature,
     txHash = ethereumHash)
 }

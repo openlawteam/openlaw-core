@@ -53,7 +53,7 @@ lazy val publishSettings = Seq(
       id = username,
       name = "Jacqueline Outka",
       email = "jacqueline@outka.xyz",
-      url = new URL(s"http://github.com/$username")
+      url = new URL(s"http://github.com/outkaj")
     )
   ),
   publishTo in ThisBuild := Some("Bintray" at "https://api.bintray.com/maven/openlaw/maven/openlaw-core"),
