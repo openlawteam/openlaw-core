@@ -2,7 +2,6 @@ package org.adridadou.openlaw.vm
 
 import java.time.{Clock, LocalDateTime}
 
-import cats.data
 import org.adridadou.openlaw.oracles
 import org.adridadou.openlaw.oracles._
 import org.adridadou.openlaw.parser.template.{ExecutionFinished, OpenlawTemplateLanguageParserService, VariableName}
@@ -23,7 +22,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
       templates = Map(),
       parameters = TemplateParameters()
     )
-    val vm = Option(vmProvider.create(definition, Seq(), Seq()))
+    val vm = Option(vmProvider.create(definition, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq()))
 
     vm.isDefined shouldBe true
   }
@@ -39,7 +38,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
       parameters = TemplateParameters(Map(VariableName("Hello") -> "World"))
     )
 
-    val vm = vmProvider.create(definition, Seq(), Seq())
+    val vm = vmProvider.create(definition, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq())
 
     vm(LoadTemplate(template))
 
@@ -65,8 +64,8 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
       templates = Map(),
       parameters = TemplateParameters(Map(VariableName("Signatory") -> IdentityType.internalFormat(identity1)))
     )
-    val vm1 = vmProvider.create(definition1, Seq(OpenlawSignatureOracle(TestCryptoService, serverAccount.address)), Seq())
-    val vm2 = vmProvider.create(definition2, Seq(OpenlawSignatureOracle(TestCryptoService, serverAccount.address)), Seq())
+    val vm1 = vmProvider.create(definition1, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq())
+    val vm2 = vmProvider.create(definition2, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq())
     vm1(LoadTemplate(template))
     vm2(LoadTemplate(template))
     val result1 = sign(identity1, vm1.contractId)
@@ -79,8 +78,8 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
 
     vm1(signatureEvent)
     vm1(oracles.OpenlawSignatureEvent(definition2.id(TestCryptoService), identity1.userId, identity1.email, "", signature2, EthereumHash.empty))
-    vm1.signature(identity1.userId) shouldBe Some(signatureEvent)
-    vm1.signature(identity2.userId) shouldBe None
+    vm1.signature(identity1.email) shouldBe Some(signatureEvent)
+    vm1.signature(identity2.email) shouldBe None
   }
 
   it should "be able to update the state and reflect this in the vm" in {
@@ -95,22 +94,49 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
         |function:'callFunction';
         |arguments:'hello';
         |repeatEvery:'1 minute 12 seconds')]]
+        |[[identity:Identity]]
+        |[[identity2:Identity]]
       """.stripMargin
 
     val templateId = TemplateId(TestCryptoService.sha256(template))
+    val email = Email("email@email.com")
+    val userId = UserId("userId")
 
+    val email2 = Email("email2@email.com")
+    val userId2 = UserId("userId2")
+
+    val identity = Identity(Some(userId), email)
+    val identity2 = Identity(Some(userId2), email2)
     val definition = ContractDefinition(
       creatorId = UserId("hello@world.com"),
       mainTemplate = templateId,
       templates = Map(),
-      parameters = TemplateParameters()
+      parameters = TemplateParameters(
+        "identity" -> IdentityType.internalFormat(identity),
+        "identity2" -> IdentityType.internalFormat(identity2)
+      )
     )
 
-    val vm = vmProvider.create(definition, Seq(OpenlawSignatureOracle(TestCryptoService, serverAccount.address)), Seq())
+    val contractId = definition.id(TestCryptoService)
+
+    val vm = vmProvider.create(definition, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq())
     vm(LoadTemplate(template))
     vm.executionResultState shouldBe ExecutionFinished
 
-    vm(UpdateExecutionStateCommand(ContractRunning, LoadTemplate(template)))
+    vm.executionState shouldBe ContractCreated
+    val signature = EthereumSignature(sign(identity, contractId).signature)
+    val signatureEvent = oracles.OpenlawSignatureEvent(contractId, userId, email, "", signature, EthereumHash.empty)
+
+    vm(signatureEvent)
+
+    vm.executionState shouldBe ContractCreated
+
+    val signature2 = EthereumSignature(sign(identity2, contractId).signature)
+    val signatureEvent2 = oracles.OpenlawSignatureEvent(contractId, userId2, email2, "", signature2, EthereumHash.empty)
+
+    vm(signatureEvent2)
+
+    vm.executionState shouldBe ContractRunning
 
     val startDate = LocalDateTime.now(clock)
       .withYear(2018).withMonth(12).withDayOfMonth(12).withHour(0).withMinute(0).withSecond(0).withNano(0)
@@ -142,8 +168,8 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
       templates = Map(),
       parameters = TemplateParameters("Signatory" -> IdentityType.internalFormat(identity2))
     )
-    val vm1 = vmProvider.create(definition1, Seq(OpenlawSignatureOracle(TestCryptoService, serverAccount.address)), Seq(StopContractOracle(TestCryptoService), ResumeContractOracle(TestCryptoService)))
-    val vm2 = vmProvider.create(definition2, Seq(OpenlawSignatureOracle(TestCryptoService, serverAccount.address)), Seq(StopContractOracle(TestCryptoService), ResumeContractOracle(TestCryptoService)))
+    val vm1 = vmProvider.create(definition1, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq(StopContractOracle(TestCryptoService), ResumeContractOracle(TestCryptoService)))
+    val vm2 = vmProvider.create(definition2, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq(StopContractOracle(TestCryptoService), ResumeContractOracle(TestCryptoService)))
 
     vm1(LoadTemplate(template))
     vm2(LoadTemplate(template))
@@ -179,8 +205,8 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
 
     vm1(StopExecutionEvent(signatureFromStopping1))
     vm1.executionState shouldBe ContractStopped
-    vm1.signature(identity1.id.getOrElse(UserId.generateNew)) shouldBe Some(signatureEvent)
-    vm1.signature(identity2.id.getOrElse(UserId.generateNew)) shouldBe None
+    vm1.signature(identity1.email) shouldBe Some(signatureEvent)
+    vm1.signature(identity2.email) shouldBe None
 
     val result3 = signForResuming(identity2, contractId2)
     val signatureForResuming2 = EthereumSignature(result3.signature)

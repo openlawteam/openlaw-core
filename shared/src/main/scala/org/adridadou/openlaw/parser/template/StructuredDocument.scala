@@ -15,13 +15,12 @@ import scala.reflect.ClassTag
 import VariableName._
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto._
-import org.adridadou.openlaw.oracles.UserId
 
 case class TemplateExecutionResult(
                                     id:TemplateExecutionResultId,
                                     parameters:TemplateParameters,
                                     embedded:Boolean,
-                                    signatureProofs:Map[UserId, SignatureProof] = Map(),
+                                    signatureProofs:Map[Email, SignatureProof] = Map(),
                                     template:CompiledTemplate,
                                     forEachQueue:mutable.Buffer[Any] = mutable.Buffer(),
                                     anonymousVariableCounter:AtomicInteger, variables:mutable.Buffer[VariableDefinition] = mutable.Buffer(),
@@ -102,13 +101,13 @@ case class TemplateExecutionResult(
   }
 
 
-  def getSignatureProof(identity: Identity):Option[SignatureProof] = signatureProofs.get(identity.userId) match {
+  def getSignatureProof(identity: Identity):Option[SignatureProof] = signatureProofs.get(identity.email) match {
     case Some(value) => Some(value)
     case None => parentExecution.flatMap(_.getSignatureProof(identity))
   }
 
-  def hasSigned(userId: UserId):Boolean =
-    if(signatureProofs.contains(userId)) true else parentExecution.exists(_.hasSigned(userId))
+  def hasSigned(email: Email):Boolean =
+    if(signatureProofs.contains(email)) true else parentExecution.exists(_.hasSigned(email))
 
   def findExecutionResult(executionResultId: TemplateExecutionResultId): Option[TemplateExecutionResult] = {
     if(id === executionResultId) {
@@ -198,9 +197,7 @@ case class TemplateExecutionResult(
         })
   }
 
-  def allIdentityIdentifiers:Map[UserId, Seq[IdentityIdentifier]] = allIdentities().foldLeft(Map[UserId, Seq[IdentityIdentifier]]())((identifiers, identity) => {
-    identifiers + (identity.userId -> (identifiers.getOrElse(identity.userId, Seq()) ++ identity.identifiers))
-  }).map({ case (userId, identifiers) => userId -> identifiers.distinct})
+  def allIdentityEmails:Seq[Email] = allIdentities().map(_.email).distinct
 
   def allIdentities():Seq[Identity] = {
     getAllExecutedVariables

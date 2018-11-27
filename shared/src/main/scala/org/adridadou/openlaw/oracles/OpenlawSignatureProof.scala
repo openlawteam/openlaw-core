@@ -8,12 +8,6 @@ import io.circe.syntax._
 import io.circe.parser._
 import org.adridadou.openlaw.values.ContractId
 
-trait OpenlawIdentityOracle {
-  val providerId:String
-  def isSignatureValid(data:EthereumData, identifier:IdentityIdentifier, event:SignatureEvent):Boolean
-}
-
-
 object OpenlawSignatureProof {
   implicit val openlawSignatureProofEnc:Encoder[OpenlawSignatureProof] = deriveEncoder[OpenlawSignatureProof]
   implicit val openlawSignatureProofDec:Decoder[OpenlawSignatureProof] = deriveDecoder[OpenlawSignatureProof]

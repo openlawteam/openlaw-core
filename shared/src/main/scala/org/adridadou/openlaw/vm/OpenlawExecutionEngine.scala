@@ -6,7 +6,6 @@ import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.values.TemplateParameters
 import cats.implicits._
-import org.adridadou.openlaw.oracles.UserId
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.printers.SectionHelper
 
@@ -22,7 +21,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
   def execute(mainTemplate:CompiledTemplate, parameters:TemplateParameters, templates:Map[TemplateSourceIdentifier, CompiledTemplate]):Either[String, TemplateExecutionResult] =
     execute(mainTemplate, parameters, templates, Map())
 
-  def execute(mainTemplate:CompiledTemplate, parameters:TemplateParameters, templates:Map[TemplateSourceIdentifier, CompiledTemplate], signatureProofs:Map[UserId, SignatureProof]):Either[String, TemplateExecutionResult] = {
+  def execute(mainTemplate:CompiledTemplate, parameters:TemplateParameters, templates:Map[TemplateSourceIdentifier, CompiledTemplate], signatureProofs:Map[Email, SignatureProof]):Either[String, TemplateExecutionResult] = {
     val executionResult = TemplateExecutionResult(
       parameters = parameters,
       id = TemplateExecutionResultId(s"@@anonymous_main_template_id@@"),

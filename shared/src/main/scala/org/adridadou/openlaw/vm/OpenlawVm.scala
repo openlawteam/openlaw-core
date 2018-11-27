@@ -27,8 +27,8 @@ case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
                            definition:ContractDefinition,
                            state:TemplateParameters,
                            executions:Map[VariableName, Executions],
-                           signatures:Map[UserId, SignatureEvent],
-                           signatureProofs:Map[UserId, SignatureProof] = Map(),
+                           signatures:Map[Email, OpenlawSignatureEvent],
+                           signatureProofs:Map[Email, SignatureProof] = Map(),
                            events:List[OpenlawVmEvent] = List(),
                            executionEngine: OpenlawExecutionEngine,
                            executionState:ContractExecutionState,
@@ -84,10 +84,10 @@ case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
       executionEngine.resumeExecution(execution, templates)
   }
 
-  def createNewExecutionResult(signatureProofs:Map[UserId, SignatureProof]):Option[TemplateExecutionResult] =
+  def createNewExecutionResult(signatureProofs:Map[Email, SignatureProof]):Option[TemplateExecutionResult] =
     createNewExecutionResult(state, templates, signatureProofs)
 
-  def createNewExecutionResult(params:TemplateParameters, templates:Map[TemplateId, CompiledTemplate],signatureProofs:Map[UserId, SignatureProof]):Option[TemplateExecutionResult] = {
+  def createNewExecutionResult(params:TemplateParameters, templates:Map[TemplateId, CompiledTemplate],signatureProofs:Map[Email, SignatureProof]):Option[TemplateExecutionResult] = {
     val templateDefinitions = definition.templates.flatMap({case (templateDefinition, id) => templates.get(id).map(templateDefinition -> _)})
     templates.get(definition.mainTemplate).map(executionEngine.execute(_, params, templateDefinitions, signatureProofs)) match {
       case None => None
@@ -100,7 +100,7 @@ case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
   }
 }
 
-case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: CryptoService, parser:OpenlawTemplateLanguageParserService, identityOracles:Map[String, OpenlawIdentityOracle], oracles:Seq[OpenlawOracle[_]]) extends LazyLogging {
+case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: CryptoService, parser:OpenlawTemplateLanguageParserService, identityOracle:OpenlawSignatureOracle, oracles:Seq[OpenlawOracle[_]]) extends LazyLogging {
   private val templateOracle = TemplateLoadOracle(cryptoService)
   val contractId:ContractId = contractDefinition.id(cryptoService)
   private val expressionParser = new ExpressionParserService
@@ -116,10 +116,10 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
     clock = parser.internalClock
   )
 
-  def isSignatureValid(data:EthereumData, identity: Identity, event:SignatureEvent):Boolean = {
-    identity.identifiers
-      .exists(identifier => identityOracles.get(identifier.identityProviderId).exists(_.isSignatureValid(data, identifier, event)))
+  def isSignatureValid(data:EthereumData, event:OpenlawSignatureEvent):Boolean = {
+    identityOracle.isSignatureValid(data, event)
   }
+
   def allIdentities:Seq[Identity] = {
     state.executionResult.map(executionResult => {
       executionResult.getAllExecutedVariables
@@ -159,12 +159,12 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
   def nextActionSchedule:Option[LocalDateTime] = nextAction
     .flatMap(info => info.action.nextActionSchedule(info.executionResult, executions(info.name)))
 
-  def newSignature(identity:Identity, fullName:String, signature:SignatureEvent):OpenlawVm = {
-    val userId = identity.userId
-    val signatureProofs = state.signatureProofs + (userId -> signature.proof)
+  def newSignature(identity:Identity, fullName:String, signature:OpenlawSignatureEvent):OpenlawVm = {
+    val email = identity.email
+    val signatureProofs = state.signatureProofs + (email -> signature.proof)
     val newExecutionResult = state.createNewExecutionResult(signatureProofs)
     state = state.copy(
-      signatures = state.signatures + (userId -> signature),
+      signatures = state.signatures + (email -> signature),
       signatureProofs = signatureProofs,
       optExecutionResult = newExecutionResult
     )
@@ -181,8 +181,8 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
 
   def executions[T <: OpenlawExecution](name: VariableName)(implicit classTag: ClassTag[T]): Seq[T] = allExecutions.getOrElse(name, Seq()).map(_.asInstanceOf[T])
 
-  def allSignatures:Map[UserId, SignatureEvent] = state.signatures
-  def signature(userId:UserId):Option[SignatureEvent] = allSignatures.get(userId)
+  def allSignatures:Map[Email, OpenlawSignatureEvent] = state.signatures
+  def signature(email:Email):Option[OpenlawSignatureEvent] = allSignatures.get(email)
 
   def events: Seq[OpenlawVmEvent] = state.events
 
@@ -202,14 +202,14 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
       executionResult.map(_.allActions()).getOrElse(Seq())
     case ContractCreated =>
       executionResult
-        .map(_.allIdentityIdentifiers).getOrElse(Map())
-        .flatMap({case (userId, identifiers) => generateSignatureAction(userId, identifiers)}).toSeq
+        .map(_.allIdentityEmails).getOrElse(Seq())
+        .flatMap(email => generateSignatureAction(email))
     case _ =>
       Seq()
   }
 
-  private def generateSignatureAction(userId:UserId, identifiers:Seq[IdentityIdentifier]):Option[ActionInfo] =
-    this.executionResult.map(ActionInfo(SignatureAction(userId, identifiers), VariableName(""), _))
+  private def generateSignatureAction(email:Email):Option[ActionInfo] =
+    this.executionResult.map(ActionInfo(SignatureAction(email), VariableName(""), _))
 
   def template(definition: TemplateSourceIdentifier):CompiledTemplate = state.templates(contractDefinition.templates(definition))
   def template(id:TemplateId):CompiledTemplate = state.templates(id)
@@ -264,7 +264,7 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
   def applyEvent(event:OpenlawVmEvent):Either[String, OpenlawVm] = state.executionState match {
     case ContractCreated =>
       event match {
-        case signature:SignatureEvent =>
+        case signature:OpenlawSignatureEvent =>
           processSignature(signature)
         case e:LoadTemplate =>
           templateOracle.incoming(this, e)
@@ -282,11 +282,11 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
       this
   }
 
-  private def processSignature(event:SignatureEvent):Either[String, OpenlawVm] = {
+  private def processSignature(event:OpenlawSignatureEvent):Either[String, OpenlawVm] = {
     getAllVariables(IdentityType)
       .map({case (executionResult,variable) => (variable.name, evaluate[Identity](executionResult, variable.name))})
       .filter({
-        case (_, Right(identity)) => isSignatureValid(contractId.data, identity, event)
+        case (_, Right(identity)) => event.userId === identity.userId
         case _ => false
       }).toList match {
       case Nil =>

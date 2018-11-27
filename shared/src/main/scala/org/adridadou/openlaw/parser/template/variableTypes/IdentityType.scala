@@ -66,14 +66,7 @@ case object IdentityType extends VariableType(name = "Identity") {
   private def getOrNa(optStr:Option[String]):String = optStr.getOrElse("[n/a]")
 }
 
-object IdentityIdentifier {
-  implicit val identityIdentifierEnc: Encoder[IdentityIdentifier] = deriveEncoder[IdentityIdentifier]
-  implicit val identityIdentifierDec: Decoder[IdentityIdentifier] = deriveDecoder[IdentityIdentifier]
-}
-
-case class IdentityIdentifier(identityProviderId:String, identifier:String)
-
-case class Identity(id:Option[UserId], email:Email, identifiers:Seq[IdentityIdentifier]) {
+case class Identity(id:Option[UserId], email:Email) {
   def withId(userId: UserId): Identity = this.copy(id = Some(userId))
 
   def getJsonString: String = this.asJson.noSpaces
@@ -82,7 +75,7 @@ case class Identity(id:Option[UserId], email:Email, identifiers:Seq[IdentityIden
 }
 
 case object Identity {
-  def withEmail(email: Email): Identity = Identity(id = None, email = email, identifiers = Seq(IdentityIdentifier("openlaw", email.email))  )
+  def withEmail(email: Email): Identity = Identity(id = None, email = email)
 
   implicit val identityEnc: Encoder[Identity] = deriveEncoder[Identity]
   implicit val identityDec: Decoder[Identity] = deriveDecoder[Identity]
@@ -114,9 +107,9 @@ object Email {
   }
 }
 
-case class SignatureAction(userId: UserId, identityIdentifiers:Seq[IdentityIdentifier]) extends ActionValue {
+case class SignatureAction(email:Email) extends ActionValue {
   override def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions: Seq[OpenlawExecution]): Option[LocalDateTime] = {
-    if(executionResult.hasSigned(userId)) {
+    if(executionResult.hasSigned(email)) {
       None
     } else {
       Some(LocalDateTime.now)
