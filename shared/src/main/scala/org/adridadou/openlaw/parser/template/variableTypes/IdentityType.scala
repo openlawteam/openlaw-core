@@ -91,9 +91,18 @@ object Email {
 
   implicit val eqEmail:Eq[Email] = Eq.fromUniversalEquals
   implicit val emailEnc: Encoder[Email] = (a: Email) => Json.fromString(a.email)
-  implicit val emailDec: Decoder[Email] = (c: HCursor) => for {
-    name <- c.as[String]
-  } yield Email(name)
+  implicit val emailDec: Decoder[Email] = (c: HCursor) =>
+    c.as[String] match {
+      case Right(strEmail) =>
+        Email.validate(strEmail) match {
+          case Right(email) =>
+            Right(email)
+          case Left(err) =>
+            Left(DecodingFailure(err, List()))
+        }
+      case Left(ex) =>
+        Left(ex)
+    }
 
   def validate(email:String):Either[String,Email] = emailRegex.findFirstMatchIn(email) match {
     case Some(_) => Right(new Email(email.trim.toLowerCase()))
