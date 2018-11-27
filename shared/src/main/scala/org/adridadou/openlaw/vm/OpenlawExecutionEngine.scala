@@ -196,7 +196,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     val fullSectionValue = (1 to section.lvl).map({
       case section.lvl => sectionValue
       case idx => executionResult.getLastSectionByLevel(idx)
-    }).mkString("")
+    }).mkString(".")
     fullSectionValue
   }
 
@@ -221,8 +221,9 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       val overrideSymbol = section.overrideSymbol(executionResult)
       val overrideFormat = section.overrideFormat(executionResult)
       val sectionValue = SectionHelper.generateListNumber(section.lvl, numbering, overrideSymbol, overrideFormat)
+      val referenceValue = SectionHelper.generateReferenceValue(section.lvl, numbering, overrideSymbol)
       val params = Seq(
-        "reference value" -> OneValueParameter(StringConstant(generateFullSectionValue(section, sectionValue, executionResult))),
+        "reference value" -> OneValueParameter(StringConstant(generateFullSectionValue(section, referenceValue, executionResult))),
         "numbering" -> OneValueParameter(StringConstant(sectionValue))
       )
       val name = section.definition
@@ -235,7 +236,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       executionResult.variables.append(variable)
       executionResult.executedVariables.append(name)
       executionResult.sectionNameMapping put (section.uuid , name)
-      executionResult.addLastSectionByLevel(section.lvl, sectionValue)
+      executionResult.addLastSectionByLevel(section.lvl, referenceValue)
       executionResult.addSectionLevelStack(newSectionValues)
       executionResult.addProcessedSection(section, SectionHelper.calculateNumberInList(section.lvl, numbering))
 

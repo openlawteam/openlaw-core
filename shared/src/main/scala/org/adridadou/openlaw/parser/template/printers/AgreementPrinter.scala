@@ -80,25 +80,31 @@ object SectionHelper {
 
   }
 
+  def generateReferenceValue(lvl: Int, sections: Seq[Int], overrideSymbol: Option[SectionSymbol]) = {
+    val numberInList = calculateNumberInList(lvl, sections)
+    val defaultFormat = SectionFormats.get(lvl - 1).getOrElse(throw new RuntimeException(s"we handle only ${SectionFormats.size} levels for now"))
+    formatSectionValue(numberInList, overrideSymbol.getOrElse(defaultFormat._1), "%s")
+  }
+
   def generateListNumber(lvl: Int, sections: Seq[Int], overrideSymbol: Option[SectionSymbol], overrideFormat: Option[SectionFormat]): String = {
     val numberInList = calculateNumberInList(lvl, sections)
     val defaultFormat = SectionFormats.get(lvl - 1).getOrElse(throw new RuntimeException(s"we handle only ${SectionFormats.size} levels for now"))
     val sectionSymbol = overrideSymbol.getOrElse(defaultFormat._1)
     val sectionFormat = overrideFormat.getOrElse(defaultFormat._3)
 
-    formatSectionValue(numberInList, sectionSymbol, sectionFormat)
+    formatSectionValue(numberInList, sectionSymbol, sectionFormat.formatString)
   }
 
   def calculateNumberInList(lvl: Int, sections: Seq[Int]): Int =
     sections.reverse.takeWhile(_ >= lvl).count(_ === lvl)
 
-  private def formatSectionValue(index: Int, sectionSymbol: SectionSymbol, sectionFormat: SectionFormat): String = {
+  private def formatSectionValue(index: Int, sectionSymbol: SectionSymbol, formatString: String): String = {
     sectionSymbol match {
-      case Decimal => sectionFormat.formatString.format(index.toString)
-      case LowerLetter => sectionFormat.formatString.format(lowerLetter(index))
-      case UpperLetter => sectionFormat.formatString.format(lowerLetter(index).toUpperCase)
-      case LowerRoman => sectionFormat.formatString.format(toRomanNumerals(index))
-      case UpperRoman => sectionFormat.formatString.format(toRomanNumerals(index).toUpperCase)
+      case Decimal => formatString.format(index.toString)
+      case LowerLetter => formatString.format(lowerLetter(index))
+      case UpperLetter => formatString.format(lowerLetter(index).toUpperCase)
+      case LowerRoman => formatString.format(toRomanNumerals(index))
+      case UpperRoman => formatString.format(toRomanNumerals(index).toUpperCase)
       case Hide => ""
     }
   }
