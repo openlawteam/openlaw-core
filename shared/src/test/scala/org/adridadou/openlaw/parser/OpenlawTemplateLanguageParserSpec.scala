@@ -294,6 +294,28 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     resultShouldBe(forReview("^(_(format: 'RightParen')) Section 1", Map()), """<ul class="list-lvl-1"><li><p>1)  Section 1</p></li></ul>""")
   }
 
+  it should "be able to reference sections" in {
+    val text =
+      """^ Section 1
+        |^^ Section 1.a
+        |^^^(s1ai) Section 1.a.i
+        |
+        |[[s1ai]]
+      """.stripMargin
+    resultShouldBe(forReview(text, Map()), """<ul class="list-lvl-1"><li><p>1.  Section 1<br /></p><ul class="list-lvl-2"><li><p>(a)  Section 1.a<br /></p><ul class="list-lvl-3"><li><p>(i)  Section 1.a.i</p><p>1.a.i<br />      </p></li></ul></li></ul></li></ul>""")
+  }
+
+  it should "be able to reference sections with custom symbols and formats" in {
+    val text =
+      """^ Section 1
+        |^^ Section 1.a
+        |^^^(s1ai(symbol:'Decimal';format:'Period')) Section 1.a.i
+        |
+        |[[s1ai]]
+      """.stripMargin
+    resultShouldBe(forReview(text, Map()), """<ul class="list-lvl-1"><li><p>1.  Section 1<br /></p><ul class="list-lvl-2"><li><p>(a)  Section 1.a<br /></p><ul class="list-lvl-3"><li><p>1.  Section 1.a.i</p><p>1.a.1<br />      </p></li></ul></li></ul></li></ul>""")
+  }
+
   it should "be able to override section symbols and formats" in {
     resultShouldBe(forReview("^ Section 1", Map()), """<ul class="list-lvl-1"><li><p>1.  Section 1</p></li></ul>""")
     resultShouldBe(forReview("^(_(symbol: 'UpperRoman'; format: 'Period')) Section 1", Map()), """<ul class="list-lvl-1"><li><p>I.  Section 1</p></li></ul>""")
