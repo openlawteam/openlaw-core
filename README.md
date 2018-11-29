@@ -15,7 +15,7 @@ If you want to use OpenLaw core in your Scala project, here is how to add it to 
 resolvers += "https://openlawos.bintray.com/openlaw-core"
 
 //add the dependency
-libraryDependencies += "org.openlawos" %% "openlaw-core" % "<last version>"
+libraryDependencies += "org.openlaw" %% "openlaw-core" % "<last version>"
 
 ```
 

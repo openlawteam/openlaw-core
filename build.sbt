@@ -4,7 +4,7 @@ import ReleaseTransformations._
 import scala.language.postfixOps
 import sbt.{file, _}
 
-lazy val username = "openlawos"
+lazy val username = "openlaw"
 lazy val repo     = "openlaw-core"
 
 licenses += ("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0"))
