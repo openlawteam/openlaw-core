@@ -293,11 +293,11 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
     getAllVariables(IdentityType)
       .map({case (executionResult,variable) => (variable.name, evaluate[Identity](executionResult, variable.name))})
       .filter({
-        case (_, Right(identity)) => event.userId === identity.userId
+        case (_, Right(identity)) => event.email === identity.email
         case _ => false
       }).toList match {
       case Nil =>
-        Left("invalid event! no matching identity for the signature")
+        Left(s"invalid event! no matching identity for the signature. identity:${event.email}")
       case users =>
         val initialValue:Either[String, OpenlawVm] = Right(this)
         users.foldLeft(initialValue)({
