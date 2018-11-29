@@ -4,7 +4,7 @@ import ReleaseTransformations._
 import scala.language.postfixOps
 import sbt.{file, _}
 
-lazy val username = "openlawos"
+lazy val username = "openlaw"
 lazy val repo     = "openlaw-core"
 
 licenses += ("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0"))
@@ -27,7 +27,7 @@ scalacOptions ++= Seq("-Xlog-implicits", "-unchecked", "-deprecation", "-feature
 javacOptions ++= Seq("-Xms512M", "-Xmx1024M", "-Xss1M", "-XX:+CMSClassUnloadingEnabled")
 
 lazy val commonSettings = Seq(
-  organization := "org.openlawos",
+  organization := "org.openlaw",
   name := "openlaw-core",
   scalaVersion := scalaV,
   wartremoverErrors ++= rules
@@ -75,7 +75,7 @@ val rules = Seq(Wart.ArrayEquals, Wart.OptionPartial, Wart.EitherProjectionParti
 
 lazy val openlawCoreJs = (project in file("openlawCoreJs")).settings(
   scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule)},
-  organization := "org.openlawos",
+  organization := "org.openlaw",
   name := "openlaw-core-client",
   scalaVersion := scalaV,
   wartremoverErrors ++= rules,
