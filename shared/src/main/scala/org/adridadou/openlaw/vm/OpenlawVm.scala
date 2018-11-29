@@ -173,7 +173,14 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
 
   def newExecution(name:VariableName, execution: OpenlawExecution):OpenlawVm = {
     val executions = state.executions.getOrElse(name, Executions())
-    state = state.copy(executions = state.executions + (name  -> executions.update(execution.scheduledDate, execution)))
+    val newExecutions = state.executions + (name  -> executions.update(execution.scheduledDate, execution))
+    execution.executionStatus match {
+      case FailedExecution =>
+        state = state.copy(executions = newExecutions, executionState = ContractStopped)
+      case _ =>
+        state = state.copy(executions = newExecutions)
+    }
+
     this
   }
 
