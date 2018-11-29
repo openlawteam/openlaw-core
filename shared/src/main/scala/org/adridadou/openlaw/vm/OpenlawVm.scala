@@ -173,7 +173,14 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
 
   def newExecution(name:VariableName, execution: OpenlawExecution):OpenlawVm = {
     val executions = state.executions.getOrElse(name, Executions())
-    state = state.copy(executions = state.executions + (name  -> executions.update(execution.scheduledDate, execution)))
+    val newExecutions = state.executions + (name  -> executions.update(execution.scheduledDate, execution))
+    execution.executionStatus match {
+      case FailedExecution =>
+        state = state.copy(executions = newExecutions, executionState = ContractStopped)
+      case _ =>
+        state = state.copy(executions = newExecutions)
+    }
+
     this
   }
 
@@ -286,11 +293,11 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
     getAllVariables(IdentityType)
       .map({case (executionResult,variable) => (variable.name, evaluate[Identity](executionResult, variable.name))})
       .filter({
-        case (_, Right(identity)) => event.userId === identity.userId
+        case (_, Right(identity)) => event.email === identity.email
         case _ => false
       }).toList match {
       case Nil =>
-        Left("invalid event! no matching identity for the signature")
+        Left(s"invalid event! no matching identity for the signature. identity:${event.email}")
       case users =>
         val initialValue:Either[String, OpenlawVm] = Right(this)
         users.foldLeft(initialValue)({

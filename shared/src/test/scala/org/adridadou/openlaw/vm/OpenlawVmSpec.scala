@@ -154,7 +154,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
   it should "be possible to register stopped contract, distinguish failed stops, and resume a stopped contract" in {
     val template = "this is a contract [[Signatory:Identity]]"
     val identity1: Identity = Identity.withEmail(Email("hello@world.com")).withId(UserId.generateNew)
-    val identity2: Identity = Identity.withEmail(Email("wrong@gmail.com")).withId(UserId.generateNew)
+    val identity2: Identity = Identity.withEmail(Email("wrong@gmail.com"))
     val templateId = TemplateId(TestCryptoService.sha256(template))
     val definition1 = ContractDefinition(
       creatorId = identity1.userId,
@@ -187,7 +187,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
 
     val signature2 = sign(identity2, contractId2)
     val signatureFromNoStopping2 = EthereumSignature(signature2.signature)
-    val signatureEvent2 = oracles.OpenlawSignatureEvent(definition2.id(TestCryptoService), identity2.userId, identity2.email, "", signatureFromNoStopping2, EthereumHash.empty)
+    val signatureEvent2 = oracles.OpenlawSignatureEvent(definition2.id(TestCryptoService), UserId.generateNew, identity2.email, "", signatureFromNoStopping2, EthereumHash.empty)
     vm2(signatureEvent2)
     vm2.executionState shouldBe ContractRunning
 
