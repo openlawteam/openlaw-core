@@ -4,7 +4,7 @@ import ReleaseTransformations._
 import scala.language.postfixOps
 import sbt.{file, _}
 
-lazy val username = "openlaw"
+lazy val username = "openlawos"
 lazy val repo     = "openlaw-core"
 
 licenses += ("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0"))
@@ -27,7 +27,7 @@ scalacOptions ++= Seq("-Xlog-implicits", "-unchecked", "-deprecation", "-feature
 javacOptions ++= Seq("-Xms512M", "-Xmx1024M", "-Xss1M", "-XX:+CMSClassUnloadingEnabled")
 
 lazy val commonSettings = Seq(
-  organization := "org.openlaw",
+  organization := "org.openlawos",
   name := "openlaw-core",
   scalaVersion := scalaV,
   wartremoverErrors ++= rules
@@ -37,7 +37,7 @@ lazy val publishSettings = Seq(
   homepage := Some(url(s"https://github.com/$username/$repo")),
   licenses += ("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0")),
   bintrayReleaseOnPublish in ThisBuild := true,
-  bintrayOrganization := Some("openlaw"),
+  bintrayOrganization := Some("openlawos"),
   bintrayRepository := "openlaw-core",
   bintrayPackageLabels := Seq("openlaw-core"),
   scmInfo := Some(ScmInfo(url(s"https://github.com/$username/$repo"), s"git@github.com:$username/$repo.git")),
@@ -56,7 +56,7 @@ lazy val publishSettings = Seq(
       url = new URL(s"http://github.com/outkaj")
     )
   ),
-  publishTo in ThisBuild := Some("Bintray" at "https://api.bintray.com/maven/openlaw/maven/openlaw-core"),
+  publishTo in ThisBuild := Some("Bintray" at "https://api.bintray.com/maven/openlawos/maven/openlaw-core"),
 )
 
 lazy val releaseSettings = releaseProcess := Seq[ReleaseStep](
@@ -75,7 +75,7 @@ val rules = Seq(Wart.ArrayEquals, Wart.OptionPartial, Wart.EitherProjectionParti
 
 lazy val openlawCoreJs = (project in file("openlawCoreJs")).settings(
   scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule)},
-  organization := "org.openlaw",
+  organization := "org.openlawos",
   name := "openlaw-core-client",
   scalaVersion := scalaV,
   wartremoverErrors ++= rules,
