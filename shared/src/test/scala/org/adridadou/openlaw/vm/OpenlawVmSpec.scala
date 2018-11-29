@@ -149,6 +149,12 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
       .now(clock)
       .withYear(2018).withMonth(12).withDayOfMonth(12).withHour(0).withMinute(1).withSecond(12).withNano(0)
     )
+
+    vm.newExecution(VariableName("My Contract Call"), EthereumSmartContractExecution(
+      LocalDateTime.now(), LocalDateTime.now(), FailedExecution, EthereumHash.empty
+    ))
+
+    vm.executionState shouldBe ContractStopped
   }
 
   it should "be possible to register stopped contract, distinguish failed stops, and resume a stopped contract" in {
