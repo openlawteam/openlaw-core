@@ -5,7 +5,7 @@ import java.time.Clock
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes._
-import org.adridadou.openlaw.values.TemplateParameters
+import org.adridadou.openlaw.values.{TemplateParameters, TemplateTitle}
 import org.adridadou.openlaw.vm.OpenlawExecutionEngine
 import org.adridadou.openlaw.parser.template.printers.XHtmlAgreementPrinter.FragsPrinter
 import org.scalatest._
@@ -84,6 +84,11 @@ class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues
     val agreement = structureAgreement(text)
     val html = XHtmlAgreementPrinter(false).printParagraphs(agreement.right.value.paragraphs).print
     html shouldBe """<p class="no-section">This is a test<br /></p><p class="no-section">Another line</p>"""
+  }
+
+  it should "print a template title" in {
+    val html = XHtmlAgreementPrinter(false).printFragments(Seq(Title(TemplateTitle("title1"))), 0, false).print
+    html shouldBe """<h1 class="signature-title">title1</h1>"""
   }
 
   it should "handle right aligned section" in {
