@@ -132,8 +132,12 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
   def forReview(paragraph: Paragraph, variables:Seq[String]):String =
     XHtmlAgreementPrinter(false, hiddenVariables = variables).printParagraphs(Seq(paragraph)).print
 
-  def forReviewEdit(paragraph:Paragraph):String = {
+  def forReviewEdit(paragraph:Paragraph):String =
     XHtmlAgreementPrinter(false).printParagraphs(Seq(paragraph)).print
+
+  def forReviewParagraph(str: String): String = MarkdownParser.parseMarkdown(str) match {
+    case Left(ex) => throw new RuntimeException("error while parsing the markdown:" + ex)
+    case Right(result) => XHtmlAgreementPrinter(false).printFragments(result.map(FreeText(_)), 0, false).print
   }
 
   private def prepareSingleParagraph(paragraph: Paragraph):Paragraph = Paragraph(paragraph.elements.filter({
