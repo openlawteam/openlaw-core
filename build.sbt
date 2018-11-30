@@ -4,7 +4,7 @@ import ReleaseTransformations._
 import scala.language.postfixOps
 import sbt.{file, _}
 
-lazy val username = "openlaw"
+lazy val username = "openlawos"
 lazy val repo     = "openlaw-core"
 
 licenses += ("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0"))
@@ -56,7 +56,7 @@ lazy val publishSettings = Seq(
       url = new URL(s"http://github.com/outkaj")
     )
   ),
-  publishTo in ThisBuild := Some("Bintray" at "https://api.bintray.com/maven/openlaw/maven/openlaw-core"),
+  publishTo in ThisBuild := Some("Bintray" at "https://api.bintray.com/maven/openlawos/maven/openlaw-core"),
 )
 
 lazy val releaseSettings = releaseProcess := Seq[ReleaseStep](
