@@ -26,6 +26,9 @@ lazy val repositories = Seq(
 scalacOptions ++= Seq("-Xlog-implicits", "-unchecked", "-deprecation", "-feature")
 javacOptions ++= Seq("-Xms512M", "-Xmx1024M", "-Xss1M", "-XX:+CMSClassUnloadingEnabled")
 
+organization := "org.openlaw"
+name := "openlaw-core"
+
 lazy val commonSettings = Seq(
   organization := "org.openlaw",
   name := "openlaw-core",
@@ -73,18 +76,7 @@ lazy val releaseSettings = releaseProcess := Seq[ReleaseStep](
 
 val rules = Seq(Wart.ArrayEquals, Wart.OptionPartial, Wart.EitherProjectionPartial, Wart.Enumeration, Wart.ExplicitImplicitTypes, Wart.FinalVal, Wart.JavaConversions, Wart.JavaSerializable, Wart.LeakingSealed)
 
-lazy val openlawCoreJs = (project in file("openlawCoreJs")).settings(
-  scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule)},
-  organization := "org.openlaw",
-  name := "openlaw-core-client",
-  scalaVersion := scalaV,
-  wartremoverErrors ++= rules,
-  relativeSourceMaps := true,
-  artifactPath in (Compile, fullOptJS) := crossTarget.value / "client.js"
-).enablePlugins(ScalaJSPlugin)
-  .dependsOn(sharedJs)
-
-lazy val shared = crossProject(JSPlatform, JVMPlatform)
+lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
   .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Pure) // [Pure, Full, Dummy], default: CrossType.Full
   .in(file("shared"))
@@ -132,11 +124,11 @@ lazy val shared = crossProject(JSPlatform, JVMPlatform)
   .settings(releaseSettings: _*)
   .enablePlugins(WartRemover)
 
-lazy val sharedJvm = shared.jvm
-lazy val sharedJs = shared.js
+lazy val openlawCoreJvm = openlawCore.jvm
+lazy val openlawCoreJs = openlawCore.js
 
 
 val root = (project in file("."))
-  .dependsOn(sharedJvm, sharedJs)
-  .aggregate(sharedJvm, sharedJs)
+  .dependsOn(openlawCoreJvm, openlawCoreJs)
+  .aggregate(openlawCoreJvm, openlawCoreJs)
 
