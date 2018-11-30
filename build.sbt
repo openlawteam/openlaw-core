@@ -26,8 +26,8 @@ lazy val repositories = Seq(
 scalacOptions ++= Seq("-Xlog-implicits", "-unchecked", "-deprecation", "-feature")
 javacOptions ++= Seq("-Xms512M", "-Xmx1024M", "-Xss1M", "-XX:+CMSClassUnloadingEnabled")
 
-organization := "org.openlaw",
-name := "openlaw-core",
+organization := "org.openlaw"
+name := "openlaw-core"
 
 lazy val commonSettings = Seq(
   scalaVersion := scalaV,
