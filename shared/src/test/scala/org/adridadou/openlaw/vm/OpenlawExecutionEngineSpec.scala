@@ -640,7 +640,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       case Right(result) =>
         result.state shouldBe ExecutionFinished
         val text = parser.forReview(result.agreements.head,ParagraphEdits())
-        text shouldBe """<p class="no-section"><br /></p><ul class="list-lvl-1"><li><p>1.  <strong> some test </strong><br /></p><ul class="list-lvl-2"><li><p>(a)  <strong> hello </strong> as mentioned in 1.(a)<br /></p></li><li><p>(b)  <strong> world </strong> as mentioned in 1.(b)<br /></p></li><li><p>(c)  <strong> me </strong> as mentioned in 1.(c)<br /></p></li></ul></li><li><p>2.  <strong>hello world </strong> 2.<br />              </p></li></ul>"""
+        text shouldBe """<p class="no-section"><br /></p><ul class="list-lvl-1"><li><p>1.  <strong> some test </strong><br /></p><ul class="list-lvl-2"><li><p>(a)  <strong> hello </strong> as mentioned in 1.a<br /></p></li><li><p>(b)  <strong> world </strong> as mentioned in 1.b<br /></p></li><li><p>(c)  <strong> me </strong> as mentioned in 1.c<br /></p></li></ul></li><li><p>2.  <strong>hello world </strong> 2<br />              </p></li></ul>"""
       case Left(ex) =>
         fail(ex)
     }
@@ -684,7 +684,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       case Right(result) =>
         result.state shouldBe ExecutionFinished
         val text = parser.forReview(result.agreements.head,ParagraphEdits())
-        text shouldBe """<ul class="list-lvl-1"><li><p>1.  first section</p></li><li><p>2.  second section</p><ul class="list-lvl-2"><li><p>(a)  first sub section</p></li><li><p>(b)  second sub section</p></li><li><p>(a)  reset the section</p></li></ul></li><li><p>3.  go back to the section 2.(a)</p></li></ul>"""
+        text shouldBe """<ul class="list-lvl-1"><li><p>1.  first section</p></li><li><p>2.  second section</p><ul class="list-lvl-2"><li><p>(a)  first sub section</p></li><li><p>(b)  second sub section</p></li><li><p>(a)  reset the section</p></li></ul></li><li><p>3.  go back to the section 2.a</p></li></ul>"""
       case Left(ex) =>
         fail(ex)
     }

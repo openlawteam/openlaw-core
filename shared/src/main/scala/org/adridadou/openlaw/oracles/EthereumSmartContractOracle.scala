@@ -23,7 +23,6 @@ case class EthereumSmartContractOracle() extends OpenlawOracle[EthereumSmartCont
   }
 
   private def handleEvent(vm:OpenlawVm, event:EthereumSmartContractCallEvent):Either[String, OpenlawVm] = {
-    //TODO: validate that we are talking about the same chain. For example have an anchor block and check that this block is present
     vm.allActions.find(info => info.name === event.name).map { actionInfo =>
       vm.executions[EthereumSmartContractExecution](event.name).find(_.tx === event.hash) match {
         case Some(execution) =>
