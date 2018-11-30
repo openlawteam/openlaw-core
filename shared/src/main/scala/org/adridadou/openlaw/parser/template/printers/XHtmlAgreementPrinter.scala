@@ -216,7 +216,7 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
           frag +: recurse(remaining.drop(1))
 
         case FreeText(PageBreak) =>
-          hr() +: recurse(xs)
+          hr(`class` := "pagebreak") +: recurse(xs)
 
         case FreeText(Centered) =>
           recurse(xs)
