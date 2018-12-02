@@ -1,10 +1,11 @@
-import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
+import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
 import ReleaseTransformations._
+import sbt.Keys.name
 
 import scala.language.postfixOps
 import sbt.{file, _}
 
-lazy val username = "openlawos"
+lazy val username = "openlaw"
 lazy val repo     = "openlaw-core"
 
 licenses += ("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0"))
@@ -25,10 +26,9 @@ lazy val repositories = Seq(
 
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
 
-organization := "org.openlaw"
-name := "openlaw-core"
-
 lazy val commonSettings = Seq(
+  organization := "org.openlaw",
+  name := "openlaw-core",
   scalaVersion := scalaV,
   wartremoverErrors ++= rules
 )
