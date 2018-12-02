@@ -23,8 +23,7 @@ lazy val repositories = Seq(
   Resolver.mavenLocal
 )
 
-scalacOptions ++= Seq("-Xlog-implicits", "-unchecked", "-deprecation", "-feature")
-javacOptions ++= Seq("-Xms512M", "-Xmx1024M", "-Xss1M", "-XX:+CMSClassUnloadingEnabled")
+scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
 
 organization := "org.openlaw"
 name := "openlaw-core"
@@ -45,19 +44,19 @@ lazy val publishSettings = Seq(
   releaseCrossBuild := true,
   developers := List(
     Developer(
-      id = username,
+      id = "adridadou",
       name = "David Roon",
       email = "david.roon@consensys.net",
       url = new URL(s"http://github.com/adridadou")
     ),
     Developer(
-      id = username,
+      id = "outkaj",
       name = "Jacqueline Outka",
       email = "jacqueline@outka.xyz",
       url = new URL(s"http://github.com/outkaj")
     )
   ),
-  publishTo in ThisBuild := Some("Bintray" at "https://api.bintray.com/maven/openlawos/maven/openlaw-core"),
+  publishTo in ThisBuild := Some("Bintray" at "https://api.bintray.com/maven/openlawos/openlaw-core/openlaw-core/;publish=1"),
 )
 
 lazy val releaseSettings = releaseProcess := Seq[ReleaseStep](
