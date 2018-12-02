@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import cats.implicits._
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template._
+import org.adridadou.openlaw.values.TemplateTitle
 import scalatags.Text.all._
 import slogging._
 
@@ -14,6 +15,10 @@ import scala.annotation.tailrec
   * styling or wrapping elements.
   */
 case class PlainText(str: String) extends AgreementElement
+
+/** Agreement element to wrap a title to support printing titles in downloaded documents.
+  */
+case class Title(title: TemplateTitle) extends AgreementElement
 
 object XHtmlAgreementPrinter {
 
@@ -216,10 +221,13 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
           frag +: recurse(remaining.drop(1))
 
         case FreeText(PageBreak) =>
-          hr() +: recurse(xs)
+          hr(`class` := "pagebreak") +: recurse(xs)
 
         case FreeText(Centered) =>
           recurse(xs)
+
+        case Title(title) =>
+          h1(`class` := "signature-title")(title.title) +: recurse(xs)
 
         case x =>
           logger.warn(s"unhandled element: $x")
