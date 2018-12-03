@@ -129,5 +129,13 @@ val root = (project in file("."))
   .dependsOn(openlawCoreJvm, openlawCoreJs)
   .aggregate(openlawCoreJvm, openlawCoreJs)
   .settings(
-    releaseProcess := Seq[ReleaseStep]()
+    releaseProcess := Seq[ReleaseStep](
+      inquireVersions,                        // : ReleaseStep
+      setReleaseVersion,                      // : ReleaseStep
+      commitReleaseVersion,                   // : ReleaseStep, performs the initial git checks
+      tagRelease,                             // : ReleaseStep
+      setNextVersion,                         // : ReleaseStep
+      commitNextVersion,                      // : ReleaseStep
+      pushChanges                             // : ReleaseStep, also checks that an upstream branch is properly configured
+    )
   )
