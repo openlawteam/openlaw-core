@@ -128,4 +128,6 @@ lazy val openlawCoreJs = openlawCore.js
 val root = (project in file("."))
   .dependsOn(openlawCoreJvm, openlawCoreJs)
   .aggregate(openlawCoreJvm, openlawCoreJs)
-
+  .settings(
+    releaseProcess := Seq[ReleaseStep]()
+  )
