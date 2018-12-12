@@ -115,6 +115,7 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
           // See if this paragraph is centered
           val (align, remaining) = overridden match {
             case Seq(FreeText(Centered), xs @ _*) => (Seq("align-center"), xs)
+            case Seq(FreeText(Indent), xs @ _*) => (Seq("indent"), xs)
             case Seq(FreeText(RightAlign), xs @ _*) => (Seq("align-right"), xs)
             case Seq(FreeText(RightThreeQuarters), xs @ _*) => (Seq("align-right-three-quarters"), xs)
             case seq => (Seq(), seq)
