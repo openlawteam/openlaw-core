@@ -708,6 +708,17 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
       """<p class="no-section">first paragraph of text<br /></p><p class="no-section"><hr class="pagebreak" /></p><p class="no-section">second paragraph of text</p>""")
   }
 
+  it should "be able to indent lines" in {
+    val text =
+      """first paragraph of text
+      |
+      |\indentsecond paragraph of text
+      |
+      |third paragraph of text""".stripMargin
+    resultShouldBe(forReview(text),
+      """<p class="no-section">first paragraph of text</p><p class="no-section indent">second paragraph of text</p><p class="no-section">third paragraph of text</p>""")
+  }
+
   it should "be able to align lines centered" in {
     val text =
       """first paragraph of text
