@@ -39,7 +39,7 @@ case object PeriodType extends VariableType("Period") {
     }
   }
 
-  def castToString(value:String): String = {
+  def castToString(value:String, executionResult:TemplateExecutionResult): String = {
     value
   }
 
