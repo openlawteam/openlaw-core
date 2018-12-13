@@ -84,6 +84,7 @@ case class CompiledAgreement(
     case Em => elems :+ FreeText(Em)
     case Strong => elems :+ FreeText(Strong)
     case PageBreak => elems :+ FreeText(PageBreak)
+    case Indent => elems :+ FreeText(Indent)
     case Centered => elems :+ FreeText(Centered)
     case RightAlign => elems :+ FreeText(RightAlign)
     case RightThreeQuarters => elems :+ FreeText(RightThreeQuarters)

@@ -168,3 +168,4 @@ case object Centered extends TextElement
 case object RightAlign extends TextElement
 case object RightThreeQuarters extends TextElement
 case object ParagraphSeparator extends TextElement
+case object Indent extends TextElement
