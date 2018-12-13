@@ -129,5 +129,5 @@ case class ParsingError(msg:String) extends RuntimeException
 case class Period(seconds:Int = 0, minutes:Int = 0, hours:Int = 0, days:Int = 0, weeks:Int = 0, months:Int = 0, years:Int = 0) {
   def minus(right:Period):Period = Period(seconds - right.seconds, minutes - right.minutes, hours - right.hours, days - right.days, weeks - right.weeks, months - right.months, years - right.years)
   def plus(right:Period):Period = Period(seconds + right.seconds, minutes + right.minutes, hours + right.hours, days + right.days, weeks + right.weeks, months + right.months, years + right.years)
-  def toString(right:Period):String = years.toString + " " + months.toString + " " + weeks.toString + " " + days.toString + " " + hours.toString + " " + minutes,toString + " " + seconds.toString
+  def toString(right:Period):String = years.toString + " " + months.toString + " " + weeks.toString + " " + days.toString + " " + hours.toString + " " + minutes.toString + " " + seconds.toString
 }
