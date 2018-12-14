@@ -212,8 +212,6 @@ object VariableType {
 
   def getPeriod(v: Expression, executionResult: TemplateExecutionResult): Period =
     get(v,executionResult, PeriodType.cast)
-  def getPeriodToString(v: Expression, executionResult: TemplateExecutionResult): String =
-    get(v,executionResult, PeriodType.castToString)
   def getEthereumAddress(v: Expression, executionResult: TemplateExecutionResult): EthereumAddress =
     get(v,executionResult,EthAddressType.cast)
   def getDate(v: Expression, executionResult: TemplateExecutionResult): LocalDateTime =
