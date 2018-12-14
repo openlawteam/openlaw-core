@@ -50,28 +50,13 @@ case object PeriodType extends VariableType("Period") {
 
   override def internalFormat(value: Any): String = {
     val period = convert[Period](value)
-    val builder = StringBuilder.newBuilder
-    if(period.years > 0) {
-      builder.append(s"${period.years} years ")
-    }
-    if(period.months > 0) {
-      builder.append(s"${period.months} months ")
-    }
-    if(period.weeks > 0) {
-      builder.append(s"${period.weeks} weeks ")
-    }
-    if(period.days > 0) {
-      builder.append(s"${period.days} days ")
-    }
-    if(period.hours > 0) {
-      builder.append(s"${period.hours} hours ")
-    }
-    if(period.minutes > 0) {
-      builder.append(s"${period.minutes} minutes ")
-    }
-    builder.append(s"${period.seconds} seconds")
-
-    builder.toString()
+    val result = ( if( period.years > 0 ) s"${period.years}" + " years " else "") +
+      ( if( period.months > 0 ) s"${period.months}" + " months " else "") +
+      ( if( period.weeks > 0 ) s"${period.weeks}" + " weeks " else "") +
+      ( if( period.days > 0 ) s"${period.days}" + " days " else "") +
+      ( if( period.minutes > 0 ) s"${period.minutes}" + " minutes " else "") +
+      ( if( period.seconds > 0 ) s"${period.seconds}" + " seconds " else "")
+    result
   }
 
   def thisType: VariableType = PeriodType
