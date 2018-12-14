@@ -28,7 +28,10 @@ case object PeriodType extends VariableType("Period") {
 
   private def minus(left:Period, right:Period):Period = left.minus(right)
 
-  override def cast(value: String, executionResult:TemplateExecutionResult): Period = {
+  override def cast(value: String, executionResult:TemplateExecutionResult): Period =
+    cast(value)
+
+  def cast(value: String): Period = {
     val parser = new PeriodTypeParser(value)
     parser.root.run().toEither match {
       case Right(res) => res
@@ -37,10 +40,6 @@ case object PeriodType extends VariableType("Period") {
       case Left(ex) =>
         throw ex
     }
-  }
-
-  def castToString(value:String, executionResult:TemplateExecutionResult): String = {
-    value
   }
 
   override def isCompatibleType(otherType: VariableType, operation: ValueOperation): Boolean = operation match {

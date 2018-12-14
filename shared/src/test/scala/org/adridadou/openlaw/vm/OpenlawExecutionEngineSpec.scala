@@ -331,6 +331,18 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     }
   }
 
+  it should "print a period properly" in {
+    val mainTemplate =
+      compile("""[[var:Period]]""".stripMargin)
+
+    engine.execute(mainTemplate, TemplateParameters("var" -> PeriodType.internalFormat(PeriodType.cast("3 minute 10 seconds"))), Map()) match {
+      case Right(result) =>
+        parser.forReview(result.agreements.head,ParagraphEdits()) shouldBe """<p class="no-section">3 minutes 10 seconds</p>"""
+      case Left(ex) =>
+        fail(ex)
+    }
+  }
+
   it should "define a collection" in {
     val mainTemplate =
       compile(
