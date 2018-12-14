@@ -102,7 +102,7 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
           // Generate overridden paragraph contents if required
           val overridden = paragraphEdits.edits.get(paragraphCount - 1) match {
 
-            // If there is an overridden paragraph, render it's content instead of this paragraph
+            // If there is an overridden paragraph, render its content instead of this paragraph
             case Some(str) =>
               val results = MarkdownParser.parseMarkdownOrThrow(str)
               results.map(FreeText)

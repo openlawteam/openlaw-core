@@ -334,7 +334,6 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
   it should "print a period properly" in {
     val mainTemplate =
       compile("""[[var:Period]]""".stripMargin)
-
     engine.execute(mainTemplate, TemplateParameters("var" -> PeriodType.internalFormat(PeriodType.cast("3 minute 10 seconds"))), Map()) match {
       case Right(result) =>
         parser.forReview(result.agreements.head,ParagraphEdits()) shouldBe """<p class="no-section">3 minutes 10 seconds</p>"""
@@ -591,7 +590,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       """<%
         [[my choice:Choice("value 1","value 2")]]
         [[value:my choice]]
-        %>{{valuess = "value 1" => hello}}
+        %>{{values = "value 1" => hello}}
       """.stripMargin)
 
 
@@ -599,7 +598,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       case Right(_) =>
         fail("should fail!")
       case Left(ex) =>
-        ex shouldBe "valuess cannot be resolved!"
+        ex shouldBe "values cannot be resolved!"
     }
   }
 
