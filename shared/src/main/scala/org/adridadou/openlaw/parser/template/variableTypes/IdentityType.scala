@@ -10,7 +10,6 @@ import Identity._
 import cats.Eq
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter, SignatureFormatter}
 import org.adridadou.openlaw.parser.template._
-import org.adridadou.openlaw.oracles.UserId
 
 case object IdentityType extends VariableType(name = "Identity") {
 
@@ -57,7 +56,6 @@ case object IdentityType extends VariableType(name = "Identity") {
 
   private def accessProperty(identity: Option[Identity], property: String):Either[String, String] = {
     property.toLowerCase() match {
-      case "id" => Right(getOrNa(identity.flatMap(_.id).map(_.id)))
       case "email" => Right(getOrNa(identity.map(_.email.email)))
       case _ => Left(s"property '$property' not found for type Identity")
     }
@@ -66,16 +64,12 @@ case object IdentityType extends VariableType(name = "Identity") {
   private def getOrNa(optStr:Option[String]):String = optStr.getOrElse("[n/a]")
 }
 
-case class Identity(id:Option[UserId], email:Email) {
-  def withId(userId: UserId): Identity = this.copy(id = Some(userId))
-
+case class Identity(email:Email) {
   def getJsonString: String = this.asJson.noSpaces
-
-  def userId:UserId = id.getOrElse(UserId(email.email))
 }
 
 case object Identity {
-  def withEmail(email: Email): Identity = Identity(id = None, email = email)
+  def withEmail(email: Email): Identity = Identity(email = email)
 
   implicit val identityEnc: Encoder[Identity] = deriveEncoder[Identity]
   implicit val identityDec: Decoder[Identity] = deriveDecoder[Identity]

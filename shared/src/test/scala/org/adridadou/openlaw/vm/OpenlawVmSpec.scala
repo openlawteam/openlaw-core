@@ -48,18 +48,18 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
 
   it should "be possible to register signature as incoming events and distinguish failed signatures" in {
     val template = "this is a contract [[Signatory:Identity]]"
-    val identity1: Identity = Identity.withEmail(Email("hello@world.com")).withId(UserId.generateNew)
-    val identity2: Identity = Identity.withEmail(Email("wrong@gmail.com")).withId(UserId.generateNew)
+    val identity1: Identity = Identity.withEmail(Email("hello@world.com"))
+    val identity2: Identity = Identity.withEmail(Email("wrong@gmail.com"))
     val templateId = TemplateId(TestCryptoService.sha256(template))
 
     val definition1 = ContractDefinition(
-      creatorId = identity1.userId,
+      creatorId = UserId.SYSTEM_ID,
       mainTemplate = templateId,
       templates = Map(),
       parameters = TemplateParameters(Map(VariableName("Signatory") -> IdentityType.internalFormat(identity1)))
     )
     val definition2 = ContractDefinition(
-      creatorId = identity2.userId,
+      creatorId = UserId.SYSTEM_ID,
       mainTemplate = templateId,
       templates = Map(),
       parameters = TemplateParameters(Map(VariableName("Signatory") -> IdentityType.internalFormat(identity1)))
@@ -70,14 +70,14 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     vm2(LoadTemplate(template))
     val result1 = sign(identity1, vm1.contractId)
     val signature1 = EthereumSignature(result1.signature)
-    val signatureEvent = oracles.OpenlawSignatureEvent(definition1.id(TestCryptoService), identity1.userId, identity1.email, "", signature1, EthereumHash.empty)
+    val signatureEvent = oracles.OpenlawSignatureEvent(definition1.id(TestCryptoService), identity1.email, "", signature1, EthereumHash.empty)
 
     val result2 = sign(identity1, vm2.contractId)
     val signature2 = EthereumSignature(result2.signature)
 
 
     vm1(signatureEvent)
-    vm1(oracles.OpenlawSignatureEvent(definition2.id(TestCryptoService), identity1.userId, identity1.email, "", signature2, EthereumHash.empty))
+    vm1(oracles.OpenlawSignatureEvent(definition2.id(TestCryptoService), identity1.email, "", signature2, EthereumHash.empty))
     vm1.signature(identity1.email) shouldBe Some(signatureEvent)
     vm1.signature(identity2.email) shouldBe None
   }
@@ -105,8 +105,8 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     val email2 = Email("email2@email.com")
     val userId2 = UserId("userId2")
 
-    val identity = Identity(Some(userId), email)
-    val identity2 = Identity(Some(userId2), email2)
+    val identity = Identity(email)
+    val identity2 = Identity(email2)
     val definition = ContractDefinition(
       creatorId = UserId("hello@world.com"),
       mainTemplate = templateId,
@@ -125,14 +125,14 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
 
     vm.executionState shouldBe ContractCreated
     val signature = EthereumSignature(sign(identity, contractId).signature)
-    val signatureEvent = oracles.OpenlawSignatureEvent(contractId, userId, email, "", signature, EthereumHash.empty)
+    val signatureEvent = oracles.OpenlawSignatureEvent(contractId, email, "", signature, EthereumHash.empty)
 
     vm(signatureEvent)
 
     vm.executionState shouldBe ContractCreated
 
     val signature2 = EthereumSignature(sign(identity2, contractId).signature)
-    val signatureEvent2 = oracles.OpenlawSignatureEvent(contractId, userId2, email2, "", signature2, EthereumHash.empty)
+    val signatureEvent2 = oracles.OpenlawSignatureEvent(contractId, email2, "", signature2, EthereumHash.empty)
 
     vm(signatureEvent2)
 
@@ -159,17 +159,17 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
 
   it should "be possible to register stopped contract, distinguish failed stops, and resume a stopped contract" in {
     val template = "this is a contract [[Signatory:Identity]]"
-    val identity1: Identity = Identity.withEmail(Email("hello@world.com")).withId(UserId.generateNew)
+    val identity1: Identity = Identity.withEmail(Email("hello@world.com"))
     val identity2: Identity = Identity.withEmail(Email("wrong@gmail.com"))
     val templateId = TemplateId(TestCryptoService.sha256(template))
     val definition1 = ContractDefinition(
-      creatorId = identity1.userId,
+      creatorId = UserId.SYSTEM_ID,
       mainTemplate = templateId,
       templates = Map(),
       parameters = TemplateParameters("Signatory" -> IdentityType.internalFormat(identity1))
     )
     val definition2 = ContractDefinition(
-      creatorId = identity2.userId,
+      creatorId = UserId.SYSTEM_ID,
       mainTemplate = templateId,
       templates = Map(),
       parameters = TemplateParameters("Signatory" -> IdentityType.internalFormat(identity2))
@@ -187,13 +187,13 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
 
     val signature = sign(identity1, contractId1)
     val signatureFromNoStopping1 = EthereumSignature(signature.signature)
-    val signatureEvent = oracles.OpenlawSignatureEvent(definition1.id(TestCryptoService), identity1.userId, identity1.email, "", signatureFromNoStopping1, EthereumHash.empty)
+    val signatureEvent = oracles.OpenlawSignatureEvent(definition1.id(TestCryptoService), identity1.email, "", signatureFromNoStopping1, EthereumHash.empty)
     vm1(signatureEvent)
     vm1.executionState shouldBe ContractRunning
 
     val signature2 = sign(identity2, contractId2)
     val signatureFromNoStopping2 = EthereumSignature(signature2.signature)
-    val signatureEvent2 = oracles.OpenlawSignatureEvent(definition2.id(TestCryptoService), UserId.generateNew, identity2.email, "", signatureFromNoStopping2, EthereumHash.empty)
+    val signatureEvent2 = oracles.OpenlawSignatureEvent(definition2.id(TestCryptoService), identity2.email, "", signatureFromNoStopping2, EthereumHash.empty)
     vm2(signatureEvent2)
     vm2.executionState shouldBe ContractRunning
 

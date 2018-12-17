@@ -32,7 +32,7 @@ object OpenlawSignatureEvent {
   implicit val openlawSignatureEventDec: Decoder[OpenlawSignatureEvent] = deriveDecoder[OpenlawSignatureEvent]
 }
 
-case class OpenlawSignatureEvent(contractId:ContractId, userId:UserId, email:Email, fullName:String, signature: EthereumSignature, ethereumHash:EthereumHash) extends OpenlawVmEvent {
+case class OpenlawSignatureEvent(contractId:ContractId, email:Email, fullName:String, signature: EthereumSignature, ethereumHash:EthereumHash) extends OpenlawVmEvent {
 
   override def typeIdentifier: String = className[OpenlawSignatureEvent]
   override def serialize: String = this.asJson.noSpaces
