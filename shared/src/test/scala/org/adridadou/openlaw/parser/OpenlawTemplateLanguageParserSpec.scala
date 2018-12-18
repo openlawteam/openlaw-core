@@ -178,6 +178,22 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     )), """<p class="no-section">This is my clause. David Roon. </p>""")
   }
 
+  it should "handle conditional blocks with else" in {
+
+    val clauseText = """This is my clause. [[contractor:Text "the contractor who is going to do the job"]]. {{shouldShowBirthdate "Should we show the birthdate?" => And I am born in [[contractorBirthdate "The birthdate of the contractor"]] :: I am not showing any birthday-related information }}"""
+
+    resultShouldBe(forReview(clauseText, Map(
+      "contractor" -> "David Roon",
+      "shouldShowBirthdate" -> "true",
+      "contractorBirthdate" -> "01.13.1983"
+    )) , """<p class="no-section">This is my clause. David Roon. And I am born in 01.13.1983</p>""")
+
+    resultShouldBe(forReview(clauseText, Map(
+      "contractor" -> "David Roon",
+      "shouldShowBirthdate" -> "false"
+    )), """<p class="no-section">This is my clause. David Roon. I am not showing any birthday-related information</p>""")
+  }
+
   it should "do post processing for lists" in {
     val text =
       """a small title
