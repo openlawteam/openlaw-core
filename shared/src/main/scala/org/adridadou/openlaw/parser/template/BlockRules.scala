@@ -11,7 +11,7 @@ import org.parboiled2.{Parser, Rule0, Rule1}
   */
 trait BlockRules extends Parser with ExpressionRules with GlobalRules {
 
-  def blockRule:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | pageBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | textPart) ~> ((s: Seq[TemplatePart]) => Block(s))}
+  def blockRule:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | pageBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | conditionalBlockKeyWithElse | conditionalBlockSetKeyWithElse | codeBlockKey | textPart) ~> ((s: Seq[TemplatePart]) => Block(s))}
 
   def blockNoStrong:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | indentLine | varAliasKey | varKey | varMemberKey | textPartNoStrong) ~> ((s: Seq[TemplatePart]) => Block(s))}
 
@@ -20,6 +20,8 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   def blockNoStrongNoEm:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | indentLine | varAliasKey | varKey | varMemberKey | textPartNoStrongNoEm) ~> ((s: Seq[TemplatePart]) => Block(s))}
 
   def conditionalBlockSetKey:Rule1[ConditionalBlockSet]= rule { openB ~ oneOrMore(ws ~ conditionalBlockKey ~ ws) ~ closeB ~> ((blocks:Seq[ConditionalBlock]) => ConditionalBlockSet(blocks)) }
+
+  def conditionalBlockSetKeyWithElse:Rule1[ConditionalBlockSetWithElse]= rule { openB ~ oneOrMore(ws ~ conditionalBlockKeyWithElse ~ ws) ~ closeB ~> ((blocks:Seq[ConditionalBlockWithElse]) => ConditionalBlockSetWithElse(blocks)) }
 
   def foreachBlockKey:Rule1[ForEachBlock]= rule { &(openB) ~ foreachBlock }
 
@@ -32,6 +34,18 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   def conditionalBlock:Rule1[ConditionalBlock] = rule { openB ~ ws  ~ conditionalExpressionRule ~ optional(ws ~ "=>") ~ ws ~ blockRule ~ closeB ~> ((expression:Expression, block: Block) => ConditionalBlock(block, expression))}
 
   def conditionalExpressionRule:Rule1[Expression] = rule {
+    ExpressionRule ~>((expr:Expression) => expr match {
+      case variable:VariableDefinition => variable.copy(variableTypeDefinition = Some(VariableTypeDefinition(YesNoType.name)))
+      case name:VariableName => VariableDefinition(name, Some(VariableTypeDefinition(YesNoType.name)), None)
+      case _ => expr
+    })
+  }
+
+  def conditionalBlockKeyWithElse:Rule1[ConditionalBlockWithElse]= rule { &(openB) ~ conditionalBlockWithElse }
+
+  def conditionalBlockWithElse:Rule1[ConditionalBlockWithElse] = rule { openB ~ ws  ~ conditionalExpressionWithElseRule ~ optional(ws ~ "=>") ~ ws ~ blockRule ~ optional(ws ~ "::") ~ ws ~ blockRule ~ closeB ~> ((expression:Expression, block: Block) => ConditionalBlockWithElse(block, expression))}
+
+  def conditionalExpressionWithElseRule:Rule1[Expression] = rule {
     ExpressionRule ~>((expr:Expression) => expr match {
       case variable:VariableDefinition => variable.copy(variableTypeDefinition = Some(VariableTypeDefinition(YesNoType.name)))
       case name:VariableName => VariableDefinition(name, Some(VariableTypeDefinition(YesNoType.name)), None)

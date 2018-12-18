@@ -65,6 +65,7 @@ trait ConditionalExpression {
 }
 
 case class ConditionalBlock(block:Block, conditionalExpression:Expression) extends TemplatePart
+case class ConditionalBlockWithElse(block:Block, conditionalExpression:Expression) extends TemplatePart
 case class ForEachBlock(variable:VariableName, expression: Expression, block:Block) extends TemplatePart {
   def toCompiledTemplate(executionResult: TemplateExecutionResult):Either[String, (CompiledTemplate, VariableType)] = {
     expression.expressionType(executionResult) match {
@@ -83,6 +84,7 @@ case class ForEachBlock(variable:VariableName, expression: Expression, block:Blo
   }
 }
 case class ConditionalBlockSet(blocks:Seq[ConditionalBlock]) extends TemplatePart
+case class ConditionalBlockSetWithElse(blocks:Seq[ConditionalBlockWithElse]) extends TemplatePart
 
 case object AEnd extends TemplatePart
 

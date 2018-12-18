@@ -174,6 +174,9 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     case ConditionalBlockSet(blocks) =>
       executeConditionalBlockSet(executionResult, blocks)
 
+    case ConditionalBlockSetWithElse(blocks) =>
+      executeConditionalBlockSetWithElse(executionResult, blocks)
+
     case CodeBlock(elems) =>
       val initialValue:Either[String, TemplateExecutionResult] = Right(executionResult)
       elems.foldLeft(initialValue)((exec, elem) => exec.flatMap(processCodeElement(_, templates, elem)))
@@ -277,6 +280,24 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
   }
 
   private def executeConditionalBlockSet(executionResult: TemplateExecutionResult, blocks: Seq[ConditionalBlock]) = {
+    blocks.foreach({
+      subBlock =>
+        subBlock.conditionalExpression match {
+          case variable: VariableDefinition =>
+            processVariable(executionResult, variable, executed = true)
+          case _ =>
+            executionResult.executedVariables appendAll subBlock.conditionalExpression.variables(executionResult)
+        }
+    })
+
+    blocks.find(_.conditionalExpression.evaluate(executionResult).exists(VariableType.convert[Boolean]))
+      .map(subBlock => {
+        executionResult.remainingElements.prependAll(subBlock.block.elems)
+        Right(executionResult)
+      }).getOrElse(Right(executionResult))
+  }
+
+  private def executeConditionalBlockSetWithElse(executionResult: TemplateExecutionResult, blocks: Seq[ConditionalBlockWithElse]) = {
     blocks.foreach({
       subBlock =>
         subBlock.conditionalExpression match {

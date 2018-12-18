@@ -112,6 +112,18 @@ case class CompiledAgreement(
       val elements = getAgreementElements(subBlock.elems, executionResult)
       val dependencies = conditionalExpression.variables(executionResult).map(_.name)
       elems ++ Vector(ConditionalStart(dependencies = dependencies)) ++ elements ++ Vector(ConditionalEnd(dependencies))
+    case ConditionalBlockSetWithElse(blocks) =>
+      blocks.find({
+        case ConditionalBlockWithElse(_, conditionalExpression) => conditionalExpression.evaluate(executionResult).exists(VariableType.convert[Boolean])
+      }) match {
+        case Some(conditionalBlock) =>
+          elems ++ getAgreementElements(Seq(conditionalBlock), executionResult)
+        case None => elems
+      }
+    case ConditionalBlockWithElse(subBlock, conditionalExpression) if conditionalExpression.evaluate(executionResult).exists(VariableType.convert[Boolean]) =>
+      val elements = getAgreementElements(subBlock.elems, executionResult)
+      val dependencies = conditionalExpression.variables(executionResult).map(_.name)
+      elems ++ Vector(ConditionalStart(dependencies = dependencies)) ++ elements ++ Vector(ConditionalEndWithElse(dependencies))
     case ForEachBlock(_, expression, subBlock) =>
       val collection = expression.
         evaluate(executionResult)
