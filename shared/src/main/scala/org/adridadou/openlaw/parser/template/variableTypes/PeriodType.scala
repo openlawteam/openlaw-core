@@ -28,7 +28,10 @@ case object PeriodType extends VariableType("Period") {
 
   private def minus(left:Period, right:Period):Period = left.minus(right)
 
-  override def cast(value: String, executionResult:TemplateExecutionResult): Period = {
+  override def cast(value: String, executionResult:TemplateExecutionResult): Period =
+    cast(value)
+
+  def cast(value: String): Period = {
     val parser = new PeriodTypeParser(value)
     parser.root.run().toEither match {
       case Right(res) => res
@@ -47,28 +50,13 @@ case object PeriodType extends VariableType("Period") {
 
   override def internalFormat(value: Any): String = {
     val period = convert[Period](value)
-    val builder = StringBuilder.newBuilder
-    if(period.years > 0) {
-      builder.append(s"${period.years} years ")
-    }
-    if(period.months > 0) {
-      builder.append(s"${period.months} months ")
-    }
-    if(period.weeks > 0) {
-      builder.append(s"${period.weeks} weeks ")
-    }
-    if(period.days > 0) {
-      builder.append(s"${period.days} days ")
-    }
-    if(period.hours > 0) {
-      builder.append(s"${period.hours} hours ")
-    }
-    if(period.minutes > 0) {
-      builder.append(s"${period.minutes} minutes ")
-    }
-    builder.append(s"${period.seconds} seconds")
-
-    builder.toString()
+    val result = ( if( period.years > 0 ) s"${period.years}" + " years " else "") +
+      ( if( period.months > 0 ) s"${period.months}" + " months " else "") +
+      ( if( period.weeks > 0 ) s"${period.weeks}" + " weeks " else "") +
+      ( if( period.days > 0 ) s"${period.days}" + " days " else "") +
+      ( if( period.minutes > 0 ) s"${period.minutes}" + " minutes " else "") +
+      ( if( period.seconds > 0 ) s"${period.seconds}" + " seconds " else "")
+    result
   }
 
   def thisType: VariableType = PeriodType
@@ -129,4 +117,10 @@ case class ParsingError(msg:String) extends RuntimeException
 case class Period(seconds:Int = 0, minutes:Int = 0, hours:Int = 0, days:Int = 0, weeks:Int = 0, months:Int = 0, years:Int = 0) {
   def minus(right:Period):Period = Period(seconds - right.seconds, minutes - right.minutes, hours - right.hours, days - right.days, weeks - right.weeks, months - right.months, years - right.years)
   def plus(right:Period):Period = Period(seconds + right.seconds, minutes + right.minutes, hours + right.hours, days + right.days, weeks + right.weeks, months + right.months, years + right.years)
+  override def toString:String = (if( years > 0 ) s"${years}" + " years " else "") +
+      ( if( months > 0 ) s"${months}" + " months " else "") +
+      ( if( weeks > 0 ) s"${weeks}" + " weeks " else "") +
+      ( if( days > 0 ) s"${days}" + " days " else "") +
+      ( if( minutes > 0 ) s"${minutes}" + " minutes " else "") +
+      ( if( seconds > 0 ) s"${seconds}" + " seconds" else "")
 }
