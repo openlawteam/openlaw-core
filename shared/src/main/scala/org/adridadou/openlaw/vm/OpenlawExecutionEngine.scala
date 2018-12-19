@@ -373,7 +373,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       processConditionalBlockSet(executionResult, blocks)
 
     case ConditionalBlockWithElse(subBlock, subBlock2, expr) =>
-      processConditionalBlockWithElse(executionResult, subBlock, expr, templates)
+      processConditionalBlockWithElse(executionResult, subBlock, subBlock2, expr, templates)
 
     case ConditionalBlockSetWithElse(blocks) =>
       processConditionalBlockSetWithElse(executionResult, blocks)
@@ -439,7 +439,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     Right(executionResult)
   }
 
-  private def processConditionalBlockWithElse(executionResult: TemplateExecutionResult, block: Block, expression: Expression, templates:Map[TemplateSourceIdentifier, CompiledTemplate]):Either[String, TemplateExecutionResult] = {
+  private def processConditionalBlockWithElse(executionResult: TemplateExecutionResult, block: Block, block2: Block, expression: Expression, templates:Map[TemplateSourceIdentifier, CompiledTemplate]):Either[String, TemplateExecutionResult] = {
     expression match {
       case variable:VariableDefinition =>
         processVariable(executionResult, variable, executed = false)
@@ -449,7 +449,9 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       val initialValue:Either[String, TemplateExecutionResult] = Right(executionResult)
       block.elems.foldLeft(initialValue)((exec, elem) => exec.flatMap(processCodeElement(_, templates, elem)))
     } else {
-      Right(executionResult)
+      val initialValue:Either[String, TemplateExecutionResult] = Right(executionResult)
+      block2.elems.foldLeft(initialValue)((exec, elem) => exec.flatMap(processCodeElement(_, templates, elem)))
+      //Right(executionResult)
     }
   }
 
@@ -534,7 +536,9 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
             executionResult.remainingElements.prependAll(subBlock.elems)
             Right(executionResult)
           } else {
-            expr.validate(executionResult) map {err => Left(err)} getOrElse Right(executionResult)
+            executionResult.remainingElements.prependAll(subBlock2.elems)
+            Right(executionResult)
+            //expr.validate(executionResult) map {err => Left(err)} getOrElse Right(executionResult)
           }
         }else {
           Left(s"Conditional expression $expr is of type $exprType instead of YesNo")
