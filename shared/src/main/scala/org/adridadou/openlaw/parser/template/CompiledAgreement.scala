@@ -123,9 +123,9 @@ case class CompiledAgreement(
     case ConditionalBlockWithElse(subBlock, subBlock2, conditionalExpression) if conditionalExpression.evaluate(executionResult).exists(VariableType.convert[Boolean]) =>
       val elements = getAgreementElements(subBlock.elems, executionResult)
       val dependencies = conditionalExpression.variables(executionResult).map(_.name)
-      elems ++ Vector(ConditionalStart(dependencies = dependencies)) ++ elements ++ Vector(ConditionalEndWithElse(dependencies))
+      elems ++ Vector(ConditionalStartWithElse(dependencies = dependencies)) ++ elements ++ Vector(ConditionalEndWithElse(dependencies))
       val elements2 = getAgreementElements(subBlock2.elems, executionResult)
-      elems ++ Vector(ConditionalStart(dependencies = dependencies)) ++ elements2 ++ Vector(ConditionalEndWithElse(dependencies))
+      elems ++ Vector(ConditionalStartWithElse(dependencies = dependencies)) ++ elements2 ++ Vector(ConditionalEndWithElse(dependencies))
     case ForEachBlock(_, expression, subBlock) =>
       val collection = expression.
         evaluate(executionResult)
