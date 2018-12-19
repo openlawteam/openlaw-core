@@ -43,7 +43,7 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
 
   def conditionalBlockKeyWithElse:Rule1[ConditionalBlockWithElse]= rule { &(openB) ~ conditionalBlockWithElse }
 
-  def conditionalBlockWithElse:Rule1[ConditionalBlockWithElse] = rule { openB ~ ws  ~ conditionalExpressionWithElseRule ~ optional(ws ~ "=>") ~ ws ~ blockRule ~ optional(ws ~ "::") ~ ws ~ blockRule ~ closeB ~> ((expression:Expression, block: Block) => ConditionalBlockWithElse(block, expression))}
+  def conditionalBlockWithElse:Rule1[ConditionalBlockWithElse] = rule { openB ~ ws  ~ conditionalExpressionWithElseRule ~ optional(ws ~ "=>") ~ ws ~ blockRule ~ optional(ws ~ "::") ~ blockRule ~ closeB ~> ((expression:Expression, block: Block, block2: Block) => ConditionalBlockWithElse(block, block2, expression))}
 
   def conditionalExpressionWithElseRule:Rule1[Expression] = rule {
     ExpressionRule ~>((expr:Expression) => expr match {
