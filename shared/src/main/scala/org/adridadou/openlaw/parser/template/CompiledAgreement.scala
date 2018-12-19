@@ -90,12 +90,12 @@ case class CompiledAgreement(
     case RightThreeQuarters => elems :+ FreeText(RightThreeQuarters)
     case variableDefinition:VariableDefinition if !variableDefinition.isHidden =>
       executionResult.getAliasOrVariableType(variableDefinition.name) match {
-        case Right(SectionType) =>
-          elems.:+(VariableElement(variableDefinition.name.name, generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult), getDependencies(variableDefinition.name, executionResult)))
+        case Right(variableType @ SectionType) =>
+          elems.:+(VariableElement(variableDefinition.name.name, Some(variableType), generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult), getDependencies(variableDefinition.name, executionResult)))
         case Right(_:NoShowInForm) =>
           elems
-        case Right(_) =>
-          elems.:+(VariableElement(variableDefinition.name.name, generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult), getDependencies(variableDefinition.name, executionResult)))
+        case Right(variableType) =>
+          elems.:+(VariableElement(variableDefinition.name.name, Some(variableType), generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult), getDependencies(variableDefinition.name, executionResult)))
         case Left(_) =>
           elems
       }
@@ -158,9 +158,9 @@ case class CompiledAgreement(
           throw new RuntimeException(s"error while rendering sections the variable should be a section but is ${v.getClass.getSimpleName}")
       }
 
-
     case VariableMember(name, keys, formatter) =>
-      elems.:+(VariableElement(name.name, generateVariable(name, keys, formatter, executionResult), getDependencies(name, executionResult)))
+      val definition = executionResult.getVariable(name).map(_.varType(executionResult))
+      elems.:+(VariableElement(name.name, definition, generateVariable(name, keys, formatter, executionResult), getDependencies(name, executionResult)))
     case _ =>
       elems
   })

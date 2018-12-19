@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import cats.implicits._
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template._
+import org.adridadou.openlaw.parser.template.variableTypes.IdentityType
 import org.adridadou.openlaw.values.TemplateTitle
 import scalatags.Text.all._
 import slogging._
@@ -171,9 +172,12 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
           )
           frag +: recurse(remaining)
 
-        case VariableElement(name, content, dependencies) =>
+        case VariableElement(name, variableType, content, dependencies) =>
+          // Do not highlight identity variables
+          val highlightType = variableType.map(_ =!= IdentityType).getOrElse(true)
+
           // Only add styling to highlight variable if there are no hidden variables that are dependencies for this one
-          val frags = if (preview && dependencies.forall(variable => !hiddenVariables.contains(variable))) {
+          val frags = if (highlightType && preview && dependencies.forall(variable => !hiddenVariables.contains(variable))) {
             val nameClass = name.replace(" ", "-")
             Seq(span(`class` := s"markdown-variable markdown-variable-$nameClass")(recurse(content)))
           } else {
