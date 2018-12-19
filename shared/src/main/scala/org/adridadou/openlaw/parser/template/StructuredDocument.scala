@@ -456,7 +456,7 @@ trait AgreementElement
 
 case class FreeText(elem: TextElement) extends AgreementElement
 case class Link(label:String, url:String) extends AgreementElement
-case class VariableElement(name: String, content:Seq[AgreementElement], dependencies: Seq[String]) extends AgreementElement
+case class VariableElement(name: String, variableType: Option[VariableType], content:Seq[AgreementElement], dependencies: Seq[String]) extends AgreementElement
 case class SectionElement(value: String, lvl:Int, number:Int, resetNumbering:Option[Int], overriddenSymbol: Option[SectionSymbol], overridenFormat: Option[SectionFormat]) extends AgreementElement
 case class ConditionalStart(dependencies: Seq[String]) extends AgreementElement
 case class ConditionalEnd(dependencies: Seq[String]) extends AgreementElement
