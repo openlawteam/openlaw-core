@@ -85,7 +85,7 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       "io.circe"                %% "circe-core"          % circeV,
       "io.circe"                %% "circe-generic"       % circeV,
       "io.circe"                %% "circe-parser"        % circeV,
-      "com.typesafe.play"       %% "play-json"           % "2.6.11",
+      "com.typesafe.play"       %% "play-json"           % "2.6.12",
       "org.parboiled"           %% "parboiled"           % parboiledV,
       "org.typelevel"           %% "cats-core"           % catsV,
       "org.typelevel"           %% "cats-free"           % catsV,
