@@ -701,6 +701,31 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     }
   }
 
+  it should "handle annotation" in {
+    val startEndQuote = "\"\"\""
+    val template =
+      compile(
+        s"""
+          |before the annotation
+          |
+          |$startEndQuote
+          |this is some text for my annotation
+          |$startEndQuote
+          |
+          |after the annotation
+        """.stripMargin)
+
+
+    engine.execute(template, TemplateParameters(), Map()) match {
+      case Right(result) =>
+        result.state shouldBe ExecutionFinished
+        val text = parser.forReview(result.agreements.head,ParagraphEdits())
+        text shouldBe """<p class="no-section"><br />before the annotation</p><p class="no-section">after the annotation<br />        </p>"""
+      case Left(ex) =>
+        fail(ex)
+    }
+  }
+
   private def compile(text:String):CompiledTemplate = parser.compileTemplate(text) match {
     case Right(template) => template
     case Left(ex) =>
