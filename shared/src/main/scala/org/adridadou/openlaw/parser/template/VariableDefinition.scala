@@ -162,7 +162,27 @@ case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[
         throw new RuntimeException("the variable or alias '" + name + "' has not been defined. Please define it before using it in an expression")
     })
 
-  override def validate(executionResult: TemplateExecutionResult): Option[String] = None
+  override def validate(executionResult: TemplateExecutionResult): Option[String] = {
+    defaultValue.flatMap({
+      case Parameters(parameterMap) =>
+        parameterMap.toMap.get("options").flatMap({
+          case OneValueParameter(expr) =>
+            val badType = expr.expressionType(executionResult)
+            if(badType =!= varType(executionResult)) {
+              Some(s"options element error! should be of type ${varType(executionResult).name} but is ${badType.name} instead")
+            } else {
+              None
+            }
+          case ListParameter(exprs) =>
+            val exprTypes = exprs
+            exprTypes.find(_.expressionType(executionResult) =!= varType(executionResult))
+            .map(expr => s"options element error! should be of type ${varType(executionResult).name} but ${expr.toString} is ${expr.expressionType(executionResult).name} instead")
+          case _ =>
+            None
+        })
+      case _ => None
+    })
+  }
 
   override def variables(executionResult: TemplateExecutionResult): Seq[VariableName] =
     name.variables(executionResult)

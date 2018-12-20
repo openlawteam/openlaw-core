@@ -728,6 +728,24 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     }
   }
 
+  it should "fail if an option is not of the right type" in {
+    val template =
+      compile(
+        s"""
+           [[my var:Number]]
+           [[my text:Text(
+           options:"hello", my var
+           )]]
+        """.stripMargin)
+
+    engine.execute(template, TemplateParameters(), Map()) match {
+      case Right(_) =>
+        fail("execution should fail")
+      case Left(ex) =>
+        ex shouldBe "options element error! should be of type Text but my var is Number instead"
+    }
+  }
+
   private def compile(text:String):CompiledTemplate = parser.compileTemplate(text) match {
     case Right(template) => template
     case Left(ex) =>
