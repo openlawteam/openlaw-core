@@ -225,7 +225,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
       """<p class="no-section"></p><ul class="list-lvl-1"><li><p>1.  <strong>Services</strong>. This is a test.<br /></p></li></ul>"""
 
     val text3 =
-      """<div class="openlaw-paragraph paragraph-1"><p class="no-section"><span class="markdown-variable markdown-variable-Id"></span></p></div><ul class="list-lvl-1"><li><div class="openlaw-paragraph paragraph-2"><p>1.  <strong>Services</strong>. This is a test.<br /></p></div></li></ul>"""
+      """<div class="openlaw-paragraph paragraph-1"><p class="no-section"></p></div><ul class="list-lvl-1"><li><div class="openlaw-paragraph paragraph-2"><p>1.  <strong>Services</strong>. This is a test.<br /></p></div></li></ul>"""
 
     resultShouldBe(forReview(text), text2)
     resultShouldBe(forPreview(text), text3)
@@ -949,6 +949,18 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
       """.stripMargin
 
     resultShouldBe(forReview(text = text, paragraphs = ParagraphEdits(Map(2 -> "now I want this new text [[My Variable]]"))), """<p class="no-section">hello my friend</p><ul class="list-lvl-1"><li><p>1.  this is a new paragraph [[My Variable]]</p><p>now I want this new text [[My Variable]]</p></li></ul>""")
+  }
+
+  it should "not highlist identity variables" in {
+    val text =
+      """
+        |[[Id: Identity]]
+        |
+        |_______________________
+        |Test
+      """.stripMargin
+
+    resultShouldBe(forPreview(text = text, params = Map()), """<div class="openlaw-paragraph paragraph-1"><p class="no-section"><br /></p></div><div class="openlaw-paragraph paragraph-2"><p class="no-section">_______________________<br />Test<br />      </p></div>""")
   }
 
   it should "not eat some of the content" in {

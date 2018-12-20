@@ -14,7 +14,7 @@ case class ResumeContractOracle(crypto:CryptoService) extends OpenlawOracle[Resu
       .map({case (id,variable) => (variable.name, vm.evaluate[Identity](id, variable.name))})
       .find({
         case (_, Right(identity)) =>
-          vm.isSignatureValid(vm.contractDefinition.id(crypto).resumeContract(crypto), OpenlawSignatureEvent(vm.contractId, identity.userId, identity.email, "", event.signature, EthereumHash.empty))
+          vm.isSignatureValid(vm.contractDefinition.id(crypto).resumeContract(crypto), OpenlawSignatureEvent(vm.contractId, identity.email, "", event.signature, EthereumHash.empty))
         case _ => false
       }) match {
       case Some((name:VariableName, Right(identity:Identity))) => processEvent(vm, event, name.name, identity)
