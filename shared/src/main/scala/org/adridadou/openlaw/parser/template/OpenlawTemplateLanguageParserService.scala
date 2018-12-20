@@ -115,29 +115,29 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
   }
 
   def forPreview(structuredAgreement: StructuredAgreement, overriddenParagraphs: ParagraphEdits): String =
-    XHtmlAgreementPrinter(true, paragraphEdits = overriddenParagraphs).printParagraphs(structuredAgreement.paragraphs).print
+    XHtmlAgreementPrinter(preview = true, paragraphEdits = overriddenParagraphs).printParagraphs(structuredAgreement.paragraphs).print
 
   def forPreview(structuredAgreement: StructuredAgreement, overriddenParagraphs: ParagraphEdits, hiddenVariables: Seq[String]): String =
-    XHtmlAgreementPrinter(true, paragraphEdits = overriddenParagraphs, hiddenVariables = hiddenVariables).printParagraphs(structuredAgreement.paragraphs).print
+    XHtmlAgreementPrinter(preview = true, paragraphEdits = overriddenParagraphs, hiddenVariables = hiddenVariables).printParagraphs(structuredAgreement.paragraphs).print
 
   def forPreview(paragraph: Paragraph, variables: Seq[String]): String =
-    XHtmlAgreementPrinter(true, hiddenVariables = variables).printParagraphs(Seq(paragraph)).print
+    XHtmlAgreementPrinter(preview = true, hiddenVariables = variables).printParagraphs(Seq(paragraph)).print
 
   def forReview(structuredAgreement: StructuredAgreement, overriddenParagraphs: ParagraphEdits): String =
-    XHtmlAgreementPrinter(false, overriddenParagraphs, structuredAgreement.executionResult.getVariables.map(_.name.name)).printParagraphs(structuredAgreement.paragraphs).print
+    XHtmlAgreementPrinter(preview = false, overriddenParagraphs, structuredAgreement.executionResult.getVariables.map(_.name.name)).printParagraphs(structuredAgreement.paragraphs).print
 
   def forReview(structuredAgreement: StructuredAgreement, overriddenParagraphs:ParagraphEdits, variables:Seq[String]):String =
-    XHtmlAgreementPrinter(false, overriddenParagraphs, variables).printParagraphs(structuredAgreement.paragraphs).print
+    XHtmlAgreementPrinter(preview = false, overriddenParagraphs, variables).printParagraphs(structuredAgreement.paragraphs).print
 
   def forReview(paragraph: Paragraph, variables:Seq[String]):String =
-    XHtmlAgreementPrinter(false, hiddenVariables = variables).printParagraphs(Seq(paragraph)).print
+    XHtmlAgreementPrinter(preview = false, hiddenVariables = variables).printParagraphs(Seq(paragraph)).print
 
   def forReviewEdit(paragraph:Paragraph):String =
-    XHtmlAgreementPrinter(false).printParagraphs(Seq(paragraph)).print
+    XHtmlAgreementPrinter(preview = false).printParagraphs(Seq(paragraph)).print
 
   def forReviewParagraph(str: String): String = MarkdownParser.parseMarkdown(str) match {
     case Left(ex) => throw new RuntimeException("error while parsing the markdown:" + ex)
-    case Right(result) => XHtmlAgreementPrinter(false).printFragments(result.map(FreeText(_)), 0, false).print
+    case Right(result) => XHtmlAgreementPrinter(preview = false).printFragments(result.map(FreeText), 0, inSection = false).print
   }
 
   private def prepareSingleParagraph(paragraph: Paragraph):Paragraph = Paragraph(paragraph.elements.filter({
