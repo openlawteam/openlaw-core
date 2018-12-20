@@ -191,7 +191,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     resultShouldBe(forReview(clauseText, Map(
       "contractor" -> "David Roon",
       "shouldShowBirthdate" -> "false"
-    )), """<p class="no-section">This is my clause. David Roon. I am not showing any birthday-related information</p>""")
+    )), """<p class="no-section">This is my clause. David Roon.  I am not showing any birthday-related information</p>""")
   }
 
   it should "do post processing for lists" in {
