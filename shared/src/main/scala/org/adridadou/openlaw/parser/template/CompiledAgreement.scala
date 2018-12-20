@@ -86,6 +86,7 @@ case class CompiledAgreement(
     case Centered => elems :+ FreeText(Centered)
     case RightAlign => elems :+ FreeText(RightAlign)
     case RightThreeQuarters => elems :+ FreeText(RightThreeQuarters)
+    case annotation: Annotation => elems :+ annotation
     case variableDefinition:VariableDefinition if !variableDefinition.isHidden =>
       executionResult.getAliasOrVariableType(variableDefinition.name) match {
         case Right(variableType @ SectionType) =>
