@@ -45,11 +45,15 @@ trait GlobalRules extends Parser {
 
   def normalCharNoReturn: Rule0 = rule { !( "\n" | "|" | centered | rightThreeQuarters | right | pagebreak | indent | em | openS | closeS | openB | closeB | openC | closeC | openA | closeA | sectionChar | variableSectionChar ) ~  ANY }
 
+  def normalCharNoColons: Rule0 = rule { !( "::" | "|" | centered | rightThreeQuarters | right | pagebreak | indent | em | openS | closeS | openB | closeB | openC | closeC | openA | closeA | sectionChar | variableSectionChar ) ~  ANY }
+
   def commentsChar: Rule0 = rule {zeroOrMore(noneOf("\n"))}
 
   def characters: Rule0 = rule { oneOrMore(normalChar)  } // word
 
   def charactersNoReturn: Rule0 = rule { oneOrMore(normalCharNoReturn)  } // word
+
+  def charactersNoColons: Rule0 = rule { oneOrMore(normalCharNoColons)  }
 
   def loosenCharacters: Rule0 = rule { oneOrMore(loosenChar)  } // word
 

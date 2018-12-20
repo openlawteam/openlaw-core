@@ -11,9 +11,9 @@ import org.parboiled2.{Parser, Rule0, Rule1}
   */
 trait BlockRules extends Parser with ExpressionRules with GlobalRules {
 
-  def ignoreDoubleColonsRule: Rule1[Block] = rule { capture((noneOf("::"))) }
+  def blockRule:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | pageBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | conditionalBlockKeyWithElse | conditionalBlockSetKeyWithElse | codeBlockKey | textPart) ~> ((s: Seq[TemplatePart]) => Block(s))}
 
-  def blockRule:Rule1[Block] = rule { ignoreColonsRule | zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | pageBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | conditionalBlockKeyWithElse | conditionalBlockSetKeyWithElse | codeBlockKey | textPart) ~> ((s: Seq[TemplatePart]) => Block(s))}
+  def blockInConditionalRule:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | pageBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | conditionalBlockKeyWithElse | conditionalBlockSetKeyWithElse | codeBlockKey | textPartNoColons) ~> ((s: Seq[TemplatePart]) => Block(s))}
 
   def blockNoStrong:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | indentLine | varAliasKey | varKey | varMemberKey | textPartNoStrong) ~> ((s: Seq[TemplatePart]) => Block(s))}
 
@@ -33,7 +33,7 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
 
   def conditionalBlockKey:Rule1[ConditionalBlock]= rule { &(openB) ~ conditionalBlock }
 
-  def conditionalBlock:Rule1[ConditionalBlock] = rule { openB ~ ws  ~ conditionalExpressionRule ~ optional(ws ~ "=>") ~ ws ~ blockRule ~ closeB ~> ((expression:Expression, block: Block) => ConditionalBlock(block, expression))}
+  def conditionalBlock:Rule1[ConditionalBlock] = rule { openB ~ ws  ~ conditionalExpressionRule ~ optional(ws ~ "=>") ~ ws ~ blockInConditionalRule ~ closeB ~> ((expression:Expression, block: Block) => ConditionalBlock(block, expression))}
 
   def conditionalExpressionRule:Rule1[Expression] = rule {
     ExpressionRule ~>((expr:Expression) => expr match {
@@ -45,7 +45,7 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
 
   def conditionalBlockKeyWithElse:Rule1[ConditionalBlockWithElse]= rule { &(openB) ~ conditionalBlockWithElse }
 
-  def conditionalBlockWithElse:Rule1[ConditionalBlockWithElse] = rule { openB ~ ws  ~ conditionalExpressionWithElseRule ~ optional(ws ~ "=>") ~ ws ~ blockRule ~ optional(ws ~ "::") ~ blockRule ~ closeB ~> ((expression:Expression, block: Block, block2: Block) => ConditionalBlockWithElse(block, block2, expression))}
+  def conditionalBlockWithElse:Rule1[ConditionalBlockWithElse] = rule { openB ~ ws  ~ conditionalExpressionWithElseRule ~ optional(ws ~ "=>") ~ ws ~ blockInConditionalRule ~ optional(ws ~ "::") ~ blockInConditionalRule ~ closeB ~> ((expression:Expression, block: Block, block2: Block) => ConditionalBlockWithElse(block, block2, expression))}
 
   def conditionalExpressionWithElseRule:Rule1[Expression] = rule {
     ExpressionRule ~>((expr:Expression) => expr match {
@@ -104,6 +104,9 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   def textPart: Rule1[TemplateText] = rule {
     textElement ~> ((s: Seq[TemplatePart]) => TemplateText(s)) }
 
+  def textPartNoColons: Rule1[TemplateText] = rule {
+    textElementNoColons ~> ((s: Seq[TemplatePart]) => TemplateText(s)) }
+
   def textPartNoStrong: Rule1[TemplateText] = rule {
     textElementNoStrong ~> ((s: Seq[TemplatePart]) => TemplateText(s)) }
 
@@ -119,6 +122,10 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
 
   def textElementNoStrong: Rule1[Seq[TemplatePart]] = rule {
     innerEmWord | textNoReturn
+  }
+
+  def textElementNoColons: Rule1[Seq[TemplatePart]] = rule {
+    table | textNoColons
   }
 
   def textElementNoEm: Rule1[Seq[TemplatePart]] = rule {
@@ -142,8 +149,13 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   def text: Rule1[Seq[TemplatePart]] = rule {
     capture(characters) ~> ((s: String) => Seq(Text(TextCleaning.dots(s))))
   }
+
   def textNoReturn: Rule1[Seq[TemplatePart]] = rule {
     capture(charactersNoReturn) ~> ((s: String) => Seq(Text(TextCleaning.dots(s))))
+  }
+
+  def textNoColons: Rule1[Seq[TemplatePart]] = rule {
+    capture(charactersNoColons) ~> ((s: String) => Seq(Text(TextCleaning.dots(s))))
   }
 
   def textWithStar: Rule1[Seq[TemplatePart]] = rule {
