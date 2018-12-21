@@ -184,8 +184,7 @@ case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[
       case DefinedChoiceType(choices,typeName) =>
         exprs.flatMap(validateOption(_, choices, typeName, executionResult)).headOption
       case _ =>
-        val exprTypes = exprs
-        exprTypes.find(_.expressionType(executionResult) =!= currentType)
+        exprs.find(_.expressionType(executionResult) =!= currentType)
           .map(expr => s"options element error! should be of type ${varType(executionResult).name} but ${expr.toString} is ${expr.expressionType(executionResult).name} instead")
     }
   }
