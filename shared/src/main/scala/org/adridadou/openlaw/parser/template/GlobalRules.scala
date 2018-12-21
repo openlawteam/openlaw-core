@@ -55,7 +55,7 @@ trait GlobalRules extends Parser {
 
   def loosenCharacters: Rule0 = rule { oneOrMore(loosenChar)  } // word
 
-  def firstKeyChar: Rule0 = rule { !(forbiddenChar | CharPredicate.Digit) ~ ANY }
+  def firstKeyChar: Rule0 = rule { !(forbiddenChar | CharPredicate.Digit | " ") ~ ANY }
 
   def keyChar: Rule0 = rule { !forbiddenChar ~ ANY }
 
@@ -63,7 +63,7 @@ trait GlobalRules extends Parser {
     centered | rightThreeQuarters | right | pagebreak | indent | em | openS | closeS | openB | closeB | openC | closeC | sectionChar | ":" | "|" | "&" | "@" | "#" | quote | "\n" | "," | "." | "->" | ">" | "<" | "=" | ")" | "(" | "+" | "-" | "*" | "/" | ";" | "!" | "{" | "}" | "[" | "]"
   }
 
-  def charsKeyAST: Rule1[String] = rule { capture(firstKeyChar ~ zeroOrMore(keyChar)) }
+  def charsKeyAST: Rule1[String] = rule { ws ~ capture(firstKeyChar ~ zeroOrMore(keyChar)) }
 
   def stringDefinition:Rule1[String] = rule {
     stringDefinition("\"") |
