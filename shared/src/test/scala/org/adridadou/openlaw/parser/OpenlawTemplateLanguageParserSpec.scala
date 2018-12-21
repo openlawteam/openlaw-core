@@ -551,7 +551,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     structureAgreement(text) match {
       case Left(ex) =>
         ex shouldEqual "alias expression uses undefined variables b"
-      case Right(res) =>
+      case Right(_) =>
         fail(s"this should fail")
     }
   }
@@ -562,7 +562,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
 
     structureAgreement(text) match {
       case Left(ex) =>
-        ex shouldEqual "error while processing the new variable var2. The variables var3 are used in the constructor but have not been defined"
+        ex shouldEqual "error while processing the new variable var2. The variables \"var3\" are used in the constructor but have not been defined"
       case Right(_) =>
         fail(s"this should fail")
     }

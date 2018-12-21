@@ -38,7 +38,7 @@ trait VariableExecutionEngine {
                     Left(ex.getMessage)
                 }
               case list =>
-                Left(s"error while processing the new variable ${variable.name}. The variables ${list.map(_.name).mkString(",")} are used in the constructor but have not been defined")
+                Left(s"error while processing the new variable ${variable.name}. The variables ${list.map(v => "\"" + v.name + "\"").mkString(",")} are used in the constructor but have not been defined")
             }
         }
     }

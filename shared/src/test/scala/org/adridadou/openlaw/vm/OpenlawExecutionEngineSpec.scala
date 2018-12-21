@@ -746,6 +746,24 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     }
   }
 
+
+  it should "be possible to specify options for a choice type" in {
+    val template =
+      compile(
+        s"""
+           [[My Choice:Choice("one", "two", "three")]]
+           [[my var:My Choice(
+           options:"one", "two"
+           )]]
+        """.stripMargin)
+
+    engine.execute(template, TemplateParameters(), Map()) match {
+      case Right(_) =>
+      case Left(ex) =>
+        fail(ex)
+    }
+  }
+
   private def compile(text:String):CompiledTemplate = parser.compileTemplate(text) match {
     case Right(template) => template
     case Left(ex) =>
