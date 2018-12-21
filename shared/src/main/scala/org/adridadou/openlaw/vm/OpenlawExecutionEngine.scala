@@ -537,12 +537,13 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
           if(expr.evaluate(executionResult).exists(VariableType.convert[Boolean])) {
             executionResult.remainingElements.prependAll(subBlock.elems)
             println("execution result if block " + Right(executionResult))
-            Right(executionResult)
+            expr.validate(executionResult) map {err => Left(err)} getOrElse Right(executionResult)
+            //Right(executionResult)
           } else {
             executionResult.remainingElements.prependAll(subBlock2.elems)
             println("execution result else block " + Right(executionResult))
-            Right(executionResult)
-            //expr.validate(executionResult) map {err => Left(err)} getOrElse Right(executionResult)
+            //Right(executionResult)
+            expr.validate(executionResult) map {err => Left(err)} getOrElse Right(executionResult)
           }
         }else {
           Left(s"Conditional expression $expr is of type $exprType instead of YesNo")
