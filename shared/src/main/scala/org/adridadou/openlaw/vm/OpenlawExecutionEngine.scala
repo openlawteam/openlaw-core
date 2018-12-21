@@ -447,9 +447,11 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     }
     if(expression.evaluate(executionResult).exists(VariableType.convert[Boolean])) {
       val initialValue:Either[String, TemplateExecutionResult] = Right(executionResult)
+      println("processing if " + block.elems.foldLeft(initialValue)((exec, elem) => exec.flatMap(processCodeElement(_, templates, elem))))
       block.elems.foldLeft(initialValue)((exec, elem) => exec.flatMap(processCodeElement(_, templates, elem)))
     } else {
       val initialValue:Either[String, TemplateExecutionResult] = Right(executionResult)
+      println("processing else " + block2.elems.foldLeft(initialValue)((exec, elem) => exec.flatMap(processCodeElement(_, templates, elem))))
       block2.elems.foldLeft(initialValue)((exec, elem) => exec.flatMap(processCodeElement(_, templates, elem)))
       //Right(executionResult)
     }
@@ -534,9 +536,11 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
         if(exprType === YesNoType) {
           if(expr.evaluate(executionResult).exists(VariableType.convert[Boolean])) {
             executionResult.remainingElements.prependAll(subBlock.elems)
+            println("execution result if block " + Right(executionResult))
             Right(executionResult)
           } else {
             executionResult.remainingElements.prependAll(subBlock2.elems)
+            println("execution result else block " + Right(executionResult))
             Right(executionResult)
             //expr.validate(executionResult) map {err => Left(err)} getOrElse Right(executionResult)
           }

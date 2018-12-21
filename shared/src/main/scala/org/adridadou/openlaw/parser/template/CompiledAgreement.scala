@@ -121,6 +121,8 @@ case class CompiledAgreement(
         case None => elems
       }
     case ConditionalBlockWithElse(subBlock, subBlock2, conditionalExpression) if conditionalExpression.evaluate(executionResult).exists(VariableType.convert[Boolean]) =>
+      println("getAgreementElements " + subBlock)
+      println("getAgreementElements " + subBlock2)
       val elements = getAgreementElements(subBlock.elems, executionResult)
       val dependencies = conditionalExpression.variables(executionResult).map(_.name)
       elems ++ Vector(ConditionalStartWithElse(dependencies = dependencies)) ++ elements ++ Vector(ConditionalEndWithElse(dependencies))

@@ -115,6 +115,8 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
         case _ =>
           Right(redefinition)
       }
+      println("variableTypesMap " + block)
+      println("variableTypesMap " + block2)
       block.elems.foldLeft(newTypeMap)((currentTypeMap, elem) => currentTypeMap.flatMap(variableTypesMap(elem, _)))
       block2.elems.foldLeft(newTypeMap)((currentTypeMap, elem) => currentTypeMap.flatMap(variableTypesMap(elem, _)))
     case CodeBlock(elems) =>
