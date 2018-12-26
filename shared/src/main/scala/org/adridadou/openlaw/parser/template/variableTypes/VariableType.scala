@@ -198,6 +198,7 @@ object VariableType {
     EthereumCallType,
     StripeCallType,
     IdentityType,
+    LargeTextType,
     NumberType,
     PeriodType,
     SectionType,
