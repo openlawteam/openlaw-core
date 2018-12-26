@@ -40,7 +40,7 @@ case object ValidationType extends VariableType(name = "Validation") with NoShow
       throw new RuntimeException(s"the condition expression of a validation needs to be of type YesNo, instead it is ${conditionType.name}")
     }
 
-    if(errorMessageType =!= TextType) {
+    if(errorMessageType =!= TextType || errorMessageType =!= LargeTextType) {
       throw new RuntimeException(s"The error message expression of a validation needs to be of type String, instead it is ${errorMessageType.name}")
     }
 

@@ -84,8 +84,8 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => L
   }
 
   override def isCompatibleType(otherType: VariableType, operation: ValueOperation): Boolean = operation match {
-    case Plus => otherType === PeriodType || otherType === TextType
-    case Minus => otherType === PeriodType || otherType === TextType
+    case Plus => otherType === PeriodType || otherType === TextType || otherType === LargeTextType
+    case Minus => otherType === PeriodType || otherType === TextType || otherType === LargeTextType
     case _ => false
   }
 }
