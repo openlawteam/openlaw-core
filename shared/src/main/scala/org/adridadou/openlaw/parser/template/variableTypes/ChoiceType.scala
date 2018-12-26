@@ -66,6 +66,7 @@ case class DefinedChoiceType(choices:Choices, typeName:String) extends VariableT
 
   override def isCompatibleType(otherType: VariableType, operation: ValueOperation): Boolean = otherType match {
     case TextType => true
+    case LargeTextType => true
     case DefinedChoiceType(_, otherTypeName) if otherTypeName === typeName => true
     case _ => false
   }

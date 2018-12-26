@@ -35,6 +35,27 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     }
   }
 
+  it should "run a simple template with large text" in {
+    val text =
+      """
+        |<%
+        |[[My Variable:LargeText]]
+        |[[Other one:Number]]
+        |%>
+        |
+        |[[My Variable]] - [[Other one]]
+      """.stripMargin
+
+    val compiledTemplate = compile(text)
+    val parameters = TemplateParameters("My Variable 2" -> "hello", "Other one" -> "334")
+    engine.execute(compiledTemplate, parameters, Map()) match {
+      case Right(result) =>
+        result.state shouldBe ExecutionFinished
+        result.variables.map(_.name.name) shouldBe Seq("My Variable", "Other one")
+      case Left(ex) => fail(ex)
+    }
+  }
+
   it should "wait for a template and then continue and run it" in {
     val text =
       """
