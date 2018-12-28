@@ -9,9 +9,9 @@ import org.adridadou.openlaw.parser.template._
 import cats.implicits._
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
 
-case class Choices(values: Seq[String])
+case class Choices(values: Seq[Expression])
 object Choices {
-  def apply(value: String): Choices = Choices(Seq(value))
+  def apply(value: Expression): Choices = Choices(Seq(value))
 }
 
 case object ChoiceType extends VariableType("Choice") with TypeGenerator[Choices] {
@@ -20,15 +20,9 @@ case object ChoiceType extends VariableType("Choice") with TypeGenerator[Choices
   private implicit val dec: Decoder[Choices] = deriveDecoder[Choices]
 
   override def construct(param:Parameter, executionResult: TemplateExecutionResult): Option[Choices] = param match {
-    case OneValueParameter(value) =>
-      Some(Choices(generateValues(Seq(value), executionResult)))
-    case ListParameter(values) =>
-      Some(Choices(generateValues(values, executionResult)))
+    case OneValueParameter(value) => Some(Choices(value))
+    case ListParameter(values) => Some(Choices(values))
     case _ => throw new RuntimeException("choice must have one or more expressions as constructor parameters")
-  }
-
-  private def generateValues(exprs:Seq[Expression], executionResult: TemplateExecutionResult):Seq[String] = {
-    exprs.flatMap(_.evaluate(executionResult)).map(VariableType.convert[String])
   }
 
   override def defaultFormatter: Formatter = new NoopFormatter
@@ -49,9 +43,10 @@ case object ChoiceType extends VariableType("Choice") with TypeGenerator[Choices
 }
 
 case class DefinedChoiceType(choices:Choices, typeName:String) extends VariableType(name = typeName) {
-
   override def cast(value: String, executionResult: TemplateExecutionResult): Any = {
     choices.values
+      .flatMap(expr => expr.evaluate(executionResult))
+      .map(VariableType.convert[String])
       .find(_ === value) match {
         case Some(result) =>
           result
@@ -66,7 +61,6 @@ case class DefinedChoiceType(choices:Choices, typeName:String) extends VariableT
 
   override def isCompatibleType(otherType: VariableType, operation: ValueOperation): Boolean = otherType match {
     case TextType => true
-    case LargeTextType => true
     case DefinedChoiceType(_, otherTypeName) if otherTypeName === typeName => true
     case _ => false
   }

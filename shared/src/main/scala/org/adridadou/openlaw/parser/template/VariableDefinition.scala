@@ -162,48 +162,7 @@ case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[
         throw new RuntimeException("the variable or alias '" + name + "' has not been defined. Please define it before using it in an expression")
     })
 
-  override def validate(executionResult: TemplateExecutionResult): Option[String] = {
-    defaultValue.flatMap({
-      case Parameters(parameterMap) =>
-        parameterMap.toMap.get("options").flatMap({
-          case OneValueParameter(expr) =>
-            validateOptions(Seq(expr), executionResult)
-          case ListParameter(exprs) =>
-            validateOptions(exprs, executionResult)
-          case _ =>
-            None
-        })
-      case _ => None
-    })
-  }
-
-  private def validateOptions(exprs:Seq[Expression], executionResult: TemplateExecutionResult):Option[String] = {
-    val currentType = varType(executionResult)
-
-    currentType match {
-      case DefinedChoiceType(choices,typeName) =>
-        exprs.flatMap(validateOption(_, choices, typeName, executionResult)).headOption
-      case _ =>
-        exprs.find(_.expressionType(executionResult) =!= currentType)
-          .map(expr => s"options element error! should be of type ${varType(executionResult).name} but ${expr.toString} is ${expr.expressionType(executionResult).name} instead")
-    }
-  }
-
-  private def validateOption(expr:Expression, choices:Choices, typeName:String, executionResult: TemplateExecutionResult):Option[String] = {
-    expr.evaluate(executionResult).flatMap({
-      case str: String =>
-        choices.values.find(_ === str) match {
-          case Some(_) =>
-            None
-          case None =>
-            println(expr.getClass.getSimpleName)
-            println(str)
-            Some(s"the value $str is not part of the Choice type $typeName")
-        }
-      case _ =>
-        Some(s"the options need to be of type Text to possibly be of type ${expr.expressionType(executionResult)}")
-    })
-  }
+  override def validate(executionResult: TemplateExecutionResult): Option[String] = None
 
   override def variables(executionResult: TemplateExecutionResult): Seq[VariableName] =
     name.variables(executionResult)

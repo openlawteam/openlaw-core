@@ -36,7 +36,8 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
   private def partitionAtItem[T](seq: Seq[T], t: T): (Seq[T], Seq[T]) = partitionAt(seq) { case item if item.equals(t) => true }
 
   private def partitionAt[T](seq: Seq[T])(pf: PartialFunction[T, Boolean]): (Seq[T], Seq[T]) = {
-    seq.prefixLength { x => (!pf.isDefinedAt(x)) || !pf(x) } match {
+    val length = seq.prefixLength { x => (!pf.isDefinedAt(x)) || !pf(x) }
+     length match {
       case 0 => (seq, Nil)
       case length => seq.take(length) -> seq.drop(length)
     }
@@ -66,7 +67,7 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
     ).toString
 
   def printParagraphs(paragraphs: Seq[Paragraph]): Seq[Frag] = {
-    printFragments(paragraphs, 0, inSection = false)
+    printFragments(paragraphs, 0, false)
   }
 
   def printFragments(elements: Seq[AgreementElement], conditionalBlockDepth: Int, inSection: Boolean): Seq[Frag] = {
@@ -209,7 +210,7 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
         case FreeText(t: Text) =>
 
           // Consume any following text elements which are only newlines
-          xs.dropWhile { case element => element === FreeText(Text("\n")) }
+          val remaining = xs.dropWhile { case element => element === FreeText(Text("\n")) }
 
           // Generate text output
           val innerFrag = text(t.str)
@@ -237,13 +238,6 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
 
         case FreeText(Centered) =>
           recurse(xs)
-
-        case Annotation(content) =>
-          if(preview) {
-            span(`class` := "openlaw-annotation")(text(content)) +: recurse(xs)
-          } else {
-            recurse(xs)
-          }
 
         case Title(title) =>
           h1(`class` := "signature-title")(title.title) +: recurse(xs)

@@ -35,27 +35,6 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     }
   }
 
-  it should "run a simple template with large text" in {
-    val text =
-      """
-        |<%
-        |[[My Variable:LargeText]]
-        |[[Other one:Number]]
-        |%>
-        |
-        |[[My Variable]] - [[Other one]]
-      """.stripMargin
-
-    val compiledTemplate = compile(text)
-    val parameters = TemplateParameters("My Variable 2" -> "hello", "Other one" -> "334")
-    engine.execute(compiledTemplate, parameters, Map()) match {
-      case Right(result) =>
-        result.state shouldBe ExecutionFinished
-        result.variables.map(_.name.name) shouldBe Seq("My Variable", "Other one")
-      case Left(ex) => fail(ex)
-    }
-  }
-
   it should "wait for a template and then continue and run it" in {
     val text =
       """
@@ -717,69 +696,6 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         result.state shouldBe ExecutionFinished
         val text = parser.forReview(result.agreements.head,ParagraphEdits())
         text shouldBe """<ul class="list-lvl-1"><li><p>1.  first section</p></li><li><p>2.  second section</p><ul class="list-lvl-2"><li><p>(a)  first sub section</p></li><li><p>(b)  second sub section</p></li><li><p>(a)  reset the section</p></li></ul></li><li><p>3.  go back to the section 2.a</p></li></ul>"""
-      case Left(ex) =>
-        fail(ex)
-    }
-  }
-
-  it should "handle annotation" in {
-    val startEndQuote = "\"\"\""
-    val template =
-      compile(
-        s"""
-          |before the annotation
-          |
-          |$startEndQuote
-          |this is some text for my annotation
-          |$startEndQuote
-          |
-          |after the annotation
-        """.stripMargin)
-
-
-    engine.execute(template, TemplateParameters(), Map()) match {
-      case Right(result) =>
-        result.state shouldBe ExecutionFinished
-        val text = parser.forReview(result.agreements.head,ParagraphEdits())
-        text shouldBe """<p class="no-section"><br />before the annotation</p><p class="no-section"></p><p class="no-section">after the annotation<br />        </p>"""
-        val text2 = parser.forPreview(result.agreements.head,ParagraphEdits())
-        text2 shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="no-section"><br />before the annotation</p></div><div class="openlaw-paragraph paragraph-2"><p class="no-section"><span class="openlaw-annotation"><br />this is some text for my annotation<br /></span></p></div><div class="openlaw-paragraph paragraph-3"><p class="no-section">after the annotation<br />        </p></div>"""
-      case Left(ex) =>
-        fail(ex)
-    }
-  }
-
-  it should "fail if an option is not of the right type" in {
-    val template =
-      compile(
-        s"""
-           [[my var:Number]]
-           [[my text:Text(
-           options:"hello", my var
-           )]]
-        """.stripMargin)
-
-    engine.execute(template, TemplateParameters(), Map()) match {
-      case Right(_) =>
-        fail("execution should fail")
-      case Left(ex) =>
-        ex shouldBe "options element error! should be of type Text but my var is Number instead"
-    }
-  }
-
-
-  it should "be possible to specify options for a choice type" in {
-    val template =
-      compile(
-        s"""
-           [[My Choice:Choice("one", "two", "three")]]
-           [[my var:My Choice(
-           options:"one", "two"
-           )]]
-        """.stripMargin)
-
-    engine.execute(template, TemplateParameters(), Map()) match {
-      case Right(_) =>
       case Left(ex) =>
         fail(ex)
     }

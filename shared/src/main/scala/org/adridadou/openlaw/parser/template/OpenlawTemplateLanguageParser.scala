@@ -2,7 +2,7 @@ package org.adridadou.openlaw.parser.template
 
 import java.time.Clock
 
-import org.adridadou.openlaw.parser.template.variableTypes.{LargeTextType, TemplateType, TextType}
+import org.adridadou.openlaw.parser.template.variableTypes.{TemplateType, TextType}
 import org.parboiled2._
 import cats.implicits._
 import VariableTypeDefinition._
@@ -58,7 +58,6 @@ class OpenlawTemplateLanguageParser(val input: ParserInput, internalClock:Clock)
   private def getVariables(block:Block):Map[String, VariableDefinition] = block.variables().foldLeft(Map[String, VariableDefinition]())((varMap, variable) => (varMap.get(variable.name.name), variable) match {
     case (None, _) => varMap ++ Map(variable.name.name -> variable)
     case (Some(VariableDefinition(name, Some(typeName), _, _, _, _)), _) if typeName === VariableTypeDefinition(TextType.name) => varMap ++ Map(name.name -> variable)
-    case (Some(VariableDefinition(name, Some(typeName), _, _, _, _)), _) if typeName === VariableTypeDefinition(LargeTextType.name) => varMap ++ Map(name.name -> variable)
     case (Some(v), _) if v.description.isEmpty && variable.description.isEmpty => varMap ++ Map(variable.name.name -> v.copy(description = variable.description))
     case (Some(VariableDefinition(_, Some(typeName), _, _, _, _)), VariableDefinition(_, Some(variableTypeName), _, _, _, _)) if typeName.name =!= variableTypeName.name =>
       throw new RuntimeException("type mismatch for variable " + variable.name + ". The variable was defined as " + typeName + " and then again as " + variableTypeName)

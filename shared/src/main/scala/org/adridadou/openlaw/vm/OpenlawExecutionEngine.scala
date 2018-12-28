@@ -153,17 +153,13 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
 
     case variableMember: VariableMember =>
       processVariableMember(executionResult, variableMember, executed = true)
-
     case variable:VariableName =>
       processVariable(executionResult, VariableDefinition(name = variable.name), executed = true)
-
     case alias:VariableAliasing =>
       processAlias(executionResult, alias, executed = true)
-
     case TemplateText(elems) =>
       executionResult.remainingElements.prependAll(elems)
       Right(executionResult)
-
     case ConditionalBlock(subBlock, expr) =>
       executeConditionalBlock(executionResult, templates, subBlock, expr)
     case ConditionalBlockWithElse(subBlock, subBlock2, expr) =>
