@@ -192,6 +192,14 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
           val removeDepth = if (preview && dependencies.forall(variable => !hiddenVariables.contains(variable))) 1 else 0
           recurse(xs, conditionalBlockDepth = conditionalBlockDepth - removeDepth)
 
+        case ConditionalStartWithElse(dependencies) =>
+          val addDepth = if (preview && dependencies.forall(variable => !hiddenVariables.contains(variable))) 1 else 0
+          recurse(xs, conditionalBlockDepth = conditionalBlockDepth + addDepth)
+
+        case ConditionalEndWithElse(dependencies) =>
+          val removeDepth = if (preview && dependencies.forall(variable => !hiddenVariables.contains(variable))) 1 else 0
+          recurse(xs, conditionalBlockDepth = conditionalBlockDepth - removeDepth)
+
         case Link(label, url) =>
           a(href := url)(label) +: recurse(xs)
 
