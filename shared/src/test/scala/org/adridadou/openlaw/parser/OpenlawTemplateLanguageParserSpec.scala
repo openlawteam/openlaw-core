@@ -180,8 +180,8 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
 
   it should "handle conditional blocks with else" in {
 
-    val clauseText = """This is my clause. [[contractor:Text "the contracto"]]. {{shouldShowBirthdate "Should we show the birthdate?" => And I am born in [[contractorBirthdate "The birthdate of the contractor"]] :: I am not showing any birthday-related information} }"""
-
+    val clauseText = """This is my clause. [[contractor:Text "the contractor who is going to do the job"]]. {{shouldShowBirthdate "Should we show the birthdate?" => And I am born in [[contractorBirthdate "The birthdate of the contractor"]] :: I am not showing any birthday-related information }}"""
+    
     resultShouldBe(forReview(clauseText, Map(
       "contractor" -> "David Roon",
       "shouldShowBirthdate" -> "true",
