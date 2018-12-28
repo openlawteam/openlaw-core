@@ -35,9 +35,8 @@ case class NoopConstant(varType:VariableType) extends ConstantExpression {
 }
 
 case class StringConstant(value:String, typeFunction: TemplateExecutionResult => VariableType = _ => TextType) extends ConstantExpression {
-  override def evaluate(executionResult: TemplateExecutionResult): Option[Any] = {
+  override def evaluate(executionResult: TemplateExecutionResult): Option[Any] =
     Some(typeFunction(executionResult).cast(value, executionResult))
-  }
 
   override def toString: String = "\"" + value + "\""
 }

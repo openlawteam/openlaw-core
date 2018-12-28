@@ -18,7 +18,7 @@ trait ExpressionRules extends JsonRules {
   }
 
   def Term:Rule1[Expression] = rule {
-    Factor ~ ws ~ zeroOrMore(
+    ws ~ Factor ~ ws ~ zeroOrMore(
       operation ~ ws ~ Factor ~ ws ~> ((op, expr) => PartialOperation(op,expr))
     ) ~> ((left:Expression, others:Seq[PartialOperation]) => others.foldLeft(left)({
       case (expr, op) => createOperation(expr,op)

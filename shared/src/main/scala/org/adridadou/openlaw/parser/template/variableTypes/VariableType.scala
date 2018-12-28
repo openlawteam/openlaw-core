@@ -128,6 +128,9 @@ abstract class VariableType(val name: String) {
   def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Option[Any] = constructorParams match {
       case OneValueParameter(expr) =>
         expr.evaluate(executionResult)
+      case Parameters(parameterMap) =>
+        parameterMap.toMap.get("value")
+          .flatMap(construct(_, executionResult))
       case _ =>
         throw new RuntimeException(s"the constructor for $name only handles single values")
     }
@@ -141,7 +144,8 @@ abstract class VariableType(val name: String) {
   def getSingleParameter(constructorParams: Parameter): Expression =
     constructorParams match {
       case OneValueParameter(expr) => expr
-      case _ => throw new RuntimeException("expecting a single value")
+      case _ =>
+        throw new RuntimeException("expecting a single value")
     }
 
   def handleTry[T](thisTry: Try[T]): T =
@@ -194,6 +198,7 @@ object VariableType {
     EthereumCallType,
     StripeCallType,
     IdentityType,
+    LargeTextType,
     NumberType,
     PeriodType,
     SectionType,
