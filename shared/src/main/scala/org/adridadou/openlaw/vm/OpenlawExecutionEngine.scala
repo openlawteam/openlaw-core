@@ -163,6 +163,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     case ConditionalBlock(subBlock, expr) =>
       executeConditionalBlock(executionResult, templates, subBlock, expr)
     case ConditionalBlockWithElse(subBlock, subBlock2, expr) =>
+      println("RESULT " + executeConditionalBlockWithElse(executionResult, templates, subBlock, subBlock2, expr))
       executeConditionalBlockWithElse(executionResult, templates, subBlock, subBlock2, expr)
     case foreachBlock:ForEachBlock =>
       executeForEachBlock(executionResult, foreachBlock)
@@ -504,6 +505,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
         if(exprType === YesNoType) {
           if(expr.evaluate(executionResult).exists(VariableType.convert[Boolean])) {
             executionResult.remainingElements.prependAll(subBlock.elems)
+            //println("actual if " + Right(executionResult))
             Right(executionResult)
           } else {
             expr.validate(executionResult) map {err => Left(err)} getOrElse Right(executionResult)
@@ -537,13 +539,15 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
           if(expr.evaluate(executionResult).exists(VariableType.convert[Boolean])) {
             executionResult.remainingElements.prependAll(subBlock.elems)
             println("execution result if block " + Right(executionResult))
-            expr.validate(executionResult) map {err => Left(err)} getOrElse Right(executionResult)
-            //Right(executionResult)
+            println("the validated result " + expr.validate(executionResult))
+            //expr.validate(executionResult) map {err => Left(err)} getOrElse Right(executionResult)
+            Right(executionResult)
           } else {
             executionResult.remainingElements.prependAll(subBlock2.elems)
             println("execution result else block " + Right(executionResult))
-            //Right(executionResult)
-            expr.validate(executionResult) map {err => Left(err)} getOrElse Right(executionResult)
+            println("the validated result " + expr.validate(executionResult))
+            Right(executionResult)
+            //expr.validate(executionResult) map {err => Left(err)} getOrElse Right(executionResult)
           }
         }else {
           Left(s"Conditional expression $expr is of type $exprType instead of YesNo")

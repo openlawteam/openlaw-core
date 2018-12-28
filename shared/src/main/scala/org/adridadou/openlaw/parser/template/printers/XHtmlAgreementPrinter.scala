@@ -93,6 +93,8 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
 
         case p @ Paragraph(Seq(c: ConditionalStart, remaining @ _*)) =>
           recurse(c +: Paragraph(remaining.toList) +: xs)
+        case p @ Paragraph(Seq(c: ConditionalStartWithElse, remaining @ _*)) =>
+          recurse(c +: Paragraph(remaining.toList) +: xs)
 
         case Paragraph(Seq()) =>
           recurse(xs)
