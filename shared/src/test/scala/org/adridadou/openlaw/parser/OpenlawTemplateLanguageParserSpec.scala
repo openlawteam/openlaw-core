@@ -186,7 +186,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
       "contractor" -> "David Roon",
       "shouldShowBirthdate" -> "true",
       "contractorBirthdate" -> "01.13.1983"
-    )) , """<p class="no-section">This is my clause. David Roon. And I am born in 01.13.1983</p>""")
+    )) , """<p class="no-section">This is my clause. David Roon. And I am born in 01.13.1983 </p>""")
 
     resultShouldBe(forReview(clauseText, Map(
       "contractor" -> "David Roon",
