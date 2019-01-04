@@ -1,7 +1,7 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
 import org.adridadou.openlaw.parser.template.formatters.Formatter
-import org.adridadou.openlaw.parser.template.{AgreementElement, FormatterDefinition, ImageElement, OneValueParameter, Parameter, TemplateExecutionResult, ValueOperation}
+import org.adridadou.openlaw.parser.template._
 
 object ImageFormatter extends Formatter {
   def format(value:Any, executionResult: TemplateExecutionResult): Either[String, Seq[AgreementElement]] = value match {
