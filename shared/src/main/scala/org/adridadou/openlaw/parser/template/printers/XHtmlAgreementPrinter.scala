@@ -184,6 +184,9 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
           }
           frags ++ recurse(xs)
 
+        case ImageElement(url) =>
+          img(`class` := "markdown-embedded-image", src := url.toString) +: recurse(xs)
+
         case ConditionalStart(dependencies) =>
           val addDepth = if (preview && dependencies.forall(variable => !hiddenVariables.contains(variable))) 1 else 0
           recurse(xs, conditionalBlockDepth = conditionalBlockDepth + addDepth)
