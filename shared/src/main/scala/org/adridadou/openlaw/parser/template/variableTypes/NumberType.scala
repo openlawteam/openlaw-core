@@ -69,6 +69,8 @@ case object NumberType extends VariableType("Number") {
     }
   }
 
+  override def getTypeClass: Class[_ <: NumberType.type ] = this.getClass
+
   def thisType: VariableType = NumberType
 }
 

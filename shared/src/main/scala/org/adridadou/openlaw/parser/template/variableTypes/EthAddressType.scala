@@ -24,6 +24,8 @@ case object EthAddressType extends VariableType("EthAddress") {
     })
   }
 
+  override def getTypeClass: Class[_ <: EthAddressType.type ] = this.getClass
+
   def thisType: VariableType = EthAddressType
 }
 

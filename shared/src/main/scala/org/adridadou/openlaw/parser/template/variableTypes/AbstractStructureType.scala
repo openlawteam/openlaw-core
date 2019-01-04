@@ -20,6 +20,8 @@ case object AbstractStructureType extends VariableType(name = "Structure") with 
 
   override def internalFormat(value: Any): String = throw new RuntimeException("no internal format for structured type definition")
 
+  override def getTypeClass: Class[_ <: AbstractStructureType.type ] = this.getClass
+
   override def checkTypeName(nameToCheck: String): Boolean = Seq("Structure").exists(_.equalsIgnoreCase(nameToCheck))
 
   def thisType: VariableType = AbstractStructureType
@@ -101,6 +103,8 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
       .flatMap({case (fieldName,fieldType) => values.get(fieldName).map(value => fieldName.name -> fieldType.internalFormat(value))})
       .asJson.noSpaces
   }
+
+  override def getTypeClass: Class[_ <: DefinedStructureType ] = this.getClass
 
   override def thisType: VariableType = this
 }

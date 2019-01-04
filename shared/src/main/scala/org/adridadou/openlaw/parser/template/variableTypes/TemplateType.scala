@@ -28,6 +28,8 @@ case object TemplatePathType extends VariableType("TemplateType") with NoShowInF
         throw new RuntimeException(ex)
     }
 
+  override def getTypeClass: Class[_ <: TemplatePathType.type ] = this.getClass
+
   override def internalFormat(value: Any): String =
     VariableType.convert[TemplatePath](value).asJson.noSpaces
 
@@ -178,6 +180,8 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
           )
       ).getOrElse(Seq(name))
   }
+
+  override def getTypeClass: Class[_ <: TemplateType.type ] = this.getClass
 
   override def cast(value: String, executionResult: TemplateExecutionResult): TemplateDefinition = handleEither(decode[TemplateDefinition](value))
   override def internalFormat(value: Any): String = VariableType.convert[TemplateDefinition](value).asJson.noSpaces

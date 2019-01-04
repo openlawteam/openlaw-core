@@ -95,6 +95,8 @@ abstract class VariableType(val name: String) {
     }
   }
 
+  def getTypeClass: Class[_]
+
   def checkTypeName(nameToCheck: String): Boolean =
     this.name.equalsIgnoreCase(nameToCheck)
 

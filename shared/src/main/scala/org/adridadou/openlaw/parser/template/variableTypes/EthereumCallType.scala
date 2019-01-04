@@ -42,6 +42,8 @@ case object EthereumCallType extends VariableType("EthereumCall") with ActionTyp
     }
   }
 
+  override def getTypeClass: Class[_ <: EthereumCallType.type ] = this.getClass
+
   def thisType: VariableType = EthereumCallType
 
   private def getExpressionList(param:Parameter):Seq[Expression] = param match {
