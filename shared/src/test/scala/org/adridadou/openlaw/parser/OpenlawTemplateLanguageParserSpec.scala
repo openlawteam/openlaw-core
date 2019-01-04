@@ -1,6 +1,5 @@
 package org.adridadou.openlaw.parser
 
-import java.net.URL
 import java.time.{Clock, LocalDateTime, ZoneOffset}
 
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
@@ -245,8 +244,8 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
       case Right(structuredAgreement) =>
         structuredAgreement.executionResult.getVariables(ImageType).size shouldBe 1
 
-        val image = structuredAgreement.executionResult.getVariableValues[URL](ImageType).head
-        image.toString should be ("https://openlaw.io/static/img/pizza-dog-optimized.svg")
+        val image = structuredAgreement.executionResult.getVariableValues[String](ImageType).head
+        image should be ("https://openlaw.io/static/img/pizza-dog-optimized.svg")
 
         resultShouldBe(forPreview(text), "<div class=\"openlaw-paragraph paragraph-1\"><p class=\"no-section\"><span class=\"markdown-variable markdown-variable-Image1\"><img class=\"markdown-embedded-image\" src=\"https://openlaw.io/static/img/pizza-dog-optimized.svg\" /></span></p></div>")
         resultShouldBe(forReview(text), "<p class=\"no-section\"><img class=\"markdown-embedded-image\" src=\"https://openlaw.io/static/img/pizza-dog-optimized.svg\" /></p>")

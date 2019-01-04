@@ -1,5 +1,4 @@
 package org.adridadou.openlaw.parser.template
-import java.net.URL
 import java.time.Clock
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -455,7 +454,7 @@ case class StructuredAgreement(executionResult: TemplateExecutionResult, mainTem
 
 trait AgreementElement
 
-case class ImageElement(url: URL) extends AgreementElement
+case class ImageElement(url: String) extends AgreementElement
 case class FreeText(elem: TextElement) extends AgreementElement
 case class Link(label:String, url:String) extends AgreementElement
 case class VariableElement(name: String, variableType: Option[VariableType], content:Seq[AgreementElement], dependencies: Seq[String]) extends AgreementElement
