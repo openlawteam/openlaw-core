@@ -13,7 +13,7 @@ import scala.util.{Failure, Success, Try}
 abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => LocalDateTime, formatter:Formatter) extends VariableType(varTypeName) {
   override def defaultFormatter: Formatter = formatter
 
-  override def getTypeClass: Class[_ <: DateTypeTrait ] = this.getClass
+  override def getTypeClass: Class[LocalDateTime] = classOf[LocalDateTime]
 
   def cast(value: String, executionResult:TemplateExecutionResult):LocalDateTime  = DateConverter.cast(value, executionResult.clock)
   def internalFormat(value: Any): String = {

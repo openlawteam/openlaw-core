@@ -21,9 +21,9 @@ case object IdentityType extends VariableType(name = "Identity") {
 
   override def defaultFormatter: Formatter = new NoopFormatter
 
-  override def getTypeClass: Class[_ <: IdentityType.type] = this.getClass
-
   def thisType: VariableType = IdentityType
+
+  override def getTypeClass: Class[_ <: String ] = classOf[String]
 
   override def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Option[Any] =
     throw new RuntimeException("Identity type does not support constructor")

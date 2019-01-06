@@ -29,7 +29,7 @@ case object LargeTextType extends VariableType("LargeText") {
 
   override def internalFormat(value: Any): String = VariableType.convert[String](value)
 
-  override def getTypeClass: Class[_ <: LargeTextType.type ] = this.getClass
+  override def getTypeClass: Class[String] = classOf[String]
 
   override def checkTypeName(nameToCheck: String): Boolean =
     Seq("LargeText", "String").exists(_.equalsIgnoreCase(nameToCheck))
