@@ -237,6 +237,21 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     resultShouldBe(result, text2)
   }
 
+  it should "handle image variables with URLs" in {
+    val text = """[[Image1:Image("https://openlaw.io/static/img/pizza-dog-optimized.svg")]]"""
+
+    structureAgreement(text) match {
+      case Right(structuredAgreement) =>
+        structuredAgreement.executionResult.getVariables(ImageType).size shouldBe 1
+
+        val image = structuredAgreement.executionResult.getVariableValues[String](ImageType).head
+        image should be ("https://openlaw.io/static/img/pizza-dog-optimized.svg")
+
+        resultShouldBe(forPreview(text), "<div class=\"openlaw-paragraph paragraph-1\"><p class=\"no-section\"><span class=\"markdown-variable markdown-variable-Image1\"><img class=\"markdown-embedded-image\" src=\"https://openlaw.io/static/img/pizza-dog-optimized.svg\" /></span></p></div>")
+        resultShouldBe(forReview(text), "<p class=\"no-section\"><img class=\"markdown-embedded-image\" src=\"https://openlaw.io/static/img/pizza-dog-optimized.svg\" /></p>")
+      case Left(ex) => fail(ex)
+    }
+  }
 
   it should "parse for smart contract calls" in {
     val text = """
