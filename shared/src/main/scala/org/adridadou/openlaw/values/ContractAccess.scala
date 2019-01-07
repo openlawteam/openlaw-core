@@ -12,12 +12,12 @@ case object ContractEditable extends ContractAccess("editable")
 
 object ContractAccess {
 
-    def apply(name: String): ContractAccess = name match {
-      case ContractReadonly.name => ContractReadonly
-      case ContractNoAccess.name => ContractNoAccess
-      case ContractSignable.name => ContractSignable
-      case ContractEditable.name => ContractEditable
-    }
+  def apply(name: String): ContractAccess = name match {
+    case ContractReadonly.name => ContractReadonly
+    case ContractNoAccess.name => ContractNoAccess
+    case ContractSignable.name => ContractSignable
+    case ContractEditable.name => ContractEditable
+  }
 
   def unapply(arg: ContractAccess): String = arg.name
 

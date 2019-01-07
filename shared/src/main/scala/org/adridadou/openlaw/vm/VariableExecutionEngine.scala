@@ -38,7 +38,7 @@ trait VariableExecutionEngine {
                     Left(ex.getMessage)
                 }
               case list =>
-                Left(s"error while processing the new variable ${variable.name}. The variables ${list.map(_.name).mkString(",")} are used in the constructor but have not been defined")
+                Left(s"error while processing the new variable ${variable.name}. The variables ${list.map(v => "\"" + v.name + "\"").mkString(",")} are used in the constructor but have not been defined")
             }
         }
     }
@@ -164,7 +164,7 @@ trait VariableExecutionEngine {
   private def validateType(executionResult: TemplateExecutionResult, variableDefinition: VariableDefinition): Option[String] = {
     variableDefinition.variableTypeDefinition.flatMap { typeName =>
       if (executionResult.findVariableType(typeName).isDefined) {
-        None
+        variableDefinition.validate(executionResult)
       } else {
         Some(s"error while processing the new variable ${variableDefinition.name}. The variable has type ${variableDefinition.variableTypeDefinition.map(_.name).getOrElse("")} but it does not exist")
       }

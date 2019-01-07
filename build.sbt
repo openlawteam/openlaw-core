@@ -13,7 +13,7 @@ licenses += ("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0"))
 lazy val scalaV = "2.12.8"
 lazy val catsV = "1.5.0"
 lazy val parboiledV = "2.1.5"
-lazy val circeV = "0.10.1"
+lazy val circeV = "0.11.0"
 
 lazy val repositories = Seq(
   Resolver.jcenterRepo,
@@ -85,7 +85,7 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       "io.circe"                %% "circe-core"          % circeV,
       "io.circe"                %% "circe-generic"       % circeV,
       "io.circe"                %% "circe-parser"        % circeV,
-      "com.typesafe.play"       %% "play-json"           % "2.6.12",
+      "com.typesafe.play"       %% "play-json"           % "2.6.13",
       "org.parboiled"           %% "parboiled"           % parboiledV,
       "org.typelevel"           %% "cats-core"           % catsV,
       "org.typelevel"           %% "cats-free"           % catsV,
