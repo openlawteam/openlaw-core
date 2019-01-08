@@ -42,7 +42,7 @@ case object EthereumCallType extends VariableType("EthereumCall") with ActionTyp
     }
   }
 
-  override def getTypeClass: Class[_ <: EthereumCallType.type ] = this.getClass
+  override def getTypeClass: Class[_ <: EthereumSmartContractCall] = classOf[EthereumSmartContractCall]
 
   def thisType: VariableType = EthereumCallType
 

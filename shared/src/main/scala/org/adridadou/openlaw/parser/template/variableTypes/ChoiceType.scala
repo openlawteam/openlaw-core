@@ -66,7 +66,7 @@ case class DefinedChoiceType(choices:Choices, typeName:String) extends VariableT
 
   override def thisType: VariableType = this
 
-  override def getTypeClass: Class[_ <: DefinedChoiceType] = this.getClass
+  override def getTypeClass: Class[_ <: Choices] = classOf[Choices]
 
   override def isCompatibleType(otherType: VariableType, operation: ValueOperation): Boolean = otherType match {
     case TextType => true

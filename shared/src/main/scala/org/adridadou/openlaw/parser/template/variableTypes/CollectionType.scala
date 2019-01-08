@@ -49,7 +49,7 @@ case class CollectionType(typeParameter:VariableType) extends VariableType("Coll
     ).toString()
   }
 
-  override def getTypeClass: Class[_ <: CollectionType] = this.getClass
+  override def getTypeClass: Class[_ <: CollectionValue] = classOf[CollectionValue]
 
   override def thisType: VariableType = this
 }

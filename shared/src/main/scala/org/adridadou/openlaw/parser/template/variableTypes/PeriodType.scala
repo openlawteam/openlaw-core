@@ -59,7 +59,7 @@ case object PeriodType extends VariableType("Period") {
     result
   }
 
-  override def getTypeClass: Class[_ <: PeriodType.type ] = this.getClass
+  override def getTypeClass: Class[_ <: Period] = classOf[Period]
 
   def thisType: VariableType = PeriodType
 
