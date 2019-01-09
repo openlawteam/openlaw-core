@@ -28,4 +28,6 @@ case object ImageType extends VariableType("Image") {
     case ImageType => true
     case _ => otherType.isCompatibleType(this, operation)
   }
+
+  override def getTypeClass: Class[_] = classOf[String]
 }
