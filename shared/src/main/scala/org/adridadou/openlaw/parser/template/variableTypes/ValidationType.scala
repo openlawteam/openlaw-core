@@ -30,6 +30,8 @@ case object ValidationType extends VariableType(name = "Validation") with NoShow
   }
   override def internalFormat(value: Any): String = VariableType.convert[Validation](value).asJson.noSpaces
 
+  override def getTypeClass: Class[_ <: ValidationType.type ] = this.getClass
+
 
   override def defaultFormatter: Formatter = new NoopFormatter
 

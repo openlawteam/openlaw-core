@@ -43,6 +43,8 @@ object AddressType extends VariableType(name = "Address") {
     case _::_ => Some(s"invalid property ${keys.mkString(".")}")
   }
 
+  override def getTypeClass: Class[_ <: Address] = classOf[Address]
+
   def thisType: VariableType = AddressType
 
   private def getAddress(value:Any, executionResult: TemplateExecutionResult):Address = value match {
