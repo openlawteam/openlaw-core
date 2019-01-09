@@ -163,7 +163,7 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   }
 
   def whitespace:Rule0 = rule { zeroOrMore(anyOf(tabOrSpace)) }
-  def tableColumnEntryBlock: Rule1[Seq[TemplatePart]] = rule { oneOrMore(varAliasKey | varKey | varMemberKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey) }
+  def tableColumnEntryBlock: Rule1[Seq[TemplatePart]] = rule { oneOrMore(varAliasKey | varKey | varMemberKey | conditionalBlockSetKey | conditionalBlockKey | conditionalBlockSetKeyWithElse | conditionalBlockKeyWithElse | codeBlockKey) }
   def tableColumnEntryText: Rule1[Seq[TemplatePart]] = rule { capture(oneOrMore(noneOf(pipe + nl))) ~> ((s: String) => Seq(Text(TextCleaning.dots(s.trim)))) }
 
   def table: Rule1[Seq[Table]] = rule {

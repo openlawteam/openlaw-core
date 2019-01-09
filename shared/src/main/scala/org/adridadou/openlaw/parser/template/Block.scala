@@ -12,8 +12,6 @@ case class Block(elems:Seq[TemplatePart] = Seq()) {
     case ConditionalBlock(block, _) => block.variableAliases()
     case ConditionalBlockSet(blocks) => variableAliases(blocks)
     case ConditionalBlockWithElse(ifBlock, elseBlock, _) =>
-      println("variableAliases " + ifBlock)
-      println("variableAliases " +  elseBlock)
       ifBlock.variableAliases()
       elseBlock.variableAliases()
     case ConditionalBlockSetWithElse(blocks) => variableAliases(blocks)
@@ -29,8 +27,6 @@ case class Block(elems:Seq[TemplatePart] = Seq()) {
     case ConditionalBlock(block, conditionalExpression) => block.variables() ++ expressionVariables(conditionalExpression)
     case ConditionalBlockSet(blocks) => variables(blocks, aliases)
     case ConditionalBlockWithElse(ifBlock, elseBlock, conditionalExpression) =>
-      println("variables " + ifBlock)
-      println("variables " + elseBlock)
       ifBlock.variables() ++ expressionVariables(conditionalExpression)
       elseBlock.variables() ++ expressionVariables(conditionalExpression)
     case ConditionalBlockSetWithElse(blocks) =>

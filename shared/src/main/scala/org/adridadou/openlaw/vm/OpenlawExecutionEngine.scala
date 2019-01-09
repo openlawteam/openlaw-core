@@ -167,7 +167,6 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     case ConditionalBlock(subBlock, expr) =>
       executeConditionalBlock(executionResult, templates, subBlock, expr)
     case ConditionalBlockWithElse(subBlock, subBlock2, expr) =>
-      println("RESULT " + executeConditionalBlockWithElse(executionResult, templates, subBlock, subBlock2, expr))
       executeConditionalBlockWithElse(executionResult, templates, subBlock, subBlock2, expr)
     case foreachBlock:ForEachBlock =>
       executeForEachBlock(executionResult, foreachBlock)
@@ -452,13 +451,10 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     }
     if(expression.evaluate(executionResult).exists(VariableType.convert[Boolean])) {
       val initialValue:Either[String, TemplateExecutionResult] = Right(executionResult)
-      println("processing if " + block.elems.foldLeft(initialValue)((exec, elem) => exec.flatMap(processCodeElement(_, templates, elem))))
       block.elems.foldLeft(initialValue)((exec, elem) => exec.flatMap(processCodeElement(_, templates, elem)))
     } else {
       val initialValue:Either[String, TemplateExecutionResult] = Right(executionResult)
-      println("processing else " + block2.elems.foldLeft(initialValue)((exec, elem) => exec.flatMap(processCodeElement(_, templates, elem))))
       block2.elems.foldLeft(initialValue)((exec, elem) => exec.flatMap(processCodeElement(_, templates, elem)))
-      //Right(executionResult)
     }
   }
 
@@ -509,7 +505,6 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
         if(exprType === YesNoType) {
           if(expr.evaluate(executionResult).exists(VariableType.convert[Boolean])) {
             executionResult.remainingElements.prependAll(subBlock.elems)
-            //println("actual if " + Right(executionResult))
             Right(executionResult)
           } else {
             expr.validate(executionResult) map {err => Left(err)} getOrElse Right(executionResult)
@@ -542,16 +537,10 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
         if(exprType === YesNoType) {
           if(expr.evaluate(executionResult).exists(VariableType.convert[Boolean])) {
             executionResult.remainingElements.prependAll(subBlock.elems)
-            println("execution result if block " + Right(executionResult))
-            println("the validated result " + expr.validate(executionResult))
-            //expr.validate(executionResult) map {err => Left(err)} getOrElse Right(executionResult)
             Right(executionResult)
           } else {
             executionResult.remainingElements.prependAll(subBlock2.elems)
-            println("execution result else block " + Right(executionResult))
-            println("the validated result " + expr.validate(executionResult))
             Right(executionResult)
-            //expr.validate(executionResult) map {err => Left(err)} getOrElse Right(executionResult)
           }
         }else {
           Left(s"Conditional expression $expr is of type $exprType instead of YesNo")

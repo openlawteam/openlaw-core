@@ -119,15 +119,17 @@ case class CompiledAgreement(
           elems ++ getAgreementElements(Seq(conditionalBlock), executionResult)
         case None => elems
       }
-    case ConditionalBlockWithElse(subBlock, subBlock2, conditionalExpression) if conditionalExpression.evaluate(executionResult).exists(VariableType.convert[Boolean]) =>
-      println("getAgreementElements " + subBlock)
-      println("getAgreementElements " + subBlock2)
-      val elements = getAgreementElements(subBlock.elems, executionResult)
-      val dependencies = conditionalExpression.variables(executionResult).map(_.name)
-      //elems ++ Vector(ConditionalStartWithElse(dependencies = dependencies)) ++ elements ++ Vector(ConditionalEndWithElse(dependencies))
-      val elements2 = getAgreementElements(subBlock2.elems, executionResult)
-      println(Vector(ConditionalStartWithElse(dependencies = dependencies)) ++ elements ++ Vector(ConditionalEndWithElse(dependencies)) ++ Vector(ConditionalStartWithElse(dependencies = dependencies)) ++ elements2 ++ Vector(ConditionalEndWithElse(dependencies)))
-      elems ++ Vector(ConditionalStartWithElse(dependencies = dependencies)) ++ elements ++ Vector(ConditionalEndWithElse(dependencies)) ++ Vector(ConditionalStartWithElse(dependencies = dependencies)) ++ elements2 ++ Vector(ConditionalEndWithElse(dependencies))
+    case ConditionalBlockWithElse(subBlock, subBlock2, conditionalExpression) =>
+      if (conditionalExpression.evaluate(executionResult).exists(VariableType.convert[Boolean])) {
+        val elements = getAgreementElements(subBlock.elems, executionResult)
+        val dependencies = conditionalExpression.variables(executionResult).map(_.name)
+        elems ++ Vector(ConditionalStartWithElse(dependencies = dependencies)) ++ elements ++ Vector(ConditionalEndWithElse(dependencies))
+      }
+      else {
+        val elements2 = getAgreementElements(subBlock2.elems, executionResult)
+        val dependencies = conditionalExpression.variables(executionResult).map(_.name)
+        elems ++ Vector(ConditionalStartWithElse(dependencies = dependencies)) ++ elements2 ++ Vector(ConditionalEndWithElse(dependencies))
+      }
     case ForEachBlock(_, expression, subBlock) =>
       val collection = expression.
         evaluate(executionResult)
