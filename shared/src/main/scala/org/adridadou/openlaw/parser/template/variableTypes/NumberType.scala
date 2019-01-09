@@ -69,6 +69,8 @@ case object NumberType extends VariableType("Number") {
     }
   }
 
+  override def getTypeClass: Class[BigDecimal] = classOf[BigDecimal]
+
   def thisType: VariableType = NumberType
 }
 

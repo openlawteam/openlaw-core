@@ -23,6 +23,8 @@ case object IdentityType extends VariableType(name = "Identity") {
 
   def thisType: VariableType = IdentityType
 
+  override def getTypeClass: Class[_ <: Identity] = classOf[Identity]
+
   override def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Option[Any] =
     throw new RuntimeException("Identity type does not support constructor")
 

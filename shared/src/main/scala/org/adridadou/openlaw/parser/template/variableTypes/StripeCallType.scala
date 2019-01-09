@@ -23,6 +23,8 @@ case object StripeCallType extends VariableType(name = "StripeCall") {
 
   override def defaultFormatter: Formatter = new NoopFormatter
 
+  override def getTypeClass: Class[_ <: StripeCallType.type ] = this.getClass
+
   override def construct(
     constructorParams: Parameter,
     executionResult: TemplateExecutionResult
