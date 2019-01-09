@@ -78,7 +78,7 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
   .in(file("shared"))
   .jvmSettings(
     libraryDependencies ++= Seq(
-      "io.circe"                %% "circe-iteratee"      % "0.11.0",
+      "io.circe"                %% "circe-iteratee"      % "0.12.0",
       "io.iteratee"             %% "iteratee-monix"      % "0.18.0",
       "io.monix"                %% "monix-eval"          % "3.0.0-fbcb270",
       "io.monix"                %% "monix-execution"     % "3.0.0-fbcb270",
@@ -108,7 +108,7 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       "io.circe"                %%% "circe-core"           % circeV,
       "io.circe"                %%% "circe-generic"        % circeV,
       "io.circe"                %%% "circe-parser"         % circeV,
-      "com.typesafe.play"       %%% "play-json"            % "2.6.11",
+      "com.typesafe.play"       %%% "play-json"            % "2.6.13",
       "com.lihaoyi"             %%% "scalatags"            % "0.6.7",
       //Test
       "org.scalacheck"          %%% "scalacheck"          % "1.14.0"       % Test,

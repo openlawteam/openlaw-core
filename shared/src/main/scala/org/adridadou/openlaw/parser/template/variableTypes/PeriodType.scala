@@ -59,6 +59,8 @@ case object PeriodType extends VariableType("Period") {
     result
   }
 
+  override def getTypeClass: Class[_ <: Period] = classOf[Period]
+
   def thisType: VariableType = PeriodType
 
   override def operationWith(rightType: VariableType, operation: ValueOperation): VariableType = rightType
