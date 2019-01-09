@@ -201,6 +201,7 @@ object VariableType {
     StripeCallType,
     IdentityType,
     LargeTextType,
+    ImageType,
     NumberType,
     PeriodType,
     SectionType,
