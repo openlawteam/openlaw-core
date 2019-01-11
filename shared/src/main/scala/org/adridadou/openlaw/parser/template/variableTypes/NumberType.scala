@@ -13,14 +13,16 @@ import scala.math.BigDecimal.RoundingMode
 case object NumberType extends VariableType("Number") {
   override def cast(value: String, executionResult: TemplateExecutionResult): BigDecimal = BigDecimal(value)
 
-  override def construct(constructorParams: Parameter,executionResult: TemplateExecutionResult): Option[Any] = constructorParams match {
+  override def construct(constructorParams: Parameter,executionResult: TemplateExecutionResult): Either[Throwable, Option[BigDecimal]] = constructorParams match {
     case OneValueParameter(expr) =>
       val constructorType = expr.expressionType(executionResult)
       if(constructorType =!= this) {
-        throw new RuntimeException(s"the constructor type should be $name but is ${constructorType.name}")
+        Left(new Exception(s"the constructor type should be $name but is ${constructorType.name}"))
+      } else {
+        Try(expr.evaluateT[BigDecimal](executionResult)).toEither
       }
-      expr.evaluate(executionResult)
-    case _ => throw new RuntimeException(s"the constructor for $name only handles single values")
+    case _ =>
+      Left(new Exception(s"the constructor for $name only handles single values"))
   }
 
   override def plus(optLeft: Option[Any], optRight: Option[Any], executionResult: TemplateExecutionResult): Option[BigDecimal] = for(

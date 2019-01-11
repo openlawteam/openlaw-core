@@ -28,13 +28,13 @@ case object StripeCallType extends VariableType(name = "StripeCall") {
   override def construct(
     constructorParams: Parameter,
     executionResult: TemplateExecutionResult
-  ): Option[StripeCall] =
+  ): Either[Throwable, Option[StripeCall]] =
     constructorParams match {
       case Parameters(values) =>
-        Some(StripeCall(beneficiary = getExpression(values.toMap, "beneficiary")))
+        Right(Some(StripeCall(beneficiary = getExpression(values.toMap, "beneficiary"))))
       case _ =>
         val msg = "Stripe Calls need to get 'beneficiary' as constructor parameter"
-        throw new RuntimeException(msg)
+        Left(new Exception(msg))
     }
 
   def thisType: VariableType = StripeCallType

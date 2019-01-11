@@ -2,9 +2,7 @@ package org.adridadou.openlaw.vm
 
 import org.adridadou.openlaw.parser.template._
 import cats.implicits._
-import org.adridadou.openlaw.parser.template.variableTypes.{AbstractStructureType, ChoiceType, TemplateDefinition, TemplateType}
-
-import scala.util.{Failure, Success, Try}
+import org.adridadou.openlaw.parser.template.variableTypes._
 
 trait VariableExecutionEngine {
 
@@ -27,14 +25,14 @@ trait VariableExecutionEngine {
             currentVariable.defaultValue.map(_.variables(executionResult)).getOrElse(Seq())
               .filter(newVariable => executionResult.getVariable(newVariable.name).isEmpty).toList match {
               case Nil =>
-                Try(variable.verifyConstructor(executionResult)) match {
-                  case Success(_) =>
+                variable.verifyConstructor(executionResult) match {
+                  case Right(_) =>
                     if (executed) {
                       executeVariable(executionResult, currentVariable)
                     } else {
                       Right(executionResult)
                     }
-                  case Failure(ex) =>
+                  case Left(ex) =>
                     Left(ex.getMessage)
                 }
               case list =>
@@ -143,19 +141,21 @@ trait VariableExecutionEngine {
   private def registerNewTypeIfNeeded(executionResult: TemplateExecutionResult, variable:VariableDefinition):Either[String, Boolean] = {
     variable.varType(executionResult) match {
       case ChoiceType =>
-        variable.defaultValue.flatMap(ChoiceType.construct(_, executionResult)) match {
-          case Some(choices) =>
+        variable.defaultValue.map(param => ChoiceType.construct(param, executionResult)) match {
+          case Some(Right(Some(choices))) =>
             executionResult.registerNewType(ChoiceType.generateType(variable.name, choices)).map(_ => true)
-          case None =>
+          case Some(Left(ex)) =>
+            Left(ex.getMessage)
+          case _ =>
             Left(s"the new type ${variable.name.name} could not be executed properly")
         }
       case AbstractStructureType =>
-        variable.defaultValue.flatMap(AbstractStructureType.construct(_, executionResult)) match {
+        variable.constructT[Structure](executionResult).left.map(_.getMessage).flatMap({
           case Some(structure) =>
             executionResult.registerNewType(AbstractStructureType.generateType(variable.name, structure)).map(_ => true)
           case None =>
             Left(s"the new type ${variable.name.name} could not be executed properly")
-        }
+        })
       case _ =>
         Right(false)
     }
