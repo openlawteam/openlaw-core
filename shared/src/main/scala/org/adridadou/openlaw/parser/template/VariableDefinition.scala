@@ -8,6 +8,9 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import play.api.libs.json.{JsString, Reads, Writes}
 
+import scala.reflect.ClassTag
+import scala.util.Try
+
 case class VariableMember(name:VariableName, keys:Seq[String], formatter:Option[FormatterDefinition]) extends TemplatePart with Expression {
   override def missingInput(executionResult:TemplateExecutionResult): Either[String, Seq[VariableName]] =
     name.aliasOrVariable(executionResult).missingInput(executionResult)
@@ -118,12 +121,31 @@ object VariableName {
 
 case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[VariableTypeDefinition] = None, description:Option[String] = None, formatter:Option[FormatterDefinition] = None, isHidden:Boolean = false, defaultValue:Option[Parameter] = None) extends TemplatePart with Expression with TextElement {
 
+  def constructT[T](executionResult: TemplateExecutionResult)(implicit classTag:ClassTag[T]): Either[Throwable, Option[T]] = {
+    construct(executionResult).flatMap({
+      case Some(value) => Try(Some(VariableType.convert[T](value))).toEither
+      case None => Right(None)
+    })
+  }
+
+  def construct(executionResult: TemplateExecutionResult): Either[Throwable, Option[Any]] = defaultValue match {
+    case Some(parameter) =>
+      varType(executionResult).construct(parameter, executionResult)
+    case None => Right(None)
+  }
+
+
   def isAnonymous: Boolean = name.isAnonymous
 
   def varType(executionResult: TemplateExecutionResult):VariableType = variableTypeDefinition.flatMap(name => executionResult.findVariableType(name)).getOrElse(TextType)
 
-  def verifyConstructor(executionResult: TemplateExecutionResult): Unit =
-    defaultValue.flatMap(parameter => varType(executionResult).construct(parameter, executionResult)).getOrElse("")
+  def verifyConstructor(executionResult: TemplateExecutionResult): Either[Throwable, Option[Any]] = {
+    defaultValue match {
+      case Some(parameter) =>
+        varType(executionResult).construct(parameter, executionResult)
+      case None => Right(None)
+    }
+  }
 
   def cast(value: String, executionResult:TemplateExecutionResult): Any =
     varType(executionResult).cast(value, executionResult)
@@ -138,19 +160,24 @@ case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[
         val optVariable = executionResult.getVariable(this.name)
         executionResult.getAliasOrVariableType(this.name) match {
           case _:NoShowInForm =>
-            optVariable
-              .flatMap(variable => variable.defaultValue
-                .flatMap(constructor => variable.varType(executionResult).construct(constructor, executionResult)))
+            constructVariable(optVariable, executionResult)
           case _ =>
             executionResult.getParameter(this.name) match {
               case Some(value) =>
                 optVariable.map(_.cast(value, executionResult))
               case None =>
-                optVariable
-                  .flatMap(variable => variable.defaultValue
-                    .flatMap(constructor => variable.varType(executionResult).construct(constructor, executionResult)))
+                constructVariable(optVariable, executionResult)
             }
         }
+    }
+  }
+
+  private def constructVariable(optVariable:Option[VariableDefinition], executionResult: TemplateExecutionResult):Option[Any] = {
+    optVariable
+      .map(variable => variable.construct(executionResult)) match {
+      case Some(Right(value)) => value
+      case Some(Left(ex)) => throw ex
+      case None => None
     }
   }
 

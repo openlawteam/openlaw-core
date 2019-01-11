@@ -5,13 +5,19 @@ import play.api.libs.json.{JsObject, Json}
 import io.circe.syntax._
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
 
+import scala.util.Try
+
 case class Structure(typeDefinition: Map[VariableName, VariableType], names:Seq[VariableName])
 
 case object AbstractStructureType extends VariableType(name = "Structure") with TypeGenerator[Structure] {
-  override def construct(param:Parameter, executionResult: TemplateExecutionResult): Option[Structure] = param match {
+  override def construct(param:Parameter, executionResult: TemplateExecutionResult): Either[Throwable, Option[Structure]] = param match {
     case Parameters(values) =>
-      Some(Structure(typeDefinition = values.flatMap({case (key,value) => getField(key,value, executionResult)}).toMap, names = values.map({case (key,_) => VariableName(key)})))
-    case parameter => throw new RuntimeException(s"structure must have one or more expressions as constructor parameters, instead received ${parameter.getClass}")
+      Try(Some(
+        Structure(typeDefinition = values
+          .flatMap({case (key,value) => getField(key,value, executionResult)}).toMap, names = values.map({case (key,_) => VariableName(key)}))
+      )).toEither
+    case parameter =>
+      Left(new Exception(s"structure must have one or more expressions as constructor parameters, instead received ${parameter.getClass}"))
   }
 
   override def defaultFormatter: Formatter = new NoopFormatter
