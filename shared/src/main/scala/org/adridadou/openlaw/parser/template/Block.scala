@@ -9,7 +9,7 @@ case class Block(elems:Seq[TemplatePart] = Seq()) {
 
   def variableAliases(e:Seq[TemplatePart]):Seq[VariableAliasing] = e.flatMap({
     case variable:VariableAliasing => Some(variable)
-    case ConditionalBlock(block, _) => block.variableAliases()
+    case ConditionalBlock(block, elseBlock, _) => block.variableAliases() ++ elseBlock.map(_.variableAliases()).getOrElse(Seq())
     case ConditionalBlockSet(blocks) => variableAliases(blocks)
     case CodeBlock(e2) => variableAliases(e2)
     case _ => None
@@ -20,7 +20,7 @@ case class Block(elems:Seq[TemplatePart] = Seq()) {
 
   private def variables(e:Seq[TemplatePart], aliases:Seq[VariableAliasing]):Seq[VariableDefinition] = e.flatMap({
     case variable:VariableDefinition if variable.name.name.nonEmpty && !aliases.exists(_.name === variable.name) => Some(variable)
-    case ConditionalBlock(block, conditionalExpression) => block.variables() ++ expressionVariables(conditionalExpression)
+    case ConditionalBlock(block, elseBlock, conditionalExpression) => block.variables() ++ elseBlock.map(_.variables()).getOrElse(Seq()) ++ expressionVariables(conditionalExpression)
     case ConditionalBlockSet(blocks) => variables(blocks, aliases)
     case ForEachBlock(_, expression, block) => block.variables() ++ expressionVariables(expression)
     case CodeBlock(e2) => variables(e2, aliases)

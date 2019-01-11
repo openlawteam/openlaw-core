@@ -9,6 +9,8 @@ import org.adridadou.openlaw.parser.template._
 import cats.implicits._
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
 
+import scala.util.Try
+
 case class Choices(values: Seq[String])
 object Choices {
   def apply(value: String): Choices = Choices(Seq(value))
@@ -19,12 +21,12 @@ case object ChoiceType extends VariableType("Choice") with TypeGenerator[Choices
   private implicit val enc: Encoder[Choices] = deriveEncoder[Choices]
   private implicit val dec: Decoder[Choices] = deriveDecoder[Choices]
 
-  override def construct(param:Parameter, executionResult: TemplateExecutionResult): Option[Choices] = param match {
+  override def construct(param:Parameter, executionResult: TemplateExecutionResult): Either[Throwable, Option[Choices]] = param match {
     case OneValueParameter(value) =>
-      Some(Choices(generateValues(Seq(value), executionResult)))
+      Try(Some(Choices(generateValues(Seq(value), executionResult)))).toEither
     case ListParameter(values) =>
-      Some(Choices(generateValues(values, executionResult)))
-    case _ => throw new RuntimeException("choice must have one or more expressions as constructor parameters")
+      Try(Some(Choices(generateValues(values, executionResult)))).toEither
+    case _ => Left(new Exception("choice must have one or more expressions as constructor parameters"))
   }
 
   private def generateValues(exprs:Seq[Expression], executionResult: TemplateExecutionResult):Seq[String] = {

@@ -92,6 +92,8 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
 
         case p @ Paragraph(Seq(c: ConditionalStart, remaining @ _*)) =>
           recurse(c +: Paragraph(remaining.toList) +: xs)
+        case p @ Paragraph(Seq(c: ConditionalStartWithElse, remaining @ _*)) =>
+          recurse(c +: Paragraph(remaining.toList) +: xs)
 
         case Paragraph(Seq()) =>
           recurse(xs)
@@ -192,6 +194,14 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
           recurse(xs, conditionalBlockDepth = conditionalBlockDepth + addDepth)
 
         case ConditionalEnd(dependencies) =>
+          val removeDepth = if (preview && dependencies.forall(variable => !hiddenVariables.contains(variable))) 1 else 0
+          recurse(xs, conditionalBlockDepth = conditionalBlockDepth - removeDepth)
+
+        case ConditionalStartWithElse(dependencies) =>
+          val addDepth = if (preview && dependencies.forall(variable => !hiddenVariables.contains(variable))) 1 else 0
+          recurse(xs, conditionalBlockDepth = conditionalBlockDepth + addDepth)
+
+        case ConditionalEndWithElse(dependencies) =>
           val removeDepth = if (preview && dependencies.forall(variable => !hiddenVariables.contains(variable))) 1 else 0
           recurse(xs, conditionalBlockDepth = conditionalBlockDepth - removeDepth)
 

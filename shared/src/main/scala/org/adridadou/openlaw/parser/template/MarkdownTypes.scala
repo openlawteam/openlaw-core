@@ -63,7 +63,7 @@ trait ConditionalExpression {
   def evaluate(params:TemplateParameters):Boolean
 }
 
-case class ConditionalBlock(block:Block, conditionalExpression:Expression) extends TemplatePart
+case class ConditionalBlock(block:Block, elseBlock:Option[Block], conditionalExpression:Expression) extends TemplatePart
 case class ForEachBlock(variable:VariableName, expression: Expression, block:Block) extends TemplatePart {
   def toCompiledTemplate(executionResult: TemplateExecutionResult):Either[String, (CompiledTemplate, VariableType)] = {
     expression.expressionType(executionResult) match {

@@ -101,16 +101,22 @@ case class CompiledAgreement(
 
     case ConditionalBlockSet(blocks) =>
       blocks.find({
-        case ConditionalBlock(_, conditionalExpression) => conditionalExpression.evaluate(executionResult).exists(VariableType.convert[Boolean])
+        case ConditionalBlock(_,_, conditionalExpression) => conditionalExpression.evaluate(executionResult).exists(VariableType.convert[Boolean])
       }) match {
         case Some(conditionalBlock) =>
           elems ++ getAgreementElements(Seq(conditionalBlock), executionResult)
         case None => elems
       }
-    case ConditionalBlock(subBlock, conditionalExpression) if conditionalExpression.evaluate(executionResult).exists(VariableType.convert[Boolean]) =>
+    case ConditionalBlock(subBlock, _, conditionalExpression) if conditionalExpression.evaluate(executionResult).exists(VariableType.convert[Boolean]) =>
       val elements = getAgreementElements(subBlock.elems, executionResult)
       val dependencies = conditionalExpression.variables(executionResult).map(_.name)
       elems ++ Vector(ConditionalStart(dependencies = dependencies)) ++ elements ++ Vector(ConditionalEnd(dependencies))
+
+    case ConditionalBlock(_, elseBlock, conditionalExpression) =>
+      val dependencies = conditionalExpression.variables(executionResult).map(_.name)
+      val elseElements = elseBlock.map(block => getAgreementElements(block.elems, executionResult)).getOrElse(Vector())
+      elems ++ Vector(ConditionalStart(dependencies = dependencies)) ++ elseElements ++ Vector(ConditionalEnd(dependencies))
+
     case ForEachBlock(_, expression, subBlock) =>
       val collection = expression.
         evaluate(executionResult)
