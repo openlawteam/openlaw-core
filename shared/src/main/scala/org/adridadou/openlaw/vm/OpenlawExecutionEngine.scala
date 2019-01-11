@@ -164,9 +164,8 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       executionResult.remainingElements.prependAll(elems)
       Right(executionResult)
 
-    case ConditionalBlock(subBlock, expr) =>
-      executeConditionalBlock(executionResult, templates, subBlock, expr)
-
+    case ConditionalBlock(subBlock, elseSubBlock, expr) =>
+      executeConditionalBlock(executionResult, templates, subBlock, elseSubBlock, expr)
     case foreachBlock:ForEachBlock =>
       executeForEachBlock(executionResult, foreachBlock)
 
@@ -348,8 +347,8 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     case alias:VariableAliasing =>
       processAlias(executionResult, alias, executed = false)
 
-    case ConditionalBlock(subBlock, expr) =>
-      processConditionalBlock(executionResult, subBlock, expr, templates)
+    case ConditionalBlock(subBlock, elseSubBlock, expr) =>
+      processConditionalBlock(executionResult, subBlock, elseSubBlock, expr, templates)
 
     case ConditionalBlockSet(blocks) =>
       processConditionalBlockSet(executionResult, blocks)
@@ -382,7 +381,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     Right(executionResult)
   }
 
-  private def processConditionalBlock(executionResult: TemplateExecutionResult, block: Block, expression: Expression, templates:Map[TemplateSourceIdentifier, CompiledTemplate]):Either[String, TemplateExecutionResult] = {
+  private def processConditionalBlock(executionResult: TemplateExecutionResult, block: Block, elseBlock:Option[Block], expression: Expression, templates:Map[TemplateSourceIdentifier, CompiledTemplate]):Either[String, TemplateExecutionResult] = {
     expression match {
       case variable:VariableDefinition =>
         processVariable(executionResult, variable, executed = false)
@@ -390,7 +389,8 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     }
     if(expression.evaluate(executionResult).exists(VariableType.convert[Boolean])) {
       val initialValue:Either[String, TemplateExecutionResult] = Right(executionResult)
-      block.elems.foldLeft(initialValue)((exec, elem) => exec.flatMap(processCodeElement(_, templates, elem)))
+      val initialValue2 = block.elems.foldLeft(initialValue)((exec, elem) => exec.flatMap(processCodeElement(_, templates, elem)))
+      elseBlock.map(_.elems.foldLeft(initialValue2)((exec, elem) => exec.flatMap(processCodeElement(_, templates, elem)))).getOrElse(initialValue2)
     } else {
       Right(executionResult)
     }
@@ -420,7 +420,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     }
   }
 
-  private def executeConditionalBlock(executionResult: TemplateExecutionResult, templates:Map[TemplateSourceIdentifier, CompiledTemplate], subBlock: Block, expr: Expression):Either[String, TemplateExecutionResult] = {
+  private def executeConditionalBlock(executionResult: TemplateExecutionResult, templates:Map[TemplateSourceIdentifier, CompiledTemplate], subBlock: Block, elseSubBlock:Option[Block], expr: Expression):Either[String, TemplateExecutionResult] = {
     expr.validate(executionResult) match {
       case Some(err) =>
         Left(err)
@@ -444,7 +444,46 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
             executionResult.remainingElements.prependAll(subBlock.elems)
             Right(executionResult)
           } else {
+            elseSubBlock.map(_.elems).map(elems => {
+              executionResult.remainingElements.prependAll(elems)
+              executionResult
+            }).getOrElse(executionResult)
             expr.validate(executionResult) map {err => Left(err)} getOrElse Right(executionResult)
+          }
+        }else {
+          Left(s"Conditional expression $expr is of type $exprType instead of YesNo")
+        }
+    }
+  }
+
+  private def executeConditionalBlockWithElse(executionResult: TemplateExecutionResult, templates:Map[TemplateSourceIdentifier, CompiledTemplate], subBlock: Block, elseSubBlock: Option[Block], expr: Expression):Either[String, TemplateExecutionResult] = {
+    expr.validate(executionResult) match {
+      case Some(err) =>
+        Left(err)
+      case None =>
+        val exprType = expr match {
+          case variable:VariableDefinition =>
+            processVariable(executionResult, variable, executed = true)
+            executionResult.getVariable(variable.name) match {
+              case Some(definedVariable) if definedVariable.nameOnly =>
+                addNewVariable(executionResult, variable)
+              case _ =>
+            }
+            YesNoType
+          case _ =>
+            executionResult.executedVariables appendAll expr.variables(executionResult)
+            expr.expressionType(executionResult)
+        }
+
+        if(exprType === YesNoType) {
+          if(expr.evaluate(executionResult).exists(VariableType.convert[Boolean])) {
+            executionResult.remainingElements.prependAll(subBlock.elems)
+            Right(executionResult)
+          } else {
+            elseSubBlock.map(_.elems).map(elems => {
+              executionResult.remainingElements.prependAll(elems)
+              Right(executionResult)
+            }).getOrElse(Right(executionResult))
           }
         }else {
           Left(s"Conditional expression $expr is of type $exprType instead of YesNo")

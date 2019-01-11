@@ -86,7 +86,7 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
     case _: VariableName =>
       Right(redefinition)
 
-    case ConditionalBlock(block, conditionalExpression) =>
+    case ConditionalBlock(block, elseBlock, conditionalExpression) =>
       val newTypeMap = conditionalExpression match {
         case variable: VariableDefinition =>
           redefinition.typeMap.get(variable.name.name) match {
@@ -100,7 +100,8 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
         case _ =>
           Right(redefinition)
       }
-      block.elems.foldLeft(newTypeMap)((currentTypeMap, elem) => currentTypeMap.flatMap(variableTypesMap(elem, _)))
+      val newTypeMap2 = block.elems.foldLeft(newTypeMap)((currentTypeMap, elem) => currentTypeMap.flatMap(variableTypesMap(elem, _)))
+      elseBlock.map(_.elems.foldLeft(newTypeMap2)((currentTypeMap, elem) => currentTypeMap.flatMap(variableTypesMap(elem, _)))).getOrElse(newTypeMap2)
 
     case CodeBlock(elems) =>
       variableTypesMap(elems, redefinition)
@@ -111,6 +112,7 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
     case ConditionalBlockSet(blocks) =>
       val initialValue: Either[String, VariableRedefinition] = Right(redefinition)
       blocks.foldLeft(initialValue)((currentTypeMap, block) => currentTypeMap.flatMap(variableTypesMap(block, _)))
+
     case _ =>
       Right(redefinition)
   }

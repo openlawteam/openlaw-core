@@ -12,9 +12,13 @@ trait AgreementPrinter[T] {
   def link(link:Link):AgreementPrinter[T]
   def text(txt:TextElement):AgreementPrinter[T]
   def conditionalStart():AgreementPrinter[T] = newState(state.copy(conditionalDepth = state.conditionalDepth + 1 ))
+  def conditionalStartWithElse():AgreementPrinter[T] = newState(state.copy(conditionalDepth = state.conditionalDepth + 1 ))
   def conditionalEnd():AgreementPrinter[T] = newState(state.copy(conditionalDepth = state.conditionalDepth - 1 ))
+  def conditionalEndWithElse():AgreementPrinter[T] = newState(state.copy(conditionalDepth = state.conditionalDepth - 1 ))
   def conditionalTextStart():AgreementPrinter[T]
   def conditionalTextEnd():AgreementPrinter[T]
+  def conditionalTextStartWithElse():AgreementPrinter[T]
+  def conditionalTextEndWithElse():AgreementPrinter[T]
   def variableStart(variableName:String):AgreementPrinter[T]
   def variableEnd():AgreementPrinter[T]
   def sectionStart(section:SectionElement):AgreementPrinter[T]
@@ -35,6 +39,7 @@ trait AgreementPrinter[T] {
 
   def hasSection(paragraph: Paragraph):Boolean = paragraph.elements.headOption.exists {
     case _: ConditionalStart => paragraph.elements.lift(1) exists hasSection
+    case _: ConditionalStartWithElse => paragraph.elements.lift(1) exists hasSection
     case elem => hasSection(elem)
   }
 

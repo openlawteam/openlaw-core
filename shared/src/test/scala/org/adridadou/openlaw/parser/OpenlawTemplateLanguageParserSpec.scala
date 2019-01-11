@@ -164,7 +164,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
 
   it should "handle conditional blocks" in {
 
-    val clauseText = """This is my clause. [[contractor:Text "the contractor who is going to do the job"]]. {{shouldShowBirthdate "Should we show the birthdate?" => And I am born in [[contractorBirthdate "The birthdate of the contractor"]]}}"""
+    val clauseText = "This is my clause. [[contractor:Text \"the contractor who is going to do the job\"]]. {{shouldShowBirthdate \"Should we show the birthdate?\" => And I am born in [[contractorBirthdate \"The birthdate of the contractor\" ]]}}"
 
     resultShouldBe(forReview(clauseText, Map(
       "contractor" -> "David Roon",
@@ -176,6 +176,22 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
       "contractor" -> "David Roon",
       "shouldShowBirthdate" -> "false"
     )), """<p class="no-section">This is my clause. David Roon. </p>""")
+  }
+
+  it should "handle conditional blocks with else" in {
+
+    val clauseText = """This is my clause. [[contractor:Text "the contractor who is going to do the job"]]. {{shouldShowBirthdate "Should we show the birthdate?" => And I am born in [[contractorBirthdate "The birthdate of the contractor"]] :: I am not showing any birthday-related information }}"""
+    
+    resultShouldBe(forReview(clauseText, Map(
+      "contractor" -> "David Roon",
+      "shouldShowBirthdate" -> "true",
+      "contractorBirthdate" -> "01.13.1983"
+    )) , """<p class="no-section">This is my clause. David Roon. And I am born in 01.13.1983 </p>""")
+
+    resultShouldBe(forReview(clauseText, Map(
+      "contractor" -> "David Roon",
+      "shouldShowBirthdate" -> "false"
+    )), """<p class="no-section">This is my clause. David Roon. I am not showing any birthday-related information </p>""")
   }
 
   it should "do post processing for lists" in {
@@ -384,7 +400,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
       """<%[[var1:Number]][[var2:Number]]%>{{var1 >= var2 => iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj}}""".stripMargin
     resultShouldBe(forReview(text, Map("var1" -> "112", "var2" -> "16")), """<p class="no-section">iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj</p>""")
     resultShouldBe(forReview(text, Map("var1" -> "16", "var2" -> "16")), """<p class="no-section">iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj</p>""")
-    resultShouldBe(forReview(text, Map("var1" -> "15", "var2" -> "16")), "")
+    resultShouldBe(forReview(text, Map("var1" -> "15", "var2" -> "16")), "<p class=\"no-section\"></p>")
   }
 
   it should "accept expressions with just a variable" in {

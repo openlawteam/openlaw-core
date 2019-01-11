@@ -29,6 +29,7 @@ trait GlobalRules extends Parser {
   val pipe = "|"
   val em = "*"
   val strong = "**"
+  val colons = "::"
 
   val indent = "\\indent"
   val pagebreak = "\\pagebreak"
@@ -49,9 +50,13 @@ trait GlobalRules extends Parser {
 
   def commentsChar: Rule0 = rule {zeroOrMore(noneOf(nl))}
 
+  def normalCharNoColons: Rule0 = rule { !(colons | "|" | centered | rightThreeQuarters | right | pagebreak | indent | em | openS | closeS | openB | closeB | openC | closeC | openA | closeA | sectionChar | variableSectionChar | openCloseAnnotation) ~  ANY }
+
   def characters: Rule0 = rule { oneOrMore(normalChar)  } // word
 
   def charactersNoReturn: Rule0 = rule { oneOrMore(normalCharNoReturn)  } // word
+
+  def charactersNoColons: Rule0 = rule { oneOrMore(normalCharNoColons)  }
 
   def loosenCharacters: Rule0 = rule { oneOrMore(loosenChar)  } // word
 
