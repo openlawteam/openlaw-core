@@ -11,10 +11,10 @@ import org.parboiled2.{Parser, Rule0, Rule1}
   */
 trait BlockRules extends Parser with ExpressionRules with GlobalRules {
 
-  def blockRule:Rule1[Block] =              rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | pageBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | annotationPart | textPart ) ~> ((s: Seq[TemplatePart]) => Block(s))}
+  def blockRule:Rule1[Block] =              rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | pageBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | annotationPart | textPart) ~> ((s: Seq[TemplatePart]) => Block(s))}
 
-  def blockInConditionalRule:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | pageBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | annotationPart | textPartNoColons) ~> ((s: Seq[TemplatePart]) => Block(s))}
-  def blockInConditionalElseRule:Rule1[Block] = rule {zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | pageBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | annotationPart | textPartNoColons) ~> ((s: Seq[TemplatePart]) => Block(s))}
+  def blockInConditionalRule:Rule1[Block] = rule { zeroOrMore( centeredLine | rightThreeQuartersLine | rightLine | pageBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | annotationPart | textPartNoColons) ~> ((s: Seq[TemplatePart]) => Block(s))}
+  def blockInConditionalElseRule:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | pageBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | annotationPart | textPartNoColons) ~> ((s: Seq[TemplatePart]) => Block(s))}
 
   def blockNoStrong:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | indentLine | varAliasKey | varKey | varMemberKey | annotationPart | textPartNoStrong) ~> ((s: Seq[TemplatePart]) => Block(s))}
 
@@ -116,7 +116,7 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   }
 
   def textElementNoColons: Rule1[Seq[TemplatePart]] = rule {
-    table | textNoColons
+    table | strongWord | emWord | textNoColons
   }
 
   def textElementNoEm: Rule1[Seq[TemplatePart]] = rule {
