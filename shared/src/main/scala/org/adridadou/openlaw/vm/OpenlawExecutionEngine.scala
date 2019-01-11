@@ -164,10 +164,8 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       executionResult.remainingElements.prependAll(elems)
       Right(executionResult)
 
-    case ConditionalBlock(subBlock, expr) =>
-      executeConditionalBlock(executionResult, templates, subBlock, expr)
-    case ConditionalBlockWithElse(subBlock, subBlock2, expr) =>
-      executeConditionalBlockWithElse(executionResult, templates, subBlock, subBlock2, expr)
+    case ConditionalBlock(subBlock, elseSubBlock, expr) =>
+      executeConditionalBlock(executionResult, templates, subBlock, elseSubBlock, expr)
     case foreachBlock:ForEachBlock =>
       executeForEachBlock(executionResult, foreachBlock)
 
@@ -178,9 +176,6 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
 
     case ConditionalBlockSet(blocks) =>
       executeConditionalBlockSet(executionResult, blocks)
-
-    case ConditionalBlockSetWithElse(blocks) =>
-      executeConditionalBlockSetWithElse(executionResult, blocks)
 
     case CodeBlock(elems) =>
       val initialValue:Either[String, TemplateExecutionResult] = Right(executionResult)
@@ -302,24 +297,6 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       }).getOrElse(Right(executionResult))
   }
 
-  private def executeConditionalBlockSetWithElse(executionResult: TemplateExecutionResult, blocks: Seq[ConditionalBlockWithElse]) = {
-    blocks.foreach({
-      subBlock =>
-        subBlock.conditionalExpression match {
-          case variable: VariableDefinition =>
-            processVariable(executionResult, variable, executed = true)
-          case _ =>
-            executionResult.executedVariables appendAll subBlock.conditionalExpression.variables(executionResult)
-        }
-    })
-
-    blocks.find(_.conditionalExpression.evaluate(executionResult).exists(VariableType.convert[Boolean]))
-      .map(subBlock => {
-        executionResult.remainingElements.prependAll(subBlock.block.elems)
-        Right(executionResult)
-      }).getOrElse(Right(executionResult))
-  }
-
   private def getRoot(parent:TemplateExecutionResult):TemplateExecutionResult = parent.parentExecution match {
     case Some(parentExecution) => getRoot(parentExecution)
     case None => parent
@@ -370,17 +347,11 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     case alias:VariableAliasing =>
       processAlias(executionResult, alias, executed = false)
 
-    case ConditionalBlock(subBlock, expr) =>
-      processConditionalBlock(executionResult, subBlock, expr, templates)
+    case ConditionalBlock(subBlock, elseSubBlock, expr) =>
+      processConditionalBlock(executionResult, subBlock, elseSubBlock, expr, templates)
 
     case ConditionalBlockSet(blocks) =>
       processConditionalBlockSet(executionResult, blocks)
-
-    case ConditionalBlockWithElse(subBlock, subBlock2, expr) =>
-      processConditionalBlockWithElse(executionResult, subBlock, subBlock2, expr, templates)
-
-    case ConditionalBlockSetWithElse(blocks) =>
-      processConditionalBlockSetWithElse(executionResult, blocks)
 
     case section:VariableSection =>
       val initialValue:Either[String, TemplateExecutionResult] = Right(executionResult)
@@ -410,7 +381,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     Right(executionResult)
   }
 
-  private def processConditionalBlock(executionResult: TemplateExecutionResult, block: Block, expression: Expression, templates:Map[TemplateSourceIdentifier, CompiledTemplate]):Either[String, TemplateExecutionResult] = {
+  private def processConditionalBlock(executionResult: TemplateExecutionResult, block: Block, elseBlock:Option[Block], expression: Expression, templates:Map[TemplateSourceIdentifier, CompiledTemplate]):Either[String, TemplateExecutionResult] = {
     expression match {
       case variable:VariableDefinition =>
         processVariable(executionResult, variable, executed = false)
@@ -418,46 +389,12 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     }
     if(expression.evaluate(executionResult).exists(VariableType.convert[Boolean])) {
       val initialValue:Either[String, TemplateExecutionResult] = Right(executionResult)
-      block.elems.foldLeft(initialValue)((exec, elem) => exec.flatMap(processCodeElement(_, templates, elem)))
+      val initialValue2 = block.elems.foldLeft(initialValue)((exec, elem) => exec.flatMap(processCodeElement(_, templates, elem)))
+      elseBlock.map(_.elems.foldLeft(initialValue2)((exec, elem) => exec.flatMap(processCodeElement(_, templates, elem)))).getOrElse(initialValue2)
     } else {
       Right(executionResult)
     }
   }
-
-  private def processConditionalBlockSetWithElse(executionResult: TemplateExecutionResult, blocks: Seq[ConditionalBlockWithElse]) = {
-    blocks.foreach({
-      subBlock =>
-        subBlock.conditionalExpression match {
-          case variable: VariableDefinition =>
-            processVariable(executionResult, variable, executed = false)
-          case _ =>
-        }
-    })
-
-    blocks.find(_.conditionalExpression.evaluate(executionResult).exists(VariableType.convert[Boolean])) match {
-      case Some(subBlock) =>
-        executionResult.remainingElements.prependAll(subBlock.block.elems)
-      case None =>
-    }
-
-    Right(executionResult)
-  }
-
-  private def processConditionalBlockWithElse(executionResult: TemplateExecutionResult, block: Block, block2: Block, expression: Expression, templates:Map[TemplateSourceIdentifier, CompiledTemplate]):Either[String, TemplateExecutionResult] = {
-    expression match {
-      case variable:VariableDefinition =>
-        processVariable(executionResult, variable, executed = false)
-      case _ =>
-    }
-    if(expression.evaluate(executionResult).exists(VariableType.convert[Boolean])) {
-      val initialValue:Either[String, TemplateExecutionResult] = Right(executionResult)
-      block.elems.foldLeft(initialValue)((exec, elem) => exec.flatMap(processCodeElement(_, templates, elem)))
-    } else {
-      val initialValue:Either[String, TemplateExecutionResult] = Right(executionResult)
-      block2.elems.foldLeft(initialValue)((exec, elem) => exec.flatMap(processCodeElement(_, templates, elem)))
-    }
-  }
-
 
   private def processVariable(executionResult: TemplateExecutionResult, variable: VariableDefinition, executed:Boolean): Either[String, TemplateExecutionResult] = {
     executionResult.getExpression(variable.name) match {
@@ -483,7 +420,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     }
   }
 
-  private def executeConditionalBlock(executionResult: TemplateExecutionResult, templates:Map[TemplateSourceIdentifier, CompiledTemplate], subBlock: Block, expr: Expression):Either[String, TemplateExecutionResult] = {
+  private def executeConditionalBlock(executionResult: TemplateExecutionResult, templates:Map[TemplateSourceIdentifier, CompiledTemplate], subBlock: Block, elseSubBlock:Option[Block], expr: Expression):Either[String, TemplateExecutionResult] = {
     expr.validate(executionResult) match {
       case Some(err) =>
         Left(err)
@@ -507,6 +444,10 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
             executionResult.remainingElements.prependAll(subBlock.elems)
             Right(executionResult)
           } else {
+            elseSubBlock.map(_.elems).map(elems => {
+              executionResult.remainingElements.prependAll(elems)
+              executionResult
+            }).getOrElse(executionResult)
             expr.validate(executionResult) map {err => Left(err)} getOrElse Right(executionResult)
           }
         }else {
@@ -515,7 +456,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     }
   }
 
-  private def executeConditionalBlockWithElse(executionResult: TemplateExecutionResult, templates:Map[TemplateSourceIdentifier, CompiledTemplate], subBlock: Block, subBlock2: Block, expr: Expression):Either[String, TemplateExecutionResult] = {
+  private def executeConditionalBlockWithElse(executionResult: TemplateExecutionResult, templates:Map[TemplateSourceIdentifier, CompiledTemplate], subBlock: Block, elseSubBlock: Option[Block], expr: Expression):Either[String, TemplateExecutionResult] = {
     expr.validate(executionResult) match {
       case Some(err) =>
         Left(err)
@@ -539,8 +480,10 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
             executionResult.remainingElements.prependAll(subBlock.elems)
             Right(executionResult)
           } else {
-            executionResult.remainingElements.prependAll(subBlock2.elems)
-            Right(executionResult)
+            elseSubBlock.map(_.elems).map(elems => {
+              executionResult.remainingElements.prependAll(elems)
+              Right(executionResult)
+            }).getOrElse(Right(executionResult))
           }
         }else {
           Left(s"Conditional expression $expr is of type $exprType instead of YesNo")

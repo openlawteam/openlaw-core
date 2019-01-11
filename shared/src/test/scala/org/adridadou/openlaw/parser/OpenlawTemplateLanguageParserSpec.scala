@@ -191,7 +191,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     resultShouldBe(forReview(clauseText, Map(
       "contractor" -> "David Roon",
       "shouldShowBirthdate" -> "false"
-    )), """<p class="no-section">This is my clause. David Roon.  I am not showing any birthday-related information </p>""")
+    )), """<p class="no-section">This is my clause. David Roon. I am not showing any birthday-related information </p>""")
   }
 
   it should "do post processing for lists" in {
@@ -400,7 +400,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
       """<%[[var1:Number]][[var2:Number]]%>{{var1 >= var2 => iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj}}""".stripMargin
     resultShouldBe(forReview(text, Map("var1" -> "112", "var2" -> "16")), """<p class="no-section">iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj</p>""")
     resultShouldBe(forReview(text, Map("var1" -> "16", "var2" -> "16")), """<p class="no-section">iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj</p>""")
-    resultShouldBe(forReview(text, Map("var1" -> "15", "var2" -> "16")), "")
+    resultShouldBe(forReview(text, Map("var1" -> "15", "var2" -> "16")), "<p class=\"no-section\"></p>")
   }
 
   it should "accept expressions with just a variable" in {
