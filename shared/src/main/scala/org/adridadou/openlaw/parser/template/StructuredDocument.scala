@@ -461,7 +461,6 @@ case class VariableElement(name: String, variableType: Option[VariableType], con
 case class SectionElement(value: String, lvl:Int, number:Int, resetNumbering:Option[Int], overriddenSymbol: Option[SectionSymbol], overridenFormat: Option[SectionFormat]) extends AgreementElement
 case class ConditionalStart(dependencies: Seq[String]) extends AgreementElement
 case class ConditionalEnd(dependencies: Seq[String]) extends AgreementElement
-case class ConditionalEndWithElse(dependencies: Seq[String]) extends AgreementElement
 
 case class ParagraphBuilder(paragraphs:List[Paragraph] = List(), lastParagraph:Paragraph = Paragraph()) {
   def addAllToLastParagraph(elements: List[AgreementElement]): ParagraphBuilder = elements.foldLeft(this)((builder, element) => builder.add(element))

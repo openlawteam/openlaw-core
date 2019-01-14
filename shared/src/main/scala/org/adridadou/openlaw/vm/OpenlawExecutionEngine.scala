@@ -455,39 +455,4 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
         }
     }
   }
-
-  private def executeConditionalBlockWithElse(executionResult: TemplateExecutionResult, templates:Map[TemplateSourceIdentifier, CompiledTemplate], subBlock: Block, elseSubBlock: Option[Block], expr: Expression):Either[String, TemplateExecutionResult] = {
-    expr.validate(executionResult) match {
-      case Some(err) =>
-        Left(err)
-      case None =>
-        val exprType = expr match {
-          case variable:VariableDefinition =>
-            processVariable(executionResult, variable, executed = true)
-            executionResult.getVariable(variable.name) match {
-              case Some(definedVariable) if definedVariable.nameOnly =>
-                addNewVariable(executionResult, variable)
-              case _ =>
-            }
-            YesNoType
-          case _ =>
-            executionResult.executedVariables appendAll expr.variables(executionResult)
-            expr.expressionType(executionResult)
-        }
-
-        if(exprType === YesNoType) {
-          if(expr.evaluate(executionResult).exists(VariableType.convert[Boolean])) {
-            executionResult.remainingElements.prependAll(subBlock.elems)
-            Right(executionResult)
-          } else {
-            elseSubBlock.map(_.elems).map(elems => {
-              executionResult.remainingElements.prependAll(elems)
-              Right(executionResult)
-            }).getOrElse(Right(executionResult))
-          }
-        }else {
-          Left(s"Conditional expression $expr is of type $exprType instead of YesNo")
-        }
-    }
-  }
 }

@@ -14,8 +14,6 @@ trait AgreementPrinter[T] {
   def conditionalEnd():AgreementPrinter[T] = newState(state.copy(conditionalDepth = state.conditionalDepth - 1 ))
   def conditionalTextStart():AgreementPrinter[T]
   def conditionalTextEnd():AgreementPrinter[T]
-  def conditionalTextStartWithElse():AgreementPrinter[T]
-  def conditionalTextEndWithElse():AgreementPrinter[T]
   def variableStart(variableName:String):AgreementPrinter[T]
   def variableEnd():AgreementPrinter[T]
   def sectionStart(section:SectionElement):AgreementPrinter[T]
