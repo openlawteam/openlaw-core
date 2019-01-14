@@ -10,6 +10,8 @@ import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.values._
 
+import scala.util.Try
+
 case class TemplateDefinition(name:TemplateSourceIdentifier, mappingInternal:Map[String, Expression] = Map(), path:Option[TemplatePath] = None) {
   lazy val mapping: Map[VariableName, Expression] = mappingInternal.map({case (key,value) => VariableName(key) -> value})
 }
@@ -70,55 +72,73 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
     case _ => Unknown
   }
 
-  override def construct(constructorParams:Parameter, executionResult: TemplateExecutionResult):Option[TemplateDefinition] = {
+  private def prepareTemplateName(mappingParameter: Parameters, executionResult: TemplateExecutionResult):Either[Throwable, Option[TemplateSourceIdentifier]] = {
+
+    val unknownParameters = mappingParameter.parameterMap.map({case (key,_) => key})
+      .filter(elem => !availableParameters.contains(elem))
+
+    if(unknownParameters.nonEmpty) {
+      Left(new Exception(s"unknown parameters ${unknownParameters.mkString(",")}. only ${availableParameters.mkString(",")} are allowed"))
+    } else {
+      getMandatoryParameter("name", mappingParameter) match {
+        case templateName: OneValueParameter =>
+          Try(templateName.expr.evaluate(executionResult)
+            .map(VariableType.convert[String])
+            .map(title => TemplateSourceIdentifier(TemplateTitle(title)))
+          ).toEither
+        case _ =>
+          Left(new Exception("parameter 'name' accepts only single value"))
+      }
+    }
+  }
+
+  private def prepareTemplatePath(parameters: Parameters, executionResult:TemplateExecutionResult):Either[Throwable, Option[TemplatePath]] = parameters.parameterMap.toMap.get("path") match {
+    case Some(OneValueParameter(expr)) =>
+      expr.evaluate(executionResult).map({
+        case p: TemplatePath =>
+          Right(Some(p))
+        case p: String =>
+          Right(Some(TemplatePath(Seq(p))))
+        case other =>
+          Left(new Exception(s"parameter 'path' should be a path but instead was ${other.getClass.getSimpleName}"))
+      }).getOrElse(Right(None))
+    case Some(other) =>
+      Left(new Exception(s"parameter 'path' should be a single value, not ${other.getClass.getSimpleName}"))
+    case None =>
+      Right(None)
+  }
+
+  private def prepareTemplateMappingParamters(parameters: Parameters, result: TemplateExecutionResult):Either[Throwable, Map[VariableName, Expression]] = parameters.parameterMap.toMap.get("parameters").map({
+    case mapping:MappingParameter =>
+      Right(mapping.mapping)
+    case _ =>
+      Left(new Exception("parameter 'parameters' should be a list of mapping values"))
+  }).getOrElse(Right(Map()))
+
+  def prepareTemplateSource(mappingParameter: Parameters, executionResult: TemplateExecutionResult, parameters: Map[VariableName, Expression], path: Option[TemplatePath]):Either[Throwable, TemplateDefinition] = {
+    prepareTemplateName(mappingParameter, executionResult).flatMap({
+      case Some(source) =>
+        Right(TemplateDefinition(name = source, path = path, mappingInternal = parameters.map({ case (key, value) => key.name -> value })))
+      case None =>
+        Left(new Exception("name cannot be resolved yet!"))
+    })
+  }
+
+  override def construct(constructorParams:Parameter, executionResult: TemplateExecutionResult):Either[Throwable, Option[TemplateDefinition]] = {
     constructorParams match {
       case mappingParameter:Parameters =>
-        val unknownParameters = mappingParameter.parameterMap.map({case (key,_) => key})
-          .filter(elem => !availableParameters.contains(elem))
-
-        if(unknownParameters.nonEmpty) {
-          throw new RuntimeException(s"unknown parameters ${unknownParameters.mkString(",")}. only ${availableParameters.mkString(",")} are allowed")
-        }
-
-        val name = getMandatoryParameter("name", mappingParameter) match {
-          case templateName: OneValueParameter =>
-            templateName.expr.evaluate(executionResult)
-              .map(VariableType.convert[String]).map(title => TemplateSourceIdentifier(TemplateTitle(title)))
-          case _ =>
-            throw new RuntimeException("parameter 'name' accepts only single value")
-        }
-
-        val path = mappingParameter.parameterMap.toMap.get("path").flatMap({
-          case OneValueParameter(expr) =>
-            expr.evaluate(executionResult).map({
-              case p:TemplatePath =>
-                p
-              case p:String =>
-                TemplatePath(Seq(p))
-              case other =>
-                throw new RuntimeException(s"parameter 'path' should be a path but instead was ${other.getClass.getSimpleName}")
-            })
-          case _ =>
-            throw new RuntimeException("parameter 'path' should be a single value")
-        })
-
-        val parameters = mappingParameter.parameterMap.toMap.get("parameters").map({
-          case mapping:MappingParameter =>
-            mapping.mapping
-          case _ =>
-            throw new RuntimeException("parameter 'parameters' should be a list of mapping values")
-        }).getOrElse(Map())
-
-        name match {
-          case Some(source) =>
-            Some(TemplateDefinition(name = source, path = path, mappingInternal = parameters.map({case (key,value) => key.name -> value})))
-          case None =>
-            throw new RuntimeException("name cannot be resolved yet!")
-        }
+        for {
+          path <- prepareTemplatePath(mappingParameter, executionResult)
+          parameters <- prepareTemplateMappingParamters(mappingParameter, executionResult)
+          source <- prepareTemplateSource(mappingParameter, executionResult, parameters, path)
+        } yield Some(source)
 
       case _ =>
         super.construct(constructorParams, executionResult)
-          .map(name => TemplateDefinition(TemplateSourceIdentifier(TemplateTitle(name.toString))))
+          .map({
+            case Some(n) => Some(TemplateDefinition(TemplateSourceIdentifier(TemplateTitle(n.toString))))
+            case None => None
+          })
     }
   }
 

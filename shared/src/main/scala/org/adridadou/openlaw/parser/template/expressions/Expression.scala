@@ -4,6 +4,8 @@ import io.circe._
 import org.adridadou.openlaw.parser.template.variableTypes.VariableType
 import org.adridadou.openlaw.parser.template._
 
+import scala.reflect.ClassTag
+
 trait Expression {
   def missingInput(executionResult: TemplateExecutionResult): Either[String, Seq[VariableName]]
 
@@ -16,6 +18,9 @@ trait Expression {
 
   def expressionType(executionResult: TemplateExecutionResult):VariableType
   def evaluate(executionResult: TemplateExecutionResult):Option[Any]
+  def evaluateT[T](executionResult: TemplateExecutionResult)(implicit classTag:ClassTag[T]):Option[T] =
+    evaluate(executionResult).map(VariableType.convert[T])
+
   def variables(executionResult: TemplateExecutionResult):Seq[VariableName]
 }
 

@@ -127,14 +127,17 @@ abstract class VariableType(val name: String) {
 
   def internalFormat(value: Any): String
 
-  def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Option[Any] = constructorParams match {
+  def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Either[Throwable, Option[Any]] = constructorParams match {
       case OneValueParameter(expr) =>
-        expr.evaluate(executionResult)
+        Try(expr.evaluate(executionResult)).toEither
       case Parameters(parameterMap) =>
-        parameterMap.toMap.get("value")
-          .flatMap(construct(_, executionResult))
+        parameterMap.toMap.get("value") match {
+          case Some(parameter) =>
+            Try(construct(parameter, executionResult)).toEither.flatten
+          case None => Right(None)
+        }
       case _ =>
-        throw new RuntimeException(s"the constructor for $name only handles single values")
+        Left(new Exception(s"the constructor for $name only handles single values"))
     }
 
   def defaultFormatter: Formatter =

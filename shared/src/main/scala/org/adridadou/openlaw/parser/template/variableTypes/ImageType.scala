@@ -3,6 +3,8 @@ package org.adridadou.openlaw.parser.template.variableTypes
 import org.adridadou.openlaw.parser.template.formatters.Formatter
 import org.adridadou.openlaw.parser.template._
 
+import scala.util.Try
+
 object ImageFormatter extends Formatter {
   def format(value:Any, executionResult: TemplateExecutionResult): Either[String, Seq[AgreementElement]] = value match {
     case url: String => Right(Seq(ImageElement(url)))
@@ -15,9 +17,10 @@ case object ImageType extends VariableType("Image") {
 
   override def internalFormat(value: Any): String = VariableType.convert[String](value)
 
-  override def construct(constructorParams:Parameter, executionResult:TemplateExecutionResult): Option[String] = constructorParams match {
-    case OneValueParameter(expr) => expr.evaluate(executionResult).map(value => VariableType.convert[String](value))
-    case _ => throw new RuntimeException("constructor only handles single value")
+  override def construct(constructorParams:Parameter, executionResult:TemplateExecutionResult): Either[Throwable, Option[String]] = constructorParams match {
+    case OneValueParameter(expr) =>
+      Try(expr.evaluate(executionResult).map(value => VariableType.convert[String](value))).toEither
+    case _ => Left(new Exception("constructor only handles single value"))
   }
 
   def thisType: VariableType = ImageType
