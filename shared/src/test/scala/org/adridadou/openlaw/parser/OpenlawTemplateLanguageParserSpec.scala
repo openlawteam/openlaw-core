@@ -115,6 +115,24 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     tableElement.rows.head.head.head shouldBe a [VariableElement]
    }
 
+  it should "handle tables with variables in multiple rows" in {
+    val text=
+      """This is | a test.
+    || head1 | head2 | head3 |
+    || ----- | ----- | ----- |
+    || [[var1]] | val12 | val13 |
+    || val21 | val22 | val23 |
+    || [[var31]] | val32 | val33 |
+    || val41 | val42 | val43 |
+    |This is a test.""".stripMargin
+
+    val tableElement = structureAgreement(text).map(_.paragraphs(0).elements.apply(3)).right.value.asInstanceOf[TableElement]
+    tableElement.rows(0).head.head shouldBe a [VariableElement]
+    tableElement.rows(1).head.head should not be a[VariableElement]
+    tableElement.rows(2).head.head shouldBe a [VariableElement]
+    tableElement.rows(3).head.head should not be a[VariableElement]
+   }
+
   it should "handle tables with conditionals in cells" in {
     val text=
       """This is | a test.

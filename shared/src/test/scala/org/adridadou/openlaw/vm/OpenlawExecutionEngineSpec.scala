@@ -785,6 +785,27 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     }
   }
 
+  it should "run a table with multiple variables separated by rows" in {
+    val text=
+      """This is | a test.
+        || head1 | head2 | head3 |
+        || ----- | ----- | ----- |
+        || [[var11]] | val12 | val13 |
+        || val21 | val22 | val23 |
+        || [[var31]] | val32 | val33 |
+        || val41 | val42 | [[var43]] |
+        |This is a test.""".stripMargin
+
+    val compiledTemplate = compile(text)
+    val parameters = TemplateParameters("var11" -> "hello", "var31" -> "world", "var43" -> "!")
+    engine.execute(compiledTemplate, parameters, Map()) match {
+      case Right(result) =>
+        result.state shouldBe ExecutionFinished
+        result.variables.map(_.name.name) should contain allOf("var11", "var31", "var43")
+      case Left(ex) => fail(ex)
+    }
+  }
+
   private def compile(text:String):CompiledTemplate = parser.compileTemplate(text) match {
     case Right(template) => template
     case Left(ex) =>
