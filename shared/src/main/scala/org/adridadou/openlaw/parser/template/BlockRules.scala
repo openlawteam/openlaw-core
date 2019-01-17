@@ -175,19 +175,27 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   }
 
   def topAnnotationPart: Rule1[TopAnnotation] = rule {
-    openCloseAnnotation ~ annotationContent ~ openCloseAnnotation ~> (content => TopAnnotation(content))
+    openCloseAnnotationTop ~ topAnnotationContent ~ openCloseAnnotationTop ~> (content => TopAnnotation(content))
   }
 
   def middleAnnotationPart: Rule1[MiddleAnnotation] = rule {
-    openCloseAnnotation ~ annotationContent ~ openCloseAnnotation ~> (content => MiddleAnnotation(content))
+    openCloseAnnotationMiddle ~ middleAnnotationContent ~ openCloseAnnotationMiddle ~> (content => MiddleAnnotation(content))
   }
 
-  def annotationContent:Rule1[String] = rule {
-    capture(zeroOrMore(annotationContentChar))
+  def topAnnotationContent:Rule1[String] = rule {
+    capture(zeroOrMore(topAnnotationContentChar))
   }
 
-  def annotationContentChar:Rule0 = rule {
-    !openCloseAnnotation ~  ANY
+  def topAnnotationContentChar:Rule0 = rule {
+    !openCloseAnnotationTop ~  ANY
+  }
+
+  def middleAnnotationContent:Rule1[String] = rule {
+    capture(zeroOrMore(middleAnnotationContentChar))
+  }
+
+  def middleAnnotationContentChar:Rule0 = rule {
+    !openCloseAnnotationMiddle ~  ANY
   }
 }
 

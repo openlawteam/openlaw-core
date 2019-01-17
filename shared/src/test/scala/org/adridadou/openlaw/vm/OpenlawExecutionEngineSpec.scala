@@ -750,7 +750,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
   }
 
   it should "handle middle level annotations" in {
-    val startEndQuote = "\"\"\""
+    val startEndQuote = "\"\"\"\""
     val template =
       compile(
         s"""
