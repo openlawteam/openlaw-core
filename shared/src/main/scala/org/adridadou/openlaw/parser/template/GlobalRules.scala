@@ -18,8 +18,8 @@ trait GlobalRules extends Parser {
   val openC = "<<"
   val closeC = ">>"
 
-  val openCloseAnnotationTop ="\"\"\""
-  val openCloseAnnotationMiddle = "\"\"\"\""
+  val openCloseAnnotationHeader ="\'\'\'"
+  val openCloseAnnotationNote = "\"\"\""
 
   val sectionChar = "^"
 
@@ -43,15 +43,15 @@ trait GlobalRules extends Parser {
 
   def quote: Rule0 = rule {"“" | "\"" | "”" | "'" }
 
-  def loosenChar: Rule0 = rule { !(centered | rightThreeQuarters | right | pagebreak | indent | em | openCloseAnnotationTop | openCloseAnnotationMiddle) ~  ANY }
+  def loosenChar: Rule0 = rule { !(centered | rightThreeQuarters | right | pagebreak | indent | em | openCloseAnnotationHeader | openCloseAnnotationNote) ~  ANY }
 
-  def normalChar: Rule0 = rule { !( "|" | centered | rightThreeQuarters | right | pagebreak | indent | em | openS | closeS | openB | closeB | openC | closeC | openA | closeA | sectionChar | variableSectionChar | openCloseAnnotationTop | openCloseAnnotationMiddle) ~  ANY }
+  def normalChar: Rule0 = rule { !( "|" | centered | rightThreeQuarters | right | pagebreak | indent | em | openS | closeS | openB | closeB | openC | closeC | openA | closeA | sectionChar | variableSectionChar | openCloseAnnotationHeader | openCloseAnnotationNote) ~  ANY }
 
-  def normalCharNoReturn: Rule0 = rule { !( nl | "|" | centered | rightThreeQuarters | right | pagebreak | indent | em | openS | closeS | openB | closeB | openC | closeC | openA | closeA | sectionChar | variableSectionChar | openCloseAnnotationTop | openCloseAnnotationMiddle) ~  ANY }
+  def normalCharNoReturn: Rule0 = rule { !( nl | "|" | centered | rightThreeQuarters | right | pagebreak | indent | em | openS | closeS | openB | closeB | openC | closeC | openA | closeA | sectionChar | variableSectionChar | openCloseAnnotationHeader | openCloseAnnotationNote) ~  ANY }
 
   def commentsChar: Rule0 = rule {zeroOrMore(noneOf(nl))}
 
-  def normalCharNoColons: Rule0 = rule { !(colons | "|" | centered | rightThreeQuarters | right | pagebreak | indent | em | openS | closeS | openB | closeB | openC | closeC | openA | closeA | sectionChar | variableSectionChar | openCloseAnnotationTop | openCloseAnnotationMiddle) ~  ANY }
+  def normalCharNoColons: Rule0 = rule { !(colons | "|" | centered | rightThreeQuarters | right | pagebreak | indent | em | openS | closeS | openB | closeB | openC | closeC | openA | closeA | sectionChar | variableSectionChar | openCloseAnnotationHeader | openCloseAnnotationNote) ~  ANY }
 
   def characters: Rule0 = rule { oneOrMore(normalChar)  } // word
 
