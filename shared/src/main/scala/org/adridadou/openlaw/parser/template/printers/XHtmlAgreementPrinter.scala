@@ -243,9 +243,16 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
         case FreeText(Centered) =>
           recurse(xs)
 
-        case Annotation(content) =>
+        case TopAnnotation(content) =>
           if(preview) {
-            span(`class` := "openlaw-annotation")(text(content)) +: recurse(xs)
+            span(`class` := "openlaw-annotation-top")(text(content)) +: recurse(xs)
+          } else {
+            recurse(xs)
+          }
+
+        case MiddleAnnotation(content) =>
+          if(preview) {
+            span(`class` := "openlaw-annotation-middle")(text(content)) +: recurse(xs)
           } else {
             recurse(xs)
           }
