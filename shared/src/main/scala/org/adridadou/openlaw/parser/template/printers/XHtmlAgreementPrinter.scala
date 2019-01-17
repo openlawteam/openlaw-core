@@ -49,10 +49,10 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
 
   // separate content for each of the sections at this level
   private def partitionSections(level: Int, seq: List[AgreementElement]): List[(SectionElement, List[AgreementElement])] = seq match {
-    case Nil => List()
     case (section: SectionElement) :: _ =>
       val (content, remaining) = partitionAt(seq.drop(1)) { case SectionElement(_, thisLevel, _, _, _, _) if thisLevel === level => true }
       (section -> content) +: partitionSections(level, remaining)
+    case _ => List()
   }
 
   @tailrec private def addBreaks(remaining: List[Frag], result: List[Frag] = Nil): List[Frag] = remaining match {
