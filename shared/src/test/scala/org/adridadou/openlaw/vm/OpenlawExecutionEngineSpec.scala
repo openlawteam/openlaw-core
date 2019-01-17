@@ -722,17 +722,17 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     }
   }
 
-  it should "handle annotation" in {
-    val startEndQuote = "\"\"\""
+  it should "handle header level annotations" in {
+    val startEndQuote = "\'\'\'"
     val template =
       compile(
         s"""
-          |before the annotation
-          |
+           |before the annotation
+           |
           |$startEndQuote
-          |this is some text for my annotation
-          |$startEndQuote
-          |
+           |this is some text for my annotation
+           |$startEndQuote
+           |
           |after the annotation
         """.stripMargin)
 
@@ -743,7 +743,34 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         val text = parser.forReview(result.agreements.head,ParagraphEdits())
         text shouldBe """<p class="no-section"><br />before the annotation</p><p class="no-section"></p><p class="no-section">after the annotation<br />        </p>"""
         val text2 = parser.forPreview(result.agreements.head,ParagraphEdits())
-        text2 shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="no-section"><br />before the annotation</p></div><div class="openlaw-paragraph paragraph-2"><p class="no-section"><span class="openlaw-annotation"><br />this is some text for my annotation<br /></span></p></div><div class="openlaw-paragraph paragraph-3"><p class="no-section">after the annotation<br />        </p></div>"""
+        text2 shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="no-section"><br />before the annotation</p></div><div class="openlaw-paragraph paragraph-2"><p class="no-section"><span class="openlaw-annotation-header"><br />this is some text for my annotation<br /></span></p></div><div class="openlaw-paragraph paragraph-3"><p class="no-section">after the annotation<br />        </p></div>"""
+      case Left(ex) =>
+        fail(ex)
+    }
+  }
+
+  it should "handle note level annotations" in {
+    val startEndQuote = "\"\"\""
+    val template =
+      compile(
+        s"""
+           |before the annotation
+           |
+          |$startEndQuote
+           |this is some text for my annotation
+           |$startEndQuote
+           |
+          |after the annotation
+        """.stripMargin)
+
+
+    engine.execute(template, TemplateParameters(), Map()) match {
+      case Right(result) =>
+        result.state shouldBe ExecutionFinished
+        val text = parser.forReview(result.agreements.head,ParagraphEdits())
+        text shouldBe """<p class="no-section"><br />before the annotation</p><p class="no-section"></p><p class="no-section">after the annotation<br />        </p>"""
+        val text2 = parser.forPreview(result.agreements.head,ParagraphEdits())
+        text2 shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="no-section"><br />before the annotation</p></div><div class="openlaw-paragraph paragraph-2"><p class="no-section"><span class="openlaw-annotation-note"><br />this is some text for my annotation<br /></span></p></div><div class="openlaw-paragraph paragraph-3"><p class="no-section">after the annotation<br />        </p></div>"""
       case Left(ex) =>
         fail(ex)
     }
