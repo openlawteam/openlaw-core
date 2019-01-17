@@ -174,11 +174,11 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
       ":" ~ oneOrMore("-")) ~ whitespace
   }
 
-  def topAnnotationPart: Rule1[Annotation] = rule {
+  def topAnnotationPart: Rule1[TopAnnotation] = rule {
     openCloseAnnotation ~ annotationContent ~ openCloseAnnotation ~> (content => TopAnnotation(content))
   }
 
-  def middleAnnotationPart: Rule1[Annotation] = rule {
+  def middleAnnotationPart: Rule1[MiddleAnnotation] = rule {
     openCloseAnnotation ~ annotationContent ~ openCloseAnnotation ~> (content => MiddleAnnotation(content))
   }
 
