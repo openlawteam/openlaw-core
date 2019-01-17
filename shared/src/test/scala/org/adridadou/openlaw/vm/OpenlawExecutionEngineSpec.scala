@@ -727,10 +727,12 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     val template =
       compile(
         s"""
+           |before the annotation
+           |
           |$startEndQuote
-          |this is some text for my annotation
-          |$startEndQuote
-          |
+           |this is some text for my annotation
+           |$startEndQuote
+           |
           |after the annotation
         """.stripMargin)
 
@@ -739,7 +741,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       case Right(result) =>
         result.state shouldBe ExecutionFinished
         val text = parser.forReview(result.agreements.head,ParagraphEdits())
-        text shouldBe """<p class="no-section">after the annotation<br />        </p>"""
+        text shouldBe """<p class="no-section"><br />before the annotation</p><p class="no-section"></p><p class="no-section">after the annotation<br />        </p>"""
         val text2 = parser.forPreview(result.agreements.head,ParagraphEdits())
         text2 shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="no-section"><br />before the annotation</p></div><div class="openlaw-paragraph paragraph-2"><p class="no-section"><span class="openlaw-annotation-top"><br />this is some text for my annotation<br /></span></p></div><div class="openlaw-paragraph paragraph-3"><p class="no-section">after the annotation<br />        </p></div>"""
       case Left(ex) =>
