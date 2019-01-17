@@ -84,7 +84,6 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     || val21 | val22 | val23 |
     |This is a test.""".stripMargin
 
-    val structure = structureAgreement(text)
     structureAgreement(text).map(_.paragraphs(0).elements.head).right.value shouldBe a [TableElement]
    }
 
@@ -156,7 +155,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     compiledAgreement(clauseText) match {
       case Right(compiledVersion) =>
         val variables = compiledVersion.block.variables()
-        variables(0) shouldBe VariableDefinition(VariableName("contractor"), None, Some("the contractor who is going to do the job"), None)
+        variables.head shouldBe VariableDefinition(VariableName("contractor"), None, Some("the contractor who is going to do the job"), None)
         variables(1) shouldBe VariableDefinition(VariableName("contractorBirthdate"), Some(VariableTypeDefinition(DateType.name)), Some("The birthdate of the contractor"), None)
       case Left(ex) => fail(ex)
     }
@@ -437,7 +436,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
 
     structureAgreement(clauseText).toOption.flatMap(_.executionResult.getVariable("contractor").flatMap(_.defaultValue)) match {
       case Some(ListParameter(vector)) =>
-        vector(0).asInstanceOf[StringConstant].value shouldBe "First option"
+        vector.head.asInstanceOf[StringConstant].value shouldBe "First option"
         vector(1).asInstanceOf[StringConstant].value shouldBe "Second option"
       case result => fail(result.toString)
     }

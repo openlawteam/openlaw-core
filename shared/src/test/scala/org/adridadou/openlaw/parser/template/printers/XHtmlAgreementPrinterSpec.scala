@@ -68,7 +68,7 @@ class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues
       |""".stripMargin
 
     val agreement = structureAgreement(text)
-    val html = XHtmlAgreementPrinter(false).printParagraphs(agreement.right.value.paragraphs).print
+    val html = XHtmlAgreementPrinter(false).printParagraphs(agreement.right.value.paragraphs.toList).print
     html shouldBe
       """<p class="no-section"></p><ul class="list-lvl-1"><li><p>1.  <strong>Section 1</strong></p><p>This is a test.</p></li><li><p>2.  Section 2.</p><p>This is a test.</p><ul class="list-lvl-2"><li><p>(a)  Section 2.a</p><p>This is a test.</p></li><li><p>(b)  Section 2.b</p><p>This is a test.</p></li></ul></li><li><p>3.  Section 3.</p><p>This is a test.<br /></p></li></ul>"""
   }
@@ -82,26 +82,26 @@ class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues
       |""".stripMargin
 
     val agreement = structureAgreement(text)
-    val html = XHtmlAgreementPrinter(false).printParagraphs(agreement.right.value.paragraphs).print
+    val html = XHtmlAgreementPrinter(false).printParagraphs(agreement.right.value.paragraphs.toList).print
     html shouldBe """<p class="no-section">This is a test<br /></p><p class="no-section">Another line</p>"""
   }
 
   it should "print a template title" in {
-    val html = XHtmlAgreementPrinter(false).printFragments(Seq(Title(TemplateTitle("title1"))), 0, false).print
+    val html = XHtmlAgreementPrinter(false).printFragments(List(Title(TemplateTitle("title1"))), 0, false).print
     html shouldBe """<h1 class="signature-title">title1</h1>"""
   }
 
   it should "handle right aligned section" in {
     val text = """\right **[[Company Name | Uppercase]]**"""
     val agreement = structureAgreement(text)
-    val html = XHtmlAgreementPrinter(false).printParagraphs(agreement.right.value.paragraphs).print
+    val html = XHtmlAgreementPrinter(false).printParagraphs(agreement.right.value.paragraphs.toList).print
     html shouldBe """<p class="no-section align-right"> <strong>[[Company Name]]</strong></p>"""
   }
 
   it should "handle right 3/4 aligned section" in {
     val text = """\right-three-quarters **[[Company Name | Uppercase]]**"""
     val agreement = structureAgreement(text)
-    val html = XHtmlAgreementPrinter(false).printParagraphs(agreement.right.value.paragraphs).print
+    val html = XHtmlAgreementPrinter(false).printParagraphs(agreement.right.value.paragraphs.toList).print
     html shouldBe """<p class="no-section align-right-three-quarters"> <strong>[[Company Name]]</strong></p>"""
   }
 
@@ -118,7 +118,7 @@ class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues
                  |""".stripMargin
 
     val agreement = structureAgreement(text)
-    val html = XHtmlAgreementPrinter(false).printParagraphs(agreement.right.value.paragraphs).print
+    val html = XHtmlAgreementPrinter(false).printParagraphs(agreement.right.value.paragraphs.toList).print
     html shouldBe """<p class="no-section align-center"> <strong>BYLAWS</strong><br /> <strong>OF</strong><br /> <strong>[[Company Name]]</strong><br /> (A DELAWARE CORPORATION)<br /></p><ul class="list-lvl-1"><li><p>1.  <strong>Offices</strong></p><ul class="list-lvl-2"><li><p>(a)  <strong>Registered Office</strong>.  The registered office of the corporation in the State of Delaware shall be [[Registered Agent Address]], and the name of the registered agent of the corporation in the State of Delaware at such address is [[Registered Agent Name]].<br /></p></li></ul></li></ul>"""
 
   }
