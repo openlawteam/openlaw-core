@@ -209,16 +209,16 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
             remainingElems <- recurse(remaining)
           } yield frag :: remainingElems
 
-        case VariableElement(name, variableType, content, dependencies) =>
+        case VariableElement(variableName, variableType, variableContent, dependencies) =>
           // Do not highlight identity variables
           val highlightType = variableType.forall(_ =!= IdentityType)
 
           // Only add styling to highlight variable if there are no hidden variables that are dependencies for this one
           val lazyFrags = if (highlightType && preview && dependencies.forall(variable => !hiddenVariables.contains(variable))) {
-            val nameClass = name.replace(" ", "-")
-            recurse(content).map(elems => List(span(`class` := s"markdown-variable markdown-variable-$nameClass")(elems)))
+            val nameClass = variableName.replace(" ", "-")
+            recurse(variableContent).map(elems => List(span(`class` := s"markdown-variable markdown-variable-$nameClass")(elems)))
           } else {
-            recurse(content)
+            recurse(variableContent)
           }
 
           for {
@@ -245,8 +245,8 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
           val removeDepth = if (preview && dependencies.forall(variable => !hiddenVariables.contains(variable))) 1 else 0
           recurse(xs, conditionalBlockDepth = conditionalBlockDepth - removeDepth)
 
-        case Link(label, url) =>
-          recurse(xs).map(a(href := url)(label) :: _)
+        case Link(linkLabel, url) =>
+          recurse(xs).map(a(href := url)(linkLabel) :: _)
 
         case PlainText(str) =>
           recurse(xs).map(elems => text(str) ++ elems)
@@ -289,18 +289,18 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
         case FreeText(Centered) =>
           recurse(xs)
 
-        case Annotation(content) =>
+        case Annotation(annotationContent) =>
           if (preview) {
-            recurse(xs).map(elems => span(`class` := "openlaw-annotation")(text(content)) :: elems)
+            recurse(xs).map(elems => span(`class` := "openlaw-annotation")(text(annotationContent)) :: elems)
           } else {
             recurse(xs)
           }
 
-        case Title(title) =>
-          recurse(xs).map(elems => h1(`class` := "signature-title")(title.title) :: elems)
+        case Title(agreementTitle) =>
+          recurse(xs).map(elems => h1(`class` := "signature-title")(agreementTitle.title) :: elems)
 
-        case x =>
-          logger.warn(s"unhandled element: $x")
+        case other =>
+          logger.warn(s"unhandled element: $other")
           recurse(xs)
       }
     }
