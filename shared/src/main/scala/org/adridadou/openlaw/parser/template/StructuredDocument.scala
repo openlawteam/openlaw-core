@@ -437,7 +437,7 @@ case class TemplateExecutionResult(
 
 case class StructuredAgreementId(id:String)
 
-case class StructuredAgreement(executionResult: TemplateExecutionResult, mainTemplate:Boolean = false, header:TemplateHeader, paragraphs:Vector[Paragraph] = Vector(), path:Option[TemplatePath] = None) {
+case class StructuredAgreement(executionResult: TemplateExecutionResult, mainTemplate:Boolean = false, header:TemplateHeader, paragraphs:List[Paragraph] = List(), path:Option[TemplatePath] = None) {
   def title: TemplateTitle = {
     if(header.shouldShowTitle) {
       executionResult.templateDefinition.map(template => template.name.name).getOrElse(TemplateTitle())
@@ -457,7 +457,7 @@ trait AgreementElement
 case class ImageElement(url: String) extends AgreementElement
 case class FreeText(elem: TextElement) extends AgreementElement
 case class Link(label:String, url:String) extends AgreementElement
-case class VariableElement(name: String, variableType: Option[VariableType], content:Seq[AgreementElement], dependencies: Seq[String]) extends AgreementElement
+case class VariableElement(name: String, variableType: Option[VariableType], content:List[AgreementElement], dependencies: Seq[String]) extends AgreementElement
 case class SectionElement(value: String, lvl:Int, number:Int, resetNumbering:Option[Int], overriddenSymbol: Option[SectionSymbol], overridenFormat: Option[SectionFormat]) extends AgreementElement
 case class ConditionalStart(dependencies: Seq[String]) extends AgreementElement
 case class ConditionalStartWithElse(dependencies: Seq[String]) extends AgreementElement
@@ -479,7 +479,7 @@ case class Paragraph(elements: List[AgreementElement] = List()) extends Agreemen
   def appendElement(element: AgreementElement): Paragraph = this.copy(elements :+ element)
 }
 
-case class TableElement(header: Seq[Seq[AgreementElement]], rows: Seq[Seq[Seq[AgreementElement]]]) extends AgreementElement {
+case class TableElement(header: List[List[AgreementElement]], rows: List[List[List[AgreementElement]]]) extends AgreementElement {
   val rowCount: Int = rows.size
   val columnCount: Int = header.size
 }

@@ -26,12 +26,6 @@ class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues
 
   private def compiledTemplate(text:String):Either[String, CompiledTemplate] = service.compileTemplate(text)
 
-  private def compiledAgreement(text:String):Either[String, CompiledAgreement] = compiledTemplate(text) match {
-    case Right(agreement:CompiledAgreement) => Right(agreement)
-    case Right(_) => Left("was expecting agreement")
-    case Left(ex) => Left(ex)
-  }
-
   private def forReview(text:String, params:Map[String, String] = Map(), paragraphs:ParagraphEdits = ParagraphEdits(Map())):Either[String, String] =
     structureAgreement(text,params).map(service.forReview(_, paragraphs))
   private def forPreview(text:String, params:Map[String, String] = Map(), paragraphs:ParagraphEdits = ParagraphEdits(Map())):Either[String, String] =

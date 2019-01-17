@@ -12,10 +12,7 @@ import slogging._
 import scala.annotation.tailrec
 
 import cats.Eval
-// import cats.Eval
-
 import cats.implicits._
-// import cats.implicits._
 
 /** Special agreement element type used internally by this printer to demark text to be output without any
   * styling or wrapping elements.
@@ -70,7 +67,7 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
       body(printParagraphs(paragraphs))
     ).toString
 
-  def printParagraphs(paragraphs: List[Paragraph]): Seq[Frag] = {
+  def printParagraphs(paragraphs: List[Paragraph]): List[Frag] = {
     printFragments(paragraphs, 0, inSection = false)
   }
 
@@ -99,7 +96,7 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
 
         // If there is an overridden paragraph, render its content instead of this paragraph
         case Some(str) =>
-          val results = MarkdownParser.parseMarkdownOrThrow(str).toList
+          val results = MarkdownParser.parseMarkdownOrThrow(str)
           results.map(FreeText)
 
         // Otherwise, render this paragraph as normal
@@ -109,10 +106,10 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
 
       // See if this paragraph is centered
       val (align, remaining) = overridden match {
-        case FreeText(Centered) :: xs => (List("align-center"), xs)
-        case FreeText(Indent) :: xs => (List("indent"), xs)
-        case FreeText(RightAlign) :: xs => (List("align-right"), xs)
-        case FreeText(RightThreeQuarters) :: xs => (List("align-right-three-quarters"), xs)
+        case FreeText(Centered) :: r => (List("align-center"), r)
+        case FreeText(Indent) :: r => (List("indent"), r)
+        case FreeText(RightAlign) :: r => (List("align-right"), r)
+        case FreeText(RightThreeQuarters) :: r => (List("align-right-three-quarters"), r)
         case seq => (List(), seq)
       }
 
@@ -139,8 +136,8 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
     }
 
     def printTableElement(t: TableElement, xs: List[AgreementElement]): Eval[List[Frag]] = {
-      val lazyHeader = t.header.map(tableElements => recurse(tableElements.toList)).toList.sequence
-      val lazyRows = t.rows.map(row => row.map(tableElements => recurse(tableElements.toList)).toList.sequence).toList.sequence
+      val lazyHeader = t.header.map(tableElements => recurse(tableElements)).sequence
+      val lazyRows = t.rows.map(row => row.map(tableElements => recurse(tableElements)).sequence).sequence
 
       val lazyFrag = for {
         header <- lazyHeader
@@ -201,8 +198,8 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
           // Partition the elements into sections at this level
           val sections = partitionSections(level, section +: content)
 
-          val sectionsFrag = sections.map { section =>
-            recurse(section._2, inSection = true).map(elems => li(elems))
+          val sectionsFrag = sections.map { case (_, sectionElements) =>
+            recurse(sectionElements, inSection = true).map(elems => li(elems))
           }.sequence
 
           val lazyFrag = sectionsFrag.map(elems => ul(`class` := s"list-lvl-$level")(elems))
@@ -219,9 +216,9 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
           // Only add styling to highlight variable if there are no hidden variables that are dependencies for this one
           val lazyFrags = if (highlightType && preview && dependencies.forall(variable => !hiddenVariables.contains(variable))) {
             val nameClass = name.replace(" ", "-")
-            recurse(content.toList).map(elems => List(span(`class` := s"markdown-variable markdown-variable-$nameClass")(elems)))
+            recurse(content).map(elems => List(span(`class` := s"markdown-variable markdown-variable-$nameClass")(elems)))
           } else {
-            recurse(content.toList)
+            recurse(content)
           }
 
           for {

@@ -30,11 +30,11 @@ case class CompiledAgreement(
       paragraphs = paragraphs)
   }
 
-  private def cleanupParagraphs(paragraphs: List[Paragraph]): Vector[Paragraph] = paragraphs.map(paragraph =>
+  private def cleanupParagraphs(paragraphs: List[Paragraph]): List[Paragraph] = paragraphs.map(paragraph =>
     Paragraph(paragraph.elements.filter {
       case FreeText(elem) => !TextElement.isEmpty(elem)
       case _ => true
-    })).filter(paragraph => paragraph.elements.nonEmpty).toVector
+    })).filter(paragraph => paragraph.elements.nonEmpty)
 
   private def generateParagraphs(elements: Seq[AgreementElement]): List[Paragraph] = {
     elements.foldLeft(ParagraphBuilder())({
@@ -72,7 +72,7 @@ case class CompiledAgreement(
     case other =>  List(other)
   }
 
-  private def getAgreementElements(elements:Seq[TemplatePart], executionResult: TemplateExecutionResult):Vector[AgreementElement] = elements.foldLeft(Vector[AgreementElement]())((elems, elem) => elem match {
+  private def getAgreementElements(elements:Seq[TemplatePart], executionResult: TemplateExecutionResult):List[AgreementElement] = elements.foldLeft(List[AgreementElement]())((elems, elem) => elem match {
     case t:Table =>
       val headerElements = t.header.map(entry => getAgreementElements(entry, executionResult))
       val rowElements = t.rows.map(seq => seq.map(entry => getAgreementElements(entry, executionResult)))
@@ -179,7 +179,7 @@ case class CompiledAgreement(
     }
   }
 
-  private def generateVariable(name: VariableName, keys:Seq[String], formatter:Option[FormatterDefinition], executionResult: TemplateExecutionResult):Seq[AgreementElement] = {
+  private def generateVariable(name: VariableName, keys:Seq[String], formatter:Option[FormatterDefinition], executionResult: TemplateExecutionResult):List[AgreementElement] = {
     executionResult.getAliasOrVariableType(name).flatMap(varType => {
       val keysVarType:VariableType = varType.keysType(keys, executionResult)
 
@@ -187,8 +187,8 @@ case class CompiledAgreement(
         .map(varType.access(_, keys, executionResult).flatMap(keysVarType.format(formatter, _, executionResult)))
         .getOrElse(Right(varType.missingValueFormat(name)))
     }) match {
-      case Right(result) => result
-      case Left(ex) => Seq(FreeText(Text(s"error: $ex")))
+      case Right(result) => result.toList
+      case Left(ex) => List(FreeText(Text(s"error: $ex")))
     }
   }
 
