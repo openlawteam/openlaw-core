@@ -85,7 +85,7 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       "io.circe"                %% "circe-core"          % circeV,
       "io.circe"                %% "circe-generic"       % circeV,
       "io.circe"                %% "circe-parser"        % circeV,
-      "com.typesafe.play"       %% "play-json"           % "2.6.13",
+      "com.typesafe.play"       %% "play-json"           % "2.7.0",
       "org.parboiled"           %% "parboiled"           % parboiledV,
       "org.typelevel"           %% "cats-core"           % catsV,
       "org.typelevel"           %% "cats-free"           % catsV,
@@ -112,8 +112,7 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       "com.lihaoyi"             %%% "scalatags"            % "0.6.7",
       //Test
       "org.scalacheck"          %%% "scalacheck"          % "1.14.0"        % Test,
-      "org.scalatest"           %%% "scalatest"           % "3.2.0-SNAP10"  % Test,
-      "org.scala-js"            %%% "scalajs-dom"         % "0.9.2"         % Test
+      "org.scalatest"           %%% "scalatest"           % "3.2.0-SNAP10"  % Test
     )
   )
   .settings(commonSettings: _*)
