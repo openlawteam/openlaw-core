@@ -3,7 +3,6 @@ package org.adridadou.openlaw.parser.template.printers
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.values.TemplateTitle
 import cats.implicits._
-import org.adridadou.openlaw.parser.template.variableTypes.TemplatePath
 
 trait AgreementPrinter[T] {
   def result: T
@@ -87,7 +86,7 @@ object SectionHelper {
 
   }
 
-  def generateReferenceValue(lvl: Int, sections: Seq[Int], overrideSymbol: Option[SectionSymbol]) = {
+  def generateReferenceValue(lvl: Int, sections: Seq[Int], overrideSymbol: Option[SectionSymbol]):String = {
     val numberInList = calculateNumberInList(lvl, sections)
     val defaultFormat = SectionFormats.get(lvl - 1).getOrElse(throw new RuntimeException(s"we handle only ${SectionFormats.size} levels for now"))
     formatSectionValue(numberInList, overrideSymbol.getOrElse(defaultFormat._1), "%s")

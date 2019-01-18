@@ -6,9 +6,9 @@ object MarkdownParser {
 
   def createMarkdownParser(markdown:String):MarkdownParser = new MarkdownParser(markdown)
 
-  def parseMarkdownOrThrow(markdown: String): Seq[TextElement] = parseMarkdown(markdown) match {
+  def parseMarkdownOrThrow(markdown: String): List[TextElement] = parseMarkdown(markdown) match {
+    case Right(seq) => seq.toList
     case Left(ex) => throw new RuntimeException("error while parsing the markdown:" + ex)
-    case Right(seq) => seq
   }
 
   def parseMarkdown(markdown: String): Either[String, Seq[TextElement]] = {

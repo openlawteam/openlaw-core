@@ -1,5 +1,6 @@
 package org.adridadou.openlaw.vm
 
+import java.io.File
 import java.time.Clock
 
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
@@ -8,6 +9,8 @@ import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.values.{TemplateParameters, TemplateTitle}
 import org.scalatest.{FlatSpec, Matchers}
 import play.api.libs.json.Json
+
+import scala.io.Source
 
 class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
