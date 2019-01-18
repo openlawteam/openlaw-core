@@ -11,16 +11,16 @@ import org.parboiled2.{Parser, Rule0, Rule1}
   */
 trait BlockRules extends Parser with ExpressionRules with GlobalRules {
 
-  def blockRule:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | pageBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | annotationPart | textPart) ~> ((s: Seq[TemplatePart]) => Block(s))}
+  def blockRule:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | pageBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | headerAnnotationPart | noteAnnotationPart | textPart) ~> ((s: Seq[TemplatePart]) => Block(s))}
 
-  def blockInConditionalRule:Rule1[Block] = rule { zeroOrMore( centeredLine | rightThreeQuartersLine | rightLine | pageBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | annotationPart | textPartNoColons) ~> ((s: Seq[TemplatePart]) => Block(s))}
-  def blockInConditionalElseRule:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | pageBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | annotationPart | textPartNoColons) ~> ((s: Seq[TemplatePart]) => Block(s))}
+  def blockInConditionalRule:Rule1[Block] = rule { zeroOrMore( centeredLine | rightThreeQuartersLine | rightLine | pageBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | headerAnnotationPart | noteAnnotationPart | textPartNoColons) ~> ((s: Seq[TemplatePart]) => Block(s))}
+  def blockInConditionalElseRule:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | pageBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | headerAnnotationPart | noteAnnotationPart | textPartNoColons) ~> ((s: Seq[TemplatePart]) => Block(s))}
 
-  def blockNoStrong:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | indentLine | varAliasKey | varKey | varMemberKey | annotationPart | textPartNoStrong) ~> ((s: Seq[TemplatePart]) => Block(s))}
+  def blockNoStrong:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | indentLine | varAliasKey | varKey | varMemberKey | headerAnnotationPart | noteAnnotationPart | textPartNoStrong) ~> ((s: Seq[TemplatePart]) => Block(s))}
 
-  def blockNoEm:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | indentLine | varAliasKey | varKey | varMemberKey | annotationPart | textPartNoEm) ~> ((s: Seq[TemplatePart]) => Block(s))}
+  def blockNoEm:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | indentLine | varAliasKey | varKey | varMemberKey | headerAnnotationPart | noteAnnotationPart | textPartNoEm) ~> ((s: Seq[TemplatePart]) => Block(s))}
 
-  def blockNoStrongNoEm:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | indentLine | varAliasKey | varKey | varMemberKey | annotationPart | textPartNoStrongNoEm) ~> ((s: Seq[TemplatePart]) => Block(s))}
+  def blockNoStrongNoEm:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | indentLine | varAliasKey | varKey | varMemberKey | headerAnnotationPart | noteAnnotationPart | textPartNoStrongNoEm) ~> ((s: Seq[TemplatePart]) => Block(s))}
 
   def conditionalBlockSetKey:Rule1[ConditionalBlockSet]= rule { openB ~ oneOrMore(ws ~ conditionalBlockKey ~ ws) ~ closeB ~> ((blocks:Seq[ConditionalBlock]) => ConditionalBlockSet(blocks)) }
 
@@ -174,19 +174,33 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
       ":" ~ oneOrMore("-")) ~ whitespace
   }
 
-  def annotationPart: Rule1[Annotation] = rule {
-    openCloseAnnotation ~ annotationContent ~ openCloseAnnotation ~> (content => Annotation(content))
+  def headerAnnotationPart: Rule1[HeaderAnnotation] = rule {
+    openCloseAnnotationHeader ~ headerAnnotationContent ~ openCloseAnnotationHeader ~> (content => HeaderAnnotation(content))
   }
 
-  def annotationContent:Rule1[String] = rule {
-    capture(zeroOrMore(annotationContentChar))
+  def noteAnnotationPart: Rule1[NoteAnnotation] = rule {
+    openCloseAnnotationNote ~ noteAnnotationContent ~ openCloseAnnotationNote ~> (content => NoteAnnotation(content))
   }
 
-  def annotationContentChar:Rule0 = rule {
-    !openCloseAnnotation ~  ANY
+  def headerAnnotationContent:Rule1[String] = rule {
+    capture(zeroOrMore(headerAnnotationContentChar))
+  }
+
+  def headerAnnotationContentChar:Rule0 = rule {
+    !openCloseAnnotationHeader ~  ANY
+  }
+
+  def noteAnnotationContent:Rule1[String] = rule {
+    capture(zeroOrMore(noteAnnotationContentChar))
+  }
+
+  def noteAnnotationContentChar:Rule0 = rule {
+    !openCloseAnnotationNote ~  ANY
   }
 }
 
 case class VariableSection(name:String, variables:Seq[VariableDefinition]) extends TemplatePart
 case class SectionDefinition(name:String, parameters:Option[Parameters])
-case class Annotation(content:String) extends TemplatePart with AgreementElement
+case class HeaderAnnotation(content:String) extends TemplatePart with AgreementElement
+case class NoteAnnotation(content:String) extends TemplatePart with AgreementElement
+

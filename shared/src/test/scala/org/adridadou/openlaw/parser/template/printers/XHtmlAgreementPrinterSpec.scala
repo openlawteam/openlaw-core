@@ -116,4 +116,19 @@ class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues
     html shouldBe """<p class="no-section align-center"> <strong>BYLAWS</strong><br /> <strong>OF</strong><br /> <strong>[[Company Name]]</strong><br /> (A DELAWARE CORPORATION)<br /></p><ul class="list-lvl-1"><li><p>1.  <strong>Offices</strong></p><ul class="list-lvl-2"><li><p>(a)  <strong>Registered Office</strong>.  The registered office of the corporation in the State of Delaware shall be [[Registered Agent Address]], and the name of the registered agent of the corporation in the State of Delaware at such address is [[Registered Agent Name]].<br /></p></li></ul></li></ul>"""
 
   }
+
+  it should "handle tables with variables in multiple rows" in {
+    val text = """This is | a test.
+      || head1 | head2 | head3 |
+      || ----- | ----- | ----- |
+      || [[var1]] | val12 | val13 |
+      || val21 | val22 | val23 |
+      || [[var31]] | val32 | val33 |
+      || val41 | val42 | val43 |
+      |This is a test.""".stripMargin
+
+    val agreement = structureAgreement(text)
+    val html = XHtmlAgreementPrinter(true).printParagraphs(agreement.right.value.paragraphs).print
+    html shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="no-section">This is | a test.<br /><table class="markdown-table"><tr class="markdown-table-row"><th class="markdown-table-header">head1</th><th class="markdown-table-header">head2</th><th class="markdown-table-header">head3</th></tr><tr class="markdown-table-row"><td class="markdown-table-data"><span class="markdown-variable markdown-variable-var1">[[var1]]</span></td><td class="markdown-table-data">val12</td><td class="markdown-table-data">val13</td></tr><tr class="markdown-table-row"><td class="markdown-table-data">val21</td><td class="markdown-table-data">val22</td><td class="markdown-table-data">val23</td></tr><tr class="markdown-table-row"><td class="markdown-table-data"><span class="markdown-variable markdown-variable-var31">[[var31]]</span></td><td class="markdown-table-data">val32</td><td class="markdown-table-data">val33</td></tr><tr class="markdown-table-row"><td class="markdown-table-data">val41</td><td class="markdown-table-data">val42</td><td class="markdown-table-data">val43</td></tr></table>This is a test.</p></div>"""
+  }
 }
