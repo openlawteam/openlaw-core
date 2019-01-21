@@ -32,7 +32,7 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
 
     Try(compiler.rootRule.run().toEither match {
       case Left(parseError: ParseError) =>
-        Left(compiler.formatError(parseError, new ErrorFormatter(showTraces = true)))
+        Left(compiler.formatError(parseError))
       case Left(ex) =>
         Left(Option(ex.getMessage).getOrElse(""))
       case Right(result) =>
