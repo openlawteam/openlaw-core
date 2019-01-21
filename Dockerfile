@@ -28,6 +28,11 @@ RUN apt-get install -y build-essential --fix-missing
 RUN curl -L -o sbt.deb http://dl.bintray.com/sbt/debian/sbt-1.2.6.deb && \
     dpkg -i sbt.deb
 
+# NodeJS
+RUN wget -O - https://nodejs.org/dist/v10.10.0/node-v10.10.0-linux-x64.tar.gz | tar xz && \
+    mv node* node
+ENV PATH $PATH:/node/bin
+
 # Cache
 FROM tools as cache
 COPY project /src/project
@@ -37,7 +42,10 @@ RUN cd /src && \
 # build
 COPY . /src/
 
-FROM build as test
+FROM cache as test
 
 RUN cd /src && \
-    SBT_OPTS="-Xmx4G" sbt clean coverage test && sbt coverageReport && sbt coverageAggregate && sbt codacyCoverage
+    SBT_OPTS="-Xmx4G" sbt clean coverage test && \
+    sbt coverageReport && \
+    sbt coverageAggregate && \
+    sbt codacyCoverage
