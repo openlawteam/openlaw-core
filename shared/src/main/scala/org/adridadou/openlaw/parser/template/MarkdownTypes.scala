@@ -57,7 +57,7 @@ case class NumberConstant(value:BigDecimal, typeFunction: TemplateExecutionResul
   override def toString: String = value.toString()
 }
 
-case class Table(header: Seq[Seq[TemplatePart]], rows: Seq[Seq[Seq[TemplatePart]]]) extends TemplatePart
+case class Table(header: List[List[TemplatePart]], rows: List[List[List[TemplatePart]]]) extends TemplatePart
 
 trait ConditionalExpression {
   def evaluate(params:TemplateParameters):Boolean

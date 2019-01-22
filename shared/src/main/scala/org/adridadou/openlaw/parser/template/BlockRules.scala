@@ -11,7 +11,7 @@ import org.parboiled2.{Parser, Rule0, Rule1}
   */
 trait BlockRules extends Parser with ExpressionRules with GlobalRules {
 
-  def blockRule:Rule1[Block] =              rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | pageBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | headerAnnotationPart | noteAnnotationPart | textPart) ~> ((s: Seq[TemplatePart]) => Block(s))}
+  def blockRule:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | pageBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | headerAnnotationPart | noteAnnotationPart | textPart) ~> ((s: Seq[TemplatePart]) => Block(s))}
 
   def blockInConditionalRule:Rule1[Block] = rule { zeroOrMore( centeredLine | rightThreeQuartersLine | rightLine | pageBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | headerAnnotationPart | noteAnnotationPart | textPartNoColons) ~> ((s: Seq[TemplatePart]) => Block(s))}
   def blockInConditionalElseRule:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | pageBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | headerAnnotationPart | noteAnnotationPart | textPartNoColons) ~> ((s: Seq[TemplatePart]) => Block(s))}
@@ -158,7 +158,7 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   def tableColumnEntryText: Rule1[Seq[TemplatePart]] = rule { capture(oneOrMore(noneOf(pipe + nl))) ~> ((s: String) => Seq(Text(TextCleaning.dots(s.trim)))) }
 
   def table: Rule1[Seq[Table]] = rule {
-    tableHeader ~ nl ~ oneOrMore(tableRow ~ (nl | EOI)) ~> ((headers: Seq[Seq[TemplatePart]], rows: Seq[Seq[Seq[TemplatePart]]]) => Seq(Table(headers, rows)))
+    tableHeader ~ nl ~ oneOrMore(tableRow ~ (nl | EOI)) ~> ((headers: Seq[Seq[TemplatePart]], rows: Seq[Seq[Seq[TemplatePart]]]) => Seq(Table(headers.map(_.toList).toList, rows.map(_.map(_.toList).toList).toList)))
   }
 
   def tableHeader: Rule1[Seq[Seq[TemplatePart]]] = rule { tableRow ~ nl ~ tableHeaderBreak }

@@ -84,7 +84,6 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     || val21 | val22 | val23 |
     |This is a test.""".stripMargin
 
-    val structure = structureAgreement(text)
     structureAgreement(text).map(_.paragraphs(0).elements.head).right.value shouldBe a [TableElement]
    }
 
@@ -174,7 +173,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     compiledAgreement(clauseText) match {
       case Right(compiledVersion) =>
         val variables = compiledVersion.block.variables()
-        variables(0) shouldBe VariableDefinition(VariableName("contractor"), None, Some("the contractor who is going to do the job"), None)
+        variables.head shouldBe VariableDefinition(VariableName("contractor"), None, Some("the contractor who is going to do the job"), None)
         variables(1) shouldBe VariableDefinition(VariableName("contractorBirthdate"), Some(VariableTypeDefinition(DateType.name)), Some("The birthdate of the contractor"), None)
       case Left(ex) => fail(ex)
     }
@@ -226,7 +225,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
       """.stripMargin
 
     val text2 =
-      """<div class="openlaw-paragraph paragraph-1"><p class="no-section">a small title</p></div><ul class="list-lvl-1"><li><div class="openlaw-paragraph paragraph-2"><p>1. this is a first element<br /></p></div></li><li><div class="openlaw-paragraph paragraph-3"><p>2. this is a second element<br /></p></div><ul class="list-lvl-2"><li><div class="openlaw-paragraph paragraph-4"><p>(a) this is a first sub element<br /></p></div><ul class="list-lvl-3"><li><div class="openlaw-paragraph paragraph-5"><p>(i) this is a first sub sub element<br /></p></div></li><li><div class="openlaw-paragraph paragraph-6"><p>(ii) this is a second sub sub element<br /></p></div></li></ul></li></ul></li><li><div class="openlaw-paragraph paragraph-7"><p>3. this is a third element<br /></p></div><ul class="list-lvl-2"><li><div class="openlaw-paragraph paragraph-8"><p>(a) this is yet another sub element<br />      </p></div></li></ul></li></ul>""".stripMargin
+      """<div class="openlaw-paragraph paragraph-1"><p class="no-section">a small title</p></div><ul class="list-lvl-1"><li><div class="openlaw-paragraph paragraph-2"><p>1. this is a first element<br /></p></div></li><li><div class="openlaw-paragraph paragraph-3"><p>2. this is a second element<br /></p></div><ul class="list-lvl-2"><li><div class="openlaw-paragraph paragraph-5"><p>(a) this is a first sub element<br /></p></div><ul class="list-lvl-3"><li><div class="openlaw-paragraph paragraph-6"><p>(i) this is a first sub sub element<br /></p></div></li><li><div class="openlaw-paragraph paragraph-7"><p>(ii) this is a second sub sub element<br /></p></div></li></ul></li></ul></li><li><div class="openlaw-paragraph paragraph-4"><p>3. this is a third element<br /></p></div><ul class="list-lvl-2"><li><div class="openlaw-paragraph paragraph-8"><p>(a) this is yet another sub element<br />      </p></div></li></ul></li></ul>""".stripMargin
 
     val result = forPreview(text)
     resultShouldBe(result, text2)
@@ -265,7 +264,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
       """.stripMargin
 
     val text2 =
-      """<div class="openlaw-paragraph paragraph-1"><p class="no-section"><br />a small title<br /></p></div><ul class="list-lvl-1"><li><div class="openlaw-paragraph paragraph-2"><p>1. this is a first element<br /></p></div></li><li><div class="openlaw-paragraph paragraph-3"><p>2. this is a second element<br /></p></div><ul class="list-lvl-2"><li><div class="openlaw-paragraph paragraph-4"><p>(a) this is a first sub element<br /></p></div><ul class="list-lvl-3"><li><div class="openlaw-paragraph paragraph-5"><p>(i) this is a first sub sub element<br /></p></div><ul class="list-lvl-4"><li><div class="openlaw-paragraph paragraph-6"><p>(1) this is a first sub sub sub element<br /></p></div></li><li><div class="openlaw-paragraph paragraph-7"><p>(2) this is a second sub sub sub element<br /></p></div></li></ul></li><li><div class="openlaw-paragraph paragraph-8"><p>(ii) this is a second sub sub element<br /></p></div></li></ul></li></ul></li><li><div class="openlaw-paragraph paragraph-9"><p>3. this is a third element<br /></p></div><ul class="list-lvl-2"><li><div class="openlaw-paragraph paragraph-10"><p>(a) this is yet another sub element<br />      </p></div></li></ul></li></ul>""".stripMargin
+      """<div class="openlaw-paragraph paragraph-1"><p class="no-section"><br />a small title<br /></p></div><ul class="list-lvl-1"><li><div class="openlaw-paragraph paragraph-2"><p>1. this is a first element<br /></p></div></li><li><div class="openlaw-paragraph paragraph-3"><p>2. this is a second element<br /></p></div><ul class="list-lvl-2"><li><div class="openlaw-paragraph paragraph-5"><p>(a) this is a first sub element<br /></p></div><ul class="list-lvl-3"><li><div class="openlaw-paragraph paragraph-6"><p>(i) this is a first sub sub element<br /></p></div><ul class="list-lvl-4"><li><div class="openlaw-paragraph paragraph-8"><p>(1) this is a first sub sub sub element<br /></p></div></li><li><div class="openlaw-paragraph paragraph-9"><p>(2) this is a second sub sub sub element<br /></p></div></li></ul></li><li><div class="openlaw-paragraph paragraph-7"><p>(ii) this is a second sub sub element<br /></p></div></li></ul></li></ul></li><li><div class="openlaw-paragraph paragraph-4"><p>3. this is a third element<br /></p></div><ul class="list-lvl-2"><li><div class="openlaw-paragraph paragraph-10"><p>(a) this is yet another sub element<br />      </p></div></li></ul></li></ul>""".stripMargin
 
     val result = forPreview(text)
     resultShouldBe(result, text2)
@@ -455,7 +454,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
 
     structureAgreement(clauseText).toOption.flatMap(_.executionResult.getVariable("contractor").flatMap(_.defaultValue)) match {
       case Some(ListParameter(vector)) =>
-        vector(0).asInstanceOf[StringConstant].value shouldBe "First option"
+        vector.head.asInstanceOf[StringConstant].value shouldBe "First option"
         vector(1).asInstanceOf[StringConstant].value shouldBe "Second option"
       case result => fail(result.toString)
     }
