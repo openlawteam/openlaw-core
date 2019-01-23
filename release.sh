@@ -1,1 +1,1 @@
-sbt release
+sbt release with-defaults
