@@ -45,7 +45,7 @@ RUN sbt coverageAggregate
 
 ARG CODACY_PROJECT_TOKEN
 ENV CODACY_PROJECT_TOKEN=${CODACY_PROJECT_TOKEN}
+RUN sbt codacyCoverage
 ARG GITHUB_PAT
 ENV GITHUB_PAT=${GITHUB_PAT}
-RUN git config --global url.”https://${GITHUB_PAT}:@github.com/".insteadOf “https://github.com/"
-RUN sbt codacyCoverage
+RUN git config --global url."https://${GITHUB_PAT}:@github.com/".insteadOf "https://github.com/"
