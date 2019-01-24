@@ -50,8 +50,8 @@ ARG GITHUB_PAT
 ENV GITHUB_PAT=${GITHUB_PAT}
 RUN git config --global url."https://${git:GITHUB_PAT}:@github.com/".insteadOf "https://github.com/"
 RUN git remote set-url origin https://github.com/openlawteam/openlaw-core.git
-git config --global user.name "Jacqueline Outka"
-git config --global user.email "jacqueline@openlaw.io"
+RUN git config --global user.name "Jacqueline Outka"
+RUN git config --global user.email "jacqueline@openlaw.io"
 ARG BINTRAY_USER
 ENV BINTRAY_USER=${BINTRAY_USER}
 ARG BINTRAY_PASS
