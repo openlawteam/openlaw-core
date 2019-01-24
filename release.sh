@@ -1,1 +1,1 @@
-sbt release with-defaults
+sbt 'project openlawCore' 'release with-defaults' 
