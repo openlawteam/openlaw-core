@@ -53,6 +53,12 @@ lazy val publishSettings = Seq(
       name = "Jacqueline Outka",
       email = "jacqueline@outka.xyz",
       url = new URL(s"http://github.com/outkaj")
+    ),
+    Developer(
+      id = "openlawbot",
+      name = "Pizza Dog Bot",
+      email = "felipe@openlaw.io",
+      url = new URL(s"http://github.com/openlawbot")
     )
   ),
   publishTo in ThisBuild := Some("Bintray" at "https://api.bintray.com/maven/openlawos/openlaw-core/openlaw-core/;publish=1"),
@@ -64,7 +70,8 @@ lazy val releaseSettings = releaseProcess := Seq[ReleaseStep](
   setReleaseVersion,                      // : ReleaseStep
   commitReleaseVersion,                   // : ReleaseStep, performs the initial git checks
   tagRelease,                             // : ReleaseStep
-  publishArtifacts,                       // : ReleaseStep,
+  releaseStepCommandAndRemaining("publish"),
+  //publishArtifacts,                       // : ReleaseStep,
   setNextVersion,                         // : ReleaseStep
   commitNextVersion,                      // : ReleaseStep
   pushChanges                             // : ReleaseStep, also checks that an upstream branch is properly configured

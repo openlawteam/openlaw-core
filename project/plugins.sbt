@@ -8,7 +8,7 @@ resolvers += Resolver.url("sbt-plugins", url("https://dl.bintray.com/ssidorenko/
 addSbtPlugin("org.scala-js" % "sbt-scalajs" % "0.6.26")
 addSbtPlugin("org.portable-scala" % "sbt-scalajs-crossproject" % "0.6.0")
 addSbtPlugin("org.foundweekends" % "sbt-bintray" % "0.5.4")
-addSbtPlugin("com.github.gseitz" % "sbt-release" % "1.0.7")
+addSbtPlugin("com.github.gseitz" % "sbt-release" % "1.0.11")
 
 addSbtPlugin("org.lyranthe.sbt" % "partial-unification" % "1.1.0")
 addSbtPlugin("com.timushev.sbt" % "sbt-updates" % "0.3.4")
