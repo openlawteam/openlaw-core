@@ -54,12 +54,12 @@ lazy val publishSettings = Seq(
       email = "jacqueline@outka.xyz",
       url = new URL(s"http://github.com/outkaj")
     ),
-    Developer {
+    Developer(
       id = "openlawbot",
       name = "Pizza Dog Bot",
       email = "felipe@openlaw.io",
       url = new URL(s"http://github.com/openlawbot")
-    }
+    )
   ),
   publishTo in ThisBuild := Some("Bintray" at "https://api.bintray.com/maven/openlawos/openlaw-core/openlaw-core/;publish=1"),
 )
