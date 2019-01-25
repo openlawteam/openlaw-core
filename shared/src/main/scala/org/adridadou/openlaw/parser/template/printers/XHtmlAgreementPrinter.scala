@@ -92,10 +92,12 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
 
           printFragments(fixed.flatten, conditionalBlockDepth, inSection, continue)
 
-        case p @ Paragraph(Seq(c: ConditionalStart, remaining @ _*)) =>
+        /* Removed to fix broken conditionalBlockDepth in recursive calls
+        case p @ Paragraph(Seq(c: ConditionalStart, remaining @ _*)) => // TODO: HERE!!!!
           printFragments(c +: Paragraph(remaining.toList) +: xs, conditionalBlockDepth, inSection, continue)
         case p @ Paragraph(Seq(c: ConditionalStartWithElse, remaining @ _*)) =>
           printFragments(c +: Paragraph(remaining.toList) +: xs, conditionalBlockDepth, inSection, continue)
+        */
 
         case Paragraph(Seq()) =>
           printFragments(xs, conditionalBlockDepth, inSection, continue)
@@ -128,7 +130,6 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
           // Setup classes to be added to this paragraph element
           val classes = Seq() ++ (if (!inSection) Seq("no-section") else Nil) ++ align
 
-
           val paragraph = if (classes.isEmpty) {
             breakoutPrintFragments(remaining, conditionalBlockDepth, inSection, { elems => Seq(p(elems)) })
           } else {
@@ -142,9 +143,7 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
             paragraph
           }
 
-          printFragments(xs, conditionalBlockDepth, inSection, { elems =>
-            continue(innerFrag ++ elems)
-          })
+          printFragments(xs, conditionalBlockDepth, inSection, { elems => continue(innerFrag ++ elems) })
 
         case t: TableElement =>
           val frag = table(`class` := "markdown-table")(

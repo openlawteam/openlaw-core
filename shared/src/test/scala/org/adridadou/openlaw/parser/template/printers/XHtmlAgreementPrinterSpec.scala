@@ -140,12 +140,9 @@ class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues
     |
     | yet another paragraph after the conditional""".stripMargin
 
-    //val template = service.compileTemplate(text).right.value
-    //val agreement = engine.execute(template, TemplateParameters("if me" -> "true"), Map()).right.value
     val agreement = structureAgreement(text, Map("if me" -> "true"))
     val html = service.forPreview(agreement.right.value, ParagraphEdits())
-    //html shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="no-section">before the conditional<br /> <span class="markdown-conditional-block">in the conditional </span> after the conditional<br /> this too<br /></p></div><div class="openlaw-paragraph paragraph-2"><p class="no-section">yet another paragraph after the conditional</p></div>"""
-    html.size shouldBe >=(0)
+    html shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="no-section">before the conditional<br /> <span class="markdown-conditional-block">in the conditional </span> after the conditional<br /> this too<br /></p></div><div class="openlaw-paragraph paragraph-2"><p class="no-section">yet another paragraph after the conditional</p></div>"""
   }
 
   it should "not highlight things after a conditional" in {
