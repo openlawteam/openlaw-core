@@ -81,7 +81,7 @@ class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues
   }
 
   it should "print a template title" in {
-    val html = XHtmlAgreementPrinter(false).printFragments(List(Title(TemplateTitle("title1"))), 0, false).print
+    val html = XHtmlAgreementPrinter(false).printFragments(List(Title(TemplateTitle("title1")))).print
     html shouldBe """<h1 class="signature-title">title1</h1>"""
   }
 
