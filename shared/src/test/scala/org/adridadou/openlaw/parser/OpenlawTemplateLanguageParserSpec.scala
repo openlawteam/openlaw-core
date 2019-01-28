@@ -225,7 +225,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
       """.stripMargin
 
     val text2 =
-      """<div class="openlaw-paragraph paragraph-1"><p class="no-section">a small title</p></div><ul class="list-lvl-1"><li><div class="openlaw-paragraph paragraph-2"><p>1. this is a first element<br /></p></div></li><li><div class="openlaw-paragraph paragraph-3"><p>2. this is a second element<br /></p></div><ul class="list-lvl-2"><li><div class="openlaw-paragraph paragraph-5"><p>(a) this is a first sub element<br /></p></div><ul class="list-lvl-3"><li><div class="openlaw-paragraph paragraph-6"><p>(i) this is a first sub sub element<br /></p></div></li><li><div class="openlaw-paragraph paragraph-7"><p>(ii) this is a second sub sub element<br /></p></div></li></ul></li></ul></li><li><div class="openlaw-paragraph paragraph-4"><p>3. this is a third element<br /></p></div><ul class="list-lvl-2"><li><div class="openlaw-paragraph paragraph-8"><p>(a) this is yet another sub element<br />      </p></div></li></ul></li></ul>""".stripMargin
+      """<div class="openlaw-paragraph paragraph-1"><p class="no-section">a small title</p></div><ul class="list-lvl-1"><li><div class="openlaw-paragraph paragraph-2"><p>1. this is a first element<br /></p></div></li><li><div class="openlaw-paragraph paragraph-3"><p>2. this is a second element<br /></p></div><ul class="list-lvl-2"><li><div class="openlaw-paragraph paragraph-4"><p>(a) this is a first sub element<br /></p></div><ul class="list-lvl-3"><li><div class="openlaw-paragraph paragraph-5"><p>(i) this is a first sub sub element<br /></p></div></li><li><div class="openlaw-paragraph paragraph-6"><p>(ii) this is a second sub sub element<br /></p></div></li></ul></li></ul></li><li><div class="openlaw-paragraph paragraph-7"><p>3. this is a third element<br /></p></div><ul class="list-lvl-2"><li><div class="openlaw-paragraph paragraph-8"><p>(a) this is yet another sub element<br />      </p></div></li></ul></li></ul>""".stripMargin
 
     val result = forPreview(text)
     resultShouldBe(result, text2)
@@ -264,7 +264,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
       """.stripMargin
 
     val text2 =
-      """<div class="openlaw-paragraph paragraph-1"><p class="no-section"><br />a small title<br /></p></div><ul class="list-lvl-1"><li><div class="openlaw-paragraph paragraph-2"><p>1. this is a first element<br /></p></div></li><li><div class="openlaw-paragraph paragraph-3"><p>2. this is a second element<br /></p></div><ul class="list-lvl-2"><li><div class="openlaw-paragraph paragraph-5"><p>(a) this is a first sub element<br /></p></div><ul class="list-lvl-3"><li><div class="openlaw-paragraph paragraph-6"><p>(i) this is a first sub sub element<br /></p></div><ul class="list-lvl-4"><li><div class="openlaw-paragraph paragraph-8"><p>(1) this is a first sub sub sub element<br /></p></div></li><li><div class="openlaw-paragraph paragraph-9"><p>(2) this is a second sub sub sub element<br /></p></div></li></ul></li><li><div class="openlaw-paragraph paragraph-7"><p>(ii) this is a second sub sub element<br /></p></div></li></ul></li></ul></li><li><div class="openlaw-paragraph paragraph-4"><p>3. this is a third element<br /></p></div><ul class="list-lvl-2"><li><div class="openlaw-paragraph paragraph-10"><p>(a) this is yet another sub element<br />      </p></div></li></ul></li></ul>""".stripMargin
+      """<div class="openlaw-paragraph paragraph-1"><p class="no-section"><br />a small title<br /></p></div><ul class="list-lvl-1"><li><div class="openlaw-paragraph paragraph-2"><p>1. this is a first element<br /></p></div></li><li><div class="openlaw-paragraph paragraph-3"><p>2. this is a second element<br /></p></div><ul class="list-lvl-2"><li><div class="openlaw-paragraph paragraph-4"><p>(a) this is a first sub element<br /></p></div><ul class="list-lvl-3"><li><div class="openlaw-paragraph paragraph-5"><p>(i) this is a first sub sub element<br /></p></div><ul class="list-lvl-4"><li><div class="openlaw-paragraph paragraph-6"><p>(1) this is a first sub sub sub element<br /></p></div></li><li><div class="openlaw-paragraph paragraph-7"><p>(2) this is a second sub sub sub element<br /></p></div></li></ul></li><li><div class="openlaw-paragraph paragraph-8"><p>(ii) this is a second sub sub element<br /></p></div></li></ul></li></ul></li><li><div class="openlaw-paragraph paragraph-9"><p>3. this is a third element<br /></p></div><ul class="list-lvl-2"><li><div class="openlaw-paragraph paragraph-10"><p>(a) this is yet another sub element<br />      </p></div></li></ul></li></ul>""".stripMargin
 
     val result = forPreview(text)
     resultShouldBe(result, text2)
@@ -317,6 +317,17 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
   it should "be able to have pipe characters" in {
     val text = "This is a | test."
     resultShouldBe(forReview(text, Map("Var" -> "hello world")), """<p class="no-section">This is a | test.</p>""")
+  }
+
+  it should "handle pipe characters even when conditionals are present" in {
+    val text = "{{test \"Ttioje\" => ||a little test||}}"
+    resultShouldBe(forReview(text, Map(
+      "test" -> "true",
+    )), """<p class="no-section">||a little test||</p>""")
+
+    resultShouldBe(forReview(text, Map(
+      "test" -> "false"
+    )), """<p class="no-section"></p>""")
   }
 
   it should "be able to emphasize variables" in {
@@ -831,7 +842,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     val text="""{{Try "try this logic" => ^ This is a test}}""".stripMargin
 
     resultShouldBe(forPreview(text, Map("Try" -> "true")),
-    """<ul class="list-lvl-1"><li><div class="openlaw-paragraph paragraph-1"><p>1. <span class="markdown-conditional-block"> This is a test</span></p></div></li></ul>""")
+    """<div class="openlaw-paragraph paragraph-1"><p class="no-section"></p></div><ul class="list-lvl-1"><li><div class="openlaw-paragraph paragraph-2"><p>1.  This is a test</p></div></li></ul>""")
   }
 
   it should "handle decimals in constants as well" in {
