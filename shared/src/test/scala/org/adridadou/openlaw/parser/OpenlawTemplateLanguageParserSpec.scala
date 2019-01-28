@@ -831,7 +831,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     val text="""{{Try "try this logic" => ^ This is a test}}""".stripMargin
 
     resultShouldBe(forPreview(text, Map("Try" -> "true")),
-    """<ul class="list-lvl-1"><li><div class="openlaw-paragraph paragraph-1"><p>1. <span class="markdown-conditional-block"> This is a test</span></p></div></li></ul>""")
+    """<div class="openlaw-paragraph paragraph-1"><p class="no-section"></p></div><ul class="list-lvl-1"><li><div class="openlaw-paragraph paragraph-2"><p>1.  This is a test</p></div></li></ul>""")
   }
 
   it should "handle decimals in constants as well" in {

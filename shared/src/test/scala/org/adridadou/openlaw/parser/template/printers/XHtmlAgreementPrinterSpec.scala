@@ -142,7 +142,7 @@ class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues
 
     val agreement = structureAgreement(text, Map("if me" -> "true"))
     val html = service.forPreview(agreement.right.value, ParagraphEdits())
-    html shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="no-section">before the conditional<br /> <span class="markdown-conditional-block">in the conditional </span> after the conditional<br /> this too<br /></p></div><div class="openlaw-paragraph paragraph-2"><p class="no-section">yet another paragraph after the conditional</p></div>"""
+    html shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="no-section">before the conditional<br /></p></div><div class="openlaw-paragraph paragraph-2"><p class="no-section"><span class="markdown-conditional-block">in the conditional </span> after the conditional<br /> this too<br /></p></div><div class="openlaw-paragraph paragraph-3"><p class="no-section">yet another paragraph after the conditional</p></div>"""
   }
 
   it should "not highlight things after a conditional" in {
@@ -160,8 +160,7 @@ class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues
     engine.execute(template, TemplateParameters("if me" -> "true"), Map()) match {
       case Right(result) =>
         val text = service.forPreview(result.agreements.head, ParagraphEdits())
-        //text shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="no-section">wuefhweiufhweufih</p></div><div class="openlaw-paragraph paragraph-2"><p class="no-section"><span class="markdown-conditional-block">iweofjweiofjiweofjiweofj </span></p></div><div class="openlaw-paragraph paragraph-3"><p class="no-section"><span class="markdown-conditional-block">ewfiojwefioewjfio<br />weiofjewiofjewiofj</span></p></div>"""
-        text shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="no-section">before the conditional</p></div><div class="openlaw-paragraph paragraph-2"><p class="no-section"><span class="markdown-conditional-block">in the conditional </span></p></div><div class="openlaw-paragraph paragraph-3"><p class="no-section"><span class="markdown-conditional-block">after the conditional<br />this too<br /></span></p></div><div class="openlaw-paragraph paragraph-4"><p class="no-section"><span class="markdown-conditional-block">yet another paragraph after the conditional</span></p></div>"""
+        text shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="no-section">before the conditional</p></div><div class="openlaw-paragraph paragraph-2"><p class="no-section"><span class="markdown-conditional-block">in the conditional </span></p></div><div class="openlaw-paragraph paragraph-3"><p class="no-section">after the conditional<br />this too<br /></p></div><div class="openlaw-paragraph paragraph-4"><p class="no-section">yet another paragraph after the conditional</p></div>"""
       case Left(ex) => fail(ex)
     }
   }
