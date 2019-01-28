@@ -221,8 +221,9 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
 
         case FreeText(t: Text) =>
 
+          // This might be necessary for some cases, but has not been enabled yet
           // Consume any following text elements which are only newlines
-          xs.dropWhile { case element => element === FreeText(Text("\n")) }
+          //val remaining = xs.dropWhile(_ === FreeText(Text("\n")))
 
           // Generate text output
           val innerFrag = text(t.str)
