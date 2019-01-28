@@ -165,36 +165,4 @@ class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues
       case Left(ex) => fail(ex)
     }
   }
-
-  /*
-  it should "not fail with a stack overflow on a complex agreement" in {
-    //val text = Source.fromFile("/tmp/lsta.txt").getLines.mkString
-
-    val chars = scala.util.Random.alphanumeric
-
-    def createSection(depth: Int): String = {
-      val sectionIndent = (1 to depth).map(_ => "^").mkString("")
-      val text = chars.take(200).mkString("")
-      val string = s"$sectionIndent This is a section\n\n$text\n"
-      string
-    }
-
-    def nestSections(count: Int, maxDepth: Int, depth: Int = 1): String = depth match {
-      case x if x === maxDepth =>
-        (0 to count).map(_ => createSection(depth)).mkString("\n")
-      case _ =>
-        (0 to count).map { i =>
-          createSection(depth) + nestSections(count, maxDepth, depth + 1)
-        }.mkString("\n")
-    }
-
-    val text = nestSections(3, 5)
-
-    val template = service.compileTemplate(text).right.value
-    engine.execute(template, TemplateParameters(), Map()) match {
-      case Right(result) => fail("expected stack overflow")
-      case Left(ex) => ex should be("stack overflow")
-    }
-  }
-  */
 }
