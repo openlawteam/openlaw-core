@@ -81,7 +81,7 @@ class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues
   }
 
   it should "print a template title" in {
-    val html = XHtmlAgreementPrinter(false).printFragments(List(Title(TemplateTitle("title1"))), 0, false).print
+    val html = XHtmlAgreementPrinter(false).printFragments(List(Title(TemplateTitle("title1")))).print
     html shouldBe """<h1 class="signature-title">title1</h1>"""
   }
 
@@ -130,5 +130,38 @@ class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues
     val agreement = structureAgreement(text)
     val html = XHtmlAgreementPrinter(true).printParagraphs(agreement.right.value.paragraphs).print
     html shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="no-section">This is | a test.<br /><table class="markdown-table"><tr class="markdown-table-row"><th class="markdown-table-header">head1</th><th class="markdown-table-header">head2</th><th class="markdown-table-header">head3</th></tr><tr class="markdown-table-row"><td class="markdown-table-data"><span class="markdown-variable markdown-variable-var1">[[var1]]</span></td><td class="markdown-table-data">val12</td><td class="markdown-table-data">val13</td></tr><tr class="markdown-table-row"><td class="markdown-table-data">val21</td><td class="markdown-table-data">val22</td><td class="markdown-table-data">val23</td></tr><tr class="markdown-table-row"><td class="markdown-table-data"><span class="markdown-variable markdown-variable-var31">[[var31]]</span></td><td class="markdown-table-data">val32</td><td class="markdown-table-data">val33</td></tr><tr class="markdown-table-row"><td class="markdown-table-data">val41</td><td class="markdown-table-data">val42</td><td class="markdown-table-data">val43</td></tr></table>This is a test.</p></div>"""
+  }
+
+  it should "handle conditional block depth properly to have proper highlighting" in {
+    val text = """before the conditional
+    |
+    | {{ if me => in the conditional }} after the conditional
+    | this too
+    |
+    | yet another paragraph after the conditional""".stripMargin
+
+    val agreement = structureAgreement(text, Map("if me" -> "true"))
+    val html = service.forPreview(agreement.right.value, ParagraphEdits())
+    html shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="no-section">before the conditional<br /></p></div><div class="openlaw-paragraph paragraph-2"><p class="no-section"><span class="markdown-conditional-block">in the conditional </span> after the conditional<br /> this too<br /></p></div><div class="openlaw-paragraph paragraph-3"><p class="no-section">yet another paragraph after the conditional</p></div>"""
+  }
+
+  it should "not highlight things after a conditional" in {
+    val text = """before the conditional
+        |
+        |{{if me => in the conditional }}
+        |
+        |after the conditional
+        |this too
+        |
+        |
+        |yet another paragraph after the conditional""".stripMargin
+
+    val template = service.compileTemplate(text).right.value
+    engine.execute(template, TemplateParameters("if me" -> "true"), Map()) match {
+      case Right(result) =>
+        val text = service.forPreview(result.agreements.head, ParagraphEdits())
+        text shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="no-section">before the conditional</p></div><div class="openlaw-paragraph paragraph-2"><p class="no-section"><span class="markdown-conditional-block">in the conditional </span></p></div><div class="openlaw-paragraph paragraph-3"><p class="no-section">after the conditional<br />this too<br /></p></div><div class="openlaw-paragraph paragraph-4"><p class="no-section">yet another paragraph after the conditional</p></div>"""
+      case Left(ex) => fail(ex)
+    }
   }
 }

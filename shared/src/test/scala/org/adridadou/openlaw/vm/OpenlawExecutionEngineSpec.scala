@@ -649,7 +649,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         case Right(result) =>
           result.state shouldBe ExecutionFinished
           val text = parser.forReview(result.agreements.head,ParagraphEdits())
-          text shouldBe """<ul class="list-lvl-1"><li><p>1. <strong>Pre-employment Conditions.</strong></p><ul class="list-lvl-2"><li><p>(a) <em>Additional Agreements</em> Your acceptance of this offer and commencement of employment with the Company is contingent upon the execution, and delivery to an officer of the Company, prior to or on your Start Date,   .</p></li><li><p>(b) <em>Right to Work.</em> For purposes of</p></li><li><p>(c) <em>No Conflicting Obligations.</em> You understand and agree that by<br />      </p></li></ul></li></ul>"""
+          text shouldBe """<ul class="list-lvl-1"><li><p>1. <strong>Pre-employment Conditions.</strong></p><p></p><ul class="list-lvl-2"><li><p>(a) <em>Additional Agreements</em> Your acceptance of this offer and commencement of employment with the Company is contingent upon the execution, and delivery to an officer of the Company, prior to or on your Start Date,   .</p></li><li><p>(b) <em>Right to Work.</em> For purposes of</p></li><li><p>(c) <em>No Conflicting Obligations.</em> You understand and agree that by<br />      </p></li></ul></li></ul>"""
         case Left(ex) =>
           fail(ex)
       }
