@@ -320,7 +320,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
   }
 
   it should "handle pipe characters even when conditionals are present" in {
-    val text = "{{test \"Ttioje\" => ||a little test|| }}"
+    val text = "{{test \"Ttioje\" => ||a little test||}}"
     resultShouldBe(forReview(text, Map(
       "test" -> "true",
     )), """<p class="no-section">||a little test||</p>""")
