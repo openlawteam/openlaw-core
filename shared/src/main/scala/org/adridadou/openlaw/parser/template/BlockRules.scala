@@ -146,7 +146,7 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   }
 
   def textNoColons: Rule1[Seq[TemplatePart]] = rule {
-    capture(charactersNoColons) ~> ((s: String) => Seq(Text(TextCleaning.dots(s))))
+    capture(charactersNoColons | pipe) ~> ((s: String) => Seq(Text(TextCleaning.dots(s))))
   }
 
   def textWithStar: Rule1[Seq[TemplatePart]] = rule {

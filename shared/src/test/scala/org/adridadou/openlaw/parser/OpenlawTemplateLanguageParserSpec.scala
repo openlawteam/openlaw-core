@@ -319,6 +319,17 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     resultShouldBe(forReview(text, Map("Var" -> "hello world")), """<p class="no-section">This is a | test.</p>""")
   }
 
+  it should "handle pipe characters even when conditionals are present" in {
+    val text = "{{test \"Ttioje\" => ||a little test||}}"
+    resultShouldBe(forReview(text, Map(
+      "test" -> "true",
+    )), """<p class="no-section">||a little test||</p>""")
+
+    resultShouldBe(forReview(text, Map(
+      "test" -> "false"
+    )), """<p class="no-section"></p>""")
+  }
+
   it should "be able to emphasize variables" in {
     val text = "* [[Var]] * ** [[Var]] ** *** [[Var]] ***"
     resultShouldBe(forReview(text, Map("Var" -> "hello world")), """<p class="no-section"><em> hello world </em> <strong> hello world </strong> <strong><em> hello world </em></strong></p>""")
