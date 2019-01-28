@@ -184,7 +184,6 @@ class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues
         (0 to count).map(_ => createSection(depth)).mkString("\n")
       case _ =>
         (0 to count).map { i =>
-          if (depth === 1) println(s"count $i")
           createSection(depth) + nestSections(count, maxDepth, depth + 1)
         }.mkString("\n")
     }
@@ -192,7 +191,6 @@ class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues
     val text = nestSections(3, 5)
 
     val template = service.compileTemplate(text).right.value
-    println(s"template compiled")
     engine.execute(template, TemplateParameters(), Map()) match {
       case Right(result) => fail("expected stack overflow")
       case Left(ex) => ex should be("stack overflow")
