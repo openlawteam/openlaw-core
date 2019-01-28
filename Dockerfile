@@ -20,7 +20,7 @@ RUN apt-get install -y build-essential --fix-missing
 RUN curl -L -o sbt.deb http://dl.bintray.com/sbt/debian/sbt-1.2.6.deb && \
     dpkg -i sbt.deb
 
-# NodeJS
+# NodeJS (required for ScalaJS)
 RUN wget -O - https://nodejs.org/dist/v10.10.0/node-v10.10.0-linux-x64.tar.gz | tar xz && \
     mv node* node
 ENV PATH $PATH:/node/bin
