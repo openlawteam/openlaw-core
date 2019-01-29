@@ -66,7 +66,7 @@ lazy val publishSettings = Seq(
 
 lazy val releaseSettings = releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,              // : ReleaseStep
-  //inquireVersions,                        // : ReleaseStep
+  inquireVersions,                        // : ReleaseStep
   //setReleaseVersion,                      // : ReleaseStep
   //commitReleaseVersion,                   // : ReleaseStep, performs the initial git checks
   //tagRelease,                             // : ReleaseStep
