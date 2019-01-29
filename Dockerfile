@@ -27,6 +27,7 @@ ENV PATH $PATH:/node/bin
 
 # Cache
 FROM tools as cache
+
 COPY project /src/project
 RUN cd /src && \
     sbt update
@@ -34,25 +35,33 @@ RUN cd /src && \
 # build
 COPY . /src/
 
-FROM cache as test
+FROM cache as build
+
 WORKDIR /src
 ENV SBT_OPTS="-Xmx4G"
 
 RUN sbt compile
+
+FROM build as test
+
 RUN sbt coverage test
 RUN sbt coverageReport
 RUN sbt coverageAggregate
 
 ARG CODACY_PROJECT_TOKEN
 ENV CODACY_PROJECT_TOKEN=${CODACY_PROJECT_TOKEN}
+
 RUN sbt codacyCoverage
-#ARG GITHUB_PAT
-#ENV GITHUB_PAT=${GITHUB_PAT}
-#RUN git config --global url."https://${GITHUB_PAT}:@github.com/".insteadOf "https://github.com/"
-#RUN git remote set-url origin https://github.com/openlawteam/openlaw-core.git
-#RUN git config --global user.name "Jacqueline Outka"
-#RUN git config --global user.email "jacqueline@openlaw.io"
+
+FROM test as release
+
 ARG BINTRAY_USER
 ENV BINTRAY_USER=${BINTRAY_USER}
+
 ARG BINTRAY_PASS
 ENV BINTRAY_PASS=${BINTRAY_PASS}
+
+ARG RELEASE
+ENV RELEASE=${RELEASE}
+
+RUN if [ "$RELEASE" = "true" ]; then sbt 'project openlawCore' 'release with-defaults'; fi
