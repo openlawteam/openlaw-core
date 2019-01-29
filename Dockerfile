@@ -20,7 +20,7 @@ RUN apt-get install -y build-essential --fix-missing
 RUN curl -L -o sbt.deb http://dl.bintray.com/sbt/debian/sbt-1.2.6.deb && \
     dpkg -i sbt.deb
 
-# NodeJS
+# NodeJS (required for ScalaJS)
 RUN wget -O - https://nodejs.org/dist/v10.10.0/node-v10.10.0-linux-x64.tar.gz | tar xz && \
     mv node* node
 ENV PATH $PATH:/node/bin
@@ -46,12 +46,12 @@ RUN sbt coverageAggregate
 ARG CODACY_PROJECT_TOKEN
 ENV CODACY_PROJECT_TOKEN=${CODACY_PROJECT_TOKEN}
 RUN sbt codacyCoverage
-ARG GITHUB_PAT
-ENV GITHUB_PAT=${GITHUB_PAT}
-RUN git config --global url."https://${GITHUB_PAT}:@github.com/".insteadOf "https://github.com/"
-RUN git remote set-url origin https://github.com/openlawteam/openlaw-core.git
-RUN git config --global user.name "Jacqueline Outka"
-RUN git config --global user.email "jacqueline@openlaw.io"
+#ARG GITHUB_PAT
+#ENV GITHUB_PAT=${GITHUB_PAT}
+#RUN git config --global url."https://${GITHUB_PAT}:@github.com/".insteadOf "https://github.com/"
+#RUN git remote set-url origin https://github.com/openlawteam/openlaw-core.git
+#RUN git config --global user.name "Jacqueline Outka"
+#RUN git config --global user.email "jacqueline@openlaw.io"
 ARG BINTRAY_USER
 ENV BINTRAY_USER=${BINTRAY_USER}
 ARG BINTRAY_PASS
