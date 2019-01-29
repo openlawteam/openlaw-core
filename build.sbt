@@ -66,14 +66,14 @@ lazy val publishSettings = Seq(
 
 lazy val releaseSettings = releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,              // : ReleaseStep
-  inquireVersions,                        // : ReleaseStep
-  setReleaseVersion,                      // : ReleaseStep
-  commitReleaseVersion,                   // : ReleaseStep, performs the initial git checks
+  //inquireVersions,                        // : ReleaseStep
+  //setReleaseVersion,                      // : ReleaseStep
+  //commitReleaseVersion,                   // : ReleaseStep, performs the initial git checks
   tagRelease,                             // : ReleaseStep
   releaseStepCommandAndRemaining("publish"),
-  //publishArtifacts,                       // : ReleaseStep,
-  setNextVersion,                         // : ReleaseStep
-  commitNextVersion,                      // : ReleaseStep
+  publishArtifacts,                       // : ReleaseStep,
+  //setNextVersion,                         // : ReleaseStep
+  //commitNextVersion,                      // : ReleaseStep
   pushChanges                             // : ReleaseStep, also checks that an upstream branch is properly configured
 )
 
