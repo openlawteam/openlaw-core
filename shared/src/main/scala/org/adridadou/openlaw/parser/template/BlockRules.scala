@@ -153,9 +153,13 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
     capture(em | pipe | characters) ~> ((s: String) => Seq(Text(TextCleaning.dots(s))))
   }
 
+  def tableText: Rule1[TemplatePart] = rule {
+    capture(noneOf(pipe + nl)) ~> ((s: String) => Text(TextCleaning.dots(s.trim)))
+  }
+
   def whitespace:Rule0 = rule { zeroOrMore(anyOf(tabOrSpace)) }
-  def tableColumnEntryBlock: Rule1[Seq[TemplatePart]] = rule { oneOrMore(varAliasKey | varKey | varMemberKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey) }
-  def tableColumnEntryText: Rule1[Seq[TemplatePart]] = rule { capture(oneOrMore(noneOf(pipe + nl))) ~> ((s: String) => Seq(Text(TextCleaning.dots(s.trim)))) }
+  def tableColumnEntryBlock: Rule1[Seq[TemplatePart]] = rule { oneOrMore(varAliasKey | varKey | varMemberKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | tableText) }
+  def tableColumnEntryText: Rule1[Seq[TemplatePart]] = rule { oneOrMore(tableText) }
 
   def table: Rule1[Seq[Table]] = rule {
     tableHeader ~ nl ~ oneOrMore(tableRow ~ (nl | EOI)) ~> ((headers: Seq[Seq[TemplatePart]], rows: Seq[Seq[Seq[TemplatePart]]]) => Seq(Table(headers.map(_.toList).toList, rows.map(_.map(_.toList).toList).toList)))
