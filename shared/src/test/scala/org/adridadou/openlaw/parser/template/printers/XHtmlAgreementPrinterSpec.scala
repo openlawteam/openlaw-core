@@ -132,7 +132,7 @@ class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues
     html shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="no-section">This is | a test.<br /><table class="markdown-table"><tr class="markdown-table-row"><th class="markdown-table-header">head1</th><th class="markdown-table-header">head2</th><th class="markdown-table-header">head3</th></tr><tr class="markdown-table-row"><td class="markdown-table-data"><span class="markdown-variable markdown-variable-var1">[[var1]]</span></td><td class="markdown-table-data">val12</td><td class="markdown-table-data">val13</td></tr><tr class="markdown-table-row"><td class="markdown-table-data">val21</td><td class="markdown-table-data">val22</td><td class="markdown-table-data">val23</td></tr><tr class="markdown-table-row"><td class="markdown-table-data"><span class="markdown-variable markdown-variable-var31">[[var31]]</span></td><td class="markdown-table-data">val32</td><td class="markdown-table-data">val33</td></tr><tr class="markdown-table-row"><td class="markdown-table-data">val41</td><td class="markdown-table-data">val42</td><td class="markdown-table-data">val43</td></tr></table>This is a test.</p></div>"""
   }
 
-  it should "handle table with a variables with text prefixe" in {
+  it should "handle table with a variables with text prefixes" in {
     val text = """
       || head1 | head2 |
       || ----- | ----- |
