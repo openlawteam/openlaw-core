@@ -68,14 +68,14 @@ lazy val publishSettings = Seq(
 lazy val releaseSettings = releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,              // : ReleaseStep
   inquireVersions,                        // : ReleaseStep
-  setReleaseVersion,                      // : ReleaseStep
-  commitReleaseVersion,                   // : ReleaseStep, performs the initial git checks
-  tagRelease,                             // : ReleaseStep
-  releaseStepCommandAndRemaining("publish"),
-  //publishArtifacts,                       // : ReleaseStep,
-  setNextVersion,                         // : ReleaseStep
-  commitNextVersion,                      // : ReleaseStep
-  pushChanges                             // : ReleaseStep, also checks that an upstream branch is properly configured
+  //setReleaseVersion,                      // : ReleaseStep
+  //commitReleaseVersion,                   // : ReleaseStep, performs the initial git checks
+  //tagRelease,                             // : ReleaseStep
+  //releaseStepCommandAndRemaining("publish"),
+  publishArtifacts,                       // : ReleaseStep,
+  //setNextVersion,                         // : ReleaseStep
+  //commitNextVersion,                      // : ReleaseStep
+  //pushChanges                             // : ReleaseStep, also checks that an upstream branch is properly configured
 )
 
 val rules = Seq(Wart.ArrayEquals, Wart.OptionPartial, Wart.EitherProjectionPartial, Wart.Enumeration, Wart.ExplicitImplicitTypes, Wart.FinalVal, Wart.JavaConversions, Wart.JavaSerializable, Wart.LeakingSealed)

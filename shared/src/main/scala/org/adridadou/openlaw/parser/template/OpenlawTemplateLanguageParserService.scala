@@ -139,7 +139,7 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
 
   def forReviewParagraph(str: String): String = MarkdownParser.parseMarkdown(str) match {
     case Left(ex) => throw new RuntimeException("error while parsing the markdown:" + ex)
-    case Right(result) => XHtmlAgreementPrinter(preview = false).printFragments(result.map(FreeText).toList, 0, inSection = false).print
+    case Right(result) => XHtmlAgreementPrinter(preview = false).printFragments(result.map(FreeText).toList).print
   }
 
   def render[T](structuredAgreement: StructuredAgreement, overriddenParagraphs:ParagraphEdits, agreementPrinter: AgreementPrinter[T], hiddenVariables:Set[String]):AgreementPrinter[T] =
