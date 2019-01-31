@@ -153,9 +153,18 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
     capture(em | pipe | characters) ~> ((s: String) => Seq(Text(TextCleaning.dots(s))))
   }
 
+  def tableText: Rule1[TemplatePart] = rule {
+    capture(noneOf(pipe + nl)) ~> ((s: String) => Text(s))
+  }
+
+  // the table parsing construct below may return empty whitespace at the end of the cell, this trims it
+  def trim(seq: Seq[TemplatePart]): Seq[TemplatePart] = seq.lastOption match {
+    case Some(Text(" ")) => seq.take(seq.size - 1)
+    case _ => seq
+  }
+
   def whitespace:Rule0 = rule { zeroOrMore(anyOf(tabOrSpace)) }
-  def tableColumnEntryBlock: Rule1[Seq[TemplatePart]] = rule { oneOrMore(varAliasKey | varKey | varMemberKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey) }
-  def tableColumnEntryText: Rule1[Seq[TemplatePart]] = rule { capture(oneOrMore(noneOf(pipe + nl))) ~> ((s: String) => Seq(Text(TextCleaning.dots(s.trim)))) }
+  def tableColumnEntryBlock: Rule1[Seq[TemplatePart]] = rule { oneOrMore(varAliasKey | varKey | varMemberKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | tableText) ~> ((seq: Seq[TemplatePart]) => trim(seq))  }
 
   def table: Rule1[Seq[Table]] = rule {
     tableHeader ~ nl ~ oneOrMore(tableRow ~ (nl | EOI)) ~> ((headers: Seq[Seq[TemplatePart]], rows: Seq[Seq[Seq[TemplatePart]]]) => Seq(Table(headers.map(_.toList).toList, rows.map(_.map(_.toList).toList).toList)))
@@ -164,7 +173,7 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   def tableHeader: Rule1[Seq[Seq[TemplatePart]]] = rule { tableRow ~ nl ~ tableHeaderBreak }
   def tableHeaderBreak: Rule0 = rule { whitespace ~ optional(pipe) ~ oneOrMore(tableHeaderBreakString).separatedBy(pipe) ~ optional(pipe) ~ whitespace }
 
-  def tableColumnEntry: Rule1[Seq[TemplatePart]] = rule { whitespace ~ (tableColumnEntryBlock | tableColumnEntryText) ~ whitespace }
+  def tableColumnEntry: Rule1[Seq[TemplatePart]] = rule { whitespace ~ tableColumnEntryBlock ~ whitespace }
   def tableRow: Rule1[Seq[Seq[TemplatePart]]] = rule { whitespace ~ optional(pipe) ~ (tableColumnEntry ~ pipe ~ oneOrMore(tableColumnEntry).separatedBy(pipe) ~> ((row: Seq[TemplatePart], remaining: Seq[Seq[TemplatePart]]) => row +: remaining)) ~ optional(pipe) ~ whitespace}
 
   def tableHeaderBreakString: Rule0 = rule {

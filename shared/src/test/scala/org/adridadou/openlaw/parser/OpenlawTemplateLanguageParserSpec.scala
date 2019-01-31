@@ -58,8 +58,6 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     val agreement = template.asInstanceOf[CompiledAgreement]
     val tableElement = structureAgreement(text).map(_.paragraphs(0).elements.head).right.value
     tableElement shouldBe a [TableElement]
-    tableElement.asInstanceOf[TableElement].header should contain inOrderOnly (Seq(FreeText(Text("head1"))), Seq(FreeText(Text("head2"))), Seq(FreeText(Text("head3"))))
-
     resultShouldBe(forReview(text), """<p class="no-section"><table class="markdown-table"><tr class="markdown-table-row"><th class="markdown-table-header">head1</th><th class="markdown-table-header">head2</th><th class="markdown-table-header">head3</th></tr><tr class="markdown-table-row"><td class="markdown-table-data">val11</td><td class="markdown-table-data">val12</td><td class="markdown-table-data">val13</td></tr><tr class="markdown-table-row"><td class="markdown-table-data">val21</td><td class="markdown-table-data">val22</td><td class="markdown-table-data">val23</td></tr></table></p>""")
   }
 
