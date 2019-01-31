@@ -1,6 +1,5 @@
 package org.adridadou.openlaw.vm
 
-import java.io.File
 import java.time.Clock
 
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
@@ -9,8 +8,6 @@ import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.values.{TemplateParameters, TemplateTitle}
 import org.scalatest.{FlatSpec, Matchers}
 import play.api.libs.json.Json
-
-import scala.io.Source
 
 class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
@@ -693,6 +690,27 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         result.state shouldBe ExecutionFinished
         val text = parser.forReview(result.agreements.head,ParagraphEdits())
         text shouldBe """<ul class="list-lvl-1"><li><p>1.  hello</p><p>finishing [[my]] friend</p></li></ul>"""
+      case Left(ex) =>
+        fail(ex)
+    }
+  }
+
+  it should "give us the proper type for choices" in {
+    val template = compile(
+      """
+        |[[Choice Type:Choice("hello","world")]]
+        |
+        |[[var:Choice Type]]
+      """.stripMargin)
+
+    engine.execute(template, TemplateParameters("var" -> "hello"), Map()) match {
+      case Right(result) =>
+        result.state shouldBe ExecutionFinished
+        val Some(variable) = result.getVariable("var")
+        variable.varType(result).getTypeClass shouldBe classOf[String]
+
+        variable.evaluate(result) shouldBe Some("hello")
+
       case Left(ex) =>
         fail(ex)
     }
