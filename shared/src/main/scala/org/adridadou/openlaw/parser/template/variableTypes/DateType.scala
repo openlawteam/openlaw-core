@@ -1,6 +1,6 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
-import java.time.format.{DateTimeFormatter, TextStyle}
+import java.time.format.TextStyle
 import java.time._
 import java.util.Locale
 
@@ -84,9 +84,6 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => L
   override def getFormatter(formatter:FormatterDefinition, executionResult:TemplateExecutionResult): Formatter = formatter.name.toLowerCase match {
     case "date" => new SimpleDateFormatter
     case "datetime" => new SimpleDateTimeFormatter
-    case "year" => new YearFormatter
-    case "dayofweek" => new DayOfWeekFormatter
-    case "day" => new DayFormatter
     case _ => throw new RuntimeException(s"unknown formatter $formatter for type $varTypeName")
   }
 
@@ -155,17 +152,6 @@ object DateConverter {
     }
   }
 }
-
-class PatternFormat(pattern: String) extends Formatter {
-  val formatter = DateTimeFormatter.ofPattern(pattern, Locale.ENGLISH)
-  override def format(value: Any, executionResult: TemplateExecutionResult): Either[String, Seq[AgreementElement]] = DateHelper.convertToDate(value, executionResult.clock).map(zonedDate => {
-    Seq(FreeText(Text(formatter.format(zonedDate))))
-  })
-}
-
-class YearFormatter extends PatternFormat("yyyy")
-class DayFormatter extends PatternFormat("dd")
-class DayOfWeekFormatter extends PatternFormat("EEEE")
 
 class SimpleDateFormatter extends Formatter {
   override def format(value: Any, executionResult: TemplateExecutionResult): Either[String, Seq[AgreementElement]] = DateHelper.convertToDate(value, executionResult.clock).map(zonedDate => {
