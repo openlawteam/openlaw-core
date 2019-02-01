@@ -712,6 +712,14 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     )), """<p class="no-section">January 2, 2018 10:10:00</p>""")
   }
 
+  it should "format dates with built in formatters" in {
+    resultShouldBe(forReview("""[[date:DateTime("2017-06-24 13:45:00") | year]]""",Map()), """<p class="no-section">2017</p>""")
+    resultShouldBe(forReview("""[[date:DateTime("2017-06-24 13:45:00") | day]]""",Map()), """<p class="no-section">24</p>""")
+    resultShouldBe(forReview("""[[date:DateTime("2017-06-24 13:45:00") | day_name]]""",Map()), """<p class="no-section">Saturday</p>""")
+    resultShouldBe(forReview("""[[date:DateTime("2017-06-24 13:45:00") | month]]""",Map()), """<p class="no-section">6</p>""")
+    resultShouldBe(forReview("""[[date:DateTime("2017-06-24 13:45:00") | month_name]]""",Map()), """<p class="no-section">June</p>""")
+  }
+
   it should "handle a set of conditionals " in {
     val text=
       """{{
