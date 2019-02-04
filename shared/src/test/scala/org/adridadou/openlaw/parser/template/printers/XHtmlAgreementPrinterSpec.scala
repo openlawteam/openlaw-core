@@ -3,11 +3,13 @@ package org.adridadou.openlaw.parser.template.printers
 import java.time.Clock
 
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
+import org.adridadou.openlaw.result.Implicits.{failureCause2Exception, RichEither}
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.values.{TemplateParameters, TemplateTitle}
 import org.adridadou.openlaw.vm.OpenlawExecutionEngine
 import org.adridadou.openlaw.parser.template.printers.XHtmlAgreementPrinter.FragsPrinter
+import org.adridadou.openlaw.result.{Failure, Result}
 import org.scalatest._
 
 class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues {
@@ -16,19 +18,19 @@ class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues
   private val service = new OpenlawTemplateLanguageParserService(clock)
   private val engine = new OpenlawExecutionEngine
 
-  private def structureAgreement(text:String, p:Map[String, String] = Map(), templates:Map[TemplateSourceIdentifier, CompiledTemplate] = Map()):Either[String, StructuredAgreement] = compiledTemplate(text).flatMap({
+  private def structureAgreement(text:String, p:Map[String, String] = Map(), templates:Map[TemplateSourceIdentifier, CompiledTemplate] = Map()):Result[StructuredAgreement] = compiledTemplate(text).toResult.flatMap({
     case agreement:CompiledAgreement =>
       val params = p.map({case (k,v) => VariableName(k) -> v})
       engine.execute(agreement, TemplateParameters(params), templates).map(agreement.structuredMainTemplate)
     case _ =>
-      Left("was expecting agreement")
+      Failure("was expecting agreement")
   })
 
   private def compiledTemplate(text:String):Either[String, CompiledTemplate] = service.compileTemplate(text)
 
-  private def forReview(text:String, params:Map[String, String] = Map(), paragraphs:ParagraphEdits = ParagraphEdits(Map())):Either[String, String] =
+  private def forReview(text:String, params:Map[String, String] = Map(), paragraphs:ParagraphEdits = ParagraphEdits(Map())):Result[String] =
     structureAgreement(text,params).map(service.forReview(_, paragraphs))
-  private def forPreview(text:String, params:Map[String, String] = Map(), paragraphs:ParagraphEdits = ParagraphEdits(Map())):Either[String, String] =
+  private def forPreview(text:String, params:Map[String, String] = Map(), paragraphs:ParagraphEdits = ParagraphEdits(Map())):Result[String] =
     structureAgreement(text,params).map(service.forPreview(_, paragraphs))
 
   private def resultShouldBe(result:Either[String, String], expected:String): Unit = result match {

@@ -9,6 +9,7 @@ import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.values.{ContractDefinition, ContractId, TemplateId, TemplateParameters}
 import org.adridadou.openlaw.oracles._
+import org.adridadou.openlaw.result.{Result, Success}
 import slogging.LazyLogging
 
 import scala.reflect.ClassTag
@@ -67,7 +68,7 @@ case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
         this.copy(optExecutionResult = Some(newResult))
 
       case Left(ex) =>
-        logger.warn(ex)
+        logger.warn(ex.message, ex.e)
         this
     }).getOrElse(this).copy(
       templates = templates,
@@ -75,9 +76,9 @@ case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
     )
   }
 
-  private def executeContract(currentTemplates:Map[TemplateId, CompiledTemplate], execution: TemplateExecutionResult):Either[String,TemplateExecutionResult] = execution.state match {
+  private def executeContract(currentTemplates:Map[TemplateId, CompiledTemplate], execution: TemplateExecutionResult):Result[TemplateExecutionResult] = execution.state match {
     case ExecutionFinished =>
-      Right(execution)
+      Success(execution)
 
     case _ =>
       val templates = definition.templates.flatMap({case (templateDefinition, id) => currentTemplates.get(id).map(templateDefinition -> _)})
@@ -94,7 +95,7 @@ case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
       case Some(Right(result)) =>
         Some(result)
       case Some(Left(ex)) =>
-        logger.warn(ex)
+        logger.warn(ex.message, ex.e)
         None
     }
   }

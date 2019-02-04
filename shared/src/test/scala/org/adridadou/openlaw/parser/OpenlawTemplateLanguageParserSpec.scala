@@ -1,10 +1,12 @@
 package org.adridadou.openlaw.parser
 
 import java.time.{Clock, LocalDateTime, ZoneOffset}
-
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
+import org.adridadou.openlaw.result.Implicits.failureCause2Exception
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes._
+import org.adridadou.openlaw.result.{Failure, Result}
+import org.adridadou.openlaw.result.Implicits.RichEither
 import org.adridadou.openlaw.values.TemplateParameters
 import org.adridadou.openlaw.vm.OpenlawExecutionEngine
 import org.scalatest._
@@ -18,12 +20,12 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
   private val service = new OpenlawTemplateLanguageParserService(clock)
   private val engine = new OpenlawExecutionEngine
 
-  private def structureAgreement(text:String, p:Map[String, String] = Map(), templates:Map[TemplateSourceIdentifier, CompiledTemplate] = Map()):Either[String, StructuredAgreement] = compiledTemplate(text).flatMap({
+  private def structureAgreement(text:String, p:Map[String, String] = Map(), templates:Map[TemplateSourceIdentifier, CompiledTemplate] = Map()):Result[StructuredAgreement] = compiledTemplate(text).toResult.flatMap({
     case agreement:CompiledAgreement =>
       val params = p.map({case (k,v) => VariableName(k) -> v})
       engine.execute(agreement, TemplateParameters(params), templates).map(agreement.structuredMainTemplate)
     case _ =>
-      Left("was expecting agreement")
+      Failure("was expecting agreement")
   })
 
   private def compiledTemplate(text:String):Either[String, CompiledTemplate] = service.compileTemplate(text)
@@ -34,15 +36,15 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     case Left(ex) => Left(ex)
   }
 
-  private def forReview(text:String, params:Map[String, String] = Map(), paragraphs:ParagraphEdits = ParagraphEdits(Map())):Either[String, String] =
+  private def forReview(text:String, params:Map[String, String] = Map(), paragraphs:ParagraphEdits = ParagraphEdits(Map())):Result[String] =
     structureAgreement(text,params).map(service.forReview(_, paragraphs))
-  private def forPreview(text:String, params:Map[String, String] = Map(), paragraphs:ParagraphEdits = ParagraphEdits(Map())):Either[String, String] =
+  private def forPreview(text:String, params:Map[String, String] = Map(), paragraphs:ParagraphEdits = ParagraphEdits(Map())):Result[String] =
     structureAgreement(text,params).map(service.forPreview(_, paragraphs))
 
-  private def resultShouldBe(result:Either[String, String], expected:String): Unit = result match {
+  private def resultShouldBe(result:Result[String], expected:String): Unit = result match {
     case Right(actual) if actual === expected=>
     case Right(actual) => throw new RuntimeException(s"$actual should be $expected")
-    case Left(ex) => throw new RuntimeException(ex)
+    case Left(f) => throw new RuntimeException(f)
   }
 
   "Markdown parser service" should "handle tables" in {
@@ -473,7 +475,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     val clauseText = "This is my clause. [[contractor:Number(\"Hello my friend\")]]"
 
     structureAgreement(clauseText) match {
-      case Left(ex) => ex shouldBe "the constructor type should be Number but is Text"
+      case Left(ex) => ex.message shouldBe "the constructor type should be Number but is Text"
       case Right(_) => fail("should fail")
     }
   }
@@ -572,7 +574,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
 
     structureAgreement(text) match {
       case Left(ex) =>
-        ex shouldEqual "alias expression uses undefined variables var3"
+        ex.message shouldEqual "alias expression uses undefined variables var3"
       case Right(_) =>
         fail("this should fail")
     }
@@ -584,7 +586,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
 
     structureAgreement(text) match {
       case Left(ex) =>
-        ex shouldEqual "alias expression uses undefined variables var2"
+        ex.message shouldEqual "alias expression uses undefined variables var2"
       case Right(_) =>
         fail("this should fail")
     }
@@ -607,7 +609,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
 
     structureAgreement(text) match {
       case Left(ex) =>
-        ex shouldEqual "alias expression uses undefined variables b"
+        ex.message shouldEqual "alias expression uses undefined variables b"
       case Right(_) =>
         fail(s"this should fail")
     }
@@ -619,7 +621,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
 
     structureAgreement(text) match {
       case Left(ex) =>
-        ex shouldEqual "error while processing the new variable var2. The variables \"var3\" are used in the constructor but have not been defined"
+        ex.message shouldEqual "error while processing the new variable var2. The variables \"var3\" are used in the constructor but have not been defined"
       case Right(_) =>
         fail(s"this should fail")
     }
@@ -673,7 +675,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
 
     structureAgreement(text) match {
       case Left(ex) =>
-        ex shouldBe "left and right expression are of incompatible types.Number & Text in Var 1 & Var 2"
+        ex.message shouldBe "left and right expression are of incompatible types.Number & Text in Var 1 & Var 2"
       case Right(_) =>
         fail("should fail")
     }
@@ -1166,7 +1168,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
 
     structureAgreement(text) match {
       case Right(_) => fail("should fail")
-      case Left(msg) => msg shouldBe "property 'badProperty' not found for type Address"
+      case Left(msg) => msg.message shouldBe "property 'badProperty' not found for type Address"
     }
   }
 
@@ -1217,7 +1219,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     structureAgreement(text) match {
       case Right(_) =>
         fail("should fail")
-      case Left(ex) => ex shouldBe "Conditional expression number+401 is of type NumberType instead of YesNo"
+      case Left(ex) => ex.message shouldBe "Conditional expression number+401 is of type NumberType instead of YesNo"
     }
   }
 
@@ -1241,7 +1243,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
       case Right(_) =>
         fail("should fail")
       case Left(ex) =>
-        ex shouldBe "error while processing the new variable City. The variable has type My City but it does not exist"
+        ex.message shouldBe "error while processing the new variable City. The variable has type My City but it does not exist"
     }
   }
 
@@ -1269,7 +1271,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
       """.stripMargin
 
     val result = structureAgreement(text, Map("option" -> "four"))
-    result shouldBe Left("the value four is not part of the type Options")
+    result.left.value.message shouldBe "the value four is not part of the type Options"
   }
 
   it should "allow specifying values from a structure" in {
