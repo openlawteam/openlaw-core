@@ -17,11 +17,11 @@ object FailureCause {
 }
 
 case class FailureException(override val e: Exception, idOpt: Option[String] = None) extends FailureCause {
-  override val id = idOpt.getOrElse(e.getClass.getCanonicalName)
+  override val id = idOpt.getOrElse(message)
 }
 
 case class FailureMessage(override val message: String, idOpt: Option[String] = None) extends FailureCause {
   override val e = new RuntimeException(message)
-  override val id = idOpt.getOrElse(e.getClass.getCanonicalName)
+  override val id = idOpt.getOrElse(message)
 }
 

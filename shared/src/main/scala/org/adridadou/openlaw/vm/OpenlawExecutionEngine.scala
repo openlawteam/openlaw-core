@@ -45,7 +45,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
               newResult
             }
         case _ =>
-          Right(newResult)
+          Success(newResult)
       }
     })
   }
@@ -107,23 +107,23 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
           parent
         })
 
-      }).getOrElse(Right(parent)) map (_.copy(state = ExecutionReady))
+      }).getOrElse(Success(parent)) map (_.copy(state = ExecutionReady))
 
-    }).getOrElse(Right(executionResult))
+    }).getOrElse(Success(executionResult))
   }
 
   private final def executeInternal(execution: TemplateExecutionResult, templates:Map[TemplateSourceIdentifier, CompiledTemplate]): Result[TemplateExecutionResult] = {
     execution.embeddedExecutions.headOption match {
       case Some(embeddedExecution) =>
         execution.embeddedExecutions.remove(0)
-        Right(embeddedExecution)
+        Success(embeddedExecution)
       case _ =>
         execution.remainingElements.headOption match {
           case Some(elem) =>
             execution.remainingElements.remove(0)
             processExecutedElement(execution, elem, templates)
           case None =>
-            Right(execution.copy(state = ExecutionFinished))
+            Success(execution.copy(state = ExecutionFinished))
         }
     }
   }
@@ -148,7 +148,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
 
     case TemplateText(elems) =>
       executionResult.remainingElements.prependAll(elems)
-      Right(executionResult)
+      Success(executionResult)
 
     case ConditionalBlock(subBlock, elseSubBlock, expr) =>
       executeConditionalBlock(executionResult, templates, subBlock, elseSubBlock, expr)
@@ -164,11 +164,11 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       executeConditionalBlockSet(executionResult, blocks)
 
     case CodeBlock(elems) =>
-      val initialValue:Result[TemplateExecutionResult] = Right(executionResult)
+      val initialValue:Result[TemplateExecutionResult] = Success(executionResult)
       elems.foldLeft(initialValue)((exec, elem) => exec.flatMap(processCodeElement(_, templates, elem)))
 
     case section:VariableSection =>
-      val initialValue:Result[TemplateExecutionResult] = Right(executionResult)
+      val initialValue:Result[TemplateExecutionResult] = Success(executionResult)
       section.variables
         .foldLeft(initialValue)((exec, variableDefinition) => exec.flatMap(processVariable(_, variableDefinition, executed = true)))
         .flatMap(processVariableSection(_, section))
@@ -178,7 +178,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       processSection(section, executionResult)
 
     case _ =>
-      Right(executionResult)
+      Success(executionResult)
   }
 
   private def generateFullSectionValue(section:Section, sectionValue:String, executionResult: TemplateExecutionResult):String = {
@@ -279,8 +279,8 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     blocks.find(_.conditionalExpression.evaluate(executionResult).exists(VariableType.convert[Boolean]))
       .map(subBlock => {
         executionResult.remainingElements.prependAll(subBlock.block.elems)
-        Right(executionResult)
-      }).getOrElse(Right(executionResult))
+        Success(executionResult)
+      }).getOrElse(Success(executionResult))
   }
 
   private def getRoot(parent:TemplateExecutionResult):TemplateExecutionResult = parent.parentExecution match {
@@ -345,7 +345,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       processVariableSection(executionResult, section)
 
     case _ =>
-      Right(executionResult)
+      Success(executionResult)
   }
 
   private def processConditionalBlockSet(executionResult: TemplateExecutionResult, blocks: Seq[ConditionalBlock]) = {
@@ -364,7 +364,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       case None =>
     }
 
-    Right(executionResult)
+    Success(executionResult)
   }
 
   private def processConditionalBlock(executionResult: TemplateExecutionResult, block: Block, elseBlock:Option[Block], expression: Expression, templates:Map[TemplateSourceIdentifier, CompiledTemplate]):Result[TemplateExecutionResult] = {
@@ -392,10 +392,10 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       case Some(mappingExpression:MappingExpression) =>
         if(executed) {
           executionResult.parentExecution.map(parent => {
-            val initialValue:Either[String, TemplateExecutionResult] = Right(parent)
+            val initialValue:Result[TemplateExecutionResult] = Success(parent)
             mappingExpression.expression.variables(parent)
               .flatMap(name => parent.getVariable(name))
-              .foldLeft(initialValue)((parentExecution,subVariable) => parentExecution.flatMap(pe => executeVariable(pe, subVariable)))
+              .foldLeft(initialValue)((parentExecution,subVariable) => parentExecution.flatMap(pe => executeVariable(pe, subVariable).toResult))
           })
         }
         Success(executionResult)
@@ -469,7 +469,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
             elseSubBlock.map(_.elems).map(elems => {
               executionResult.remainingElements.prependAll(elems)
               Success(executionResult)
-            }).getOrElse(Right(executionResult))
+            }).getOrElse(Success(executionResult))
           }
         }else {
           Failure(s"Conditional expression $expr is of type $exprType instead of YesNo")
