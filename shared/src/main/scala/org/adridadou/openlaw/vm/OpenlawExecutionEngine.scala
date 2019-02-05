@@ -59,6 +59,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       case ExecutionFinished =>
         executionResult.parentExecution match {
           case Some(_) =>
+            // has to be in a matcher for tail call optimization
             attempt(finishExecution(executionResult, templates)).flatten match {
               case Success(result) => resumeExecution(result, templates)
               case f => f
@@ -70,6 +71,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       case ExecutionWaitForTemplate(variableName, identifier) =>
         templates.get(identifier) match {
           case Some(template) =>
+            // has to be in a matcher for tail call optimization
             attempt(executionResult.startTemplateExecution(variableName, template)).flatMap(_.toResult) match {
               case Success(result) => resumeExecution(result, templates)
               case f => f
@@ -78,6 +80,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
         }
 
       case ExecutionReady =>
+        // has to be in a matcher for tail call optimization
         executeInternal(executionResult, templates) match {
           case Success(result) => resumeExecution(result, templates)
           case f => f

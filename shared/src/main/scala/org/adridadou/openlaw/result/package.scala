@@ -3,6 +3,10 @@ package org.adridadou.openlaw
 import cats.data.Validated.Invalid
 import cats.data.{NonEmptyList, ValidatedNel}
 import cats.data.NonEmptyList.one
+import org.adridadou.openlaw.result.Implicits.RichTry
+
+import scala.util.Try
+import scala.util.control.NonFatal
 
 package object result {
 
@@ -12,15 +16,11 @@ package object result {
   type Failure[Nothing] = Left[FailureCause, Nothing]
   type Success[+A] = Right[FailureCause, A]
 
-  def attempt[A](f: => A): Result[A] = try {
-    Success(f)
-  } catch {
-    case e: Exception => Failure(e)
-  }
+  def attempt[A](f: => A): Result[A] = Try(f).toResult
 
-  def handleFatalError(t: Throwable): Result[Nothing] = t match {
-    case e: Exception => Failure(e)
-    case e: Error => throw e
+  def handleFatalErrors(t: Throwable): Result[Nothing] = t match {
+    case NonFatal(e: Exception) => Failure(e)
+    case e => throw e
   }
 }
 

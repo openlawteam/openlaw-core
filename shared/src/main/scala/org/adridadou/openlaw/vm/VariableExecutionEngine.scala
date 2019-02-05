@@ -4,7 +4,7 @@ import cats.implicits._
 import org.adridadou.openlaw.result.Implicits.RichEither
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes._
-import org.adridadou.openlaw.result.{Failure, handleFatalError, Result, Success}
+import org.adridadou.openlaw.result.{Failure, handleFatalErrors, Result, Success}
 
 trait VariableExecutionEngine {
 
@@ -25,7 +25,7 @@ trait VariableExecutionEngine {
           currentVariable.defaultValue.map(_.variables(executionResult)).getOrElse(Seq())
             .filter(newVariable => executionResult.getVariable(newVariable.name).isEmpty).toList match {
             case Nil =>
-              variable.verifyConstructor(executionResult).left.flatMap(handleFatalError).flatMap { _ =>
+              variable.verifyConstructor(executionResult).left.flatMap(handleFatalErrors).flatMap { _ =>
                 if (executed) {
                   executeVariable(executionResult, currentVariable).toResult
                 } else {
@@ -141,12 +141,12 @@ trait VariableExecutionEngine {
         variable.defaultValue.map(param => ChoiceType.construct(param, executionResult)) match {
           case Some(Right(Some(choices))) =>
             executionResult.registerNewType(ChoiceType.generateType(variable.name, choices)).map(_ => true).toResult
-          case Some(Left(ex)) => handleFatalError(ex)
+          case Some(Left(ex)) => handleFatalErrors(ex)
           case _ =>
             Failure(s"the new type ${variable.name.name} could not be executed properly")
         }
       case AbstractStructureType =>
-        variable.constructT[Structure](executionResult).left.flatMap(handleFatalError).flatMap {
+        variable.constructT[Structure](executionResult).left.flatMap(handleFatalErrors).flatMap {
           case Some(structure) =>
             executionResult.registerNewType(AbstractStructureType.generateType(variable.name, structure)).map(_ => true).toResult
           case None =>
