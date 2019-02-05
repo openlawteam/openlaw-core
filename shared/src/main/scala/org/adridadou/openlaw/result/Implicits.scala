@@ -30,7 +30,7 @@ object Implicits {
   }
 
   implicit class RichTry[T](val t: Try[T]) extends AnyVal {
-    def toResult = t match {
+    def toResult: Result[T] = t match {
       case TSuccess(v) => Success(v)
       case TFailure(e: Exception) => Failure(e)
 
@@ -44,7 +44,7 @@ object Implicits {
   }
 
   implicit class RichFuture[T](val future: Future[T]) extends AnyVal {
-    def getResult(timeout: Duration) = Try(Await.result(future, timeout)).toResult
+    def getResult(timeout: Duration): Result[T] = Try(Await.result(future, timeout)).toResult
   }
 
   implicit class RichResult[T](val result: Result[T]) extends AnyVal {

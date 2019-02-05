@@ -1,11 +1,10 @@
 package org.adridadou.openlaw.vm
 
 import cats.implicits._
-import org.adridadou.openlaw.result.handleFatalError
 import org.adridadou.openlaw.result.Implicits.RichEither
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes._
-import org.adridadou.openlaw.result.{Failure, Result, Success}
+import org.adridadou.openlaw.result.{Failure, handleFatalError, Result, Success}
 
 trait VariableExecutionEngine {
 
