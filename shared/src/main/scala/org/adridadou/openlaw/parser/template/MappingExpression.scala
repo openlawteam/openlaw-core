@@ -7,7 +7,7 @@ case class MappingExpression(expression: Expression, scopeExecutionResult: Templ
   override def missingInput(executionResult: TemplateExecutionResult): Either[String, Seq[VariableName]] =
     expression.missingInput(scopeExecutionResult)
 
-  override def validate(executionResult: TemplateExecutionResult): Option[String] =
+  override def validate(executionResult: TemplateExecutionResult) =
     expression.validate(scopeExecutionResult)
 
 

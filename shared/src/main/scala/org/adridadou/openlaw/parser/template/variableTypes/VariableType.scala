@@ -11,7 +11,8 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.{Decoder, Encoder, HCursor, Json}
 
 import scala.reflect.ClassTag
-import scala.util.{Failure, Success, Try}
+import scala.util.Try
+import org.adridadou.openlaw.result.{Failure, Result, Success}
 import LocalDateTimeHelper._
 
 trait NoShowInForm
@@ -100,8 +101,8 @@ abstract class VariableType(val name: String) {
   def checkTypeName(nameToCheck: String): Boolean =
     this.name.equalsIgnoreCase(nameToCheck)
 
-  def validateKeys(name:VariableName, keys:Seq[String], executionResult: TemplateExecutionResult):Option[String] =
-    keys.headOption.map(_ => s"The variable type $name has no properties")
+  def validateKeys(name:VariableName, keys:Seq[String], executionResult: TemplateExecutionResult): Result[Unit] =
+    keys.headOption.map(_ => Failure(s"The variable type $name has no properties")).getOrElse(Success(()))
 
   def keysType(keys:Seq[String], executionResult: TemplateExecutionResult):VariableType = if(keys.nonEmpty) {
     throw new RuntimeException(s"the type $name has no properties")
@@ -155,8 +156,8 @@ abstract class VariableType(val name: String) {
 
   def handleTry[T](thisTry: Try[T]): T =
     thisTry match {
-      case Success(v) => v
-      case Failure(ex) => throw ex
+      case scala.util.Success(v) => v
+      case scala.util.Failure(ex) => throw ex
     }
 
   def handleEither[T](thisTry: Either[io.circe.Error, T]): T =

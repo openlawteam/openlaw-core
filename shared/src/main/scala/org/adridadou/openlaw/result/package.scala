@@ -17,6 +17,11 @@ package object result {
   } catch {
     case e: Exception => Failure(e)
   }
+
+  def handleFatalError(t: Throwable): Result[Nothing] = t match {
+    case e: Exception => Failure(e)
+    case e: Error => throw e
+  }
 }
 
 package result {

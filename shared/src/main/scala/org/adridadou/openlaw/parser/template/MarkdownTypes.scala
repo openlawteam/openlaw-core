@@ -3,6 +3,7 @@ package org.adridadou.openlaw.parser.template
 import cats.implicits._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.variableTypes._
+import org.adridadou.openlaw.result.{Result, Success}
 import org.adridadou.openlaw.values.TemplateParameters
 
 /**
@@ -21,7 +22,7 @@ trait ConstantExpression extends Expression {
 
   override def expressionType(executionResult: TemplateExecutionResult): VariableType = typeFunction(executionResult)
 
-  override def validate(executionResult: TemplateExecutionResult): Option[String] = None
+  override def validate(executionResult: TemplateExecutionResult): Result[Unit] = Success(())
 
   override def variables(executionResult: TemplateExecutionResult): Seq[VariableName] = Seq()
 

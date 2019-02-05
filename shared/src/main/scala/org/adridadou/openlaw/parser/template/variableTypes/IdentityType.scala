@@ -10,6 +10,7 @@ import Identity._
 import cats.Eq
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter, SignatureFormatter}
 import org.adridadou.openlaw.parser.template._
+import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 case object IdentityType extends VariableType(name = "Identity") {
 
@@ -45,15 +46,15 @@ case object IdentityType extends VariableType(name = "Identity") {
     }
   }
 
-  override def validateKeys(name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Option[String] = keys.toList match {
-    case Nil => None
+  override def validateKeys(name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Unit] = keys.toList match {
+    case Nil => Success(())
     case head::tail if tail.isEmpty => checkProperty(head)
-    case _::_ => Some(s"invalid property ${keys.mkString(".")}")
+    case _::_ => Failure(s"invalid property ${keys.mkString(".")}")
   }
 
-  private def checkProperty(key:String):Option[String] = accessProperty(None, key) match {
-    case Left(ex) => Some(ex)
-    case Right(_) => None
+  private def checkProperty(key:String): Result[Unit] = accessProperty(None, key) match {
+    case Left(ex) => Failure(ex)
+    case Right(_) => Success(())
   }
 
   private def accessProperty(identity: Option[Identity], property: String):Either[String, String] = {

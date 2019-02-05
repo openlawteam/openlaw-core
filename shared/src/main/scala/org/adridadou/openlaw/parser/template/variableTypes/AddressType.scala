@@ -5,6 +5,7 @@ import io.circe.syntax._
 import io.circe.parser._
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.formatters.Formatter
+import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 object AddressType extends VariableType(name = "Address") {
 
@@ -37,10 +38,10 @@ object AddressType extends VariableType(name = "Address") {
     }
   }
 
-  override def validateKeys(name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Option[String] = keys.toList match {
-    case Nil => None
+  override def validateKeys(name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Unit] = keys.toList match {
+    case Nil => Success(())
     case head::tail if tail.isEmpty => checkProperty(head)
-    case _::_ => Some(s"invalid property ${keys.mkString(".")}")
+    case _::_ => Failure(s"invalid property ${keys.mkString(".")}")
   }
 
   override def getTypeClass: Class[_ <: Address] = classOf[Address]
@@ -53,9 +54,9 @@ object AddressType extends VariableType(name = "Address") {
     case _ => throw new RuntimeException(s"invalid type ${value.getClass.getSimpleName} for Address")
   }
 
-  private def checkProperty(key:String):Option[String] = accessProperty(Address(), key) match {
-    case Left(ex) => Some(ex)
-    case Right(_) => None
+  private def checkProperty(key:String): Result[Unit] = accessProperty(Address(), key) match {
+    case Left(ex) => Failure(ex)
+    case Right(_) => Success(())
   }
 
   private def accessProperty(address: Address, property: String):Either[String, String] = {

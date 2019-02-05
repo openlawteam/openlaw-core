@@ -130,7 +130,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
 
   private def processVariableMember(executionResult: TemplateExecutionResult, variableMember: VariableMember, executed:Boolean):Result[TemplateExecutionResult] = {
     processVariable(executionResult, VariableDefinition(name = variableMember.name), executed)
-    variableMember.validate(executionResult).map(Failure(_)).getOrElse(Success(executionResult))
+    variableMember.validate(executionResult).map(_ => executionResult)
   }
 
   private def processExecutedElement(executionResult: TemplateExecutionResult, element: TemplatePart, templates:Map[TemplateSourceIdentifier, CompiledTemplate]): Result[TemplateExecutionResult] = element match {
@@ -302,12 +302,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       val typeString = variable.variableTypeDefinition.map(_.name).getOrElse("<undefined>")
       Failure(s"Variable definition mismatch. variable ${variable.name} is defined as $typeString in ${currentTemplateDefinition.name.name} but was ${otherType.name} in ${result.templateDefinition.map(_.name.name.title).getOrElse("the main template")}")
     } else {
-      result.parentExecution match {
-        case Some(parent) =>
-          validateSubExecution(parent, currentTemplateDefinition, variable)
-        case None =>
-          Success(result)
-      }
+      result.parentExecution.map(parent => validateSubExecution(parent, currentTemplateDefinition, variable)).getOrElse(Success(result))
     }
   }
 
@@ -402,78 +397,72 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       case Some(_:VariableAliasing) =>
         Failure(s"${variable.name} was previously defined as an alias. It cannot be defined as a variable")
       case None =>
-        processNewVariable(executionResult, variable, executed).toResult
+        processNewVariable(executionResult, variable, executed)
     }
   }
 
   private def executeConditionalBlock(executionResult: TemplateExecutionResult, templates:Map[TemplateSourceIdentifier, CompiledTemplate], subBlock: Block, elseSubBlock:Option[Block], expr: Expression):Result[TemplateExecutionResult] = {
-    expr.validate(executionResult) match {
-      case Some(err) =>
-        Failure(err)
-      case None =>
-        val exprType = expr match {
-          case variable:VariableDefinition =>
-            processVariable(executionResult, variable, executed = true)
-            executionResult.getVariable(variable.name) match {
-              case Some(definedVariable) if definedVariable.nameOnly =>
-                addNewVariable(executionResult, variable)
-              case _ =>
-            }
-            YesNoType
-          case _ =>
-            executionResult.executedVariables appendAll expr.variables(executionResult)
-            expr.expressionType(executionResult)
-        }
-
-        if(exprType === YesNoType) {
-          if(expr.evaluate(executionResult).exists(VariableType.convert[Boolean])) {
-            executionResult.remainingElements.prependAll(subBlock.elems)
-            Success(executionResult)
-          } else {
-            elseSubBlock.map(_.elems).map(elems => {
-              executionResult.remainingElements.prependAll(elems)
-              executionResult
-            }).getOrElse(executionResult)
-            expr.validate(executionResult) map {err => Failure(err)} getOrElse Success(executionResult)
+    expr.validate(executionResult).flatMap { _ =>
+      val exprType = expr match {
+        case variable:VariableDefinition =>
+          processVariable(executionResult, variable, executed = true)
+          executionResult.getVariable(variable.name) match {
+            case Some(definedVariable) if definedVariable.nameOnly =>
+              addNewVariable(executionResult, variable)
+            case _ =>
           }
-        }else {
-          Failure(s"Conditional expression $expr is of type $exprType instead of YesNo")
+          YesNoType
+        case _ =>
+          executionResult.executedVariables appendAll expr.variables(executionResult)
+          expr.expressionType(executionResult)
+      }
+
+      if (exprType === YesNoType) {
+        if(expr.evaluate(executionResult).exists(VariableType.convert[Boolean])) {
+          executionResult.remainingElements.prependAll(subBlock.elems)
+          Success(executionResult)
+        } else {
+          elseSubBlock.map(_.elems).map(elems => {
+            executionResult.remainingElements.prependAll(elems)
+            executionResult
+          }).getOrElse(executionResult)
+          expr.validate(executionResult).map(_ => executionResult)
         }
+      } else {
+        Failure(s"Conditional expression $expr is of type $exprType instead of YesNo")
+      }
     }
   }
 
   private def executeConditionalBlockWithElse(executionResult: TemplateExecutionResult, templates:Map[TemplateSourceIdentifier, CompiledTemplate], subBlock: Block, elseSubBlock: Option[Block], expr: Expression):Result[TemplateExecutionResult] = {
-    expr.validate(executionResult) match {
-      case Some(err) =>
-        Failure(err)
-      case None =>
-        val exprType = expr match {
-          case variable:VariableDefinition =>
-            processVariable(executionResult, variable, executed = true)
-            executionResult.getVariable(variable.name) match {
-              case Some(definedVariable) if definedVariable.nameOnly =>
-                addNewVariable(executionResult, variable)
-              case _ =>
-            }
-            YesNoType
-          case _ =>
-            executionResult.executedVariables appendAll expr.variables(executionResult)
-            expr.expressionType(executionResult)
-        }
-
-        if(exprType === YesNoType) {
-          if(expr.evaluate(executionResult).exists(VariableType.convert[Boolean])) {
-            executionResult.remainingElements.prependAll(subBlock.elems)
-            Success(executionResult)
-          } else {
-            elseSubBlock.map(_.elems).map(elems => {
-              executionResult.remainingElements.prependAll(elems)
-              Success(executionResult)
-            }).getOrElse(Success(executionResult))
+    expr.validate(executionResult).flatMap { _ =>
+      val exprType = expr match {
+        case variable:VariableDefinition =>
+          processVariable(executionResult, variable, executed = true)
+          executionResult.getVariable(variable.name) match {
+            case Some(definedVariable) if definedVariable.nameOnly =>
+              addNewVariable(executionResult, variable)
+            case _ =>
           }
-        }else {
-          Failure(s"Conditional expression $expr is of type $exprType instead of YesNo")
+          YesNoType
+        case _ =>
+          executionResult.executedVariables appendAll expr.variables(executionResult)
+          expr.expressionType(executionResult)
+      }
+
+      if(exprType === YesNoType) {
+        if(expr.evaluate(executionResult).exists(VariableType.convert[Boolean])) {
+          executionResult.remainingElements.prependAll(subBlock.elems)
+          Success(executionResult)
+        } else {
+          elseSubBlock.map(_.elems).map(elems => {
+            executionResult.remainingElements.prependAll(elems)
+            Success(executionResult)
+          }).getOrElse(Success(executionResult))
         }
+      } else {
+        Failure(s"Conditional expression $expr is of type $exprType instead of YesNo")
+      }
     }
   }
 }

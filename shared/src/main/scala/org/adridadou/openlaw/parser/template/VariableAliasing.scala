@@ -6,7 +6,7 @@ import scala.util.{Failure, Success, Try}
 import org.adridadou.openlaw.parser.template.expressions.Expression
 
 case class VariableAliasing(name:VariableName, expr:Expression) extends Expression with TemplatePart{
-  def validate(executionResult: TemplateExecutionResult): Option[String] =
+  def validate(executionResult: TemplateExecutionResult) =
     expr.validate(executionResult)
 
   override def expressionType(executionResult: TemplateExecutionResult): VariableType =

@@ -6,6 +6,7 @@ import cats.implicits._
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import org.adridadou.openlaw.parser.template.expressions.Expression
+import org.adridadou.openlaw.result.{Failure, Result, Success}
 import play.api.libs.json.{JsString, Reads, Writes}
 
 import scala.reflect.ClassTag
@@ -15,7 +16,7 @@ case class VariableMember(name:VariableName, keys:Seq[String], formatter:Option[
   override def missingInput(executionResult:TemplateExecutionResult): Either[String, Seq[VariableName]] =
     name.aliasOrVariable(executionResult).missingInput(executionResult)
 
-  override def validate(executionResult:TemplateExecutionResult): Option[String] =
+  override def validate(executionResult:TemplateExecutionResult): Result[Unit] =
     name.aliasOrVariable(executionResult).expressionType(executionResult)
       .validateKeys(name, keys, executionResult)
 
@@ -42,7 +43,7 @@ case class VariableMember(name:VariableName, keys:Seq[String], formatter:Option[
 case class VariableName(name:String) extends Expression {
   def isAnonymous: Boolean = name.trim === "_"
 
-  override def validate(executionResult:TemplateExecutionResult):Option[String] = None
+  override def validate(executionResult:TemplateExecutionResult): Result[Unit] = Success(())
 
   override def expressionType(executionResult:TemplateExecutionResult): VariableType = {
     executionResult.getVariable(name) match {
@@ -189,47 +190,48 @@ case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[
         throw new RuntimeException("the variable or alias '" + name + "' has not been defined. Please define it before using it in an expression")
     })
 
-  override def validate(executionResult: TemplateExecutionResult): Option[String] = {
-    defaultValue.flatMap({
+  override def validate(executionResult: TemplateExecutionResult): Result[Unit] = {
+    defaultValue.collect {
       case Parameters(parameterMap) =>
-        parameterMap.toMap.get("options").flatMap({
+        parameterMap.toMap.get("options").map {
           case OneValueParameter(expr) =>
             validateOptions(Seq(expr), executionResult)
           case ListParameter(exprs) =>
             validateOptions(exprs, executionResult)
           case _ =>
-            None
-        })
-      case _ => None
-    })
+            Success(())
+        }
+    }.flatten.getOrElse(Success(()))
   }
 
-  private def validateOptions(exprs:Seq[Expression], executionResult: TemplateExecutionResult):Option[String] = {
+  private def validateOptions(exprs:Seq[Expression], executionResult: TemplateExecutionResult): Result[Unit] = {
     val currentType = varType(executionResult)
 
     currentType match {
       case DefinedChoiceType(choices,typeName) =>
-        exprs.flatMap(validateOption(_, choices, typeName, executionResult)).headOption
+        // may use ResultNel to accumulate this errors
+        exprs.map(validateOption(_, choices, typeName, executionResult)).headOption.getOrElse(Success(()))
       case _ =>
         exprs.find(_.expressionType(executionResult) =!= currentType)
-          .map(expr => s"options element error! should be of type ${varType(executionResult).name} but ${expr.toString} is ${expr.expressionType(executionResult).name} instead")
+          .map(expr => Failure(s"options element error! should be of type ${varType(executionResult).name} but ${expr.toString} is ${expr.expressionType(executionResult).name} instead"))
+          .getOrElse(Success(()))
     }
   }
 
-  private def validateOption(expr:Expression, choices:Choices, typeName:String, executionResult: TemplateExecutionResult):Option[String] = {
-    expr.evaluate(executionResult).flatMap({
+  private def validateOption(expr:Expression, choices:Choices, typeName:String, executionResult: TemplateExecutionResult): Result[Unit] = {
+    expr.evaluate(executionResult).map {
       case str: String =>
         choices.values.find(_ === str) match {
           case Some(_) =>
-            None
+            Success(())
           case None =>
             println(expr.getClass.getSimpleName)
             println(str)
-            Some(s"the value $str is not part of the Choice type $typeName")
+            Failure(s"the value $str is not part of the Choice type $typeName")
         }
       case _ =>
-        Some(s"the options need to be of type Text to possibly be of type ${expr.expressionType(executionResult)}")
-    })
+        Failure(s"the options need to be of type Text to possibly be of type ${expr.expressionType(executionResult)}")
+    }.getOrElse(Success(()))
   }
 
   override def variables(executionResult: TemplateExecutionResult): Seq[VariableName] =

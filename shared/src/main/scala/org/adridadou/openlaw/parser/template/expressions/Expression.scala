@@ -3,13 +3,14 @@ package org.adridadou.openlaw.parser.template.expressions
 import io.circe._
 import org.adridadou.openlaw.parser.template.variableTypes.VariableType
 import org.adridadou.openlaw.parser.template._
+import org.adridadou.openlaw.result.Result
 
 import scala.reflect.ClassTag
 
 trait Expression {
   def missingInput(executionResult: TemplateExecutionResult): Either[String, Seq[VariableName]]
 
-  def validate(executionResult: TemplateExecutionResult): Option[String]
+  def validate(executionResult: TemplateExecutionResult): Result[Unit]
 
   def minus(right: Expression, executionResult: TemplateExecutionResult): Option[Any] = expressionType(executionResult).minus(evaluate(executionResult), right.evaluate(executionResult), executionResult)
   def plus(right: Expression, executionResult: TemplateExecutionResult): Option[Any] = expressionType(executionResult).plus(evaluate(executionResult), right.evaluate(executionResult), executionResult)
@@ -28,7 +29,7 @@ case class ParensExpression(expr:Expression) extends Expression {
   override def missingInput(executionResult: TemplateExecutionResult): Either[String, Seq[VariableName]] =
     expr.missingInput(executionResult)
 
-  override def validate(executionResult: TemplateExecutionResult): Option[String] =
+  override def validate(executionResult: TemplateExecutionResult): Result[Unit] =
     expr.validate(executionResult)
 
   override def expressionType(executionResult: TemplateExecutionResult): VariableType =

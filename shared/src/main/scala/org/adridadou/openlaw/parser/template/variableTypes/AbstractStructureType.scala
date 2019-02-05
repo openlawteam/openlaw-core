@@ -4,6 +4,7 @@ import org.adridadou.openlaw.parser.template._
 import play.api.libs.json.{JsObject, Json}
 import io.circe.syntax._
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
+import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 import scala.util.Try
 
@@ -82,18 +83,18 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
     }
   }
 
-  override def validateKeys(name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Option[String] = keys.toList match {
+  override def validateKeys(name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Unit] = keys.toList match {
     case Nil =>
-      None
+      Success(())
     case head::tail =>
       val name = VariableName(head)
       structure.typeDefinition.get(name) match {
         case Some(variableType:NoShowInForm) =>
-          Some(s"invalid type in structure ${variableType.name} only types that should be shown in the input form are allowed (Text, YesNo, Address ...)")
+          Failure(s"invalid type in structure ${variableType.name} only types that should be shown in the input form are allowed (Text, YesNo, Address ...)")
         case Some(variableType) =>
           variableType.validateKeys(name, tail, executionResult)
         case None =>
-          Some(s"property '${tail.mkString(".")}' could not be resolved in structure value '$head'")
+          Failure(s"property '${tail.mkString(".")}' could not be resolved in structure value '$head'")
       }
   }
 
