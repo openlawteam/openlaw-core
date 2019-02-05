@@ -3,7 +3,7 @@ package org.adridadou.openlaw.parser.template
 import cats.implicits._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.variableTypes._
-import org.adridadou.openlaw.result.{Result, Success}
+import org.adridadou.openlaw.result.{Failure, Result, Success}
 import org.adridadou.openlaw.values.TemplateParameters
 
 /**
@@ -65,19 +65,19 @@ trait ConditionalExpression {
 
 case class ConditionalBlock(block:Block, elseBlock:Option[Block], conditionalExpression:Expression) extends TemplatePart
 case class ForEachBlock(variable:VariableName, expression: Expression, block:Block) extends TemplatePart {
-  def toCompiledTemplate(executionResult: TemplateExecutionResult):Either[String, (CompiledTemplate, VariableType)] = {
+  def toCompiledTemplate(executionResult: TemplateExecutionResult): Result[(CompiledTemplate, VariableType)] = {
     expression.expressionType(executionResult) match {
       case listType:CollectionType =>
         val newVariable = VariableDefinition(variable, Some(VariableTypeDefinition(listType.typeParameter.name)))
         val specialCodeBlock = CodeBlock(Seq(newVariable))
 
-        Right(CompiledDeal(
+        Success(CompiledDeal(
           TemplateHeader(),
           Block(Seq(specialCodeBlock) ++ block.elems),
           VariableRedefinition(),
           executionResult.clock), listType.typeParameter)
       case otherType =>
-        Left(s"for each expression should be a collection but is ${otherType.getClass.getSimpleName}")
+        Failure(s"for each expression should be a collection but is ${otherType.getClass.getSimpleName}")
     }
   }
 }

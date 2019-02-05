@@ -72,9 +72,9 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
         templates.get(identifier) match {
           case Some(template) =>
             // has to be in a matcher for tail call optimization
-            attempt(executionResult.startTemplateExecution(variableName, template)).flatMap(_.toResult) match {
+            attempt(executionResult.startTemplateExecution(variableName, template)).flatten match {
               case Success(result) => resumeExecution(result, templates)
-              case f => f
+              case f @ Failure(e) => f
             }
           case None => Success(executionResult)
         }
@@ -247,7 +247,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     }
 
   private def executeForEachBlock(executionResult: TemplateExecutionResult, foreachBlock: ForEachBlock):Result[TemplateExecutionResult] = {
-    foreachBlock.toCompiledTemplate(executionResult).toResult.flatMap({ case (template, expressionType) =>
+    foreachBlock.toCompiledTemplate(executionResult).flatMap({ case (template, expressionType) =>
       val initialValue: Result[TemplateExecutionResult] = Success(executionResult)
       executionResult.executedVariables appendAll foreachBlock.expression.variables(executionResult)
 
@@ -260,7 +260,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
         executionResult.variables append VariableDefinition(name = anonymousVariable, variableTypeDefinition = Some(VariableTypeDefinition(TemplateType.name)), defaultValue = Some(OneValueParameter(StringConstant(anonymousVariable.name))))
         executionResult.executedVariables append anonymousVariable
 
-        executionResult.startEmbeddedExecution(anonymousVariable, template, foreachBlock.variable, element, expressionType).map(_ => executionResult).toResult
+        executionResult.startEmbeddedExecution(anonymousVariable, template, foreachBlock.variable, element, expressionType).map(_ => executionResult)
       })
       )
     })
@@ -381,7 +381,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
   private def processVariable(executionResult: TemplateExecutionResult, variable: VariableDefinition, executed:Boolean): Result[TemplateExecutionResult] = {
     executionResult.getExpression(variable.name) match {
       case Some(_:VariableDefinition) =>
-        processDefinedVariable(executionResult, variable, executed).toResult
+        processDefinedVariable(executionResult, variable, executed)
       case Some(alias:VariableAliasing) if variable.nameOnly =>
         executionResult.executedVariables appendAll alias.expr.variables(executionResult)
         Success(executionResult)
@@ -391,7 +391,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
             val initialValue:Result[TemplateExecutionResult] = Success(parent)
             mappingExpression.expression.variables(parent)
               .flatMap(name => parent.getVariable(name))
-              .foldLeft(initialValue)((parentExecution,subVariable) => parentExecution.flatMap(pe => executeVariable(pe, subVariable).toResult))
+              .foldLeft(initialValue)((parentExecution,subVariable) => parentExecution.flatMap(pe => executeVariable(pe, subVariable)))
           })
         }
         Success(executionResult)

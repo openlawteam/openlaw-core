@@ -27,7 +27,7 @@ trait VariableExecutionEngine {
             case Nil =>
               variable.verifyConstructor(executionResult).left.flatMap(handleFatalErrors).flatMap { _ =>
                 if (executed) {
-                  executeVariable(executionResult, currentVariable).toResult
+                  executeVariable(executionResult, currentVariable)
                 } else {
                   Success(executionResult)
                 }
@@ -39,12 +39,12 @@ trait VariableExecutionEngine {
     }
   }
 
-  protected def processDefinedVariable(executionResult: TemplateExecutionResult, variable: VariableDefinition, executed: Boolean):Either[String, TemplateExecutionResult] = {
+  protected def processDefinedVariable(executionResult: TemplateExecutionResult, variable: VariableDefinition, executed: Boolean): Result[TemplateExecutionResult] = {
     if(variable.nameOnly) {
       if(executed) {
         executeVariable(executionResult, variable)
       } else {
-        Right(executionResult)
+        Success(executionResult)
       }
     } else {
       val definedVariable = executionResult.getVariable(variable.name).getOrElse(variable)
@@ -52,29 +52,29 @@ trait VariableExecutionEngine {
         if(executed) {
           executeVariable(executionResult, variable)
         } else {
-          Right(executionResult)
+          Success(executionResult)
         }
       }
     }
   }
 
-  protected def validateVariableRedefinition(executionResult: TemplateExecutionResult, definedVariable: VariableDefinition, variable: VariableDefinition):Either[String, VariableDefinition] = {
+  protected def validateVariableRedefinition(executionResult: TemplateExecutionResult, definedVariable: VariableDefinition, variable: VariableDefinition): Result[VariableDefinition] = {
     if (definedVariable.varType(executionResult) =!= variable.varType(executionResult)) {
       val title = executionResult.getTemplateDefinitionForVariable(definedVariable.name)
         .map(_.name.name.title)
 
       val currentTitle = executionResult.templateDefinition.map(_.name.name.title)
       if(title === currentTitle) {
-        Left(s"type mismatch. ${definedVariable.name} was defined as ${definedVariable.varType(executionResult).name} but is now defined as ${variable.varType(executionResult).name}")
+        Failure(s"type mismatch. ${definedVariable.name} was defined as ${definedVariable.varType(executionResult).name} but is now defined as ${variable.varType(executionResult).name}")
       } else {
-        Left(s"Variable definition mismatch. variable ${definedVariable.name} is defined as ${definedVariable.varType(executionResult).name} in ${title.getOrElse("the main template")} but was ${variable.varType(executionResult).name} in ${currentTitle.getOrElse("the main template")}")
+        Failure(s"Variable definition mismatch. variable ${definedVariable.name} is defined as ${definedVariable.varType(executionResult).name} in ${title.getOrElse("the main template")} but was ${variable.varType(executionResult).name} in ${currentTitle.getOrElse("the main template")}")
       }
     } else {
-      Right(definedVariable)
+      Success(definedVariable)
     }
   }
 
-  protected def executeVariable(executionResult: TemplateExecutionResult, variable:VariableDefinition):Either[String, TemplateExecutionResult] = {
+  protected def executeVariable(executionResult: TemplateExecutionResult, variable:VariableDefinition): Result[TemplateExecutionResult] = {
     executionResult.executedVariables append variable.name
     executionResult.getVariable(variable.name).map(_.varType(executionResult)) match {
       case Some(TemplateType) =>
@@ -83,18 +83,18 @@ trait VariableExecutionEngine {
         val currentVariable = executionResult.getVariable(variable.name).getOrElse(variable)
         executionResult.executedVariables appendAll currentVariable.defaultValue
           .map(_.variables(executionResult)).getOrElse(Seq())
-        Right(executionResult)
+        Success(executionResult)
     }
   }
 
-  private def startSubExecution(variable: VariableDefinition, executionResult: TemplateExecutionResult):Either[String, TemplateExecutionResult] = {
+  private def startSubExecution(variable: VariableDefinition, executionResult: TemplateExecutionResult): Result[TemplateExecutionResult] = {
     variable.evaluate(executionResult) match {
       case Some(definition:TemplateDefinition) =>
-        Right(executionResult.copy(state = ExecutionWaitForTemplate(variable.name, definition.name)))
+        Success(executionResult.copy(state = ExecutionWaitForTemplate(variable.name, definition.name)))
       case Some(_) =>
-        Left("the variable didn't return a template definition!")
+        Failure("the variable didn't return a template definition!")
       case None =>
-        Left(s"the template ${variable.name.name} could not be evaluated")
+        Failure(s"the template ${variable.name.name} could not be evaluated")
     }
   }
 
