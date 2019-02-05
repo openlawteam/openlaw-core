@@ -91,11 +91,11 @@ case class CompiledAgreement(
     case variableDefinition:VariableDefinition if !variableDefinition.isHidden =>
       executionResult.getAliasOrVariableType(variableDefinition.name) match {
         case Right(variableType @ SectionType) =>
-          elems.:+(VariableElement(variableDefinition.name.name, Some(variableType), generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult), getDependencies(variableDefinition.name, executionResult)))
+          elems.:+(VariableElement(variableDefinition.name, executionResult, Seq(), variableDefinition.formatter, getDependencies(variableDefinition.name, executionResult)))
         case Right(_:NoShowInForm) =>
           elems
         case Right(variableType) =>
-          elems.:+(VariableElement(variableDefinition.name.name, Some(variableType), generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult), getDependencies(variableDefinition.name, executionResult)))
+          elems.:+(VariableElement(variableDefinition.name, executionResult, Seq(), variableDefinition.formatter, getDependencies(variableDefinition.name, executionResult)))
         case Left(_) =>
           elems
       }
@@ -165,8 +165,7 @@ case class CompiledAgreement(
       }
 
     case VariableMember(name, keys, formatter) =>
-      val definition = executionResult.getVariable(name).map(_.varType(executionResult))
-      elems.:+(VariableElement(name.name, definition, generateVariable(name, keys, formatter, executionResult), getDependencies(name, executionResult)))
+      elems.:+(VariableElement(name, executionResult, keys, formatter, getDependencies(name, executionResult)))
     case _ =>
       elems
   })
@@ -177,19 +176,6 @@ case class CompiledAgreement(
     case None => executionResult.getVariable(name) match {
       case Some(_) => Seq(name.name)
       case None => Seq()
-    }
-  }
-
-  private def generateVariable(name: VariableName, keys:Seq[String], formatter:Option[FormatterDefinition], executionResult: TemplateExecutionResult):List[AgreementElement] = {
-    executionResult.getAliasOrVariableType(name).flatMap(varType => {
-      val keysVarType:VariableType = varType.keysType(keys, executionResult)
-
-      executionResult.getExpression(name).flatMap(_.evaluate(executionResult))
-        .map(varType.access(_, keys, executionResult).flatMap(keysVarType.format(formatter, _, executionResult)))
-        .getOrElse(Right(varType.missingValueFormat(name)))
-    }) match {
-      case Right(result) => result.toList
-      case Left(ex) => List(FreeText(Text(s"error: $ex")))
     }
   }
 

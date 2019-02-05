@@ -362,6 +362,19 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     resultShouldBe(forReview(text, Map()), """<ul class="list-lvl-1"><li><p>1.  Section 1<br /></p><ul class="list-lvl-2"><li><p>(a)  Section 1.a<br /></p><ul class="list-lvl-3"><li><p>(i)  Section 1.a.i</p><p>1.a.i<br />      </p></li></ul></li></ul></li></ul>""")
   }
 
+  it should "be able to reference sections defined later" in {
+    val text =
+      """^ Section 1
+        |^^ Section 1.a
+        |^^^ Section 1.a.i
+        |
+        |[[s1aii]]
+        |
+        |^^^(s1aii) Section 1.a.ii
+      """.stripMargin
+    resultShouldBe(forReview(text, Map()), """<ul class="list-lvl-1"><li><p>1.  Section 1<br /></p><ul class="list-lvl-2"><li><p>(a)  Section 1.a<br /></p><ul class="list-lvl-3"><li><p>(i)  Section 1.a.i</p><p>1.a.i<br />      </p></li></ul></li></ul></li></ul>""")
+  }
+
   it should "be able to reference sections with custom symbols and formats" in {
     val text =
       """^ Section 1

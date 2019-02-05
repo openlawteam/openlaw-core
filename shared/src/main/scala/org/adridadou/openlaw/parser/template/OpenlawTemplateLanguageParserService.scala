@@ -216,7 +216,7 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
       case (link:Link,_) =>
         agreementPrinter.link(link)
       case (variable:VariableElement,_) if variable.dependencies.forall(variable => !hiddenVariables.contains(variable)) =>
-        agreementPrinter.variableStart(variable.name)
+        agreementPrinter.variableStart(variable.name.name)
         variable.content
           .foldLeft(agreementPrinter)((p, elem) => renderElement(elem, docParagraph, optParagraph, hiddenVariables, p))
             .variableEnd()

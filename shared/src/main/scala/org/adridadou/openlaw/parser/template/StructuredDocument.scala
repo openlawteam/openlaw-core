@@ -45,6 +45,9 @@ case class TemplateExecutionResult(
                                     processedSections: mutable.Buffer[(Section, Int)] = mutable.Buffer(),
                                     lastSectionByLevel:mutable.Map[Int, String] = mutable.Map(),
                                     clock:Clock) {
+
+  override def toString: String = ""
+
   def addLastSectionByLevel(lvl: Int, sectionValue: String):Unit = {
     if(embedded) {
       parentExecution match {
@@ -457,12 +460,33 @@ trait AgreementElement
 case class ImageElement(url: String) extends AgreementElement
 case class FreeText(elem: TextElement) extends AgreementElement
 case class Link(label:String, url:String) extends AgreementElement
-case class VariableElement(name: String, variableType: Option[VariableType], content:List[AgreementElement], dependencies: Seq[String]) extends AgreementElement
 case class SectionElement(value: String, lvl:Int, number:Int, resetNumbering:Option[Int], overriddenSymbol: Option[SectionSymbol], overridenFormat: Option[SectionFormat]) extends AgreementElement
 case class ConditionalStart(dependencies: Seq[String]) extends AgreementElement
 case class ConditionalStartWithElse(dependencies: Seq[String]) extends AgreementElement
 case class ConditionalEnd(dependencies: Seq[String]) extends AgreementElement
 case class ConditionalEndWithElse(dependencies: Seq[String]) extends AgreementElement
+
+case class VariableElement(name: VariableName, executionResult: TemplateExecutionResult, keys: Seq[String], formatter: Option[FormatterDefinition], dependencies: Seq[String]) extends AgreementElement {
+  lazy val variableType = executionResult.getVariable(name).map(_.varType(executionResult))
+  lazy val content = generateVariable(name, keys, formatter, executionResult)
+
+  private def generateVariable(name: VariableName, keys:Seq[String], formatter:Option[FormatterDefinition], executionResult: TemplateExecutionResult):List[AgreementElement] = {
+    executionResult.getAliasOrVariableType(name).flatMap(varType => {
+      val keysVarType:VariableType = varType.keysType(keys, executionResult)
+
+      executionResult.getExpression(name).flatMap(_.evaluate(executionResult))
+        .map(varType.access(_, keys, executionResult).flatMap(keysVarType.format(formatter, _, executionResult)))
+        .getOrElse(Right(varType.missingValueFormat(name)))
+    }) match {
+      case Right(result) => result.toList
+      case Left(ex) => List(FreeText(Text(s"error: $ex")))
+    }
+  }
+
+  override def toString: String = {
+    ""
+  }
+}
 
 case class ParagraphBuilder(paragraphs:List[Paragraph] = List(), lastParagraph:Paragraph = Paragraph()) {
   def addAllToLastParagraph(elements: List[AgreementElement]): ParagraphBuilder = elements.foldLeft(this)((builder, element) => builder.add(element))
