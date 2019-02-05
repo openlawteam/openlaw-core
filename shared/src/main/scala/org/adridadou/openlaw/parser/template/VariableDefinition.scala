@@ -223,8 +223,6 @@ case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[
           case Some(_) =>
             None
           case None =>
-            println(expr.getClass.getSimpleName)
-            println(str)
             Some(s"the value $str is not part of the Choice type $typeName")
         }
       case _ =>

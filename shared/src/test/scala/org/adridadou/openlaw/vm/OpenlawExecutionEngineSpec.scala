@@ -854,6 +854,29 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     }
   }
 
+  it should "throw an error if a section name is used before it has been rendered" in {
+    val text=
+      """
+        |^(section name) bla bla bla
+        |
+        |[[section name]]
+        |
+        |[[section name 2]]
+        |
+        |^(section name 2) bla bla bla
+      """.stripMargin
+
+    val compiledTemplate = compile(text)
+    val parameters = TemplateParameters()
+    engine.execute(compiledTemplate, parameters, Map()) match {
+      case Right(result) =>
+        result.state shouldBe ExecutionFinished
+        val text = parser.forReview(result.agreements.head,ParagraphEdits())
+        text shouldBe """<p class="no-section"><br /></p><ul class="list-lvl-1"><li><p>1.  bla bla bla</p><p>1</p><p>2</p></li><li><p>2.  bla bla bla<br />      </p></li></ul>"""
+      case Left(ex) => fail(ex)
+    }
+  }
+
   private def compile(text:String):CompiledTemplate = parser.compileTemplate(text) match {
     case Right(template) => template
     case Left(ex) =>
