@@ -9,7 +9,7 @@ import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.values.{ContractDefinition, ContractId, TemplateId, TemplateParameters}
 import org.adridadou.openlaw.oracles._
-import org.adridadou.openlaw.result.{Result, Success}
+import org.adridadou.openlaw.result.{Failure, Result, Success}
 import slogging.LazyLogging
 
 import scala.reflect.ClassTag
@@ -237,39 +237,39 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
       variable.evaluate(executionResult).map(VariableType.convert[T])
     })
 
-  def parseExpression(expr:String):Either[String, Expression] = expressionParser.parseExpression(expr)
+  def parseExpression(expr:String): Result[Expression] = expressionParser.parseExpression(expr)
 
-  def evaluate[T](variable:VariableName)(implicit classTag:ClassTag[T]):Either[String, T] =
+  def evaluate[T](variable:VariableName)(implicit classTag:ClassTag[T]): Result[T] =
     evaluate(variable.name)
 
-  def evaluate[T](expr:String)(implicit classTag:ClassTag[T]):Either[String, T] = {
+  def evaluate[T](expr:String)(implicit classTag:ClassTag[T]): Result[T] = {
     executionResult match {
       case Some(result) =>
         parseExpression(expr).flatMap(evaluate(result, _))
       case None =>
-        Left("the VM has not been executed yet!")
+        Failure("the VM has not been executed yet!")
     }
   }
 
-  def evaluate[T](expr:Expression)(implicit classTag:ClassTag[T]):Either[String, T] = {
+  def evaluate[T](expr:Expression)(implicit classTag:ClassTag[T]): Result[T] = {
     executionResult match {
       case Some(result) =>
         evaluate(result, expr)
       case None =>
-        Left("the VM has not been executed yet!")
+        Failure("the VM has not been executed yet!")
     }
   }
 
-  def evaluate[T](executionResult: TemplateExecutionResult, expr:String)(implicit classTag:ClassTag[T]):Either[String, T] = parseExpression(expr)
+  def evaluate[T](executionResult: TemplateExecutionResult, expr:String)(implicit classTag:ClassTag[T]): Result[T] = parseExpression(expr)
     .flatMap(evaluate[T](executionResult,_))
 
-  def evaluate[T](executionResult: TemplateExecutionResult, expr:Expression)(implicit classTag:ClassTag[T]):Either[String, T] = expr.evaluate(executionResult) match {
-    case Some(value:T) => Right(value)
-    case Some(value) => Left(s"conversion error. Was expecting ${classTag.runtimeClass.getName} but got ${value.getClass.getName}")
-    case None => Left(s"could not resolve ${expr.toString}")
+  def evaluate[T](executionResult: TemplateExecutionResult, expr:Expression)(implicit classTag:ClassTag[T]): Result[T] = expr.evaluate(executionResult) match {
+    case Some(value:T) => Success(value)
+    case Some(value) => Failure(s"conversion error. Was expecting ${classTag.runtimeClass.getName} but got ${value.getClass.getName}")
+    case None => Failure(s"could not resolve ${expr.toString}")
   }
 
-  def applyEvent(event:OpenlawVmEvent):Either[String, OpenlawVm] = state.executionState match {
+  def applyEvent(event:OpenlawVmEvent): Result[OpenlawVm] = state.executionState match {
     case ContractCreated =>
       event match {
         case signature:OpenlawSignatureEvent =>
@@ -277,7 +277,7 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
         case e:LoadTemplate =>
           templateOracle.incoming(this, e)
         case _ =>
-          Left("the virtual machine is in creation state. The only events allowed are signature events")
+          Failure("the virtual machine is in creation state. The only events allowed are signature events")
       }
     case _ => executeEvent(event)
   }
@@ -286,11 +286,11 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
     case Right(result) =>
       result
     case Left(ex) =>
-      logger.warn(ex)
+      logger.warn(ex.message, ex.e)
       this
   }
 
-  private def processSignature(event:OpenlawSignatureEvent):Either[String, OpenlawVm] = {
+  private def processSignature(event:OpenlawSignatureEvent): Result[OpenlawVm] = {
     getAllVariables(IdentityType)
       .map({case (executionResult,variable) => (variable.name, evaluate[Identity](executionResult, variable.name))})
       .filter({
@@ -298,28 +298,28 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
         case _ => false
       }).toList match {
       case Nil =>
-        Left(s"invalid event! no matching identity for the signature. identity:${event.email}")
+        Failure(s"invalid event! no matching identity for the signature. identity:${event.email}")
       case users =>
-        val initialValue:Either[String, OpenlawVm] = Right(this)
+        val initialValue: Result[OpenlawVm] = Success(this)
         users.foldLeft(initialValue)({
           case (Right(currentVm), (_, Right(identity))) =>
             updateContractStateIfNecessary(currentVm.newSignature(identity, event.fullName, event), event)
           case _ =>
-            Left("error while processing identity")
+            Failure("error while processing identity")
         })
     }
   }
 
-  private def updateContractStateIfNecessary(vm:OpenlawVm, event: OpenlawVmEvent):Either[String, OpenlawVm] = {
+  private def updateContractStateIfNecessary(vm:OpenlawVm, event: OpenlawVmEvent): Result[OpenlawVm] = {
     vm.executionState match {
       case ContractCreated if vm.allNextActions.isEmpty =>
         vm(UpdateExecutionStateCommand(ContractRunning, event))
       case _ =>
-        Right(vm)
+        Success(vm)
     }
   }
 
-  private def executeEvent(event:OpenlawVmEvent):Either[String, OpenlawVm] = oracles.find(_.shouldExecute(event)) match {
+  private def executeEvent(event:OpenlawVmEvent): Result[OpenlawVm] = oracles.find(_.shouldExecute(event)) match {
     case Some(oracle) =>
       oracle.executeIfPossible(this, event)
     case None =>
@@ -327,14 +327,14 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
       Right(this)
   }
 
-  def apply(cmd:OpenlawVmCommand):Either[String, OpenlawVm] = cmd match {
+  def apply(cmd:OpenlawVmCommand): Result[OpenlawVm] = cmd match {
     case LoadTemplateCommand(id, event) =>
       loadTemplate(id, event)
     case UpdateExecutionStateCommand(name, event) =>
       Right(updateExecutionState(name, event))
   }
 
-  private def loadTemplate(id:TemplateId, event:LoadTemplate): Either[String, OpenlawVm] = {
+  private def loadTemplate(id:TemplateId, event:LoadTemplate): Result[OpenlawVm] = {
     parser.compileTemplate(event.content).map(template => {
       state = state.updateTemplate(id, template , event)
       this

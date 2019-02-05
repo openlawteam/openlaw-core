@@ -2,13 +2,14 @@ package org.adridadou.openlaw.parser.template.variableTypes
 
 import org.adridadou.openlaw.parser.template.formatters.Formatter
 import org.adridadou.openlaw.parser.template._
+import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 import scala.util.Try
 
 object ImageFormatter extends Formatter {
-  def format(value:Any, executionResult: TemplateExecutionResult): Either[String, Seq[AgreementElement]] = value match {
-    case url: String => Right(Seq(ImageElement(url)))
-    case _ => Left(s"unsupported image value found: $value")
+  def format(value:Any, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] = value match {
+    case url: String => Success(Seq(ImageElement(url)))
+    case _ => Failure("unsupported image value found: $value")
   }
 }
 

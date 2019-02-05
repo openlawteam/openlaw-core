@@ -8,49 +8,43 @@ import org.adridadou.openlaw.parser.template.printers.XHtmlAgreementPrinter.Frag
 import org.adridadou.openlaw.parser.template.variableTypes.YesNoType
 import org.parboiled2.{ErrorFormatter, ParseError}
 
-import scala.util.{Failure, Success, Try}
 import cats.implicits._
 import org.adridadou.openlaw.parser.template.expressions.Expression
+import org.adridadou.openlaw.result.{attempt, Failure, handleFatalErrors, Result, Success}
 
 /**
   * Created by davidroon on 05.06.17.
   */
 class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
 
-  def parseExpression(str: String): Either[String, Expression] = new ExpressionParser(str).root.run() match {
-    case Success(result) => Right(result)
-    case Failure(ex) => Left(ex.getMessage)
+  def parseExpression(str: String): Result[Expression] = new ExpressionParser(str).root.run() match {
+    case scala.util.Success(result) => Success(result)
+    case scala.util.Failure(ex) => handleFatalErrors(ex)
   }
 
+  /*
   def compileTemplateOrThrow(content: String): CompiledTemplate = compileTemplate(content) match {
     case Right(document) => document
-    case Left(ex) => throw new RuntimeException(ex)
+    case Left(ex) => Failure(ex)
   }
+  */
 
-  def compileTemplate(source: String, clock: Clock = internalClock): Either[String, CompiledTemplate] = {
+  def compileTemplate(source: String, clock: Clock = internalClock): Result[CompiledTemplate] = {
     val compiler = createTemplateCompiler(source, clock)
 
-    Try(compiler.rootRule.run().toEither match {
-      case Left(parseError: ParseError) =>
-        Left(compiler.formatError(parseError))
-      case Left(ex) =>
-        Left(Option(ex.getMessage).getOrElse(""))
-      case Right(result) =>
-        validate(result)
-    }) match {
-      case Success(result) =>
-        result
-      case Failure(ex) =>
-        Left(Option(ex.getMessage).getOrElse(""))
+    compiler.rootRule.run() match {
+      case scala.util.Failure(parseError: ParseError) => Failure(compiler.formatError(parseError))
+      case scala.util.Failure(ex) => handleFatalErrors(ex)
+      case scala.util.Success(result) => validate(result)
     }
   }
 
-  private def validate(template: CompiledTemplate): Either[String, CompiledTemplate] = {
+  private def validate(template: CompiledTemplate): Result[CompiledTemplate] = {
     variableTypesMap(template.block.elems, VariableRedefinition()) map template.withRedefinition
   }
 
-  private def variableTypesMap(elems: Seq[TemplatePart], redefinition: VariableRedefinition): Either[String, VariableRedefinition] = {
-    val initialValue: Either[String, VariableRedefinition] = Right(redefinition)
+  private def variableTypesMap(elems: Seq[TemplatePart], redefinition: VariableRedefinition): Result[VariableRedefinition] = {
+    val initialValue: Result[VariableRedefinition] = Success(redefinition)
     elems.foldLeft(initialValue)((currentTypeMap, elem) => currentTypeMap.flatMap(variableTypesMap(elem, _)))
   }
 
@@ -65,21 +59,21 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
       descriptions = descriptions)
   }
 
-  private def variableTypesMap(elem: TemplatePart, redefinition: VariableRedefinition): Either[String, VariableRedefinition] = elem match {
+  private def variableTypesMap(elem: TemplatePart, redefinition: VariableRedefinition): Result[VariableRedefinition] = elem match {
     case variable: VariableDefinition if variable.nameOnly =>
-      Right(redefinition)
+      Success(redefinition)
 
     case variable: VariableDefinition =>
       redefinition.typeMap.get(variable.name.name) match {
         case _ if variable.isAnonymous => Right(redefinition)
         case Some(otherType) if variable.variableTypeDefinition.exists(_ === otherType) =>
-          Right(redefinition)
+          Success(redefinition)
         case Some(otherType) =>
-          Left(s"error mismatch for ${variable.name}. Was previously defined as $otherType but then as ${variable.variableTypeDefinition}")
+          Failure(s"error mismatch for ${variable.name}. Was previously defined as $otherType but then as ${variable.variableTypeDefinition}")
         case None =>
           variable.variableTypeDefinition
-            .map(typeDefinition => redefine(redefinition, variable.name.name, typeDefinition, variable.description))
-            .toRight(s"${variable.name} is missing a variable type name")
+            .map(typeDefinition => Success(redefine(redefinition, variable.name.name, typeDefinition, variable.description)))
+            .getOrElse(Failure(s"${variable.name} is missing a variable type name"))
       }
 
     case _: VariableName =>
@@ -90,14 +84,14 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
         case variable: VariableDefinition =>
           redefinition.typeMap.get(variable.name.name) match {
             case Some(otherType) if otherType === VariableTypeDefinition(YesNoType.name) =>
-              Right(redefinition)
+              Success(redefinition)
             case Some(otherType) =>
-              Left(s"error mismatch for ${variable.name}. Was previously defined as $otherType but then as ${variable.variableTypeDefinition}")
+              Failure(s"error mismatch for ${variable.name}. Was previously defined as $otherType but then as ${variable.variableTypeDefinition}")
             case None =>
-              Right(redefine(redefinition, variable.name.name, VariableTypeDefinition(YesNoType.name), variable.description))
+              Success(redefine(redefinition, variable.name.name, VariableTypeDefinition(YesNoType.name), variable.description))
           }
         case _ =>
-          Right(redefinition)
+          Success(redefinition)
       }
       val newTypeMap2 = block.elems.foldLeft(newTypeMap)((currentTypeMap, elem) => currentTypeMap.flatMap(variableTypesMap(elem, _)))
       elseBlock.map(_.elems.foldLeft(newTypeMap2)((currentTypeMap, elem) => currentTypeMap.flatMap(variableTypesMap(elem, _)))).getOrElse(newTypeMap2)
@@ -109,11 +103,11 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
       variableTypesMap(variables, redefinition)
 
     case ConditionalBlockSet(blocks) =>
-      val initialValue: Either[String, VariableRedefinition] = Right(redefinition)
+      val initialValue: Result[VariableRedefinition] = Success(redefinition)
       blocks.foldLeft(initialValue)((currentTypeMap, block) => currentTypeMap.flatMap(variableTypesMap(block, _)))
 
     case _ =>
-      Right(redefinition)
+      Success(redefinition)
   }
 
   def forPreview(structuredAgreement: StructuredAgreement, overriddenParagraphs: ParagraphEdits): String =

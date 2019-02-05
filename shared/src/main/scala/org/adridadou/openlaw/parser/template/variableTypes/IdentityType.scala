@@ -38,11 +38,11 @@ case object IdentityType extends VariableType(name = "Identity") {
     case _ => throw new RuntimeException(s"unknown formatter $name")
   }
 
-  override def access(value: Any, keys: Seq[String], executionResult: TemplateExecutionResult): Either[String, Any] = {
+  override def access(value: Any, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Any] = {
     keys.toList match {
       case head::tail if tail.isEmpty => accessProperty(Some(VariableType.convert[Identity](value)), head)
-      case _::_ => Left(s"Address has only one level of properties. invalid property access ${keys.mkString(".")}")
-      case _ => Right(value)
+      case _::_ => Success(s"Address has only one level of properties. invalid property access ${keys.mkString(".")}")
+      case _ => Success(value)
     }
   }
 
@@ -57,10 +57,10 @@ case object IdentityType extends VariableType(name = "Identity") {
     case Right(_) => Success(())
   }
 
-  private def accessProperty(identity: Option[Identity], property: String):Either[String, String] = {
+  private def accessProperty(identity: Option[Identity], property: String): Result[String] = {
     property.toLowerCase() match {
-      case "email" => Right(getOrNa(identity.map(_.email.email)))
-      case _ => Left(s"property '$property' not found for type Identity")
+      case "email" => Success(getOrNa(identity.map(_.email.email)))
+      case _ => Failure(s"property '$property' not found for type Identity")
     }
   }
 
@@ -95,21 +95,20 @@ object Email {
           case Right(email) =>
             Right(email)
           case Left(err) =>
-            Left(DecodingFailure(err, List()))
+            Left(DecodingFailure(err.message, List()))
         }
       case Left(ex) =>
         Left(ex)
     }
 
-  def validate(email:String):Either[String,Email] = emailRegex.findFirstMatchIn(email) match {
-    case Some(_) => Right(new Email(email.trim.toLowerCase()))
-    case None =>
-      Left(s"invalid Email $email")
+  def validate(email:String): Result[Email] = emailRegex.findFirstMatchIn(email) match {
+    case Some(_) => Success(new Email(email.trim.toLowerCase()))
+    case None => Failure("invalid Email $email")
   }
 
   def apply(email:String):Email = validate(email) match {
     case Right(e) => e
-    case Left(ex) => throw new RuntimeException(ex)
+    case Left(ex) => throw new RuntimeException(ex.e)
   }
 }
 

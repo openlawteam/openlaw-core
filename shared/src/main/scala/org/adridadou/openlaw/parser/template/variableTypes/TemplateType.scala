@@ -143,7 +143,7 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
     }
   }
 
-  override def access(value: Any, keys: Seq[String], executionResult: TemplateExecutionResult): Either[String, Any] = keys.toList match {
+  override def access(value: Any, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Any] = keys.toList match {
     case Nil =>
       Right(value)
     case head::tail =>

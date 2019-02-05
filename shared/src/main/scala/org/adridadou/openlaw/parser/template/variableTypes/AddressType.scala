@@ -30,11 +30,11 @@ object AddressType extends VariableType(name = "Address") {
     case _ => AddressType
   }
 
-  override def access(value: Any, keys: Seq[String], executionResult: TemplateExecutionResult): Either[String, Any] = {
+  override def access(value: Any, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Any] = {
     keys.toList match {
       case head::tail if tail.isEmpty => accessProperty(getAddress(value, executionResult), head)
-      case _::_ => Left(s"Address has only one level of properties. invalid property access ${keys.mkString(".")}")
-      case _ => Right(value)
+      case _::_ => Failure(s"Address has only one level of properties. invalid property access ${keys.mkString(".")}")
+      case _ => Success(value)
     }
   }
 
@@ -59,19 +59,19 @@ object AddressType extends VariableType(name = "Address") {
     case Right(_) => Success(())
   }
 
-  private def accessProperty(address: Address, property: String):Either[String, String] = {
+  private def accessProperty(address: Address, property: String): Result[String] = {
     property.toLowerCase() match {
-      case "placeid" => Right(address.placeId)
-      case "streetname" => Right(address.streetName)
-      case "street name" => Right(address.streetName)
-      case "streetnumber" => Right(address.streetNumber)
-      case "street number" => Right(address.streetNumber)
-      case "city" => Right(address.city)
-      case "state" => Right(address.state)
-      case "country" => Right(address.country)
-      case "zipcode" => Right(address.zipCode)
-      case "zip" => Right(address.zipCode)
-      case _ => Left(s"property '$property' not found for type Address")
+      case "placeid" => Success(address.placeId)
+      case "streetname" => Success(address.streetName)
+      case "street name" => Success(address.streetName)
+      case "streetnumber" => Success(address.streetNumber)
+      case "street number" => Success(address.streetNumber)
+      case "city" => Success(address.city)
+      case "state" => Success(address.state)
+      case "country" => Success(address.country)
+      case "zipcode" => Success(address.zipCode)
+      case "zip" => Success(address.zipCode)
+      case _ => Failure(s"property '$property' not found for type Address")
     }
   }
 }
@@ -84,9 +84,8 @@ object Address{
 }
 
 object AddressFormatter extends Formatter {
-  override def format(value: Any, executionResult: TemplateExecutionResult): Either[String, Seq[AgreementElement]] = value match {
-    case address:Address => Right(Seq(FreeText(Text(address.formattedAddress))))
-    case _ =>
-      Left(s"incompatible type. Expecting address, got ${value.getClass.getSimpleName}")
+  override def format(value: Any, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] = value match {
+    case address:Address => Success(Seq(FreeText(Text(address.formattedAddress))))
+    case _ => Failure(s"incompatible type. Expecting address, got ${value.getClass.getSimpleName}")
   }
 }

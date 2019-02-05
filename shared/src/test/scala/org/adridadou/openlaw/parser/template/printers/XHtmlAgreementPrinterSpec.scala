@@ -18,7 +18,7 @@ class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues
   private val service = new OpenlawTemplateLanguageParserService(clock)
   private val engine = new OpenlawExecutionEngine
 
-  private def structureAgreement(text:String, p:Map[String, String] = Map(), templates:Map[TemplateSourceIdentifier, CompiledTemplate] = Map()):Result[StructuredAgreement] = compiledTemplate(text).toResult.flatMap({
+  private def structureAgreement(text:String, p:Map[String, String] = Map(), templates:Map[TemplateSourceIdentifier, CompiledTemplate] = Map()):Result[StructuredAgreement] = compiledTemplate(text).flatMap({
     case agreement:CompiledAgreement =>
       val params = p.map({case (k,v) => VariableName(k) -> v})
       engine.execute(agreement, TemplateParameters(params), templates).map(agreement.structuredMainTemplate)
@@ -26,7 +26,7 @@ class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues
       Failure("was expecting agreement")
   })
 
-  private def compiledTemplate(text:String):Either[String, CompiledTemplate] = service.compileTemplate(text)
+  private def compiledTemplate(text:String): Result[CompiledTemplate] = service.compileTemplate(text)
 
   private def forReview(text:String, params:Map[String, String] = Map(), paragraphs:ParagraphEdits = ParagraphEdits(Map())):Result[String] =
     structureAgreement(text,params).map(service.forReview(_, paragraphs))

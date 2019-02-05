@@ -88,11 +88,11 @@ abstract class VariableType(val name: String) {
   def operationWith(rightType: VariableType, operation: ValueOperation): VariableType =
     this
 
-  def access(value: Any, keys: Seq[String], executionResult:TemplateExecutionResult): Either[String, Any] = {
+  def access(value: Any, keys: Seq[String], executionResult:TemplateExecutionResult): Result[Any] = {
     if(keys.isEmpty) {
-      Right(value)
+      Success(value)
     } else {
-      Left(s"The variable type $name has no properties")
+      Failure(s"The variable type $name has no properties")
     }
   }
 
@@ -178,7 +178,7 @@ abstract class VariableType(val name: String) {
     case _ => throw new RuntimeException("invalid parameter type " + param.getClass.getSimpleName + " expecting single expression")
   }
 
-  def format(formatter:Option[FormatterDefinition], value:Any, executionResult: TemplateExecutionResult):Either[String, Seq[AgreementElement]] =
+  def format(formatter:Option[FormatterDefinition], value:Any, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] =
     formatter
       .map(getFormatter(_, executionResult))
       .getOrElse(defaultFormatter)

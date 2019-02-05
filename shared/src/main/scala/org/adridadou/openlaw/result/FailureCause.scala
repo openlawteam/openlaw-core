@@ -9,7 +9,7 @@ trait FailureCause {
   def e: Exception
   def id: String
   def throwException[T](): T = throw e
-  def message: String = e.getMessage
+  def message: String = Option(e.getMessage).getOrElse("")
 }
 
 object FailureCause {

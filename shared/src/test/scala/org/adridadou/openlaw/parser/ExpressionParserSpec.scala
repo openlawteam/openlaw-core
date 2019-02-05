@@ -16,7 +16,7 @@ class ExpressionParserSpec  extends FlatSpec with Matchers {
 
     service.parseExpression(text) match {
        case Right(result) => result.toString shouldBe text
-       case Left(error) => fail(error)
+       case Left(error) => fail(error.e)
     }
   }
 
@@ -25,7 +25,7 @@ class ExpressionParserSpec  extends FlatSpec with Matchers {
 
     service.parseExpression(text) match {
       case Right(result) => result.toString shouldBe text
-      case Left(error) => fail(error)
+      case Left(error) => fail(error.e)
     }
   }
 
@@ -34,7 +34,7 @@ class ExpressionParserSpec  extends FlatSpec with Matchers {
 
     service.parseExpression(text) match {
       case Right(result) => result.toString shouldBe text
-      case Left(error) => fail(error)
+      case Left(error) => fail(error.e)
     }
   }
 
@@ -43,7 +43,7 @@ class ExpressionParserSpec  extends FlatSpec with Matchers {
 
     service.parseExpression(text) match {
       case Right(result) => result.toString shouldBe text
-      case Left(error) => fail(error)
+      case Left(error) => fail(error.e)
     }
   }
 
@@ -52,7 +52,7 @@ class ExpressionParserSpec  extends FlatSpec with Matchers {
 
     service.parseExpression(text) match {
       case Right(result) => result.toString shouldBe text
-      case Left(error) => fail(error)
+      case Left(error) => fail(error.e)
     }
   }
 }
