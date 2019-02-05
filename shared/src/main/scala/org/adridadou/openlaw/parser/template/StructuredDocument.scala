@@ -15,6 +15,7 @@ import scala.reflect.ClassTag
 import VariableName._
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto._
+import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 case class TemplateExecutionResult(
                                     id:TemplateExecutionResultId,
@@ -131,7 +132,7 @@ case class TemplateExecutionResult(
   private def executionLevel(parent:Option[TemplateExecutionResult], acc:Int):Int =
     parent.map(p => executionLevel(p.parentExecution, acc + 1)).getOrElse(acc)
 
-  def allMissingInput:Either[String, Seq[VariableName]] = {
+  def allMissingInput: Result[Seq[VariableName]] = {
     val missingInputs = getAllExecutedVariables.filter({
       case (_, _:NoShowInForm) => false
       case _ => true
@@ -140,14 +141,14 @@ case class TemplateExecutionResult(
     VariableType.sequence(missingInputs).map(_.flatten.distinct)
   }
 
-  def registerNewType(variableType: VariableType): Either[String, TemplateExecutionResult] = {
+  def registerNewType(variableType: VariableType): Result[TemplateExecutionResult] = {
     findVariableType(VariableTypeDefinition(variableType.name)) match {
       case None =>
         variableTypes append variableType
 
-        Right(this)
+        Success(this)
       case Some(_) =>
-        Left(s"the variable type ${variableType.name} as already been defined")
+        Failure(s"the variable type ${variableType.name} as already been defined")
     }
   }
 
@@ -370,11 +371,10 @@ case class TemplateExecutionResult(
   def getAlias(name:String):Option[Expression] =
     getAlias(VariableName(name))
 
-  def getAliasOrVariableType(name:VariableName):Either[String, VariableType] =
-    getExpression(name).map(_.expressionType(this)) match {
-      case Some(varType) => Right(varType)
-      case None => Left(s"${name.name} cannot be resolved!")
-    }
+  def getAliasOrVariableType(name:VariableName): Result[VariableType] =
+    getExpression(name).map(_.expressionType(this))
+      .map(varType => Success(varType))
+      .getOrElse(Failure(s"${name.name} cannot be resolved!"))
 
   @tailrec
   final def getAllVariables:Seq[(TemplateExecutionResult, VariableDefinition)] = {

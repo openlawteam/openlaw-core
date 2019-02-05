@@ -8,7 +8,7 @@ import org.adridadou.openlaw.result.Result
 import scala.reflect.ClassTag
 
 trait Expression {
-  def missingInput(executionResult: TemplateExecutionResult): Either[String, Seq[VariableName]]
+  def missingInput(executionResult: TemplateExecutionResult): Result[Seq[VariableName]]
 
   def validate(executionResult: TemplateExecutionResult): Result[Unit]
 
@@ -26,7 +26,7 @@ trait Expression {
 }
 
 case class ParensExpression(expr:Expression) extends Expression {
-  override def missingInput(executionResult: TemplateExecutionResult): Either[String, Seq[VariableName]] =
+  override def missingInput(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =
     expr.missingInput(executionResult)
 
   override def validate(executionResult: TemplateExecutionResult): Result[Unit] =

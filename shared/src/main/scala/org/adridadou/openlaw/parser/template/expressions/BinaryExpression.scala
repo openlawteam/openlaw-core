@@ -8,7 +8,7 @@ trait BinaryExpression extends Expression {
   def left:Expression
   def right:Expression
 
-  override def missingInput(executionResult: TemplateExecutionResult): Either[String, Seq[VariableName]] = for {
+  override def missingInput(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] = for {
       leftMissing <- left.missingInput(executionResult)
       rightMissing <- right.missingInput(executionResult)
     } yield leftMissing ++ rightMissing

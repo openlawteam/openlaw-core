@@ -42,7 +42,7 @@ case class BooleanExpression(left:Expression, right:Expression, op:BooleanOperat
 
   override def toString: String = left.toString + op.toString + right.toString
 
-  override def missingInput(executionResult: TemplateExecutionResult): Either[String, Seq[VariableName]] = for {
+  override def missingInput(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] = for {
       leftMissing <- left.missingInput(executionResult)
       rightMissing <- right.missingInput(executionResult)
     } yield leftMissing ++ rightMissing
@@ -71,7 +71,7 @@ case class BooleanUnaryExpression(expr:Expression, op:BooleanUnaryOperation) ext
 
   override def variables(executionResult:TemplateExecutionResult): Seq[VariableName] = expr.variables(executionResult)
 
-  override def missingInput(executionResult:TemplateExecutionResult): Either[String, Seq[VariableName]] =
+  override def missingInput(executionResult:TemplateExecutionResult): Result[Seq[VariableName]] =
     expr.missingInput(executionResult)
 
   override def toString: String = op.toString(expr)

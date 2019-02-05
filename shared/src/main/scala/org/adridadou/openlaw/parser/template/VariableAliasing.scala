@@ -19,6 +19,6 @@ case class VariableAliasing(name:VariableName, expr:Expression) extends Expressi
   override def variables(executionResult: TemplateExecutionResult): Seq[VariableName] =
     expr.variables(executionResult)
 
-  override def missingInput(executionResult: TemplateExecutionResult): Either[String, Seq[VariableName]] =
+  override def missingInput(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =
     expr.missingInput(executionResult)
 }

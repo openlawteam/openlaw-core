@@ -26,8 +26,7 @@ trait ConstantExpression extends Expression {
 
   override def variables(executionResult: TemplateExecutionResult): Seq[VariableName] = Seq()
 
-  override def missingInput(executionResult: TemplateExecutionResult): Either[String, Seq[VariableName]] =
-    Right(Seq())
+  override def missingInput(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] = Success(Seq())
 }
 
 case class NoopConstant(varType:VariableType) extends ConstantExpression {

@@ -13,7 +13,7 @@ import scala.reflect.ClassTag
 import scala.util.Try
 
 case class VariableMember(name:VariableName, keys:Seq[String], formatter:Option[FormatterDefinition]) extends TemplatePart with Expression {
-  override def missingInput(executionResult:TemplateExecutionResult): Either[String, Seq[VariableName]] =
+  override def missingInput(executionResult:TemplateExecutionResult): Result[Seq[VariableName]] =
     name.aliasOrVariable(executionResult).missingInput(executionResult)
 
   override def validate(executionResult:TemplateExecutionResult): Result[Unit] =
@@ -76,7 +76,7 @@ case class VariableName(name:String) extends Expression {
 
   override def toString:String = name
 
-  override def missingInput(executionResult:TemplateExecutionResult): Either[String, Seq[VariableName]] = executionResult.getAliasOrVariableType(this) map {
+  override def missingInput(executionResult:TemplateExecutionResult): Result[Seq[VariableName]] = executionResult.getAliasOrVariableType(this) map {
     case _:NoShowInForm => Seq()
     case _ =>
       executionResult.getParameter(name) match {
@@ -237,7 +237,7 @@ case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[
   override def variables(executionResult: TemplateExecutionResult): Seq[VariableName] =
     name.variables(executionResult)
 
-  override def missingInput(executionResult:TemplateExecutionResult): Either[String, Seq[VariableName]] = {
+  override def missingInput(executionResult:TemplateExecutionResult): Result[Seq[VariableName]] = {
     val eitherMissing = name.missingInput(executionResult)
     val eitherMissingFromParameters = defaultValue
       .map(getMissingValuesFromParameter(executionResult, _)).getOrElse(Right(Seq()))
@@ -249,7 +249,7 @@ case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[
   }
 
 
-  private def getMissingValuesFromParameter(executionResult:TemplateExecutionResult, param:Parameter):Either[String, Seq[VariableName]] = param match {
+  private def getMissingValuesFromParameter(executionResult:TemplateExecutionResult, param:Parameter): Result[Seq[VariableName]] = param match {
     case OneValueParameter(expr) => expr.missingInput(executionResult)
     case ListParameter(exprs) => VariableType.sequence(exprs.map(_.missingInput(executionResult))).map(_.flatten)
     case Parameters(params) => VariableType.sequence(params.map({case (_,value) => getMissingValuesFromParameter(executionResult, value)})).map(_.flatten)

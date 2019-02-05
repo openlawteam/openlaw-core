@@ -147,7 +147,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       processVariable(executionResult, VariableDefinition(name = variable.name), executed = true)
 
     case alias:VariableAliasing =>
-      processAlias(executionResult, alias, executed = true).toResult
+      processAlias(executionResult, alias, executed = true)
 
     case TemplateText(elems) =>
       executionResult.remainingElements.prependAll(elems)
@@ -238,14 +238,12 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
 
 
   private def findOverriddenFormat(executionResult: TemplateExecutionResult, section: Section, previous: Seq[Section]): Option[SectionFormat] =
-    section.overrideFormat(executionResult) match {
-      case format @ Some(_) => format
-      case None =>
-        previous
-          .reverse
-          .filter(s => s.lvl === section.lvl)
-          .map(s => s.overrideFormat(executionResult))
-          .collectFirst { case Some(format) => format }
+    section.overrideFormat(executionResult).orElse {
+      previous
+        .reverse
+        .filter(s => s.lvl === section.lvl)
+        .map(s => s.overrideFormat(executionResult))
+        .collectFirst { case Some(format) => format }
     }
 
   private def executeForEachBlock(executionResult: TemplateExecutionResult, foreachBlock: ForEachBlock):Result[TemplateExecutionResult] = {
@@ -291,7 +289,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     case None => parent
   }
 
-  private def validateSubExecution(result: TemplateExecutionResult, templateDefinition: TemplateDefinition):Result[TemplateExecutionResult] = {
+  private def validateSubExecution(result: TemplateExecutionResult, templateDefinition: TemplateDefinition): Result[TemplateExecutionResult] = {
     val initialValue:Result[TemplateExecutionResult] = Success(result)
     result.getVariables
       .foldLeft(initialValue)((value, variable) =>
@@ -299,7 +297,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       )
   }
 
-  private def validateSubExecution(result:TemplateExecutionResult, currentTemplateDefinition:TemplateDefinition, variable:VariableDefinition):Result[TemplateExecutionResult] = {
+  private def validateSubExecution(result:TemplateExecutionResult, currentTemplateDefinition:TemplateDefinition, variable:VariableDefinition): Result[TemplateExecutionResult] = {
     val otherType = result.getVariable(variable.name).map(_.varType(result)).getOrElse(variable.varType(result))
     if(otherType =!= variable.varType(result)) {
       val typeString = variable.variableTypeDefinition.map(_.name).getOrElse("<undefined>")
@@ -329,7 +327,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       processVariable(executionResult, VariableDefinition(name = variable.name), executed = false)
 
     case alias:VariableAliasing =>
-      processAlias(executionResult, alias, executed = false).toResult
+      processAlias(executionResult, alias, executed = false)
 
     case ConditionalBlock(subBlock, elseSubBlock, expr) =>
       processConditionalBlock(executionResult, subBlock, elseSubBlock, expr, templates)
@@ -437,7 +435,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     }
   }
 
-  private def executeConditionalBlockWithElse(executionResult: TemplateExecutionResult, templates:Map[TemplateSourceIdentifier, CompiledTemplate], subBlock: Block, elseSubBlock: Option[Block], expr: Expression):Result[TemplateExecutionResult] = {
+  private def executeConditionalBlockWithElse(executionResult: TemplateExecutionResult, templates:Map[TemplateSourceIdentifier, CompiledTemplate], subBlock: Block, elseSubBlock: Option[Block], expr: Expression): Result[TemplateExecutionResult] = {
     expr.validate(executionResult).flatMap { _ =>
       val exprType = expr match {
         case variable:VariableDefinition =>
