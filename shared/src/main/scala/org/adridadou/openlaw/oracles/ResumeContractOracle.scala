@@ -6,10 +6,11 @@ import io.circe.{Decoder, Encoder}
 import org.adridadou.openlaw.parser.template.VariableName
 import io.circe.syntax._
 import io.circe.generic.semiauto._
+import org.adridadou.openlaw.result.{Failure, Result}
 
 case class ResumeContractOracle(crypto:CryptoService) extends OpenlawOracle[ResumeExecutionEvent] {
 
-  override def incoming(vm:OpenlawVm, event: ResumeExecutionEvent): Either[String, OpenlawVm] = {
+  override def incoming(vm:OpenlawVm, event: ResumeExecutionEvent): Result[OpenlawVm] = {
     vm.getAllVariables(IdentityType)
       .map({case (id,variable) => (variable.name, vm.evaluate[Identity](id, variable.name))})
       .find({
@@ -19,7 +20,7 @@ case class ResumeContractOracle(crypto:CryptoService) extends OpenlawOracle[Resu
       }) match {
       case Some((name:VariableName, Right(identity:Identity))) => processEvent(vm, event, name.name, identity)
       case _ =>
-        Left("invalid event! no matching identity while resuming the contract")
+        Failure("invalid event! no matching identity while resuming the contract")
     }
   }
 
@@ -28,7 +29,7 @@ case class ResumeContractOracle(crypto:CryptoService) extends OpenlawOracle[Resu
     case _ => false
   }
 
-  private def processEvent(vm:OpenlawVm, event:ResumeExecutionEvent, name: String, identity:Identity):Either[String, OpenlawVm] = {
+  private def processEvent(vm:OpenlawVm, event:ResumeExecutionEvent, name: String, identity:Identity): Result[OpenlawVm] = {
     vm(UpdateExecutionStateCommand(ContractResumed, event))
   }
 }

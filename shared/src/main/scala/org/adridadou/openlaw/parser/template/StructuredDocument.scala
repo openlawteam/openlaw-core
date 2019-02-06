@@ -15,6 +15,7 @@ import scala.reflect.ClassTag
 import VariableName._
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto._
+import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 case class TemplateExecutionResult(
                                     id:TemplateExecutionResultId,
@@ -131,7 +132,7 @@ case class TemplateExecutionResult(
   private def executionLevel(parent:Option[TemplateExecutionResult], acc:Int):Int =
     parent.map(p => executionLevel(p.parentExecution, acc + 1)).getOrElse(acc)
 
-  def allMissingInput:Either[String, Seq[VariableName]] = {
+  def allMissingInput: Result[Seq[VariableName]] = {
     val missingInputs = getAllExecutedVariables.filter({
       case (_, _:NoShowInForm) => false
       case _ => true
@@ -140,14 +141,14 @@ case class TemplateExecutionResult(
     VariableType.sequence(missingInputs).map(_.flatten.distinct)
   }
 
-  def registerNewType(variableType: VariableType): Either[String, TemplateExecutionResult] = {
+  def registerNewType(variableType: VariableType): Result[TemplateExecutionResult] = {
     findVariableType(VariableTypeDefinition(variableType.name)) match {
       case None =>
         variableTypes append variableType
 
-        Right(this)
+        Success(this)
       case Some(_) =>
-        Left(s"the variable type ${variableType.name} as already been defined")
+        Failure(s"the variable type ${variableType.name} as already been defined")
     }
   }
 
@@ -267,7 +268,7 @@ case class TemplateExecutionResult(
   def getCompiledTemplate(templates: Map[TemplateSourceIdentifier, CompiledTemplate]):Option[CompiledTemplate] =
     getTemplateIdentifier flatMap templates.get
 
-  def startEmbeddedExecution(variableName:VariableName, template:CompiledTemplate, name:VariableName, value:Any, varType:VariableType):Either[String, TemplateExecutionResult] = {
+  def startEmbeddedExecution(variableName:VariableName, template:CompiledTemplate, name:VariableName, value:Any, varType:VariableType): Result[TemplateExecutionResult] = {
     startSubExecution(variableName, template, embedded = true).map(result => {
       val newResult = result.copy(parameters = parameters + (name -> varType.internalFormat(value)))
       this.subExecutions.put(variableName, newResult)
@@ -276,10 +277,10 @@ case class TemplateExecutionResult(
     })
   }
 
-  def startTemplateExecution(variableName:VariableName, template:CompiledTemplate):Either[String, TemplateExecutionResult] =
+  def startTemplateExecution(variableName:VariableName, template:CompiledTemplate): Result[TemplateExecutionResult] =
     startSubExecution(variableName, template, embedded = false)
 
-  private def startSubExecution(variableName:VariableName, template:CompiledTemplate, embedded:Boolean):Either[String, TemplateExecutionResult] = {
+  private def startSubExecution(variableName:VariableName, template:CompiledTemplate, embedded:Boolean): Result[TemplateExecutionResult] = {
     getVariableValue[TemplateDefinition](variableName).map(templateDefinition => {
       detectCyclicDependency(templateDefinition).map(_ => {
         val newExecution = TemplateExecutionResult(
@@ -307,22 +308,22 @@ case class TemplateExecutionResult(
         this.subExecutions.put(variableName, execution)
         execution
       })
-    }).getOrElse(Left(s"template ${variableName.name} was not resolved! ${variables.map(_.name)}"))
+    }).getOrElse(Failure(s"template ${variableName.name} was not resolved! ${variables.map(_.name)}"))
   }
 
-  private def detectCyclicDependency(definition: TemplateDefinition):Either[String, TemplateExecutionResult] =
+  private def detectCyclicDependency(definition: TemplateDefinition): Result[TemplateExecutionResult] =
     detectCyclicDependency(this, definition)
 
   @tailrec
-  private def detectCyclicDependency(execution:TemplateExecutionResult, definition:TemplateDefinition):Either[String, TemplateExecutionResult] = {
+  private def detectCyclicDependency(execution:TemplateExecutionResult, definition:TemplateDefinition): Result[TemplateExecutionResult] = {
     if(execution.templateDefinition.exists(_ === definition)) {
-      Left(s"cyclic dependency detected on '${definition.name.name}'")
+      Failure(s"cyclic dependency detected on '${definition.name.name}'")
     } else {
       execution.parentExecution match {
         case Some(parent) =>
           detectCyclicDependency(parent, definition)
         case None =>
-          Right(execution)
+          Success(execution)
       }
     }
   }
@@ -370,11 +371,10 @@ case class TemplateExecutionResult(
   def getAlias(name:String):Option[Expression] =
     getAlias(VariableName(name))
 
-  def getAliasOrVariableType(name:VariableName):Either[String, VariableType] =
-    getExpression(name).map(_.expressionType(this)) match {
-      case Some(varType) => Right(varType)
-      case None => Left(s"${name.name} cannot be resolved!")
-    }
+  def getAliasOrVariableType(name:VariableName): Result[VariableType] =
+    getExpression(name).map(_.expressionType(this))
+      .map(varType => Success(varType))
+      .getOrElse(Failure(s"${name.name} cannot be resolved!"))
 
   @tailrec
   final def getAllVariables:Seq[(TemplateExecutionResult, VariableDefinition)] = {

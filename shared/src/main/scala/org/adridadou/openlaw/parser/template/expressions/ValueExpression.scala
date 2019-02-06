@@ -2,6 +2,7 @@ package org.adridadou.openlaw.parser.template.expressions
 
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes.VariableType
+import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 case class ValueExpression(left:Expression, right:Expression, operation:ValueOperation) extends BinaryExpression {
   override def expressionType(executionResult: TemplateExecutionResult): VariableType = {
@@ -21,22 +22,19 @@ case class ValueExpression(left:Expression, right:Expression, operation:ValueOpe
     }
   }
 
-  override def validate(executionResult: TemplateExecutionResult): Option[String] = {
+  override def validate(executionResult: TemplateExecutionResult): Result[Unit] = {
     val leftType = left.expressionType(executionResult)
     val rightType = right.expressionType(executionResult)
     if(!leftType.isCompatibleType(rightType, operation)) {
-      Some("left and right expression are of incompatible types." + leftType.name + " & " + rightType.name + " in " + left.toString + " & " + right.toString)
+      Failure("left and right expression are of incompatible types." + leftType.name + " & " + rightType.name + " in " + left.toString + " & " + right.toString)
     } else {
       leftType.validateOperation(this, executionResult) match {
-        case Some(err) => Some(err)
+        case Some(err) => Failure(err)
         case None =>
           (for {
           _ <- left.missingInput(executionResult)
           _ <- right.missingInput(executionResult)
-        } yield Unit ) match {
-          case Left(ex) => Some(ex)
-          case Right(_) => None
-        }
+        } yield () ).left.flatMap(Failure(_))
       }
     }
   }
