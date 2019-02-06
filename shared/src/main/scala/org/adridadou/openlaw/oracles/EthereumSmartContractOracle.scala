@@ -12,41 +12,42 @@ import io.circe.syntax._
 import cats.implicits._
 import EthereumHash._
 import LocalDateTimeHelper._
+import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 case class EthereumSmartContractOracle() extends OpenlawOracle[EthereumSmartContractCallEvent] with LazyLogging {
 
-  override def incoming(vm: OpenlawVm, event: EthereumSmartContractCallEvent): Either[String, OpenlawVm] = event match {
+  override def incoming(vm: OpenlawVm, event: EthereumSmartContractCallEvent): Result[OpenlawVm] = event match {
     case failedEvent:FailedEthereumSmartContractCallEvent =>
       handleFailedEvent(vm, failedEvent)
     case _ =>
       handleEvent(vm, event)
   }
 
-  private def handleEvent(vm:OpenlawVm, event:EthereumSmartContractCallEvent):Either[String, OpenlawVm] = {
+  private def handleEvent(vm:OpenlawVm, event:EthereumSmartContractCallEvent): Result[OpenlawVm] = {
     vm.allActions.find(info => info.name === event.name).map { actionInfo =>
       vm.executions[EthereumSmartContractExecution](event.name).find(_.tx === event.hash) match {
         case Some(execution) =>
-          Right(vm.newExecution(event.name, createNewExecution(vm, toOpenlawExecutionStatus(event), event, execution.scheduledDate)))
+          Success(vm.newExecution(event.name, createNewExecution(vm, toOpenlawExecutionStatus(event), event, execution.scheduledDate)))
         case None =>
           getScheduledDate(actionInfo, vm, event) match {
             case Some(scheduleDate) =>
-              Right(vm.newExecution(event.name, createNewExecution(vm, toOpenlawExecutionStatus(event), event, scheduleDate)))
+              Success(vm.newExecution(event.name, createNewExecution(vm, toOpenlawExecutionStatus(event), event, scheduleDate)))
             case None =>
               logger.warn(s"the transaction ${event.hash.toString} has not been added yet")
-              Right(vm)
+              Success(vm)
           }
       }
-    }.getOrElse(Left(s"action not found for ${event.name.name}. available ${vm.allNextActions.map(_.name.name).mkString(",")}"))
+    }.getOrElse(Failure(s"action not found for ${event.name.name}. available ${vm.allNextActions.map(_.name.name).mkString(",")}"))
   }
 
-  private def handleFailedEvent(vm: OpenlawVm, event: FailedEthereumSmartContractCallEvent):Either[String, OpenlawVm] = {
+  private def handleFailedEvent(vm: OpenlawVm, event: FailedEthereumSmartContractCallEvent): Result[OpenlawVm] = {
     val failedExecution = EthereumSmartContractExecution(
       scheduledDate = event.scheduledDate,
       executionDate = event.executionDate,
       executionStatus = FailedExecution,
       tx = EthereumHash.empty)
 
-    Right(vm.newExecution(event.name, failedExecution))
+    Success(vm.newExecution(event.name, failedExecution))
   }
 
   private def toOpenlawExecutionStatus(event:EthereumSmartContractCallEvent):OpenlawExecutionStatus = event match {

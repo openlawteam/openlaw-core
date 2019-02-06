@@ -1,21 +1,20 @@
 package org.adridadou.openlaw.parser.template
 
 import org.adridadou.openlaw.parser.template.expressions.Expression
+import org.adridadou.openlaw.result.{Failure, Result, Success}
 import org.parboiled2.ParseError
-import scala.util.{Failure, Success}
-
 
 /**
   * Created by davidroon on 05.06.17.
   */
 class ExpressionParserService() {
-  def parseExpression(source: String):Either[String, Expression] = {
+  def parseExpression(source: String): Result[Expression] = {
     val compiler = createExpressionParser(source)
 
     compiler.root.run() match {
-      case Failure(parseError:ParseError) => Left(compiler.formatError(parseError))
-      case Failure(ex) => Left(ex.getMessage)
-      case Success(result) => Right(result)
+      case scala.util.Failure(parseError:ParseError) => Failure(compiler.formatError(parseError))
+      case scala.util.Failure(ex) => Failure(ex.getMessage)
+      case scala.util.Success(result) => Success(result)
     }
   }
 

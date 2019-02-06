@@ -5,6 +5,7 @@ import io.circe.syntax._
 import io.circe.parser._
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.formatters.Formatter
+import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 object AddressType extends VariableType(name = "Address") {
 
@@ -29,18 +30,18 @@ object AddressType extends VariableType(name = "Address") {
     case _ => AddressType
   }
 
-  override def access(value: Any, keys: Seq[String], executionResult: TemplateExecutionResult): Either[String, Any] = {
+  override def access(value: Any, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Any] = {
     keys.toList match {
       case head::tail if tail.isEmpty => accessProperty(getAddress(value, executionResult), head)
-      case _::_ => Left(s"Address has only one level of properties. invalid property access ${keys.mkString(".")}")
-      case _ => Right(value)
+      case _::_ => Failure(s"Address has only one level of properties. invalid property access ${keys.mkString(".")}")
+      case _ => Success(value)
     }
   }
 
-  override def validateKeys(name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Option[String] = keys.toList match {
-    case Nil => None
+  override def validateKeys(name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Unit] = keys.toList match {
+    case Nil => Success(())
     case head::tail if tail.isEmpty => checkProperty(head)
-    case _::_ => Some(s"invalid property ${keys.mkString(".")}")
+    case _::_ => Failure(s"invalid property ${keys.mkString(".")}")
   }
 
   override def getTypeClass: Class[_ <: Address] = classOf[Address]
@@ -53,24 +54,24 @@ object AddressType extends VariableType(name = "Address") {
     case _ => throw new RuntimeException(s"invalid type ${value.getClass.getSimpleName} for Address")
   }
 
-  private def checkProperty(key:String):Option[String] = accessProperty(Address(), key) match {
-    case Left(ex) => Some(ex)
-    case Right(_) => None
+  private def checkProperty(key:String): Result[Unit] = accessProperty(Address(), key) match {
+    case Left(ex) => Failure(ex)
+    case Right(_) => Success(())
   }
 
-  private def accessProperty(address: Address, property: String):Either[String, String] = {
+  private def accessProperty(address: Address, property: String): Result[String] = {
     property.toLowerCase() match {
-      case "placeid" => Right(address.placeId)
-      case "streetname" => Right(address.streetName)
-      case "street name" => Right(address.streetName)
-      case "streetnumber" => Right(address.streetNumber)
-      case "street number" => Right(address.streetNumber)
-      case "city" => Right(address.city)
-      case "state" => Right(address.state)
-      case "country" => Right(address.country)
-      case "zipcode" => Right(address.zipCode)
-      case "zip" => Right(address.zipCode)
-      case _ => Left(s"property '$property' not found for type Address")
+      case "placeid" => Success(address.placeId)
+      case "streetname" => Success(address.streetName)
+      case "street name" => Success(address.streetName)
+      case "streetnumber" => Success(address.streetNumber)
+      case "street number" => Success(address.streetNumber)
+      case "city" => Success(address.city)
+      case "state" => Success(address.state)
+      case "country" => Success(address.country)
+      case "zipcode" => Success(address.zipCode)
+      case "zip" => Success(address.zipCode)
+      case _ => Failure(s"property '$property' not found for type Address")
     }
   }
 }
@@ -83,9 +84,8 @@ object Address{
 }
 
 object AddressFormatter extends Formatter {
-  override def format(value: Any, executionResult: TemplateExecutionResult): Either[String, Seq[AgreementElement]] = value match {
-    case address:Address => Right(Seq(FreeText(Text(address.formattedAddress))))
-    case _ =>
-      Left(s"incompatible type. Expecting address, got ${value.getClass.getSimpleName}")
+  override def format(value: Any, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] = value match {
+    case address:Address => Success(Seq(FreeText(Text(address.formattedAddress))))
+    case _ => Failure(s"incompatible type. Expecting address, got ${value.getClass.getSimpleName}")
   }
 }

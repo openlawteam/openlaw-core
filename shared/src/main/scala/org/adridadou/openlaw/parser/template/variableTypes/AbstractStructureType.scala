@@ -4,6 +4,7 @@ import org.adridadou.openlaw.parser.template._
 import play.api.libs.json.{JsObject, Json}
 import io.circe.syntax._
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
+import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 import scala.util.Try
 
@@ -45,10 +46,10 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
 
   override def defaultFormatter: Formatter = new NoopFormatter
 
-  override def access(value: Any, keys: Seq[String], executionResult: TemplateExecutionResult): Either[String, Any] = {
+  override def access(value: Any, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Any] = {
     keys.toList match {
       case Nil =>
-        Right(value)
+        Success(value)
       case head :: tail =>
         val name = VariableName(head)
         val values = VariableType.convert[Map[VariableName, Any]](value)
@@ -58,9 +59,9 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
         } yield keyType.access(result, tail, executionResult) ) match {
           case Some(result) => result
           case None if structure.names.contains(name) =>
-            Right(structure.typeDefinition(name).missingValueFormat(name))
+            Success(structure.typeDefinition(name).missingValueFormat(name))
           case None =>
-            Left(s"properties '${keys.mkString(".")}' could not be resolved for the structured type $typeName. available properties ${structure.names.map(name => s"'${name.name}'").mkString(",")}")
+            Failure(s"properties '${keys.mkString(".")}' could not be resolved for the structured type $typeName. available properties ${structure.names.map(name => s"'${name.name}'").mkString(",")}")
         }
     }
   }
@@ -82,18 +83,18 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
     }
   }
 
-  override def validateKeys(name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Option[String] = keys.toList match {
+  override def validateKeys(name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Unit] = keys.toList match {
     case Nil =>
-      None
+      Success(())
     case head::tail =>
       val name = VariableName(head)
       structure.typeDefinition.get(name) match {
         case Some(variableType:NoShowInForm) =>
-          Some(s"invalid type in structure ${variableType.name} only types that should be shown in the input form are allowed (Text, YesNo, Address ...)")
+          Failure(s"invalid type in structure ${variableType.name} only types that should be shown in the input form are allowed (Text, YesNo, Address ...)")
         case Some(variableType) =>
           variableType.validateKeys(name, tail, executionResult)
         case None =>
-          Some(s"property '${tail.mkString(".")}' could not be resolved in structure value '$head'")
+          Failure(s"property '${tail.mkString(".")}' could not be resolved in structure value '$head'")
       }
   }
 

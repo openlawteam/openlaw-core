@@ -1,53 +1,50 @@
 package org.adridadou.openlaw.vm
 
-import org.adridadou.openlaw.parser.template._
 import cats.implicits._
+import org.adridadou.openlaw.result.Implicits.RichEither
+import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes._
+import org.adridadou.openlaw.result.{Failure, handleFatalErrors, Result, Success}
 
 trait VariableExecutionEngine {
 
-  protected def processNewVariable(executionResult: TemplateExecutionResult, variable:VariableDefinition, executed:Boolean):Either[String, TemplateExecutionResult] = {
-    registerNewTypeIfNeeded(executionResult, variable) flatMap {
+  protected def processNewVariable(executionResult: TemplateExecutionResult, variable:VariableDefinition, executed:Boolean): Result[TemplateExecutionResult] = {
+    registerNewTypeIfNeeded(executionResult, variable).flatMap {
       case true =>
         addNewVariable(executionResult, variable)
-        Right(executionResult)
+        Success(executionResult)
       case false =>
-        validateType(executionResult, variable) match {
-          case Some(error) => Left(error)
-          case None =>
-            val currentVariable = if (variable.isAnonymous) {
-              variable.copy(name = executionResult.createAnonymousVariable())
-            } else {
-              variable
-            }
+        validateType(executionResult, variable).flatMap { _ =>
+          val currentVariable = if (variable.isAnonymous) {
+            variable.copy(name = executionResult.createAnonymousVariable())
+          } else {
+            variable
+          }
 
-            addNewVariable(executionResult, currentVariable)
-            currentVariable.defaultValue.map(_.variables(executionResult)).getOrElse(Seq())
-              .filter(newVariable => executionResult.getVariable(newVariable.name).isEmpty).toList match {
-              case Nil =>
-                variable.verifyConstructor(executionResult) match {
-                  case Right(_) =>
-                    if (executed) {
-                      executeVariable(executionResult, currentVariable)
-                    } else {
-                      Right(executionResult)
-                    }
-                  case Left(ex) =>
-                    Left(ex.getMessage)
+          addNewVariable(executionResult, currentVariable)
+          currentVariable.defaultValue.map(_.variables(executionResult)).getOrElse(Seq())
+            .filter(newVariable => executionResult.getVariable(newVariable.name).isEmpty).toList match {
+            case Nil =>
+              variable.verifyConstructor(executionResult).left.flatMap(handleFatalErrors).flatMap { _ =>
+                if (executed) {
+                  executeVariable(executionResult, currentVariable)
+                } else {
+                  Success(executionResult)
                 }
-              case list =>
-                Left(s"error while processing the new variable ${variable.name}. The variables ${list.map(v => "\"" + v.name + "\"").mkString(",")} are used in the constructor but have not been defined")
-            }
+              }
+            case list =>
+              Failure(s"error while processing the new variable ${variable.name}. The variables ${list.map(v => "\"" + v.name + "\"").mkString(",")} are used in the constructor but have not been defined")
+          }
         }
     }
   }
 
-  protected def processDefinedVariable(executionResult: TemplateExecutionResult, variable: VariableDefinition, executed: Boolean):Either[String, TemplateExecutionResult] = {
+  protected def processDefinedVariable(executionResult: TemplateExecutionResult, variable: VariableDefinition, executed: Boolean): Result[TemplateExecutionResult] = {
     if(variable.nameOnly) {
       if(executed) {
         executeVariable(executionResult, variable)
       } else {
-        Right(executionResult)
+        Success(executionResult)
       }
     } else {
       val definedVariable = executionResult.getVariable(variable.name).getOrElse(variable)
@@ -55,29 +52,29 @@ trait VariableExecutionEngine {
         if(executed) {
           executeVariable(executionResult, variable)
         } else {
-          Right(executionResult)
+          Success(executionResult)
         }
       }
     }
   }
 
-  protected def validateVariableRedefinition(executionResult: TemplateExecutionResult, definedVariable: VariableDefinition, variable: VariableDefinition):Either[String, VariableDefinition] = {
+  protected def validateVariableRedefinition(executionResult: TemplateExecutionResult, definedVariable: VariableDefinition, variable: VariableDefinition): Result[VariableDefinition] = {
     if (definedVariable.varType(executionResult) =!= variable.varType(executionResult)) {
       val title = executionResult.getTemplateDefinitionForVariable(definedVariable.name)
         .map(_.name.name.title)
 
       val currentTitle = executionResult.templateDefinition.map(_.name.name.title)
       if(title === currentTitle) {
-        Left(s"type mismatch. ${definedVariable.name} was defined as ${definedVariable.varType(executionResult).name} but is now defined as ${variable.varType(executionResult).name}")
+        Failure(s"type mismatch. ${definedVariable.name} was defined as ${definedVariable.varType(executionResult).name} but is now defined as ${variable.varType(executionResult).name}")
       } else {
-        Left(s"Variable definition mismatch. variable ${definedVariable.name} is defined as ${definedVariable.varType(executionResult).name} in ${title.getOrElse("the main template")} but was ${variable.varType(executionResult).name} in ${currentTitle.getOrElse("the main template")}")
+        Failure(s"Variable definition mismatch. variable ${definedVariable.name} is defined as ${definedVariable.varType(executionResult).name} in ${title.getOrElse("the main template")} but was ${variable.varType(executionResult).name} in ${currentTitle.getOrElse("the main template")}")
       }
     } else {
-      Right(definedVariable)
+      Success(definedVariable)
     }
   }
 
-  protected def executeVariable(executionResult: TemplateExecutionResult, variable:VariableDefinition):Either[String, TemplateExecutionResult] = {
+  protected def executeVariable(executionResult: TemplateExecutionResult, variable:VariableDefinition): Result[TemplateExecutionResult] = {
     executionResult.executedVariables append variable.name
     executionResult.getVariable(variable.name).map(_.varType(executionResult)) match {
       case Some(TemplateType) =>
@@ -86,18 +83,18 @@ trait VariableExecutionEngine {
         val currentVariable = executionResult.getVariable(variable.name).getOrElse(variable)
         executionResult.executedVariables appendAll currentVariable.defaultValue
           .map(_.variables(executionResult)).getOrElse(Seq())
-        Right(executionResult)
+        Success(executionResult)
     }
   }
 
-  private def startSubExecution(variable: VariableDefinition, executionResult: TemplateExecutionResult):Either[String, TemplateExecutionResult] = {
+  private def startSubExecution(variable: VariableDefinition, executionResult: TemplateExecutionResult): Result[TemplateExecutionResult] = {
     variable.evaluate(executionResult) match {
       case Some(definition:TemplateDefinition) =>
-        Right(executionResult.copy(state = ExecutionWaitForTemplate(variable.name, definition.name)))
+        Success(executionResult.copy(state = ExecutionWaitForTemplate(variable.name, definition.name)))
       case Some(_) =>
-        Left("the variable didn't return a template definition!")
+        Failure("the variable didn't return a template definition!")
       case None =>
-        Left(s"the template ${variable.name.name} could not be evaluated")
+        Failure(s"the template ${variable.name.name} could not be evaluated")
     }
   }
 
@@ -115,63 +112,61 @@ trait VariableExecutionEngine {
       .get(variable.name.name).map(description => variable.copy(description = Some(description)))
       .getOrElse(variable)
 
-  protected def processAlias(executionResult: TemplateExecutionResult, alias: VariableAliasing, executed:Boolean): Either[String, TemplateExecutionResult] = {
+  protected def processAlias(executionResult: TemplateExecutionResult, alias: VariableAliasing, executed:Boolean): Result[TemplateExecutionResult] = {
     executionResult.getVariable(alias.name) match {
       case Some(variable) if variable.nameOnly =>
-        Left(s"The alias '${alias.name}' was used before being defined.")
+        Failure(s"The alias '${alias.name}' was used before being defined.")
       case Some(_) =>
-        Left(s"${alias.name} was previously defined as a variable. It cannot be defined as an alias")
+        Failure(s"${alias.name} was previously defined as a variable. It cannot be defined as an alias")
       case None =>
         defineAlias(executionResult, alias, executed)
     }
   }
 
-  private def defineAlias(executionResult: TemplateExecutionResult, alias:VariableAliasing, executed:Boolean):Either[String, TemplateExecutionResult] = {
+  private def defineAlias(executionResult: TemplateExecutionResult, alias:VariableAliasing, executed:Boolean): Result[TemplateExecutionResult] = {
     executionResult.getAlias(alias.name) match {
       case Some(definedAlias:VariableAliasing) =>
         redefineAlias(executionResult, alias, definedAlias, executed)
 
       case Some(_) =>
-        Left("that should not happen!")
+        Failure("that should not happen!")
       case None =>
         defineNewAlias(executionResult, alias, executed)
     }
   }
 
-  private def registerNewTypeIfNeeded(executionResult: TemplateExecutionResult, variable:VariableDefinition):Either[String, Boolean] = {
+  private def registerNewTypeIfNeeded(executionResult: TemplateExecutionResult, variable:VariableDefinition): Result[Boolean] = {
     variable.varType(executionResult) match {
       case ChoiceType =>
         variable.defaultValue.map(param => ChoiceType.construct(param, executionResult)) match {
           case Some(Right(Some(choices))) =>
             executionResult.registerNewType(ChoiceType.generateType(variable.name, choices)).map(_ => true)
-          case Some(Left(ex)) =>
-            Left(ex.getMessage)
+          case Some(Left(ex)) => handleFatalErrors(ex)
           case _ =>
-            Left(s"the new type ${variable.name.name} could not be executed properly")
+            Failure(s"the new type ${variable.name.name} could not be executed properly")
         }
       case AbstractStructureType =>
-        variable.constructT[Structure](executionResult).left.map(_.getMessage).flatMap({
+        variable.constructT[Structure](executionResult).left.flatMap(handleFatalErrors).flatMap {
           case Some(structure) =>
             executionResult.registerNewType(AbstractStructureType.generateType(variable.name, structure)).map(_ => true)
           case None =>
-            Left(s"the new type ${variable.name.name} could not be executed properly")
-        })
+            Failure(s"the new type ${variable.name.name} could not be executed properly")
+        }
       case _ =>
-        Right(false)
+        Success(false)
     }
   }
 
-  private def validateType(executionResult: TemplateExecutionResult, variableDefinition: VariableDefinition): Option[String] = {
-    variableDefinition.variableTypeDefinition.flatMap { typeName =>
+  private def validateType(executionResult: TemplateExecutionResult, variableDefinition: VariableDefinition): Result[Unit] =
+    variableDefinition.variableTypeDefinition.map { typeName =>
       if (executionResult.findVariableType(typeName).isDefined) {
         variableDefinition.validate(executionResult)
       } else {
-        Some(s"error while processing the new variable ${variableDefinition.name}. The variable has type ${variableDefinition.variableTypeDefinition.map(_.name).getOrElse("")} but it does not exist")
+        Failure(s"error while processing the new variable ${variableDefinition.name}. The variable has type ${variableDefinition.variableTypeDefinition.map(_.name).getOrElse("")} but it does not exist")
       }
-    }
-  }
+    }.getOrElse(Success(()))
 
-  protected def redefineAlias(executionResult: TemplateExecutionResult, alias: VariableAliasing, definedAlias: VariableAliasing, executed: Boolean):Either[String, TemplateExecutionResult] = {
+  protected def redefineAlias(executionResult: TemplateExecutionResult, alias: VariableAliasing, definedAlias: VariableAliasing, executed: Boolean): Result[TemplateExecutionResult] = {
     val newType = alias.expressionType(executionResult)
     val oldType = definedAlias.expressionType(executionResult)
 
@@ -186,44 +181,34 @@ trait VariableExecutionEngine {
         .filter(variable => executionResult.getAlias(variable.name).isEmpty)
 
       if(unknownVariables.isEmpty) {
-        alias.validate(executionResult) match {
-          case Some(err) =>
-            Left(err)
-          case None =>
-            executionResult.aliases.prepend(alias)
-            Right(executionResult)
+        alias.validate(executionResult).map { _ =>
+          executionResult.aliases.prepend(alias)
+          executionResult
         }
-
       } else {
-        Left(s"alias expression uses undefined variables ${unknownVariables.map(_.name).mkString(",")}")
+        Failure(s"alias expression uses undefined variables ${unknownVariables.map(_.name).mkString(",")}")
       }
 
     } else {
-      Left(s"type mismatch. alias type was ${oldType.name} but is now ${newType.name}")
+      Failure(s"type mismatch. alias type was ${oldType.name} but is now ${newType.name}")
     }
   }
 
-  private def defineNewAlias(executionResult: TemplateExecutionResult, alias:VariableAliasing, executed:Boolean):Either[String, TemplateExecutionResult] = {
-    alias.variables(executionResult)
+  private def defineNewAlias(executionResult: TemplateExecutionResult, alias:VariableAliasing, executed:Boolean): Result[TemplateExecutionResult] = {
+    val result = alias.variables(executionResult)
       .filter(variable => executionResult.getVariable(variable).isEmpty)
       .filter(variable => executionResult.getAlias(variable).isEmpty).toList match {
-      case Nil =>
-        alias.validate(executionResult) match {
-          case Some(err) =>
-            Left(err)
-          case None =>
+        case Nil =>
+          alias.validate(executionResult).flatMap { _ =>
             executionResult.aliases.prepend(alias)
-            if(executed) {
+            if (executed) {
               executionResult.executedVariables appendAll alias.expr.variables(executionResult)
             }
-            alias.expr.validate(executionResult) match {
-              case Some(err) => Left(err)
-              case None => Right(executionResult)
-            }
-        }
-      case variables =>
-        Left(s"alias expression uses undefined variables ${variables.map(_.name).mkString(",")}")
-    }
+            alias.expr.validate(executionResult).map(_ => executionResult)
+          }
+        case variables =>
+          Failure(s"alias expression uses undefined variables ${variables.map(_.name).mkString(",")}")
+      }
+    result
   }
-
 }
