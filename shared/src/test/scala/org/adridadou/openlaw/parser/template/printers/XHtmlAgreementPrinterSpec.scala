@@ -132,6 +132,55 @@ class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues
     html shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="no-section">This is | a test.<br /><table class="markdown-table"><tr class="markdown-table-row"><th class="markdown-table-header">head1</th><th class="markdown-table-header">head2</th><th class="markdown-table-header">head3</th></tr><tr class="markdown-table-row"><td class="markdown-table-data"><span class="markdown-variable markdown-variable-var1">[[var1]]</span></td><td class="markdown-table-data">val12</td><td class="markdown-table-data">val13</td></tr><tr class="markdown-table-row"><td class="markdown-table-data">val21</td><td class="markdown-table-data">val22</td><td class="markdown-table-data">val23</td></tr><tr class="markdown-table-row"><td class="markdown-table-data"><span class="markdown-variable markdown-variable-var31">[[var31]]</span></td><td class="markdown-table-data">val32</td><td class="markdown-table-data">val33</td></tr><tr class="markdown-table-row"><td class="markdown-table-data">val41</td><td class="markdown-table-data">val42</td><td class="markdown-table-data">val43</td></tr></table>This is a test.</p></div>"""
   }
 
+  it should "handle table with text with multiple words" in {
+    val text = """
+      || head1 | head2 |
+      || ----- | ----- |
+      || test test | test |
+      || test | test |
+      |""".stripMargin
+
+    val agreement = structureAgreement(text)
+    val html = XHtmlAgreementPrinter(true).printParagraphs(agreement.right.value.paragraphs).print
+    html shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="no-section"><br /><table class="markdown-table"><tr class="markdown-table-row"><th class="markdown-table-header">head1</th><th class="markdown-table-header">head2</th></tr><tr class="markdown-table-row"><td class="markdown-table-data">test test</td><td class="markdown-table-data">test</td></tr><tr class="markdown-table-row"><td class="markdown-table-data">test</td><td class="markdown-table-data">test</td></tr></table></p></div>"""
+  }
+
+  it should "handle variables with text prefixes" in {
+    val text = "$[[var31]]"
+
+    val agreement = structureAgreement(text)
+    val html = XHtmlAgreementPrinter(true).printParagraphs(agreement.right.value.paragraphs).print
+    html shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="no-section">$<span class="markdown-variable markdown-variable-var31">[[var31]]</span></p></div>"""
+  }
+
+  it should "handle table with a variables with text prefixes" in {
+    val text = """
+      || head1 | head2 |
+      || ----- | ----- |
+      || $[[var31]] | test |
+      || test | test |
+      |""".stripMargin
+
+    val agreement = structureAgreement(text)
+    val html = XHtmlAgreementPrinter(true).printParagraphs(agreement.right.value.paragraphs).print
+    html shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="no-section"><br /><table class="markdown-table"><tr class="markdown-table-row"><th class="markdown-table-header">head1</th><th class="markdown-table-header">head2</th></tr><tr class="markdown-table-row"><td class="markdown-table-data">$<span class="markdown-variable markdown-variable-var31">[[var31]]</span></td><td class="markdown-table-data">test</td></tr><tr class="markdown-table-row"><td class="markdown-table-data">test</td><td class="markdown-table-data">test</td></tr></table></p></div>"""
+  }
+
+  it should "handle tables with variables with text prefixes" in {
+    val text = """This is | a test.
+      || head1 | head2 | head3 |
+      || ----- | ----- | ----- |
+      || [[var1]] | val12 | val13 |
+      || val21 | val22 | val23 |
+      || $[[var31]] | val32 | val33 |
+      || val41 | val42 | val43 |
+      |This is a test.""".stripMargin
+
+    val agreement = structureAgreement(text)
+    val html = XHtmlAgreementPrinter(true).printParagraphs(agreement.right.value.paragraphs).print
+    html shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="no-section">This is | a test.<br /><table class="markdown-table"><tr class="markdown-table-row"><th class="markdown-table-header">head1</th><th class="markdown-table-header">head2</th><th class="markdown-table-header">head3</th></tr><tr class="markdown-table-row"><td class="markdown-table-data"><span class="markdown-variable markdown-variable-var1">[[var1]]</span></td><td class="markdown-table-data">val12</td><td class="markdown-table-data">val13</td></tr><tr class="markdown-table-row"><td class="markdown-table-data">val21</td><td class="markdown-table-data">val22</td><td class="markdown-table-data">val23</td></tr><tr class="markdown-table-row"><td class="markdown-table-data">$<span class="markdown-variable markdown-variable-var31">[[var31]]</span></td><td class="markdown-table-data">val32</td><td class="markdown-table-data">val33</td></tr><tr class="markdown-table-row"><td class="markdown-table-data">val41</td><td class="markdown-table-data">val42</td><td class="markdown-table-data">val43</td></tr></table>This is a test.</p></div>"""
+  }
+
   it should "handle conditional block depth properly to have proper highlighting" in {
     val text = """before the conditional
     |
