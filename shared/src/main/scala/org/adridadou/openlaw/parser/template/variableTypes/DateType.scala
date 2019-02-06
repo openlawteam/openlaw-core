@@ -159,6 +159,7 @@ object DateConverter {
 
 class PatternFormat(pattern: String) extends Formatter {
   val formatter = DateTimeFormatter.ofPattern(pattern, Locale.ENGLISH)
+
   override def format(value: Any, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] = DateHelper.convertToDate(value, executionResult.clock).map(zonedDate => {
     Seq(FreeText(Text(formatter.format(zonedDate))))
   })
