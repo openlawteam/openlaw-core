@@ -11,6 +11,7 @@ import org.parboiled2.{ErrorFormatter, ParseError}
 import cats.implicits._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.result.{attempt, Failure, handleFatalErrors, Result, Success}
+import org.adridadou.openlaw.result.Implicits.RichTry
 
 /**
   * Created by davidroon on 05.06.17.
@@ -32,10 +33,10 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
   def compileTemplate(source: String, clock: Clock = internalClock): Result[CompiledTemplate] = {
     val compiler = createTemplateCompiler(source, clock)
 
-    compiler.rootRule.run() match {
-      case scala.util.Failure(parseError: ParseError) => Failure(compiler.formatError(parseError))
-      case scala.util.Failure(ex) => handleFatalErrors(ex)
-      case scala.util.Success(result) => validate(result)
+    attempt(compiler.rootRule.run().toResult).flatten match {
+      case Failure(parseError: ParseError, _) => Failure(compiler.formatError(parseError))
+      case Failure(ex, _) => handleFatalErrors(ex)
+      case Success(result) => validate(result)
     }
   }
 
