@@ -3,6 +3,7 @@ package org.adridadou.openlaw.parser.template.expressions
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes.{VariableType, YesNoType}
 import cats.implicits._
+import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 case class BooleanExpression(left:Expression, right:Expression, op:BooleanOperation) extends Expression {
   override def evaluate(executionResult: TemplateExecutionResult): Option[Boolean] = op match {
@@ -17,11 +18,11 @@ case class BooleanExpression(left:Expression, right:Expression, op:BooleanOperat
 
   override def expressionType(executionResult: TemplateExecutionResult):VariableType = YesNoType
 
-  override def validate(executionResult:TemplateExecutionResult): Option[String] = {
+  override def validate(executionResult:TemplateExecutionResult): Result[Unit] = {
     (left.expressionType(executionResult), right.expressionType(executionResult)) match {
-      case (leftType, _) if leftType =!= YesNoType => Some("The left part of the expression has to be a Boolean but instead is " + leftType.name + ":" + left.toString)
-      case (_, rightType) if rightType =!= YesNoType => Some("The right part of the expression has to be a Boolean but instead is " + rightType.name + ":" + right.toString)
-      case _ => None
+      case (leftType, _) if leftType =!= YesNoType => Failure("The left part of the expression has to be a Boolean but instead is " + leftType.name + ":" + left.toString)
+      case (_, rightType) if rightType =!= YesNoType => Failure("The right part of the expression has to be a Boolean but instead is " + rightType.name + ":" + right.toString)
+      case _ => Success(())
     }
   }
 
@@ -41,7 +42,7 @@ case class BooleanExpression(left:Expression, right:Expression, op:BooleanOperat
 
   override def toString: String = left.toString + op.toString + right.toString
 
-  override def missingInput(executionResult: TemplateExecutionResult): Either[String, Seq[VariableName]] = for {
+  override def missingInput(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] = for {
       leftMissing <- left.missingInput(executionResult)
       rightMissing <- right.missingInput(executionResult)
     } yield leftMissing ++ rightMissing
@@ -59,18 +60,18 @@ case class BooleanUnaryExpression(expr:Expression, op:BooleanUnaryOperation) ext
     case other => throw new RuntimeException(s"bad type. Expected Boolean but got ${other.getClass.getSimpleName}:${expr.toString}")
   })
 
-  override def validate(executionResult:TemplateExecutionResult): Option[String] = {
+  override def validate(executionResult:TemplateExecutionResult): Result[Unit] = {
     val exprType = expr.expressionType(executionResult)
     if(exprType =!= YesNoType) {
-      Some("The expression needs to be a Boolean but instead is " + exprType.name + ":" + expr.toString)
+      Failure("The expression needs to be a Boolean but instead is " + exprType.name + ":" + expr.toString)
     } else {
-      None
+      Success(())
     }
   }
 
   override def variables(executionResult:TemplateExecutionResult): Seq[VariableName] = expr.variables(executionResult)
 
-  override def missingInput(executionResult:TemplateExecutionResult): Either[String, Seq[VariableName]] =
+  override def missingInput(executionResult:TemplateExecutionResult): Result[Seq[VariableName]] =
     expr.missingInput(executionResult)
 
   override def toString: String = op.toString(expr)

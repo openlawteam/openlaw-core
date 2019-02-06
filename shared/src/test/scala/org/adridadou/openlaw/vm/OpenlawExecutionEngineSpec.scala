@@ -1,7 +1,7 @@
 package org.adridadou.openlaw.vm
 
 import java.time.Clock
-
+import org.adridadou.openlaw.result.Implicits.failureCause2Exception
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes._
@@ -124,7 +124,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
           case Right(_) =>
             fail("should fail")
           case Left(ex) =>
-            ex shouldBe "cyclic dependency detected on 'Another Template'"
+            ex.message shouldBe "cyclic dependency detected on 'Another Template'"
         }
 
       case Left(ex) =>
@@ -158,7 +158,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
           case Right(_) =>
             fail("should fail")
           case Left(ex) =>
-            ex shouldBe "Variable definition mismatch. variable My Variable is defined as Text in the main template but was Number in Another Template"
+            ex.message shouldBe "Variable definition mismatch. variable My Variable is defined as Text in the main template but was Number in Another Template"
         }
 
       case Left(ex) =>
@@ -536,7 +536,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       case Right(_) =>
         fail("should fail")
       case Left(ex) =>
-        ex shouldBe "error while evaluating the expression 'Var 1/Var 2': division by zero!"
+        ex.message shouldBe "error while evaluating the expression 'Var 1/Var 2': division by zero!"
     }
   }
 
@@ -553,7 +553,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     engine.execute(template, TemplateParameters("Var 1" -> "5", "Var 2" -> "5"), Map()) match {
       case Right(_) => fail("should fail")
       case Left(ex) =>
-        ex shouldBe "error while evaluating the expression '(Var 1+Var 2)/(Var 1-Var 2)': division by zero!"
+        ex.message shouldBe "error while evaluating the expression '(Var 1+Var 2)/(Var 1-Var 2)': division by zero!"
     }
   }
 
@@ -619,7 +619,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       case Right(_) =>
         fail("should fail!")
       case Left(ex) =>
-        ex shouldBe "values cannot be resolved!"
+        ex.message shouldBe "values cannot be resolved!"
     }
   }
 
@@ -811,7 +811,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       case Right(_) =>
         fail("execution should fail")
       case Left(ex) =>
-        ex shouldBe "options element error! should be of type Text but my var is Number instead"
+        ex.message shouldBe "options element error! should be of type Text but my var is Number instead"
     }
   }
 

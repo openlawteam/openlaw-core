@@ -1,14 +1,15 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
-import scala.util.{Failure, Success, Try}
 import VariableType._
 import org.adridadou.openlaw.parser.template.formatters.Formatter
 import cats.implicits._
 import org.adridadou.openlaw.parser.template.expressions.{Expression, ValueExpression}
 import org.adridadou.openlaw.parser.template._
+import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 
 import scala.math.BigDecimal
 import scala.math.BigDecimal.RoundingMode
+import scala.util.Try
 
 case object NumberType extends VariableType("Number") {
   override def cast(value: String, executionResult: TemplateExecutionResult): BigDecimal = BigDecimal(value)
@@ -83,28 +84,27 @@ trait NumberFormatter {
 }
 
 case object NoTrailingZerosFormatter extends Formatter with NumberFormatter {
-  override def format(value: Any, executionResult: TemplateExecutionResult):Either[String,Seq[AgreementElement]] = Try(VariableType.convert[BigDecimal](value).bigDecimal.stripTrailingZeros()) match {
-    case Success(bd) => Right(Seq(FreeText(Text(formatNumber(bd)))))
-    case Failure(ex) => Left(ex.getMessage)
-  }
+  override def format(value: Any, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] =
+    attempt(VariableType.convert[BigDecimal](value).bigDecimal.stripTrailingZeros()) map {
+      case bd => Seq(FreeText(Text(formatNumber(bd))))
+    }
 }
 
 case object RawNumberFormatter extends Formatter with NumberFormatter {
-  override def format(value: Any, executionResult: TemplateExecutionResult):Either[String,Seq[AgreementElement]] = Try(VariableType.convert[BigDecimal](value).bigDecimal.stripTrailingZeros().toPlainString) match {
-    case Success(str) => Right(Seq(FreeText(Text(str))))
-    case Failure(ex) => Left(ex.getMessage)
-  }
+  override def format(value: Any, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] =
+    attempt(VariableType.convert[BigDecimal](value).bigDecimal.stripTrailingZeros().toPlainString) map {
+      case str => Seq(FreeText(Text(str)))
+    }
 }
 
 case class Rounding(expr:Expression) extends Formatter with NumberFormatter {
-  override def format(value: Any, executionResult: TemplateExecutionResult): Either[String, Seq[AgreementElement]] = {
+  override def format(value: Any, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] = {
     expr.evaluate(executionResult)
       .map(VariableType.convert[BigDecimal])
-      .map(_.toInt).map(rounding => Try(VariableType.convert[BigDecimal](value)
-        .setScale(rounding, RoundingMode.HALF_UP))) match {
-      case None => Right(Seq(FreeText(Text(value.toString))))
-      case Some(Success(result)) => Right(Seq(FreeText(Text(result.toString))))
-      case Some(Failure(ex)) => Left(ex.getMessage)
-    }
+      .map(_.toInt).map(rounding => attempt(VariableType.convert[BigDecimal](value).setScale(rounding, RoundingMode.HALF_UP))) match {
+        case None => Success(Seq(FreeText(Text(value.toString))))
+        case Some(Success(result)) => Success(Seq(FreeText(Text(result.toString))))
+        case Some(Failure(e, message)) => Failure(e, message)
+      }
   }
 }

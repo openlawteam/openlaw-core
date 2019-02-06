@@ -8,9 +8,10 @@ import TemplateId._
 import io.circe.{Decoder, Encoder}
 import io.circe.syntax._
 import io.circe.generic.semiauto._
+import org.adridadou.openlaw.result.{Failure, Result}
 
 case class TemplateLoadOracle(crypto:CryptoService) extends OpenlawOracle[LoadTemplate] {
-  override def incoming(vm:OpenlawVm, event: LoadTemplate): Either[String, OpenlawVm] = {
+  override def incoming(vm:OpenlawVm, event: LoadTemplate): Result[OpenlawVm] = {
     val id = TemplateId(EthereumAddress.bytes2hex(crypto.sha256(event.content)))
     if(vm.contractDefinition.mainTemplate === id) {
       vm(LoadTemplateCommand(id, event))
@@ -19,7 +20,7 @@ case class TemplateLoadOracle(crypto:CryptoService) extends OpenlawOracle[LoadTe
         case Some(_) =>
           vm(LoadTemplateCommand(id, event))
         case None =>
-          Left(s"invalid template for contract ${vm.contractId}")
+          Failure(s"invalid template for contract ${vm.contractId}")
       }
     }
   }

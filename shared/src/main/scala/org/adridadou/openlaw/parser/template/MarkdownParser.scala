@@ -1,5 +1,8 @@
 package org.adridadou.openlaw.parser.template
 
+import cats.implicits._
+import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
+import org.adridadou.openlaw.result.Implicits.RichTry
 import org.parboiled2._
 
 object MarkdownParser {
@@ -11,13 +14,13 @@ object MarkdownParser {
     case Left(ex) => throw new RuntimeException("error while parsing the markdown:" + ex)
   }
 
-  def parseMarkdown(markdown: String): Either[String, Seq[TextElement]] = {
+  def parseMarkdown(markdown: String): Result[Seq[TextElement]] = {
     val compiler = createMarkdownParser(markdown)
 
-    compiler.rootRule.run().toEither match {
-      case Left(parseError: ParseError) => Left(compiler.formatError(parseError))
-      case Left(ex) => Left(ex.getClass + ":" + ex.getMessage)
-      case Right(result) => Right(result)
+    attempt(compiler.rootRule.run().toResult).flatten match {
+      case Failure(parseError: ParseError, _) => Failure(compiler.formatError(parseError))
+      case Failure(ex, _) => Failure(ex.getClass + ":" + ex.getMessage)
+      case Success(result) => Success(result)
     }
   }
 }
@@ -26,5 +29,5 @@ object MarkdownParser {
   */
 class MarkdownParser(val input: ParserInput) extends Parser with MarkdownRules {
 
-  def rootRule: Rule1[Seq[TextElement]] = rule { zeroOrMore(loosenTextElement) ~ EOI ~>((elems:Seq[Seq[TextElement]]) => elems.flatten)}
+  def rootRule: Rule1[Seq[TextElement]] = rule { zeroOrMore(loosenTextElement) ~ EOI ~> ((elems:Seq[Seq[TextElement]]) => elems.flatten)}
 }

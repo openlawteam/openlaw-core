@@ -8,6 +8,7 @@ import io.circe.parser._
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
+import org.adridadou.openlaw.result.{Failure, Result, Success}
 import org.adridadou.openlaw.values._
 
 import scala.util.Try
@@ -142,7 +143,7 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
     }
   }
 
-  override def access(value: Any, keys: Seq[String], executionResult: TemplateExecutionResult): Either[String, Any] = keys.toList match {
+  override def access(value: Any, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Any] = keys.toList match {
     case Nil =>
       Right(value)
     case head::tail =>
@@ -174,17 +175,17 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
         }
   }
 
-  override def validateKeys(name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Option[String] = keys.toList match {
+  override def validateKeys(name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Unit] = keys.toList match {
     case Nil =>
-      None
+      Success(())
     case head::tail =>
       executionResult.subExecutions.get(name).flatMap(subExecution =>
         subExecution.getExpression(VariableName(head))
           .map(variable => variable.expressionType(subExecution).keysType(tail,subExecution))) match {
         case Some(_) =>
-          None
+          Success(())
         case None =>
-          Some(s"property '${keys.mkString(".")}' could not be resolved in sub template '${name.name}'")
+          Failure(s"property '${keys.mkString(".")}' could not be resolved in sub template '${name.name}'")
       }
   }
 

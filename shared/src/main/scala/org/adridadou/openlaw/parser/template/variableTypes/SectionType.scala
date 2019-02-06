@@ -5,8 +5,7 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.parser.decode
 import org.adridadou.openlaw.parser.template.formatters.Formatter
 import org.adridadou.openlaw.parser.template._
-
-import scala.util.{Failure, Success, Try}
+import org.adridadou.openlaw.result.{attempt, Failure, Result, Success}
 
 case class SectionInfo(name: Option[String], numbering: String, value:String)
 
@@ -50,11 +49,9 @@ case object SectionType extends VariableType(name = "Section") with NoShowInForm
 }
 
 class SectionFormatter extends Formatter {
-  override def format(value: Any, executionResult: TemplateExecutionResult): Either[String, Seq[AgreementElement]] =
-    Try(VariableType.convert[SectionInfo](value)) match {
-      case Success(SectionInfo(_, _, referenceValue)) =>
-        Right(Seq(FreeText(Text(referenceValue))))
-      case Failure(ex) => Left(ex.getMessage)
+  override def format(value: Any, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] =
+    attempt(VariableType.convert[SectionInfo](value)) map {
+      case SectionInfo(_, _, referenceValue) => Seq(FreeText(Text(referenceValue)))
     }
 }
 
