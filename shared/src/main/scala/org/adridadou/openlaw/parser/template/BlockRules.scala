@@ -165,16 +165,11 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
     case Seq() => accu
     case seq =>
       val texts = seq.takeWhile(_.isInstanceOf[Text]).asInstanceOf[Seq[Text]]
-      val taken = texts.size
-      if (taken === 0) {
-        accumulateTextAndTrim(seq.tail, accu :+ seq.head)
-      } else {
-        val trimmed = texts.map(_.str).foldLeft("")(_ + _).trim
-        if (trimmed === "") {
-          accumulateTextAndTrim(seq.drop(texts.size), accu)
-        } else {
-          accumulateTextAndTrim(seq.drop(texts.size), accu :+ Text(trimmed))
-        }
+      val trimmed = texts.map(_.str).foldLeft("")(_ + _).trim
+      texts.size match {
+        case 0 => accumulateTextAndTrim(seq.tail, accu :+ seq.head)
+        case x if trimmed === "" => accumulateTextAndTrim(seq.drop(texts.size), accu)
+        case x => accumulateTextAndTrim(seq.drop(x), accu :+ Text(trimmed))
       }
   }
 
