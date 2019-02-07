@@ -1,10 +1,13 @@
 package org.adridadou.openlaw.parser.template
 
+import cats.implicits._
 import java.util.UUID
 
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.variableTypes.YesNoType
 import org.parboiled2.{Parser, Rule0, Rule1}
+
+import scala.annotation.tailrec
 
 /**
   * Created by davidroon on 06.06.17.
@@ -157,14 +160,26 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
     capture(noneOf(pipe + nl)) ~> ((s: String) => Text(s))
   }
 
-  // the table parsing construct below may return empty whitespace at the end of the cell, this trims it
-  def trim(seq: Seq[TemplatePart]): Seq[TemplatePart] = seq.lastOption match {
-    case Some(Text(" ")) => seq.take(seq.size - 1)
-    case _ => seq
+  // the table parsing construct below may return empty whitespace at the end of the cell, this trims it and accumulates text nodes
+  @tailrec final def accumulateTextAndTrim(seq: Seq[TemplatePart], accu: Seq[TemplatePart] = Seq()): Seq[TemplatePart] = seq match {
+    case Seq() => accu
+    case seq =>
+      val texts = seq.takeWhile(_.isInstanceOf[Text]).asInstanceOf[Seq[Text]]
+      val taken = texts.size
+      if (taken === 0) {
+        accumulateTextAndTrim(seq.tail, accu :+ seq.head)
+      } else {
+        val trimmed = texts.map(_.str).foldLeft("")(_ + _).trim
+        if (trimmed === "") {
+          accumulateTextAndTrim(seq.drop(texts.size), accu)
+        } else {
+          accumulateTextAndTrim(seq.drop(texts.size), accu :+ Text(trimmed))
+        }
+      }
   }
 
   def whitespace:Rule0 = rule { zeroOrMore(anyOf(tabOrSpace)) }
-  def tableColumnEntryBlock: Rule1[Seq[TemplatePart]] = rule { oneOrMore(varAliasKey | varKey | varMemberKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | tableText) ~> ((seq: Seq[TemplatePart]) => trim(seq))  }
+  def tableColumnEntryBlock: Rule1[Seq[TemplatePart]] = rule { oneOrMore(varAliasKey | varKey | varMemberKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | tableText) ~> ((seq: Seq[TemplatePart]) => accumulateTextAndTrim(seq))  }
 
   def table: Rule1[Seq[Table]] = rule {
     tableHeader ~ nl ~ oneOrMore(tableRow ~ (nl | EOI)) ~> ((headers: Seq[Seq[TemplatePart]], rows: Seq[Seq[Seq[TemplatePart]]]) => Seq(Table(headers.map(_.toList).toList, rows.map(_.map(_.toList).toList).toList)))
