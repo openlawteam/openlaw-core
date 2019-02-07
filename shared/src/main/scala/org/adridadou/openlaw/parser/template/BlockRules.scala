@@ -163,11 +163,11 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   // the table parsing construct below may return empty whitespace at the end of the cell, this trims it and accumulates text nodes
   @tailrec final def accumulateTextAndTrim(seq: Seq[TemplatePart], accu: Seq[TemplatePart] = Seq()): Seq[TemplatePart] = seq match {
     case Seq() => accu
-    case seq =>
+    case seq @ Seq(head, tail @ _*) =>
       val texts = seq.takeWhile(_.isInstanceOf[Text]).asInstanceOf[Seq[Text]]
       val trimmed = texts.map(_.str).foldLeft("")(_ + _).trim
       texts.size match {
-        case 0 => accumulateTextAndTrim(seq.tail, accu :+ seq.head)
+        case 0 => accumulateTextAndTrim(tail, accu :+ head)
         case x if trimmed === "" => accumulateTextAndTrim(seq.drop(texts.size), accu)
         case x => accumulateTextAndTrim(seq.drop(x), accu :+ Text(trimmed))
       }
