@@ -1,51 +1,37 @@
 # Scala CircleCI 2.0 configuration file
 #
 # Check https://circleci.com/docs/2.0/sample-config/ for more details
-#
 version: 2
 jobs:
   build:
     docker:
-      # specify the version you desire here
-      - image: circleci/openjdk:11-node-browsers
+      - image: openlaw/scala-builder:node
 
-      # Specify service dependencies here if necessary
-      # CircleCI maintains a library of pre-built images
-      # documented at https://circleci.com/docs/2.0/circleci-images/
-      # - image: circleci/postgres:9.4
-
-    working_directory: ~/repo
-
+    working_directory: /src
     environment:
       # Customize the JVM maximum heap limit
+      # default environment size without paying on circle-ci is 4gb:
+      # https://circleci.com/docs/2.0/configuration-reference/#resource_class
       JVM_OPTS: -Xmx3200m
-      TERM: dumb
+      # TERM: dumb
 
     steps:
       - checkout
 
-      # Download and cache dependencies
       - restore_cache:
           keys:
             - v1-dependencies-{{ checksum "build.sbt" }}
             # fallback to using the latest cache if no exact match is found
             - v1-dependencies-
 
-      - run: cat /dev/null | sbt test:compile
+      - run: sbt compile test:compile fastOptJS
 
       - save_cache:
           paths:
+            - ~/.ivy2/cache
+            - ~/.sbt
             - ~/.m2
           key: v1-dependencies--{{ checksum "build.sbt" }}
 
-      # run tests!
-      - run: cat /dev/null | sbt clean coverage test
-
-      # test coverage
-      - run: cat /dev/null | sbt coverageReport
-
-      # test coverage
-      - run: cat /dev/null | sbt coverageAggregate
-
-      # upload result to codacy
-      - run: cat /dev/null | sbt codacyCoverage
+      - run: ./scripts/test.sh
+      
