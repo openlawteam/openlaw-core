@@ -1,1 +1,0 @@
-sbt 'project openlawCore' 'release'
