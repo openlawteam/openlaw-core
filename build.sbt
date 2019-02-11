@@ -123,6 +123,7 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       "org.scalatest"           %%% "scalatest"           % "3.2.0-SNAP10"  % Test
     )
   )
+  .settings(parallelExecution in ThisBuild := false)
   .settings(commonSettings: _*)
   .settings(publishSettings: _*)
   .settings(releaseSettings: _*)
