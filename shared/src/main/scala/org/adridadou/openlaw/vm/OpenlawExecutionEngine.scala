@@ -228,6 +228,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       executionResult.variables.append(variable)
       executionResult.executedVariables.append(name)
       executionResult.sectionNameMapping put (section.uuid , name)
+      executionResult.sectionNameMappingInverse put (name, section.uuid)
       executionResult.addLastSectionByLevel(section.lvl, referenceValue)
       executionResult.addSectionLevelStack(newSectionValues)
       executionResult.addProcessedSection(section, SectionHelper.calculateNumberInList(section.lvl, numbering))
@@ -236,17 +237,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     })
   }
 
-
-  private def findOverriddenFormat(executionResult: TemplateExecutionResult, section: Section, previous: Seq[Section]): Option[SectionFormat] =
-    section.overrideFormat(executionResult).orElse {
-      previous
-        .reverse
-        .filter(s => s.lvl === section.lvl)
-        .map(s => s.overrideFormat(executionResult))
-        .collectFirst { case Some(format) => format }
-    }
-
-  private def executeForEachBlock(executionResult: TemplateExecutionResult, foreachBlock: ForEachBlock):Result[TemplateExecutionResult] = {
+  private def executeForEachBlock(executionResult: TemplateExecutionResult, foreachBlock: ForEachBlock): Result[TemplateExecutionResult] = {
     foreachBlock.toCompiledTemplate(executionResult).flatMap({ case (template, expressionType) =>
       val initialValue: Result[TemplateExecutionResult] = Success(executionResult)
       executionResult.executedVariables appendAll foreachBlock.expression.variables(executionResult)
