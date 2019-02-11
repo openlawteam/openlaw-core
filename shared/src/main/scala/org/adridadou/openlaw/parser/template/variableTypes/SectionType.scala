@@ -20,7 +20,7 @@ case object SectionType extends VariableType(name = "Section") with NoShowInForm
 
   override def defaultFormatter: Formatter = new SectionFormatter
 
-  override def getTypeClass: Class[_ <: SectionType.type ] = this.getClass
+  override def getTypeClass: Class[_ <: SectionInfo] = classOf[SectionInfo]
 
   // TODO: SectionType is a special type and we should handle it differently. i.e. it shouldn't be possible to use it in the code directly.
   override def checkTypeName(nameToCheck: String): Boolean = Seq("Section").exists(_.equalsIgnoreCase(nameToCheck))

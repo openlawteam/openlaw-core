@@ -43,6 +43,7 @@ case class TemplateExecutionResult(
                                     variableTypes: mutable.Buffer[VariableType] = mutable.Buffer(VariableType.allTypes() : _*),
                                     sectionLevelStack: mutable.Buffer[Int] = mutable.Buffer(),
                                     sectionNameMapping: mutable.Map[String, VariableName] = mutable.Map(),
+                                    sectionNameMappingInverse: mutable.Map[VariableName, String] = mutable.Map(),
                                     processedSections: mutable.Buffer[(Section, Int)] = mutable.Buffer(),
                                     lastSectionByLevel:mutable.Map[Int, String] = mutable.Map(),
                                     clock:Clock) {
@@ -145,7 +146,6 @@ case class TemplateExecutionResult(
     findVariableType(VariableTypeDefinition(variableType.name)) match {
       case None =>
         variableTypes append variableType
-
         Success(this)
       case Some(_) =>
         Failure(s"the variable type ${variableType.name} as already been defined")
@@ -337,19 +337,24 @@ case class TemplateExecutionResult(
   def getVariable(variable:VariableDefinition):Option[VariableDefinition] =
     getVariable(variable.name)
 
-  def getVariable(name:VariableName):Option[VariableDefinition] =
-    (mapping.get(name) match {
-      case Some(_) =>
-        None
-      case None =>
-        variables.find(_.name === name)
-    }) match {
-      case Some(variable) =>
-        Some(variable)
-      case None =>
-        parentExecution
-          .flatMap(_.getVariable(name))
+  def getVariable(name:VariableName):Option[VariableDefinition] = {
+    if(this.sectionNameMappingInverse.contains(name)) {
+      this.variables.find(definition => definition.name === name && definition.varType(this) === SectionType)
+    }else {
+      (mapping.get(name) match {
+        case Some(_) =>
+          None
+        case None =>
+          variables.find(_.name === name)
+      }) match {
+        case Some(variable) =>
+          Some(variable)
+        case None =>
+          parentExecution
+            .flatMap(_.getVariable(name))
+      }
     }
+  }
 
   def getVariable(name:String):Option[VariableDefinition] =
     getVariable(VariableName(name))
