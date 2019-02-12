@@ -64,4 +64,4 @@ ENV BINTRAY_PASS=${BINTRAY_PASS}
 ARG RELEASE
 ENV RELEASE=${RELEASE}
 
-RUN if [ "$RELEASE" = "true" ]; then sbt 'project openlawCore' 'release with-defaults'; fi
+RUN if [ "$RELEASE" = "true" ]; then sbt 'release with-defaults'; fi
