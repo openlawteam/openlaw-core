@@ -5,7 +5,7 @@ import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.result.{Failure, Result}
-import org.adridadou.openlaw.result.Implicits.{failureCause2Exception, RichEither}
+import org.adridadou.openlaw.result.Implicits.failureCause2Exception
 import org.adridadou.openlaw.values.TemplateParameters
 import org.adridadou.openlaw.vm.OpenlawExecutionEngine
 import org.scalatest._
@@ -49,15 +49,14 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
   "Markdown parser service" should "handle tables" in {
     val text=
       """| head1 | head2 | head3 |
-    || ----- | ----- | ----- |
-    || val11 | val12 | val13 |
-    || val21 | val22 | val23 |
-    |""".stripMargin
+         | ----- | ----- | ----- |
+         | val11 | val12 | val13 |
+         | val21 | val22 | val23 |"""
 
     val template = service.compileTemplate(text).right.value
     template shouldBe a [CompiledAgreement]
-    val agreement = template.asInstanceOf[CompiledAgreement]
-    val tableElement = structureAgreement(text).map(_.paragraphs(0).elements.head).right.value
+
+    val tableElement = structureAgreement(text).map(_.paragraphs.head.elements.head).right.value
     tableElement shouldBe a [TableElement]
     resultShouldBe(forReview(text), """<p class="no-section"><table class="markdown-table"><tr class="markdown-table-row"><th class="markdown-table-header">head1</th><th class="markdown-table-header">head2</th><th class="markdown-table-header">head3</th></tr><tr class="markdown-table-row"><td class="markdown-table-data">val11</td><td class="markdown-table-data">val12</td><td class="markdown-table-data">val13</td></tr><tr class="markdown-table-row"><td class="markdown-table-data">val21</td><td class="markdown-table-data">val22</td><td class="markdown-table-data">val23</td></tr></table></p>""")
   }

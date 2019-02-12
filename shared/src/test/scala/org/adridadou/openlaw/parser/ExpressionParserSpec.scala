@@ -3,7 +3,6 @@ package org.adridadou.openlaw.parser
 import org.adridadou.openlaw.parser.template._
 import org.scalatest._
 
-
 /**
   * Created by davidroon on 05.05.17.
   */
