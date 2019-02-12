@@ -17,7 +17,7 @@ class BlockRulesSpec extends FlatSpec with Matchers with TryValues with EitherVa
     def TableHeaderBreakString = rule { tableHeaderBreakString ~ EOI }
     def TableHeaderBreak = rule { tableHeaderBreak ~ EOI }
     def TableHeader = rule { tableHeader ~ EOI }
-    def Table = rule { table ~ EOI }
+    def Table = rule { tableKey ~ EOI }
   }
 
   "The parser" should "parse a table column entry" in {
@@ -59,10 +59,10 @@ class BlockRulesSpec extends FlatSpec with Matchers with TryValues with EitherVa
   }
 
   it should "parse a table row" in {
-    TestParser("col1|col2|col3").TableRow.run().success.value should contain allOf (List(Text("col1")), List(Text("col2")), List(Text("col3")))
-    TestParser("col1 | col2 | col3").TableRow.run().success.value should contain allOf (List(Text("col1")), List(Text("col2")), List(Text("col3")))
+    TestParser("|col1|col2|col3").TableRow.run().success.value should contain allOf (List(Text("col1")), List(Text("col2")), List(Text("col3")))
+    TestParser("| col1 | col2 | col3").TableRow.run().success.value should contain allOf (List(Text("col1")), List(Text("col2")), List(Text("col3")))
     TestParser("| col1 | col2 | col3 |").TableRow.run().success.value should contain allOf (List(Text("col1")), List(Text("col2")), List(Text("col3")))
-    TestParser("col1 | col2 | col3 |").TableRow.run().success.value should contain allOf (List(Text("col1")), List(Text("col2")), List(Text("col3")))
+    TestParser("| col1 | col2 | col3 |").TableRow.run().success.value should contain allOf (List(Text("col1")), List(Text("col2")), List(Text("col3")))
     TestParser("| col1 | col2 | col3").TableRow.run().success.value should contain allOf (List(Text("col1")), List(Text("col2")), List(Text("col3")))
   }
 

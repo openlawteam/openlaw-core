@@ -16,8 +16,11 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
 
   def blockRule:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | pageBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | headerAnnotationPart | noteAnnotationPart | textPart) ~> ((s: Seq[TemplatePart]) => Block(s))}
 
-  def blockInConditionalRule:Rule1[Block] = rule { zeroOrMore( centeredLine | rightThreeQuartersLine | rightLine | pageBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | headerAnnotationPart | noteAnnotationPart | textPartNoColons) ~> ((s: Seq[TemplatePart]) => Block(s))}
-  def blockInConditionalElseRule:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | pageBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | headerAnnotationPart | noteAnnotationPart | textPartNoColons) ~> ((s: Seq[TemplatePart]) => Block(s))}
+  def simpleBlockRule:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | pageBreak | indentLine | varAliasKey | varKey | varMemberKey | simpleConditionalBlockSetKey | simpleConditionalBlockKey | headerAnnotationPart | noteAnnotationPart | simpleTextPart) ~> ((s: Seq[TemplatePart]) => Block(s))}
+  def simpleBlockInConditionalElseRule:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | pageBreak | indentLine | varAliasKey | varKey | varMemberKey | simpleConditionalBlockSetKey | simpleConditionalBlockKey | headerAnnotationPart | noteAnnotationPart | textPartNoColons) ~> ((s: Seq[TemplatePart]) => Block(s))}
+
+  def blockInConditionalRule:Rule1[Block] = rule { zeroOrMore( centeredLine | rightThreeQuartersLine | rightLine | pageBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | headerAnnotationPart | noteAnnotationPart | textPartNoColons) ~> ((s: Seq[TemplatePart]) => Block(s))}
+  def blockInConditionalElseRule:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | pageBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | headerAnnotationPart | noteAnnotationPart | textPartNoColons) ~> ((s: Seq[TemplatePart]) => Block(s))}
 
   def blockNoStrong:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | indentLine | varAliasKey | varKey | varMemberKey | headerAnnotationPart | noteAnnotationPart | textPartNoStrong) ~> ((s: Seq[TemplatePart]) => Block(s))}
 
@@ -27,11 +30,17 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
 
   def conditionalBlockSetKey:Rule1[ConditionalBlockSet]= rule { openB ~ oneOrMore(ws ~ conditionalBlockKey ~ ws) ~ closeB ~> ((blocks:Seq[ConditionalBlock]) => ConditionalBlockSet(blocks)) }
 
+  def simpleConditionalBlockSetKey:Rule1[ConditionalBlockSet]= rule { openB ~ oneOrMore(ws ~ simpleConditionalBlockKey ~ ws) ~ closeB ~> ((blocks:Seq[ConditionalBlock]) => ConditionalBlockSet(blocks)) }
+
   def foreachBlockKey:Rule1[ForEachBlock]= rule { &(openB) ~ foreachBlock }
 
   def foreachBlock:Rule1[ForEachBlock] = rule { openB ~ "#for each" ~ variableName ~ ws ~ ":" ~ ws  ~ ExpressionRule ~ ws ~ "=>" ~ ws ~ blockRule ~ closeB ~> ((variable:VariableName, expression:Expression, block: Block) =>
     ForEachBlock(variable, expression, block))
   }
+
+  def simpleConditionalBlockKey:Rule1[ConditionalBlock]= rule { &(openB) ~ simpleConditionalBlock }
+
+  def simpleConditionalBlock:Rule1[ConditionalBlock] = rule { openB ~ ws  ~ conditionalExpressionRule ~ ws ~ "=>" ~ ws ~ simpleBlockRule ~ optional(simpleConditionalBlockElse) ~ closeB ~> ((expression:Expression, block: Block, elseBlock:Option[Block]) => ConditionalBlock(block, elseBlock, expression))}
 
   def conditionalBlockKey:Rule1[ConditionalBlock]= rule { &(openB) ~ conditionalBlock }
 
@@ -45,7 +54,7 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
     })
   }
 
-  def conditionalBlockKeyElse:Rule1[Block]= rule { &("::") ~ conditionalBlockElse }
+  def simpleConditionalBlockElse:Rule1[Block] = rule { "::" ~ ws ~ simpleBlockInConditionalElseRule}
 
   def conditionalBlockElse:Rule1[Block] = rule { "::" ~ ws ~ blockInConditionalElseRule}
 
@@ -95,6 +104,9 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
     capture(indent) ~> ((_: String) => TemplateText(Seq(Indent)))
   }
 
+  def simpleTextPart: Rule1[TemplateText] = rule {
+    textElementNoTable ~> ((s: Seq[TemplatePart]) => TemplateText(s)) }
+
   def textPart: Rule1[TemplateText] = rule {
     textElement ~> ((s: Seq[TemplatePart]) => TemplateText(s)) }
 
@@ -111,7 +123,11 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
     textNoReturn ~> ((s: Seq[TemplatePart]) => TemplateText(s)) }
 
   def textElement: Rule1[Seq[TemplatePart]] = rule {
-    table | strongWord | emWord | textWithStar
+    tableKey | strongWord | emWord | textWithStar
+  }
+
+  def textElementNoTable: Rule1[Seq[TemplatePart]] = rule {
+    strongWord | emWord | textWithStar
   }
 
   def textElementNoStrong: Rule1[Seq[TemplatePart]] = rule {
@@ -119,7 +135,7 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   }
 
   def textElementNoColons: Rule1[Seq[TemplatePart]] = rule {
-    table | strongWord | emWord | textNoColons
+    tableKey | strongWord | emWord | textNoColons
   }
 
   def textElementNoEm: Rule1[Seq[TemplatePart]] = rule {
@@ -174,7 +190,11 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   }
 
   def whitespace:Rule0 = rule { zeroOrMore(anyOf(tabOrSpace)) }
-  def tableColumnEntryBlock: Rule1[Seq[TemplatePart]] = rule { oneOrMore(varAliasKey | varKey | varMemberKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | tableText) ~> ((seq: Seq[TemplatePart]) => accumulateTextAndTrim(seq))  }
+  def tableColumnEntryBlock: Rule1[Seq[TemplatePart]] = rule { oneOrMore(varAliasKey | varKey | varMemberKey | conditionalBlockSetKey | conditionalBlockKey | tableText) ~> ((seq: Seq[TemplatePart]) => accumulateTextAndTrim(seq))  }
+
+  def tableKey: Rule1[Seq[Table]] = rule {
+    &(pipe) ~ table
+  }
 
   def table: Rule1[Seq[Table]] = rule {
     tableHeader ~ nl ~ oneOrMore(tableRow ~ (nl | EOI)) ~> ((headers: Seq[Seq[TemplatePart]], rows: Seq[Seq[Seq[TemplatePart]]]) => Seq(Table(headers.map(_.toList).toList, rows.map(_.map(_.toList).toList).toList)))
@@ -184,7 +204,8 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   def tableHeaderBreak: Rule0 = rule { whitespace ~ optional(pipe) ~ oneOrMore(tableHeaderBreakString).separatedBy(pipe) ~ optional(pipe) ~ whitespace }
 
   def tableColumnEntry: Rule1[Seq[TemplatePart]] = rule { whitespace ~ tableColumnEntryBlock ~ whitespace }
-  def tableRow: Rule1[Seq[Seq[TemplatePart]]] = rule { whitespace ~ optional(pipe) ~ (tableColumnEntry ~ pipe ~ oneOrMore(tableColumnEntry).separatedBy(pipe) ~> ((row: Seq[TemplatePart], remaining: Seq[Seq[TemplatePart]]) => row +: remaining)) ~ optional(pipe) ~ whitespace}
+
+  def tableRow: Rule1[Seq[Seq[TemplatePart]]] = rule { whitespace ~ pipe ~ (tableColumnEntry ~ pipe ~ oneOrMore(tableColumnEntry).separatedBy(pipe) ~> ((row: Seq[TemplatePart], remaining: Seq[Seq[TemplatePart]]) => row +: remaining)) ~ optional(pipe) ~ whitespace}
 
   def tableHeaderBreakString: Rule0 = rule {
     whitespace ~ (oneOrMore("-") ~ ":" |

@@ -877,6 +877,285 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     }
   }
 
+  it should "not run that long" in {
+    val text =
+      """
+        |####
+        |show title:false;
+        |####
+        |<%
+        |#set up formatting for the form
+        |==Consignment Information==
+        |[[Effective Date: Date]]
+        |[[Consignor Name]]
+        |[[Consignor Address: Address]]
+        |[[Affiliate]]
+        |[[Liability]]
+        |[[Auction]]
+        |[[Auction Location]]
+        |[[Auction Month]]
+        |[[Auction Year]]
+        |[[Marketing Promises]]
+        |[[Settlement Date]]
+        |[[Review Rights]]
+        |[[Hours to Review: Number]]
+        |[[Commission]]
+        |[[Percent Commission: Number]]
+        |[[Expenses]]
+        |[[Consignor Expenses]]
+        |[[Percent of Hammer Price: Number]]
+        |[[Reserves]]
+        |[[Rescission]]
+        |[[Representations and Warranty Provisions]]
+        |[[Entity Type]]
+        |[[Expense of Unsold Property Borne by]]
+        |[[Lot Reconsignment]]
+        |
+        |==Signature Information==
+        |[[Sothebys Signatory Email: Identity]]
+        |[[Sothebys Signatory Name]]
+        |[[Sothebys Signatory Title]]
+        |[[Entity Name]]
+        |[[Consignor Signatory Email: Identity]]
+        |
+        |==Schedule I==
+        |[[Properties:Collection<PropertiesInfo> "List of Properties"]]
+        |
+        |==Other Schedule Information==
+        |[[Consignor Account Number: Number]]
+        |[[Payee Account Name]]
+        |[[Bank Name]]
+        |[[Bank Address: Address]]
+        |[[Bank Account Number]]
+        |[[Sort or Swift Code or ABA Number]]
+        |[[IBAN Number]]
+        |[[Intermediary Bank Name]]
+        |[[Intermediary Bank Address: Address]]
+        |
+        |#set choices
+        |[[Location: Choice("Geneva", "Doha", "Dubai", "Hong Kong", "London", "Milan", "New York", "Paris", "Zurich")]]
+        |[[Auction Location: Location]]
+        |[[Reps: Choice("Agent", "Estate", "Entity", "Trust")]]
+        |[[Representations and Warranty Provisions: Reps]]
+        |[[Unsold: Choice("Consignor", "Sotheby's")]]
+        |[[Expense of Unsold Property Borne by: Unsold]]
+        |[[Lots: Choice("Sold in London and Under TA", "Property in Free Circulation", "To Paris by Individual", "To Paris by Corporation", "To London and Paris by Individual", "To London and Paris by Corporation", "To Hong Kong", "To Another Sotheby's Location")]]
+        |[[Lot Reconsignment: Lots]]
+        |[[EntityTypes: Choice("corporation","limited liability company","limited partnership","an entity")]]
+        |[[Entity Type: EntityTypes]]
+        |[[ReviewTypes: Choice("your review and commentary", "your review, comment and approval")]]
+        |[[ReviewRights: ReviewTypes]]
+        |
+        |%>
+        |
+        |\centered **CONSIGNMENT AGREEMENT**
+        |
+        |[[Effective Date: Date]]
+        |[[Consignor Name]]
+        |[[Consignor Address: Address]]
+        |
+        |Thank you for consigning property to Sotheby’s.  This confirms our agreement ("Agreement") under which property which is consigned by you and is listed on Schedule I hereto (the "Property") will be offered by us for sale at auction, subject to the following terms and our standard Conditions of Sale and Terms of Guarantee to be printed in the catalogue for the sale, by which you hereby agree to be bound.  As used herein, "we", "us", "our" and "Sotheby’s" mean Sotheby’s, Inc. {{Affiliate "Are there any affiliated Sotheby's company offering Property for sale under this Agreement?" => and any affiliated company offering Property for sale under this Agreement}}, and "you" and "your" mean [[Consignor Name]]{{Liability "Is the Consignor jointly and severally liable?" =>, jointly and severally}}.
+        |
+        |^**The Auction.**  The Property will be offered for sale in our [[Auction Location]] auction location, on [[Auction Month]] [[Auction Year]], subject to postponement for reasons beyond our control. In connection with {{Auction "Will the Property be offered at a specific auction?" => the}}{{!Auction "Will the Property be offered at a specific auction?" => any}} auction, we will have absolute discretion as to (a) consulting any expert either before or after the sale, (b) researching the provenance of the Property either before or after the sale, (c) {{!Auction "Will the Property be offered at a specific auction?" => grouping the Property into lots and}} providing catalogue and other descriptions as we believe appropriate, (d) the {{Auction "Will the Property be offered at a specific auction?" => date}}{{!Auction "Will the Property be offered at a specific auction?" => dates}} of an auction, (e) the marketing and promotion of the sale and (f) the manner of conducting the sale.
+        |
+        |{{Marketing Promises "Include Marketing Promises Insert?" => We agree to market and promote the Property as set forth on Schedule II hereto subject to your timely execution of this Agreement, our timely receipt of the Property and our obtaining the appropriate copyright clearances within the applicable print publication deadlines.}}
+        |
+        |{{Review Rights "Include Catalogue Review Rights Insert?" => Notwithstanding the foregoing, we will provide you with the portion of the catalogue drafts and other descriptions pertaining to the Property, as we believe appropriate, which may appear in any marketing or sales materials.  You will have at least [[Hours to Review]] hours to review any such text and we will reasonably incorporate your comments and suggestions; provided, that, ultimate editorial control over any such catalogues, text or materials will be maintained by Sotheby’s.}}
+        |
+        |^**Commission.**  {{Commission "Is the Consignor paying a sales commission?" => You will pay us a selling commission equal to [[Percent Commission | raw]]% of the hammer price of each lot of Property sold.}}{{!Commission "Is the consignor paying a sales commission?" => You will not pay us any selling commission on the Property.}}  You authorize us to charge the buyer and retain for our account a commission on {{Auction "Will the Property be offered at a specific auction?" => the Property}}{{!Auction "Will the Property be offered at a specific auction?" => each lot sold}} (the "buyer’s premium").  The Conditions of Sale in the catalogue for the auction will state the rate at which the buyer’s premium will be assessed against the buyer, and such rate will be a percentage of the hammer price of {{Auction "Will the Property be offered at a specific auction?" => the Property}}{{!Auction "Will the Property be offered at a specific auction?" => each lot sold}}.
+        |
+        |^**Settlement.**
+        |
+        |^^On the {{Settlement Date "Is the settlement occurring after a specific auction?" => Settlement Date}}{{!Settlement Date "Is the settlement occurring after a specific auction?" => Settlement Dates}} (as defined below), we will mail to you or wire transfer to you pursuant to your Payment Instructions (as defined below) the sale proceeds we collect and receive, after deducting our buyer’s premium (the "net sale proceeds"), unless the purchaser has notified us of its intention to rescind the sale (as provided in paragraph 9).  We may also deduct and retain from the net sale proceeds any other amount you owe us or any of our affiliated entities, whether arising out of the sale of the Property or otherwise. {{Settlement Date "Is the settlement occurring after a specific one auction?" => The "Settlement Date" will be the date that is thirty-five days after the last session of the auction.}}{{!Settlement Date "Is the settlement occurring after a specific one auction?" => The "Settlement Dates" will be the dates that are thirty-five days after the last session of each auction.}}
+        |
+        |^^We have no obligation to enforce payment by any purchaser.  If a purchaser does not pay, and you and we do not agree on another course of action, we reserve the right to cancel the sale and return the Property to you.  Notwithstanding the preceding sentence, if we pay you any portion of the net sale proceeds for {{Auction "Will the Property be offered at a specific auction?" => the}}{{!Auction "Will the Property be offered at a specific auction?" => any}} Property and have not collected from the purchaser of {{Auction "Will the Property be offered at a specific auction?" => the}}{{!Auction "Will the Property be offered at a specific auction?" => such}} Property payment of the amount we paid to you, simultaneously with any such payment by us to you, you assign to us any and all rights you may have against such purchaser to the extent of such payment, whether at law, in equity or under the Conditions of Sale.  You agree to execute any documents we may reasonably request evidencing this assignment and you agree that all of your representations, warranties and indemnities set forth in this Agreement shall apply to us or the purchaser, as the case may be, with respect to the Property.  You authorize us, in our sole discretion, to impose on {{Auction "Will the Property be offered at a specific auction?" => the}}{{!Auction "Will the Property be offered at a specific auction?" => any}} purchaser and retain for our account a late charge if payment is not made in accordance with the Conditions of Sale.
+        |
+        |^^You agree that we may offer the purchaser of any lot of the Property the right to pay the total purchase price for such Property (including buyer’s premium) in one or more installments as determined by us in our sole discretion over a period of up to 90 days following the auction.  The purchaser will not pay any interest on any installment.   We agree to notify you following the auction if extended payment terms have been offered to and accepted by any purchaser, the dates on which installments of the net sale proceeds are due to you (each, an "Installment Payment Date") and the amount which is due to you on each Installment Payment Date.
+        |
+        |^^Following our receipt of (i) your signed instructions or (ii) in the event we do not receive your signed instructions in connection with this Agreement, the payment instructions we receive in a manner that is mutually agreed upon or in a manner that is a customary form of communication between you and us (collectively, the "Payment Instructions"), we are hereby authorized to make a payment pursuant to the Payment Instructions and we shall have no liability for any loss, claim, or damage you sustain as a result of our reliance upon such Payment Instructions regardless of whether such Payment Instructions resulted from any unauthorized or fraudulent activity by a third party.
+        |
+        |^**Reserves.**
+        |
+        |^^{{Auction "Will the Property be offered at a specific auction?" => The}}{{!Auction "Will the Property be offered at a specific auction?" => Each lot of the}} Property will be offered subject to {{Reserves "Will the Reserves be mutually agreed to prior to the date of the sale?" => a reserve to be mutually agreed upon prior to the date of sale.}}{{!Reserves "Will the Reserves be mutually agreed to prior to the date of the sale?" => the reserve set forth on Schedule I hereto, unless we mutually agree upon a different reserve prior to the date of sale.}}  However, we may sell {{Auction "Will the Property be offered at a specific auction?" => the}}{{!Auction "Will the Property be offered at a specific auction?" => any lot of the}} Property at a price below the reserve, provided that we pay you in accordance with paragraph 3 above {{Reserves "If Property sold below reserve, consignor is entitled to agreed reserve?" => the agreed reserve}}{{!Reserves "If Property sold below reserve, consignor is entitled to agreed reserve?" => the net amount which you would have been entitled to received had the Property been sold at the agreed reserve.}}  No reserve for a lot will exceed its low presale estimate.
+        |
+        |^^You agree not to bid on the Property.  Although we shall be entitled to bid on your behalf up to the amount of the reserve, you shall not instruct or permit any other person to bid for the Property on your behalf.  If, however, you violate your foregoing commitment and you or your agent becomes the successful bidder on the Property, you will pay us the buyer’s premium on the hammer price, the Property may be sold without any reserve, and you will not be entitled to the benefit of any warranties under the Conditions of Sale or Terms of Guarantee.
+        |
+        |^^There will be no commission if the Property is bought-in for failing to reach its reserve.  In the event {{Auction "Will the Property be offered at a specific auction?" => the Property}}{{!Auction "Will the Property be offered at a specific auction?" => any lot}} is bought-in, we will announce that such lot has been "passed", "withdrawn", "returned to owner", or "bought-in".
+        |
+        |^**Representations and Warranties; Indemnity.**
+        |
+        |You represent and warrant to us and {{Auction "Will the Property be offered at a specific auction?" => the purchaser}}{{!Auction "Will the Property be offered at a specific auction?" => each purchaser}} that: {{Representations and Warranty Provisions = "Agent" => You represent and warrant to us and the purchaser that:...you are the sole and absolute owner of the Property, provided that, to the extent you are acting as an agent for someone who is not signing this Agreement, you instead represent and warrant that your principal is the sole and absolute owner of the Property, and your principal has expressly authorized you to engage additional agents/brokers such as Sotheby’s to act on its behalf in selling the Property, and your principal has expressly authorized the commissions payable to Sotheby’s on the sale of the Property; you have the right to consign the Property for sale;}} you have the right to consign the Property for sale;  it is now, and through and including its sale will be kept, free of all liens, claims and encumbrances of others, including, but not limited to, claims of governments or governmental agencies; {{Representations and Warranty Provisions = "Estate" => except for federal and state estate tax liens (which you represent and warrant will be adequately provided for and will be paid when due); good title and right to possession will pass to the purchaser free of all liens, claims and encumbrances;}} good title to and right to possession of the Property will pass to the purchaser free of all liens, claims and encumbrances; this Agreement has been duly authorized, executed and delivered by you and constitutes your legally binding obligation; {{Representations and Warranty Provisions = "Entity" => you are a  [[Entity Type]] duly organized, validly existing and in good standing in the jurisdictions where such qualification is required and have full {{Entity Type = "corporation" => corporate}} power and authority to execute, deliver and perform your obligations under this Agreement;}}{{Representations and Warranty Provisions = "Estate" => the signatories to this Agreement for the Estate have been duly appointed and are validly serving as executors of the Estate and have all requisite power and authority under the documents establishing the Estate and law to execute and deliver this Agreement; the signatories to this Agreement for the Estate are all the executors of the Estate;}}{{Representations and Warranty Provisions = "Trust" => the signatories to this Agreement for the Trust have been duly appointed and are validly serving as trustees of the Trust and have all requisite power and authority under the trust agreement and law to execute and deliver this Agreement; the signatories to this Agreement for the Trust are all the trustees of the Trust;}} you have provided us with all information you have concerning the provenance, condition and restoration of the Property; you have no reason to believe that {{Auction "Will the Property be offered at a specific auction?" => the}}{{!Auction "Will the Property be offered at a specific auction?" => any lot of}} Property is not authentic or is counterfeit; where the Property has been imported into the United States, the Property has been lawfully imported into the United States and has been lawfully and permanently exported as required by the laws of any country (including any laws or regulations applicable in the European Union) in which it was located; required declarations upon the export and import of the Property have been properly made and any duties and taxes on the export and import of the Property have been paid; you have paid or will pay any and all taxes and/or duties that may be due on the net sale proceeds of the Property and you have notified us in writing of any and all taxes and/or duties that are payable by us on your behalf in any country other than the United States; and there are no restrictions on our right to reproduce photographs of the Property.  We retain the exclusive copyright to all catalogue and other illustrations and descriptions of the Property created by us.
+        |
+        |^^You agree to indemnify and hold us and each purchaser harmless from and against any and all claims, actions, damages, losses, liabilities and expenses (including reasonable attorneys’ fees) relating to the breach or alleged breach of any of your agreements, representations or warranties in this Agreement.
+        |
+        |^^Your representations, warranties and indemnity will survive completion of the transactions contemplated by this Agreement.
+        |
+        |^**Expenses.**  {{Consignor Expenses "Is the Consignor bearing the expenses related to the sale of the Property?" => You agree to pay:
+        |^^a property management fee of: (i) for items of Property which have been sold, [[Percent of Hammer Price | raw]]% of the hammer price (excluding buyer’s premium), or for items of Property not yet offered for sale, [[Percent of Hammer Price | raw]]% of the mean of our latest pre-sale estimates, or (ii) for items of Property which have failed to sell at auction, [[Percent of Hammer Price | raw]]% of the reserve, in each case except for those items of Property which have specific terms noted on the attached Property Schedule. Such fee covers property handling, property administration, and bearing liability for loss or damage to Property in our possession;
+        |^^our standard fees then in effect for catalogue illustration;
+        |^^ packing, shipping and customs duties to our premises;
+        |^^the cost of any agreed-upon advertising; and
+        |^^the cost of other services, such as framing, restoration and gemological tests, approved by you.
+        |In addition to other remedies available to us by law, we reserve the right to impose and retain a late charge of 1.5% per month on any amount due us or any of our affiliated entities and remaining unpaid for more than fifteen days after we notify you.}}{{Expenses "Is Sotheby's bearing the expenses related to the sale of the Property?" => We agree to bear all expenses related to the sale of the Property, including but not limited to:  (a) the cost of bearing liability for any loss or damage to the Property as provided in paragraph 7 hereof, (b) catalogue illustration, production and mailing, (c) packing and shipping to our premises and (d) any agreed-upon advertising.}}
+        |
+        |^**Loss or Damage to Property.** We agree to bear liability for any loss or damage to the Property from the time we receive the Property and while the Property is in our custody and control. We will pay you the Value of the Property (as defined below) or the Depreciation Amount (as defined below), as the case may be, in the event of loss or damage as set forth below.  The maximum amount of our liability to you resulting from loss or damage to the Property shall not exceed the Value of the Property for such Property.  For purposes of this limitation of liability, the Value of the Property is:  (a) for Property which has been sold, the hammer price (excluding buyer’s premium), (b) for Property which has failed to sell at auction, the reserve, or (c) for Property not yet offered for sale, the mean of our latest presale estimates.  In the event of a total loss (Property which has been lost, or Property which has been damaged and has depreciated in value, in our opinion, by 50% or more), we will pay you the Value of the Property for such Property, and simultaneously with such payment, all title and interest to the Property shall pass to us.  In the event of a partial loss (Property which has been partially damaged or lost and has depreciated in value, in our opinion, by less than 50%), we will pay you the amount of depreciation, as determined by us in our discretion (the "Depreciation Amount"), and such Property will be offered for sale or, at your request, returned to you.  We will not be responsible for Property that is not within our custody and control or liable for damage to frames or glass covering prints, paintings or other works, for damage occurring in the course of any process undertaken by independent contractors employed with your consent (including restoration, framing or cleaning), or for damage caused by changes in humidity or temperature, inherent conditions or defects, normal wear and tear, war, acts of terrorism, nuclear fission or radioactive contamination, or chemical, bio-chemical or electromagnetic weapons. We maintain insurance for loss or damage to all property that is under our custody and control. In the event of any loss of or damage to the Property as described in this paragraph 7, you agree that your sole remedy against us will be the payment of the Value of the Property or the Depreciation Amount (the "Payment"), as the case may be, and upon receipt of the Payment by you, you irrevocably release and discharge Sotheby’s, on your own behalf and on behalf of any insurer you may have, from all liability for loss or damage to the Property resulting from any cause whatsoever, including but not limited to the negligence of Sotheby’s and its agents and independent contractors.
+        |
+        |^**Withdrawal.**  You may not withdraw {{Auction "Will the Property be offered at a specific auction?" => the}}{{!Auction "Will the Property be offered at a specific auction?" => any}} Property from sale after the date on which you sign this Agreement.  Regardless of whether we have previously issued a receipt for the Property, published a catalogue including the Property or advertised its sale, we may withdraw {{Auction "Will the Property be offered at a specific auction?" => the}}{{!Auction "Will the Property be offered at a specific auction?" => any}} Property at any time before sale if in our sole judgment (a) there is doubt as to its authenticity or attribution or its sale would or may subject us and/or you to any liability, (b) there is doubt as to the accuracy of any of your representations or warranties, (c) you have breached any provision of this Agreement, (d) {{Auction "Will the Property be offered at a specific auction?" => the}}{{!Auction "Will the Property be offered at a specific auction?" => lot of}} Property incurs loss or damage so that it is not in the state in which it was when we agreed to offer it for sale, or (e) we determine in our reasonable  discretion that its sale may be detrimental to our reputation and/or brand.  If we withdraw {{Auction "Will the Property be offered at a specific auction?" => the}}{{!Auction "Will the Property be offered at a specific auction?" => any}} Property under (b) or (c) of this paragraph 8, you must within ten days of our notice to you of withdrawal pay us a withdrawal fee equal to 20% of the mean of our latest presale estimates for the withdrawn Property, as well as all out-of-pocket expenses incurred by us up to and including the date of withdrawal (the "Withdrawal Fee").  If {{Auction "Will the Property be offered at a specific auction?" => the}}{{!Auction "Will the Property be offered at a specific auction?" => any}} Property is withdrawn by you in breach of this Agreement, you will pay us a Withdrawal Fee as well as any special, incidental or consequential damages incurred as a result of your breach, notwithstanding anything to the contrary in this Agreement.  If {{Auction "Will the Property be offered at a specific auction?" => the}}{{!Auction "Will the Property be offered at a specific auction?" => any}} Property is withdrawn under (a) or (d) above, you will not be charged a Withdrawal Fee.  If {{Auction "Will the Property be offered at a specific auction?" => the}}{{!Auction "Will the Property be offered at a specific auction?" => any}} Property is withdrawn from sale under (e) above you will not be charged a Withdrawal Fee unless you failed to disclose to us prior to the sale any facts or circumstances known to you which are relevant for the purpose of our determination under (e). Subject to any liens against or claims to the Property, the withdrawn Property will be returned to you at our expense promptly following your payment of the Withdrawal Fee, if applicable. If {{Auction "Will the Property be offered at a specific auction?" => the}}{{!Auction "Will the Property be offered at a specific auction?" => any}} Property is withdrawn for any reason, the timing and the content of any announcement regarding the withdrawal shall be in Sotheby’s sole discretion.
+        |
+        |^**Rescission.**  You authorize us to rescind the sale of {{Auction "Will the Property be offered at a specific auction?" => the}}{{!Auction "Will the Property be offered at a specific auction?" => any}} Property in accordance with the Conditions of Sale and Terms of Guarantee, or if we learn that the Property is inaccurately described in the catalogue, or if we learn that the Property is a counterfeit (a modern forgery intended to deceive) or if we determine in our sole judgment that the offering for sale of {{Auction "Will the Property be offered at a specific auction?" => the}}{{!Auction "Will the Property be offered at a specific auction?" => any lot of}} Property has subjected or may subject us and/or you to any liability, including liability under the warranty of title or warranty of authenticity included in the Terms of Guarantee.  If we receive from a purchaser notice of intention to rescind and we determine that {{!Auction "Will the Property be offered at a specific auction?" => a lot of}} the Property is subject to rescission under the Terms of Guarantee or as otherwise set forth above, we will credit the purchaser with the purchase price, you will return to us any sale proceeds {{Rescission "Is there a fee associated with the return of Property?" => and any fee}} for such Property paid by us to you or to a third party as directed by you, and you will reimburse us for expenses incurred in connection with the rescinded sale, including the reasonable attorney’s fees we incur in collecting from you any amounts due herein, and pay us any other amounts you owe us or any of our affiliated entities.  Upon such reimbursement and payment, we will release the Property to you, except in the event of an adverse claim of title, in which case we will retain the Property until such claim has been resolved.
+        |
+        |^**Private Sales.**  If {{Auction "Will the Property be offered at a specific auction?" => the Property}}{{!Auction "Will the Property be offered at a specific auction?" => any lot}} fails to reach its reserve and is bought-in for your account, you authorize us, as your exclusive agent, for a period of 60 days following the auction, to sell the lot privately for a price that will result in a payment to you of not less than the {{Reserves "If Property sold below reserve, consignor is entitled to agreed reserve?" => the agreed reserve}}{{!Reserves "If Property sold below reserve, consignor is entitled to agreed reserve?" => the net amount which you would have been entitled to received had the Property been sold at the agreed reserve.}}  In such event, your obligations to us hereunder with respect to such lot are the same as if it had been sold at auction.
+        |
+        |^**Treatment of Unsold Property.**  If {{Auction "Will the Property be offered at a specific auction?" => the}}{{!Auction "Will the Property be offered at a specific auction?" => any}} Property remains unsold for any reason after the auction, we will notify you.  If {{Auction "Will the Property be offered at a specific auction?" => the}}{{!Auction "Will the Property be offered at a specific auction?" => such}} Property has not been sold privately pursuant to paragraph 10, and if it is not reconsigned to us for sale on mutually agreed-upon terms or picked up within 60 days after such notification, we will return it to you at {{Expense of Unsold Property Borne by = "Consignor" => your}}{{Expense of Unsold Property Borne by = "Sotheby's" => our}} expense.
+        |
+        |^**Estimates; Catalogue Descriptions.**
+        |
+        |^^Presale estimates, if any, are intended as guides for prospective bidders.  We make no representation or warranty of the anticipated selling price of {{Auction "Will the Property be offered at a specific auction?" => the}}{{!Auction "Will the Property be offered at a specific auction?" => any}} Property and no estimate anywhere by us of the selling price of {{Auction "Will the Property be offered at a specific auction?" => the}}{{!Auction "Will the Property be offered at a specific auction?" => any}} Property may be relied upon as a prediction of the actual selling price.  Estimates included in receipts, catalogues or elsewhere are preliminary only and are subject to revision by us from time to time in our sole discretion.
+        |
+        |^^We will not be liable for any errors or omissions in the catalogue or other descriptions of the Property and make no guarantees, representations or warranties whatsoever to you with respect to the Property, its authenticity, attribution, legal title, condition, value or otherwise.
+        |
+        |^**Use of Name.**  We may designate the Property when we offer it for sale, advertise or otherwise promote the sale, both before or after the auction, as you and we may mutually agree.
+        |
+        |^**Legal Status.**
+        |
+        |^^If you are acting as a fiduciary in executing this Agreement and in the transactions contemplated hereunder, please sign and return to us our standard "Fiduciary Agreement".
+        |
+        |^^If you are acting as an agent for someone who is not signing this Agreement, you and your principal jointly and severally assume your obligations and liabilities hereunder to the same extent as if you were acting as principal.
+        |
+        |^**Reconsignment.**
+        |
+        |^^We may, at our discretion, reconsign {{Auction "Will the Property be offered at a specific auction?" => the}}{{!Auction "Will the Property be offered at a specific auction?" => any}} Property so that it shall be offered for sale at public auction by one of our affiliates, unless you object in writing within ten days of the date of our notice of reconsignment. {{Auction "Will the Property be offered at a specific auction?" => The reconsigned Property}}{{!Auction "Will the Property be offered at a specific auction?" => Any reconsigned Property}} shall be offered for sale pursuant to the terms of this Agreement, and subject to the Conditions of Business and the Authenticity Guarantee, if any, applicable to the auction where offered.  If there is a conflict between the applicable Conditions of Business and the Authenticity Guarantee and the terms of this Agreement, the terms of this Agreement shall control.  With respect to any such reconsigned lot, the terms "Conditions of Sale" and "Terms of Guarantee" referred to in this Agreement shall mean the Conditions of Business and the Authenticity Guarantee, if any, applicable to such auction.  {{Auction "Will the Property be offered at a specific auction?" => The}}{{!Auction "Will the Property be offered at a specific auction?" => Any}} net sale proceeds of the Property in such sale shall be remitted to you in the currency in which the auction is conducted, and all local taxes shall apply.
+        |
+        |{{Lot Reconsignment = "Sold in London and Under TA" => We will reconsign any lot of Property designated on Schedule I hereto for sale in London so that it shall be offered for sale at public auction by our affiliate in London, Sotheby’s ("Sotheby’s London"). You acknowledge that the Property has been or will be imported from outside the European Union for sale in London and that Sotheby's London will be selling the Property under its Temporary Admission arrangement. Sotheby’s London will charge the buyer UK Import VAT at the prevailing rate on the hammer price and UK domestic VAT at the standard rate on the buyer's premium for the Property.  You acknowledge that any applicable Artist’s Resale Right royalty due on the sale of the Property will be charged to the buyer.}}{{Lot Reconsignment = "Property in Free Circulation" => ^^You have confirmed to us that the items of Property which will be offered for sale by Sotheby’s London (individually and collectively, the "London Property") are in free circulation within the European Union and you are neither registered for VAT in the European Union nor are you under a legal obligation to register for VAT in the European Union. You undertake to inform Sotheby’s immediately if, after the signature of this Agreement by you, you register for VAT or become under a legal obligation to register for VAT in the European Union. Sotheby’s London will charge the buyers of the London Property, the applicable import VAT at the prevailing rates on the hammer price and the applicable domestic VAT at the standard rate on the buyer’s premium for such items of Property.}}
+        |
+        |{{Lot Reconsignment = "To Paris by Individual" => We will reconsign any lot of Property designated on Schedule I hereto for sale in Paris (the "Paris Property") so that it shall be offered for sale at public auction by our affiliate in Paris, Sotheby’s France ("Sotheby’s France").   The Paris Property shall be offered for sale pursuant to the terms of this Agreement, and subject to the Conditions of Business and the Authenticity Guarantee, applicable to the auction in which the Paris Property is offered.  If there is a conflict between the applicable Conditions of Business and the Authenticity Guarantee and the terms of this Agreement, the terms of this Agreement shall control.  With respect to any such lot of Paris Property, the terms "Conditions of Sale" and "Terms of Guarantee" referred to in this Agreement shall mean the Conditions of Business and the Authenticity Guarantee applicable to the auction. Any net sale proceeds collected and received for the Paris Property shall be remitted to you in the currency in which the applicable auction is conducted, and all local taxes and regulatory charges shall apply.
+        |
+        |You acknowledge and agree that the Paris Property may be imported from outside the European Union for sale in the European Union, and Sotheby’s France, as applicable, will be selling the Paris Property under their respective Temporary Admission arrangements. Sotheby’s France will charge the buyers of the Paris Property the applicable import VAT at the prevailing rates on the hammer price and the applicable domestic VAT at the standard rate on the buyer’s premium for such items of Property.
+        |
+        |You hereby further warrant to Sotheby’s that neither you nor any of your beneficiaries are a French resident for tax purposes.  Please note that Sotheby’s will not deduct Taxe Forfaitaire from the hammer price for each lot of Property sold on the condition that you provide Sotheby’s with a declaration that neither you nor any of your beneficiaries are a French resident for tax purposes as well as a copy of your proof of identity and proof of the identity of your beneficiaries and any additional documents required by the French Tax Administration or the French Customs in connection thereto. If these conditions are not fulfilled within five days of the date of the sale of the Property, you will be liable to Sotheby’s for the amount of the Taxe Forfaitaire due as well as any related amounts.
+        |
+        |To the extent that any Artist Resale Right ("Droit de Suite") is applicable on the sale of the Paris Property Sotheby’s Paris will deduct an amount equal to the droit de suite at the applicable rate from the hammer price for each lot of the Paris Property, where applicable.}}
+        |
+        |{{Lot Reconsignment = "To Paris by Corporation" => We will reconsign any lot of Property designated on Schedule I hereto for sale in Paris so that it shall be offered for sale at public auction by our affiliate in France, Sotheby’s France (individually and collectively, the "Paris Property"). You acknowledge that the Paris Property may be imported from outside the European Union for sale in the European Union, and Sotheby’s France (if applicable) will be selling such items of Property under their Temporary Admission arrangements. Sotheby’s France will charge the buyers of any such items of Paris Property the applicable import VAT at the prevailing rates on the hammer price and the applicable domestic VAT at the standard rate on the buyer’s premium for such items of Paris Property.
+        |
+        |With respect to the Paris Property, you hereby represent to Sotheby’s that you are a professional liable, as a result of the sale, to corporation tax or income tax according to the applicable regulations relating to business profits under common law, and that each Property sold is included in the assets of your balance sheet. Please note that Sotheby’s rely on your representations in order not to deduct Taxe Forfaitaire from the hammer price for each lot of Property sold. You undertake to provide Sotheby’s with evidence of your company’s registration and any additional documents required by the French Tax Administration or the French Customs, as the case may be, in connection thereto.  In the event that your representations are incorrect, you will be liable to Sotheby’s for the amount of the Taxe Forfaitaire due as well as any related amounts.
+        |
+        |To the extent that any Artist Resale Right ("Droit de Suite") is applicable on the sale of any of the Paris Property, Sotheby’s France will deduct an amount equal to the Droit de Suite at the applicable rate from the hammer price for each lot of the Paris Property, where applicable.}}
+        |
+        |{{Lot Reconsignment = "To London and Paris by Individual" => We will reconsign any lot of Property designated on Schedule I hereto (i) for sale in London so that it shall be offered for sale at public auction by our affiliate in London, Sotheby’s ("Sotheby’s London") and (ii) for sale in Paris so that it shall be offered for sale at public auction by our affiliate in Paris, Sotheby’s France ("Sotheby’s France").   Any reconsigned lot (individually and collectively, the "Reconsigned Property") shall be offered for sale pursuant to the terms of this Agreement, and subject to the Conditions of Business and the Authenticity Guarantee, if any, applicable to the auction where the Reconsigned Property is offered.  If there is a conflict between the applicable Conditions of Business and the Authenticity Guarantee and the terms of this Agreement, the terms of this Agreement shall control, except with respect to the applicable law and jurisdictions which shall be those applicable to the sale in London or in France, as the case may be.  With respect to any such  lot of Reconsigned Property, the terms "Conditions of Sale" and "Terms of Guarantee" referred to in this Agreement shall mean the Conditions of Business and the Authenticity Guarantee, if any, applicable to the auction in the relevant selling location. Any net sale proceeds collected and received for the Reconsigned Property shall be remitted to you in the currency in which the applicable auction is conducted, and all local taxes and regulatory charges shall apply.
+        |
+        |You acknowledge and agree that the items of Reconsigned Property which will be offered for sale by Sotheby’s  London (individually and collectively, the "London Property") and the items of Reconsigned Property which will be offered for sale by Sotheby’s France (individually and collectively, the "Paris Property"), may be imported from outside the European Union for sale in the European Union, and Sotheby’s London and Sotheby’s France, as applicable, will be selling the London Property and the Paris Property, respectively, under their respective Temporary Admission arrangements. Sotheby’s London and Sotheby’s France will charge the buyers of the London Property and the Paris Property, respectively, the applicable import VAT at the prevailing rates on the hammer price and the applicable domestic VAT at the standard rate on the buyer’s premium for such items of Property.
+        |
+        |You hereby further warrant to Sotheby’s that you are not a French resident for tax purposes.  Please note that Sotheby’s will not deduct Taxe Forfaitaire from the hammer price for each lot of Paris Property sold on the condition that you provide Sotheby’s with a declaration that you are not a French resident for tax purposes as well as a copy of your proof of identity and any additional documents required in connection thereto. If these conditions are not fulfilled within five (5) days of the date of the sale of the Paris Property, you will be liable to Sotheby’s for the amount of the Taxe Forfaitaire due as well as any related amounts.
+        |
+        |To the extent that any Artist Resale Right ("Droit de Suite") is applicable on the sale of any of the Reconsigned Property (i) Sotheby’s Paris will deduct an amount equal to the droit de suite at the applicable rate from the hammer price for each lot of the Paris Property, where applicable, and Sotheby’s London will charge the buyer any Artist’s Resale Right levy payable on the sale of the London Property, where applicable.}}
+        |
+        |{{Lot Reconsignment = "To Paris by Corporation" => We will reconsign any lot of Property designated on Schedule I hereto (i) for sale in London so that it shall be offered for sale at public auction by our affiliate in London, Sotheby’s ("Sotheby’s London") and (ii) for sale in Paris so that it shall be offered for sale at public auction by our affiliate in Paris, Sotheby’s France ("Sotheby’s France").   Any reconsigned lot (individually and collectively, the "Reconsigned Property") shall be offered for sale pursuant to the terms of this Agreement, and subject to the Conditions of Business and the Authenticity Guarantee, if any, applicable to the auction where the Reconsigned Property is offered.  If there is a conflict between the applicable Conditions of Business and the Authenticity Guarantee and the terms of this Agreement, the terms of this Agreement shall control, except with respect to the applicable law and jurisdictions which shall be those applicable to the sale in London or in France, as the case may be.  With respect to any such  lot of Reconsigned Property, the terms "Conditions of Sale" and "Terms of Guarantee" referred to in this Agreement shall mean the Conditions of Business and the Authenticity Guarantee, if any, applicable to the auction in the relevant selling location. Any net sale proceeds collected and received for the Reconsigned Property shall be remitted to you in the currency in which the applicable auction is conducted, and all local taxes and regulatory charges shall apply.
+        |
+        |You acknowledge and agree that the items of Reconsigned Property which will be offered for sale by Sotheby’s  London (individually and collectively, the "London Property") and the items of Reconsigned Property which will be offered for sale by Sotheby’s France (individually and collectively, the "Paris Property"), may be imported from outside the European Union for sale in the European Union, and Sotheby’s London and Sotheby’s France, as applicable, will be selling the London Property and the Paris Property, respectively, under their respective Temporary Admission arrangements. Sotheby’s London and Sotheby’s France will charge the buyers of the London Property and the Paris Property, respectively, the applicable import VAT at the prevailing rates on the hammer price and the applicable domestic VAT at the standard rate on the buyer’s premium for such items of Property.
+        |
+        |With respect to the Paris Property, you hereby represent to us that you are a professional liable, as a result of the sale, for corporation tax or income tax according to the applicable regulations relating to business profits under common law, and that each item of Paris Property sold is included in the assets of your balance sheet. Sotheby’s will rely on your representation in order not to deduct Taxe Forfaitaire from the hammer price for each lot of Paris Property sold. You will provide Sotheby’s with evidence of your company’s registration and any additional documents required by the French Tax Administration or the French Customs, as the case may be, in connection thereto.  In the event that your representations are incorrect, you will be liable to Sotheby’s for the amount of the Taxe Forfaitaire due as well as any related amounts.
+        |
+        |To the extent that any Artist Resale Right ("droit de suite") is applicable on the sale of any of the Paris Property, Sotheby’s Paris will deduct an amount equal to the droit de suite at the applicable rate from the hammer price for each lot of the Paris Property, where applicable, and Sotheby’s London will charge the buyer any Artist’s Resale Right levy payable on the sale of the London Property, where applicable.}}
+        |
+        |{{Lot Reconsignment = "To Hong Kong" => We will reconsign any lot of Property designated on Schedule I hereto for sale in Hong Kong so that it shall be offered for sale at public auction by our affiliate Sotheby’s Hong Kong Ltd.}}
+        |
+        |{{Lot Reconsignment = "To Another Sotheby's Location" => Any reconsigned lot shall be offered for sale pursuant to the terms of this Agreement, and subject to the Conditions of Business and the Authenticity Guarantee, if any, applicable to the auction where offered.  If there is a conflict between the applicable Conditions of Business and the Authenticity Guarantee and the terms of this Agreement, the terms of this Agreement shall control.  With respect to any such reconsigned lot, the terms "Conditions of Sale" and "Terms of Guarantee" referred to in this Agreement shall mean the Conditions of Business and the Authenticity Guarantee, if any, applicable to such auction. Any net sale proceeds of the Property in such sale shall be remitted to you in the currency in which the auction is conducted, and all local taxes shall apply.}}
+        |
+        |^**Amendment.**  Neither you nor we may amend, supplement or waive any provision of this Agreement other than by means of a writing signed by both parties.
+        |
+        |^**Privacy.**  Sotheby’s, its subsidiaries and affiliates ("Sotheby’s Group") will record any information that you supply to us or that we obtain about you in its data systems shared within Sotheby’s Group.  Your information will be kept confidential within Sotheby’s Group.  From time to time Sotheby’s Group may send you information about its sales and events, or about products and services of other organizations with which it has a relationship.
+        |
+        |^**No Legal or Tax Advice.**  This Agreement is an important legal document. You acknowledge that you have had the opportunity to consult an attorney before signing this Agreement and have signed this Agreement after having the opportunity to consult with an attorney of your own choosing. Notwithstanding any references to any transactions or arrangements in this Agreement, or any contemporaneous written, oral or implied understandings of the parties relating to the subject matter of this Agreement, Sotheby’s has not provided legal or tax advice or tax planning to you or for your benefit in connection with the transactions contemplated by this Agreement, and no one at Sotheby’s has acted as your attorney or tax advisor.  You have carefully read this Agreement in its entirety, understand all of its terms, and knowingly and voluntarily agree to all of the terms and conditions contained herein.
+        |
+        |^**Miscellaneous.**  This Agreement shall be governed by and construed and enforced in accordance with the laws of the State of New York.  In the event of a dispute hereunder, you agree to submit to the exclusive jurisdiction of the state courts of and the federal courts sitting in the State and County of New York.  This Agreement shall be binding upon your heirs, executors, beneficiaries, successors and assigns, but you may not assign this Agreement without our prior written consent.  Neither party shall be liable to the other for any special, consequential, incidental or punitive damages.  This Agreement, including the Schedules hereto, and the Conditions of Sale and any Terms of Guarantee, constitute the entire agreement between the parties with respect to the transactions contemplated hereby and supersede all prior or contemporaneous written, oral or implied understandings, representations and agreements of the parties relating to the subject matter of this Agreement. You agree that you will not disclose the terms of this Agreement to any third party without our prior written consent, except to attorneys and accountants on a need-to-know basis, or as a result of valid legal process compelling the disclosure, provided you first give us prompt written notice of such service of process and allow us, if we deem it appropriate, to obtain a protective order.  You agree to furnish us, upon our request, with any additional information required to comply with applicable law. Any notices given hereunder to you or us shall be in writing to the respective addresses indicated on the first page of this Agreement (or to such other address as you or we may notify the other in writing) and shall be deemed to have been given five calendar days after mailing to such address or one business day after delivery by hand or telecopier. You agree to provide us, upon our request, verification of identity in an appropriate form. In the event we receive a subpoena from you or a third party relating to the Property or the Agreement, you shall pay us the costs we incur, including reasonable attorney’s fees, in responding to the subpoena. The paragraph headings contained in this Agreement are for convenience of reference only and shall not affect in any way the meaning or interpretation of this Agreement.  This Agreement may be executed in counterparts, each of which will be deemed an original and all of which together constitute one and the same instrument. Signatures sent by facsimile transmission and scanned executed agreements in PDF format sent by email transmission are each valid and binding and will be deemed an original.
+        |
+        |\pagebreak
+        |
+        |Please confirm your agreement with the foregoing by dating, signing and returning to us the duplicate copy of this Agreement.
+        |
+        |Very truly yours,
+        |
+        |**SOTHEBY’S, INC.**
+        |
+        |[[Sothebys Signatory Email: Identity | Signature]]
+        |_______________________________
+        |By: [[Sothebys Signatory Name]]
+        |Title: [[Sothebys Signatory Title]]
+        |
+        |
+        |**ACCEPTED AND AGREED:**
+        |
+        |**[[Entity Name | Uppercase]]**
+        |
+        |[[Consignor Signatory Email: Identity | Signature]]
+        |_______________________________
+        |By: [[Consignor Name]]
+        |Dated: [[Effective Date: Date]]
+        |
+        |Sotheby’s, Inc.
+        |License No. 1216058
+        |
+        |\pagebreak
+        |
+        |
+        |\centered **SCHEDULE I**
+        |\centered **Property Estimates**
+        |<%
+        |[[PropertiesInfo:Structure(
+        |Property Name:Text;
+        |Estimate:Text)]]
+        |
+        |[[Properties:Collection<PropertiesInfo> "List of Properties"]]
+        |%>
+        |
+        |{{#for each Property:Properties =>
+        |[[Property.Property Name]] [[Property.Estimate]]
+        |}}
+        |
+        |{{Marketing Promises =>
+        |\pagebreak
+        |\centered **SCHEDULE II**
+        |
+        |(insert Schedule II)
+        |}}
+        |\pagebreak
+        |
+        |[[Consignor Name]]
+        |[[Consignor Account Number: Number | raw]]
+        |[[Consignor Address: Address]]
+        |[[Effective Date: Date]]
+        |
+        |\centered **Payment Instructions**
+        |
+        |\centered If you require payment by Wire Transfer in respect to future settlements for the above
+        |account, please complete your bank details below and return to us within 14 days of receipt.
+        |
+        |\centered Please Remit Proceeds in Dollars To:
+        |
+        |Payee/Account Name: [[Payee Account Name]]
+        |Bank: [[Bank Name]]
+        |Address: [[Bank Address: Address]]
+        |Account No.: [[Bank Account Number]]
+        |Sort or Swift Code or ABA No.: [[Sort or Swift Code or ABA Number]]
+        |IBAN # (if applicable): [[IBAN Number]]
+        |Intermediary Bank Name: [[Intermediary Bank Name]]
+        |Intermediary Bank Address: [[Intermediary Bank Address: Address]]
+        |
+        |
+        |\centered There is a fixed charge of $20.00 for payments made by wire transfer.
+        |If we do not receive your bank details, payments will be remitted by check.
+        |
+        |Client Signature: [[Consignor Signatory Email: Identity | Signature]]
+        |Dated: [[Effective Date: Date]]
+        |
+        |**Please note that if you complete and sign these instructions, all net proceeds for this sale location will be wired to the above referenced bank. If we do not receive these signed completed instructions, payments will be remitted by check to the above referenced address. Please note that the "Payee/Account Name" must match the consignor name.**
+        |
+      """.stripMargin
+
+    val template = compile(text)
+  }
+
   private def compile(text:String):CompiledTemplate = parser.compileTemplate(text) match {
     case Right(template) => template
     case Left(ex) =>
