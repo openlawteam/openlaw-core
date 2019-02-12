@@ -64,4 +64,5 @@ ENV BINTRAY_PASS=${BINTRAY_PASS}
 ARG RELEASE
 ENV RELEASE=${RELEASE}
 
+RUN git branch --set-upstream-to=origin/master master
 RUN if [ "$RELEASE" = "true" ]; then sbt 'release with-defaults'; fi
