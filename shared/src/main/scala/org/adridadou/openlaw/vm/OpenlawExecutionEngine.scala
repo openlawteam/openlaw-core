@@ -3,7 +3,6 @@ package org.adridadou.openlaw.vm
 import java.util.concurrent.atomic.AtomicInteger
 
 import org.adridadou.openlaw.result._
-import org.adridadou.openlaw.result.Implicits.RichEither
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.values.TemplateParameters
@@ -16,6 +15,12 @@ import scala.collection.mutable
 import scala.util.Try
 
 class OpenlawExecutionEngine extends VariableExecutionEngine {
+
+  /**
+    * Entry point for simple agreements
+    */
+  def execute(mainTemplate:CompiledTemplate, parameters:TemplateParameters):Result[TemplateExecutionResult] =
+    execute(mainTemplate, parameters, Map())
 
   /**
     * Entry point. This is where you start the execution of the main template
