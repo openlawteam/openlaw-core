@@ -314,7 +314,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
 
     resultShouldBe(forReview(text, Map(
       "test" -> "false"
-    )), """<p class="no-section"></p>""")
+    )), "")
   }
 
   it should "be able to emphasize variables" in {
@@ -415,7 +415,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
       """<%[[var1:Number]][[var2:Number]]%>{{var1 >= var2 => iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj}}""".stripMargin
     resultShouldBe(forReview(text, Map("var1" -> "112", "var2" -> "16")), """<p class="no-section">iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj</p>""")
     resultShouldBe(forReview(text, Map("var1" -> "16", "var2" -> "16")), """<p class="no-section">iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj</p>""")
-    resultShouldBe(forReview(text, Map("var1" -> "15", "var2" -> "16")), "<p class=\"no-section\"></p>")
+    resultShouldBe(forReview(text, Map("var1" -> "15", "var2" -> "16")), "")
   }
 
   it should "accept expressions with just a variable" in {

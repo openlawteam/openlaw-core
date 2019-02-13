@@ -191,7 +191,7 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   }
 
   def tableWithoutHeader:Rule1[Seq[Table]] = rule {
-    oneOrMore(tableRow ~ (nl | EOI)) ~> ((rows: Seq[Seq[Seq[TemplatePart]]]) => Seq(Table(List(), rows.map(_.map(_.toList).toList).toList)))
+    oneOrMore(tableRow ~ whitespace ~ (nl | EOI)) ~ whitespace ~> ((rows: Seq[Seq[Seq[TemplatePart]]]) => Seq(Table(List(), rows.map(_.map(_.toList).toList).toList)))
   }
 
   def tableWithoutRow:Rule1[Seq[Table]] = rule {

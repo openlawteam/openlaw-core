@@ -1156,7 +1156,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     compile(text)
   }
 
-  it should "handle tables preceeding other elements" in {
+  it should "handle tables preceding other elements" in {
     val text="""this is a test
 
           to see if for each works
@@ -1167,7 +1167,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
          | ----- | ----- | ----- |
          {{#for each text:texts =>
          | val11 | val12 | [[text]] |
-         }}
+}}
          """
 
     val template = compile(text)
