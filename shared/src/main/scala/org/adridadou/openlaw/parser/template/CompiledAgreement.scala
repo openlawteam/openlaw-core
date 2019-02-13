@@ -5,6 +5,8 @@ import java.time.Clock
 import cats.implicits._
 import org.adridadou.openlaw.parser.template.variableTypes._
 
+import scala.annotation.tailrec
+
 case class CompiledAgreement(
   header:TemplateHeader,
   block: Block = Block(),
@@ -72,7 +74,7 @@ case class CompiledAgreement(
     case other =>  List(other)
   }
 
-  private def getAgreementElements(renderedElements:List[AgreementElement], elements:List[TemplatePart], executionResult: TemplateExecutionResult):List[AgreementElement] = {
+  @tailrec private def getAgreementElements(renderedElements:List[AgreementElement], elements:List[TemplatePart], executionResult: TemplateExecutionResult):List[AgreementElement] = {
     elements match {
       case Nil =>
         renderedElements
