@@ -1,7 +1,6 @@
 package org.adridadou.openlaw.parser.template
 
 import org.adridadou.openlaw.parser.template.variableTypes.YesNoType
-import org.adridadou.openlaw.result.Implicits.RichTry
 import org.scalatest.{EitherValues, FlatSpec, Matchers, TryValues}
 import org.parboiled2.{ErrorFormatter, ParseError, ParserInput}
 
@@ -59,11 +58,11 @@ class BlockRulesSpec extends FlatSpec with Matchers with TryValues with EitherVa
   }
 
   it should "parse a table row" in {
-    TestParser("|col1|col2|col3").TableRow.run().success.value should contain allOf (List(Text("col1")), List(Text("col2")), List(Text("col3")))
-    TestParser("| col1 | col2 | col3").TableRow.run().success.value should contain allOf (List(Text("col1")), List(Text("col2")), List(Text("col3")))
+    TestParser("|col1|col2|col3|").TableRow.run().success.value should contain allOf (List(Text("col1")), List(Text("col2")), List(Text("col3")))
+    TestParser("| col1 | col2 | col3|").TableRow.run().success.value should contain allOf (List(Text("col1")), List(Text("col2")), List(Text("col3")))
     TestParser("| col1 | col2 | col3 |").TableRow.run().success.value should contain allOf (List(Text("col1")), List(Text("col2")), List(Text("col3")))
     TestParser("| col1 | col2 | col3 |").TableRow.run().success.value should contain allOf (List(Text("col1")), List(Text("col2")), List(Text("col3")))
-    TestParser("| col1 | col2 | col3").TableRow.run().success.value should contain allOf (List(Text("col1")), List(Text("col2")), List(Text("col3")))
+    TestParser("| col1 | col2 | col3|").TableRow.run().success.value should contain allOf (List(Text("col1")), List(Text("col2")), List(Text("col3")))
   }
 
   it should "parse a header break string" in {
@@ -81,13 +80,12 @@ class BlockRulesSpec extends FlatSpec with Matchers with TryValues with EitherVa
 
   it should "parse a table header break" in {
     TestParser("| ---  |  ---  | ---   |").TableHeaderBreak.run() shouldBe a[Success[_]]
-    TestParser("--- | --- | ---").TableHeaderBreak.run() shouldBe a[Success[_]]
     TestParser("| --- | --- | --- |").TableHeaderBreak.run() shouldBe a[Success[_]]
-    TestParser(":-- | --: | :-:").TableHeaderBreak.run() shouldBe a[Success[_]]
-    TestParser("::- | --- | ---").TableHeaderBreak.run() shouldBe a[Failure[_]]
-    TestParser("::- | --- | ---").TableHeaderBreak.run() shouldBe a[Failure[_]]
-    TestParser(":: | --- | ---").TableHeaderBreak.run() shouldBe a[Failure[_]]
-    TestParser(": | --- | ---").TableHeaderBreak.run() shouldBe a[Failure[_]]
+    TestParser("|:-- | --: | :-:|").TableHeaderBreak.run() shouldBe a[Success[_]]
+    TestParser("|::- | --- | ---|").TableHeaderBreak.run() shouldBe a[Failure[_]]
+    TestParser("|::- | --- | ---|").TableHeaderBreak.run() shouldBe a[Failure[_]]
+    TestParser("|:: | --- | ---|").TableHeaderBreak.run() shouldBe a[Failure[_]]
+    TestParser("|: | --- | ---|").TableHeaderBreak.run() shouldBe a[Failure[_]]
   }
 
   it should "parse a table header" in {

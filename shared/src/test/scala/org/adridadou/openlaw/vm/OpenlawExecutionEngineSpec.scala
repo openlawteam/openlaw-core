@@ -1153,12 +1153,42 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         |
       """.stripMargin
 
+    compile(text)
+  }
+
+  it should "handle tables preceeding other elements" in {
+    val text="""this is a test
+
+          to see if for each works
+
+         [[texts:Collection<Text>]]
+
+         | head1 | head2 | head3 |
+         | ----- | ----- | ----- |
+         {{#for each text:texts =>
+         | val11 | val12 | [[text]] |
+         }}
+         """
+
     val template = compile(text)
+    val collectionType = AbstractCollectionType.createParameterInstance(TextType)
+    val paramValue = collectionType.internalFormat(CollectionValue(size = 3, values = Map(0 -> "text1", 1 -> "text2", 2 -> "text3"), collectionType))
+
+    engine.execute(template, TemplateParameters("texts" -> paramValue)) match {
+      case Right(result) =>
+        val text = parser.forReview(result.agreements.head)
+
+        println(text)
+      case Left(ex) =>
+        ex.printStackTrace()
+        fail(ex.message)
+    }
   }
 
   private def compile(text:String):CompiledTemplate = parser.compileTemplate(text) match {
     case Right(template) => template
     case Left(ex) =>
+      ex.printStackTrace()
       fail(ex)
   }
 }
