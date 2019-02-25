@@ -11,7 +11,7 @@ lazy val repo     = "openlaw-core"
 licenses += ("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0"))
 
 lazy val scalaV = "2.12.8"
-lazy val catsV = "1.5.0"
+lazy val catsV = "1.6.0"
 lazy val parboiledV = "2.1.5"
 lazy val circeV = "0.11.1"
 lazy val playJsonV = "2.7.1"

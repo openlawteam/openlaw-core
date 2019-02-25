@@ -7,10 +7,9 @@ import org.adridadou.openlaw.parser.template.printers.{AgreementPrinter, XHtmlAg
 import org.adridadou.openlaw.parser.template.printers.XHtmlAgreementPrinter.FragsPrinter
 import org.adridadou.openlaw.parser.template.variableTypes.YesNoType
 import org.parboiled2.{ErrorFormatter, ParseError}
-
 import cats.implicits._
 import org.adridadou.openlaw.parser.template.expressions.Expression
-import org.adridadou.openlaw.result.{attempt, Failure, handleFatalErrors, Result, Success}
+import org.adridadou.openlaw.result.{Failure, Result, Success, attempt, handleFatalErrors}
 import org.adridadou.openlaw.result.Implicits.RichTry
 
 /**
@@ -23,18 +22,11 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
     case scala.util.Failure(ex) => handleFatalErrors(ex)
   }
 
-  /*
-  def compileTemplateOrThrow(content: String): CompiledTemplate = compileTemplate(content) match {
-    case Right(document) => document
-    case Left(ex) => Failure(ex)
-  }
-  */
-
   def compileTemplate(source: String, clock: Clock = internalClock): Result[CompiledTemplate] = {
     val compiler = createTemplateCompiler(source, clock)
 
     attempt(compiler.rootRule.run().toResult).flatten match {
-      case Failure(parseError: ParseError, _) => Failure(compiler.formatError(parseError))
+      case Failure(parseError: ParseError, _) => Failure(compiler.formatError(parseError, new ErrorFormatter(showTraces = true)))
       case Failure(ex, _) => handleFatalErrors(ex)
       case Success(result) => validate(result)
     }
@@ -119,6 +111,9 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
 
   def forPreview(paragraph: Paragraph, variables: Seq[String]): String =
     XHtmlAgreementPrinter(preview = true, hiddenVariables = variables).printParagraphs(List(paragraph)).print
+
+  def forReview(structuredAgreement: StructuredAgreement): String =
+    forReview(structuredAgreement, ParagraphEdits())
 
   def forReview(structuredAgreement: StructuredAgreement, overriddenParagraphs: ParagraphEdits): String =
     XHtmlAgreementPrinter(preview = false, overriddenParagraphs, structuredAgreement.executionResult.getVariables.map(_.name.name)).printParagraphs(structuredAgreement.paragraphs).print

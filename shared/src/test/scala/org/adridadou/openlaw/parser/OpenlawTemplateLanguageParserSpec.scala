@@ -71,18 +71,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     |""".stripMargin
 
     val structure = structureAgreement(text)
-    structure.map(_.paragraphs(0).elements.apply(1)).right.value shouldBe a [TableElement]
-   }
-
-  it should "handle tables preceeding other elements" in {
-    val text=
-      """|| head1 | head2 | head3 |
-    || ----- | ----- | ----- |
-    || val11 | val12 | val13 |
-    || val21 | val22 | val23 |
-    |This is a test.""".stripMargin
-
-    structureAgreement(text).map(_.paragraphs(0).elements.head).right.value shouldBe a [TableElement]
+    structure.map(_.paragraphs.head.elements(1)).right.value shouldBe a [TableElement]
    }
 
    it should "handle tables mixed with other elements with pipes" in {
@@ -96,7 +85,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
 
 
     val structure = structureAgreement(text)
-    structure.map(_.paragraphs(0).elements.apply(3)).right.value shouldBe a [TableElement]
+    structure.map(_.paragraphs.head.elements(3)).right.value shouldBe a [TableElement]
    }
 
   it should "handle tables with variables in cells" in {
@@ -108,7 +97,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     || val21 | val22 | val23 |
     |This is a test.""".stripMargin
 
-    val tableElement = structureAgreement(text).map(_.paragraphs(0).elements.apply(3)).right.value.asInstanceOf[TableElement]
+    val tableElement = structureAgreement(text).map(_.paragraphs.head.elements(3)).right.value.asInstanceOf[TableElement]
     tableElement.rows.head.head.head shouldBe a [VariableElement]
    }
 
@@ -123,7 +112,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     || val41 | val42 | val43 |
     |This is a test.""".stripMargin
 
-    val tableElement = structureAgreement(text).map(_.paragraphs(0).elements.apply(3)).right.value.asInstanceOf[TableElement]
+    val tableElement = structureAgreement(text).map(_.paragraphs.head.elements(3)).right.value.asInstanceOf[TableElement]
     tableElement.rows(0).head.head shouldBe a [VariableElement]
     tableElement.rows(1).head.head should not be a[VariableElement]
     tableElement.rows(2).head.head shouldBe a [VariableElement]
@@ -139,7 +128,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     || val21 | val22 | val23 |
     |This is a test.""".stripMargin
 
-    val tableElement = structureAgreement(text, Map("conditional1" -> "true")).map(_.paragraphs(0).elements.apply(3)).right.value.asInstanceOf[TableElement]
+    val tableElement = structureAgreement(text, Map("conditional1" -> "true")).map(_.paragraphs.head.elements(3)).right.value.asInstanceOf[TableElement]
     tableElement.rows.head.head.head shouldBe a [ConditionalStart]
    }
 
@@ -325,7 +314,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
 
     resultShouldBe(forReview(text, Map(
       "test" -> "false"
-    )), """<p class="no-section"></p>""")
+    )), "")
   }
 
   it should "be able to emphasize variables" in {
@@ -426,7 +415,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
       """<%[[var1:Number]][[var2:Number]]%>{{var1 >= var2 => iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj}}""".stripMargin
     resultShouldBe(forReview(text, Map("var1" -> "112", "var2" -> "16")), """<p class="no-section">iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj</p>""")
     resultShouldBe(forReview(text, Map("var1" -> "16", "var2" -> "16")), """<p class="no-section">iojiwofjiowejf iwjfiowejfiowejfiowejfiowefj</p>""")
-    resultShouldBe(forReview(text, Map("var1" -> "15", "var2" -> "16")), "<p class=\"no-section\"></p>")
+    resultShouldBe(forReview(text, Map("var1" -> "15", "var2" -> "16")), "")
   }
 
   it should "accept expressions with just a variable" in {
