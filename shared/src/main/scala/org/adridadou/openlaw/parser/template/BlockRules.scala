@@ -27,17 +27,11 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
 
   def conditionalBlockSetKey:Rule1[ConditionalBlockSet]= rule { openB ~ oneOrMore(ws ~ conditionalBlockKey ~ ws) ~ closeB ~> ((blocks:Seq[ConditionalBlock]) => ConditionalBlockSet(blocks)) }
 
-  def simpleConditionalBlockSetKey:Rule1[ConditionalBlockSet]= rule { openB ~ oneOrMore(ws ~ simpleConditionalBlockKey ~ ws) ~ closeB ~> ((blocks:Seq[ConditionalBlock]) => ConditionalBlockSet(blocks)) }
-
   def foreachBlockKey:Rule1[ForEachBlock]= rule { &(openB) ~ foreachBlock }
 
   def foreachBlock:Rule1[ForEachBlock] = rule { openB ~ "#for each" ~ variableName ~ ws ~ ":" ~ ws  ~ ExpressionRule ~ ws ~ "=>" ~ ws ~ blockRule ~ closeB ~> ((variable:VariableName, expression:Expression, block: Block) =>
     ForEachBlock(variable, expression, block))
   }
-
-  def simpleConditionalBlockKey:Rule1[ConditionalBlock]= rule { &(openB) ~ simpleConditionalBlock }
-
-  def simpleConditionalBlock:Rule1[ConditionalBlock] = rule { openB ~ ws  ~ conditionalExpressionRule ~ ws ~ "=>" ~ ws ~ simpleBlockRule ~ optional(simpleConditionalBlockElse) ~ closeB ~> ((expression:Expression, block: Block, elseBlock:Option[Block]) => ConditionalBlock(block, elseBlock, expression))}
 
   def conditionalBlockKey:Rule1[ConditionalBlock]= rule { &(openB) ~ conditionalBlock }
 
@@ -98,9 +92,6 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   def indentLine: Rule1[TemplateText] = rule {
     capture(indent) ~> ((_: String) => TemplateText(Seq(Indent)))
   }
-
-  def simpleTextPart: Rule1[TemplateText] = rule {
-    textElementNoTable ~> ((s: Seq[TemplatePart]) => TemplateText(s)) }
 
   def textPart: Rule1[TemplateText] = rule {
     textElement ~> ((s: Seq[TemplatePart]) => TemplateText(s)) }
