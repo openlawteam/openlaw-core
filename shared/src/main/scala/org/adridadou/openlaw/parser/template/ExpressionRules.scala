@@ -5,39 +5,49 @@ import io.circe.Json
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.parboiled2.Rule1
 import org.adridadou.openlaw.parser.template.expressions._
+import org.adridadou.openlaw.result.{Failure, Result, Success}
+import org.adridadou.openlaw.result.Implicits.RichResult
 
 /**
   * Created by davidroon on 06.06.17.
   */
 trait ExpressionRules extends JsonRules {
 
-  def ExpressionRule: Rule1[Expression] = rule {
-    Term ~ ws ~ zeroOrMore( operation ~ ws ~ Term ~ ws ~> ((op, expr) => PartialOperation(op,expr)) ) ~> ((left:Expression, others:Seq[PartialOperation]) => others.foldLeft(left)({
-      case (expr, op) => createOperation(expr,op)
-    }))
+  def validateExpression(rule: Rule1[Result[Expression]]): Rule1[Expression] = {
+    //rule ~> ((result: Result[Expression]) => result.map(push(_)).recoverMerge(e => fail(e.message)))
+    //rule ~> ((result: Result[Expression]) => (test(result.isRight) ~ push(result.right.get)) | fail(result.left.get.message))
+    rule ~> ((result: Result[Expression]) => test(result.isRight) ~ push(result.right.get))
   }
 
-  def Term:Rule1[Expression] = rule {
-    ws ~ Factor ~ ws ~ zeroOrMore(
-      operation ~ ws ~ Factor ~ ws ~> ((op, expr) => PartialOperation(op,expr))
+  def ExpressionRule: Rule1[Expression] = rule {
+    Term ~ ws ~ zeroOrMore( operation ~ ws ~ Term ~ ws
+        ~> ((op, expr) => PartialOperation(op,expr))
     ) ~> ((left:Expression, others:Seq[PartialOperation]) => others.foldLeft(left)({
       case (expr, op) => createOperation(expr,op)
     }))
   }
 
-  private def createOperation(left:Expression, op:PartialOperation):Expression = op.op match {
-    case "+" => ValueExpression(left, op.expr, Plus)
-    case "-" => ValueExpression(left, op.expr, Minus)
-    case "/" => ValueExpression(left, op.expr, Divide)
-    case "*" => ValueExpression(left, op.expr, Multiple)
-    case "||" => BooleanExpression(left, op.expr, Or)
-    case "&&" => BooleanExpression(left, op.expr, And)
-    case ">" => ComparaisonExpression(left, op.expr, GreaterThan)
-    case "<" => ComparaisonExpression(left, op.expr, LesserThan)
-    case ">=" => ComparaisonExpression(left, op.expr, GreaterOrEqual)
-    case "<=" => ComparaisonExpression(left, op.expr, LesserOrEqual)
-    case "=" => ComparaisonExpression(left, op.expr, Equals)
-    case _ => throw new RuntimeException(s"unknown operation ${op.op}")
+  def Term:Rule1[Expression] = rule {
+    ws ~ Factor ~ ws ~ zeroOrMore(operation ~ ws ~ Factor ~ ws ~> ((op, expr) => PartialOperation(op, expr))) ~> {
+      val result = (left:Expression, others:Seq[PartialOperation]) => others.foldLeft(left) {
+        case (expr, op) => push(createOperation(expr,op))
+      }
+    }
+  }
+
+  private def createOperation(left:Expression, op:PartialOperation) = op.op match {
+    case "+" => push(ValueExpression(left, op.expr, Plus))
+    case "-" => push(ValueExpression(left, op.expr, Minus))
+    case "/" => push(ValueExpression(left, op.expr, Divide))
+    case "*" => push(ValueExpression(left, op.expr, Multiple))
+    case "||" => push(BooleanExpression(left, op.expr, Or))
+    case "&&" => push(BooleanExpression(left, op.expr, And))
+    case ">" => push(ComparaisonExpression(left, op.expr, GreaterThan))
+    case "<" => push(ComparaisonExpression(left, op.expr, LesserThan))
+    case ">=" => push(ComparaisonExpression(left, op.expr, GreaterOrEqual))
+    case "<=" => push(ComparaisonExpression(left, op.expr, LesserOrEqual))
+    case "=" => push(ComparaisonExpression(left, op.expr, Equals))
+    case _ => fail(s"unknown operation ${op.op}")
   }
 
   def Factor:Rule1[Expression] = rule {constant | conditionalVariableDefinition | variableMemberInner | variableName | Parens | UnaryMinus | UnaryNot }
