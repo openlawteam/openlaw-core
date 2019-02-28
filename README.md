@@ -19,6 +19,10 @@ libraryDependencies += "org.openlaw" %% "openlaw-core" % "<last version>"
 
 ```
 
+## Contributing 
+
+See information about contributing [here](CONTRIBUTING.md).
+
 ## License
 
 Copyright 2019 Aaron Wright, David Roon, and ConsenSys AG.
