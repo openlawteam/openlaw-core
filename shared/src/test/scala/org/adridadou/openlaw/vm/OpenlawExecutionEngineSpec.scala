@@ -1177,8 +1177,6 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     engine.execute(template, TemplateParameters("texts" -> paramValue)) match {
       case Right(result) =>
         val text = parser.forReview(result.agreements.head)
-
-        println(text)
       case Left(ex) =>
         ex.printStackTrace()
         fail(ex.message)
