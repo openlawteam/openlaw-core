@@ -1167,8 +1167,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
          | ----- | ----- | ----- |
          {{#for each text:texts =>
          | val11 | val12 | [[text]] |
-}}
-         """
+}}"""
 
     val template = compile(text)
     val collectionType = AbstractCollectionType.createParameterInstance(TextType)
@@ -1177,8 +1176,6 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     engine.execute(template, TemplateParameters("texts" -> paramValue)) match {
       case Right(result) =>
         val text = parser.forReview(result.agreements.head)
-
-        println(text)
       case Left(ex) =>
         ex.printStackTrace()
         fail(ex.message)

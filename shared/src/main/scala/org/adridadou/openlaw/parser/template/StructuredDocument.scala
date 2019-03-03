@@ -102,7 +102,6 @@ case class TemplateExecutionResult(
     }
   }
 
-
   def getSignatureProof(identity: Identity):Option[SignatureProof] = signatureProofs.get(identity.email) match {
     case Some(value) => Some(value)
     case None => parentExecution.flatMap(_.getSignatureProof(identity))
@@ -129,6 +128,77 @@ case class TemplateExecutionResult(
   }
 
   def executionLevel:Int = executionLevel(parentExecution, 0)
+
+  def validateContract:ValidationResult = {
+    val variables = getAllExecutedVariables
+      .flatMap({case (result, name) => result.getVariable(name).map(variable => (result, variable))})
+      .filter({case (_, variable) => variable.varType(this) match {
+        case _:NoShowInForm => false
+        case _ => true
+      }})
+
+    val identities = variables.filter({ case (result, variable) =>
+      variable.varType(result) match {
+        case IdentityType => true
+        case collectionType:CollectionType if collectionType.typeParameter === IdentityType => true
+        case structureType:DefinedStructureType if structureType.structure.typeDefinition.values.exists(_ === IdentityType) => true
+        case _ => false
+      }
+    }).map({case (_, variable) => variable})
+
+    val missingIdentitiesResult = variables.map({ case (result, variable) =>
+      variable.varType(result) match {
+        case IdentityType =>
+          resultFromMissingInput(variable.missingInput(result))
+        case collectionType:CollectionType if collectionType.typeParameter === IdentityType =>
+          result.getVariableValue[CollectionValue](variable.name) match {
+            case Some(value) if value.size =!= value.values.size =>
+              (Seq(variable.name), Seq())
+            case Some(_) =>
+              (Seq(), Seq())
+            case None =>
+              (Seq(variable.name), Seq())
+          }
+
+        case structureType:DefinedStructureType if structureType.structure.typeDefinition.values.exists(_ === IdentityType) =>
+          val values = result.getVariableValue[Map[VariableName, Any]](variable.name)
+          val identityProperties = structureType.structure.typeDefinition
+            .filter({case (_,propertyType) => propertyType === IdentityType})
+            .map({case (propertyName,_) => propertyName}).toSeq
+
+          if(identityProperties.forall(values.getOrElse(Map()).contains)) {
+            (Seq(), Seq())
+          } else {
+            (Seq(variable.name), Seq())
+          }
+
+        case _ =>
+          (Seq(), Seq())
+      }
+    })
+
+    val identitiesErrors = missingIdentitiesResult.flatMap({
+      case (_, errors) =>  errors
+    })
+
+    val missingIdentities = missingIdentitiesResult.flatMap({
+      case (values, _) =>  values
+    })
+
+    val (missingInputs, additionalErrors) = resultFromMissingInput(allMissingInput)
+
+    ValidationResult(
+      identities = identities,
+      missingInputs = missingInputs,
+      missingIdentities = missingIdentities,
+      validationExpressionErrors = validate() ++ additionalErrors ++ identitiesErrors
+    )
+  }
+
+  private def resultFromMissingInput(seq:Result[Seq[VariableName]]): (Seq[VariableName], Seq[String]) = seq match {
+    case Right(inputs) => (inputs, Seq())
+    case Left(ex) => (Seq(), Seq(ex.message))
+  }
 
   private def executionLevel(parent:Option[TemplateExecutionResult], acc:Int):Int =
     parent.map(p => executionLevel(p.parentExecution, acc + 1)).getOrElse(acc)
@@ -437,7 +507,7 @@ case class TemplateExecutionResult(
   private def getVariableValue[T](value:Any, variableType:VariableType)(implicit classTag: ClassTag[T]):T = VariableType.convert[T](value)
 
   def validate(): Seq[String] = getVariableValues[Validation](ValidationType)
-    .flatMap(_.validate(this))
+    .flatMap(_.validate(this).left.toOption.map(_.message))
 }
 
 case class StructuredAgreementId(id:String)
@@ -522,3 +592,9 @@ trait SignatureProof {
   val fullName:String
   val contractId:ContractId
 }
+
+case class ValidationResult(
+                             identities:Seq[VariableDefinition],
+                             missingInputs:Seq[VariableName],
+                             missingIdentities:Seq[VariableName],
+                             validationExpressionErrors:Seq[String])

@@ -79,7 +79,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
             // has to be in a matcher for tail call optimization
             attempt(executionResult.startTemplateExecution(variableName, template)).flatten match {
               case Success(result) => resumeExecution(result, templates)
-              case f @ Failure(e) => f
+              case f @ Failure(_) => f
             }
           case None => Success(executionResult)
         }
@@ -424,38 +424,6 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
             executionResult
           }).getOrElse(executionResult)
           expr.validate(executionResult).map(_ => executionResult)
-        }
-      } else {
-        Failure(s"Conditional expression $expr is of type $exprType instead of YesNo")
-      }
-    }
-  }
-
-  private def executeConditionalBlockWithElse(executionResult: TemplateExecutionResult, templates:Map[TemplateSourceIdentifier, CompiledTemplate], subBlock: Block, elseSubBlock: Option[Block], expr: Expression): Result[TemplateExecutionResult] = {
-    expr.validate(executionResult).flatMap { _ =>
-      val exprType = expr match {
-        case variable:VariableDefinition =>
-          processVariable(executionResult, variable, executed = true)
-          executionResult.getVariable(variable.name) match {
-            case Some(definedVariable) if definedVariable.nameOnly =>
-              addNewVariable(executionResult, variable)
-            case _ =>
-          }
-          YesNoType
-        case _ =>
-          executionResult.executedVariables appendAll expr.variables(executionResult)
-          expr.expressionType(executionResult)
-      }
-
-      if(exprType === YesNoType) {
-        if(expr.evaluate(executionResult).exists(VariableType.convert[Boolean])) {
-          executionResult.remainingElements.prependAll(subBlock.elems)
-          Success(executionResult)
-        } else {
-          elseSubBlock.map(_.elems).map(elems => {
-            executionResult.remainingElements.prependAll(elems)
-            Success(executionResult)
-          }).getOrElse(Success(executionResult))
         }
       } else {
         Failure(s"Conditional expression $expr is of type $exprType instead of YesNo")
