@@ -515,9 +515,9 @@ case class StructuredAgreementId(id:String)
 case class StructuredAgreement(executionResult: TemplateExecutionResult, mainTemplate:Boolean = false, header:TemplateHeader, paragraphs:List[Paragraph] = List(), path:Option[TemplatePath] = None) {
   def title: TemplateTitle = {
     if(header.shouldShowTitle) {
-      executionResult.templateDefinition.map(template => template.name.name).getOrElse(TemplateTitle())
+      executionResult.templateDefinition.map(template => template.name.name).getOrElse(TemplateTitle(""))
     } else {
-      TemplateTitle()
+      TemplateTitle("")
     }
   }
 
