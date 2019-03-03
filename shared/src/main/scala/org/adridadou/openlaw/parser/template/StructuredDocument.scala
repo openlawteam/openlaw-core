@@ -129,7 +129,7 @@ case class TemplateExecutionResult(
 
   def executionLevel:Int = executionLevel(parentExecution, 0)
 
-  def validateContract:ValidationResult = {
+  def validateExecution:ValidationResult = {
     val variables = getAllExecutedVariables
       .flatMap({case (result, name) => result.getVariable(name).map(variable => (result, variable))})
       .filter({case (_, variable) => variable.varType(this) match {
@@ -597,4 +597,6 @@ case class ValidationResult(
                              identities:Seq[VariableDefinition],
                              missingInputs:Seq[VariableName],
                              missingIdentities:Seq[VariableName],
-                             validationExpressionErrors:Seq[String])
+                             validationExpressionErrors:Seq[String]) {
+  def successful:Boolean = identities.nonEmpty && missingInputs.isEmpty && missingIdentities.isEmpty && validationExpressionErrors.isEmpty
+}
