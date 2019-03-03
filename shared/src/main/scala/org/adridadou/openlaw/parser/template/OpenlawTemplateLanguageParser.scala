@@ -68,8 +68,10 @@ class OpenlawTemplateLanguageParser(val input: ParserInput, internalClock:Clock)
 
 
 case class TemplateHeader(values:Map[String, String] = Map()) {
-  def shouldShowTitle: Boolean =
-    values.get("show title").forall(_.toBoolean) &&
-    values.get("title").forall(_ === "show")
+  def shouldShowTitle: Boolean = {
+    values.get("show title").exists(_.toBoolean) ||
+      values.get("title").exists(_ === "show")
+  }
+
 
 }
