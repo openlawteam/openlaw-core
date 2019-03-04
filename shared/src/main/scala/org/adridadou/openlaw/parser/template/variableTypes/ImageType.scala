@@ -21,7 +21,7 @@ case object ImageType extends VariableType("Image") {
   override def construct(constructorParams:Parameter, executionResult:TemplateExecutionResult): Result[Option[String]] = constructorParams match {
     case OneValueParameter(expr) =>
       attempt(expr.evaluate(executionResult).map(value => VariableType.convert[String](value)))
-    case _ => Failure("constructor only handles single value")
+    case _ => Failure(new Exception("constructor only handles single value"))
   }
 
   def thisType: VariableType = ImageType
