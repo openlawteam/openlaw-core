@@ -6,7 +6,6 @@ import io.circe._
 import io.circe.syntax._
 import io.circe.parser._
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
-import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 case object StripeCallType extends VariableType(name = "StripeCall") {
   implicit val smartContractEnc: Encoder[StripeCall] =
@@ -29,12 +28,13 @@ case object StripeCallType extends VariableType(name = "StripeCall") {
   override def construct(
     constructorParams: Parameter,
     executionResult: TemplateExecutionResult
-  ): Result[Option[StripeCall]] =
+  ): Either[Throwable, Option[StripeCall]] =
     constructorParams match {
       case Parameters(values) =>
-        Success(Some(StripeCall(beneficiary = getExpression(values.toMap, "beneficiary"))))
+        Right(Some(StripeCall(beneficiary = getExpression(values.toMap, "beneficiary"))))
       case _ =>
-        Failure("Stripe Calls need to get 'beneficiary' as constructor parameter")
+        val msg = "Stripe Calls need to get 'beneficiary' as constructor parameter"
+        Left(new Exception(msg))
     }
 
   def thisType: VariableType = StripeCallType

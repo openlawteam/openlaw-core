@@ -26,8 +26,8 @@ case object IdentityType extends VariableType(name = "Identity") {
 
   override def getTypeClass: Class[_ <: Identity] = classOf[Identity]
 
-  override def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Result[Option[Any]] =
-    Failure("Identity type does not support constructor")
+  override def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Either[Throwable, Option[Any]] =
+    Left(new Exception("Identity type does not support constructor"))
 
   override def missingValueFormat(name: VariableName): Seq[AgreementElement] = Seq(FreeText(Text("")))
 

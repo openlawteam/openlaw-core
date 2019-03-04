@@ -25,7 +25,7 @@ trait VariableExecutionEngine {
           currentVariable.defaultValue.map(_.variables(executionResult)).getOrElse(Seq())
             .filter(newVariable => executionResult.getVariable(newVariable.name).isEmpty).toList match {
             case Nil =>
-              variable.verifyConstructor(executionResult).flatMap { _ =>
+              variable.verifyConstructor(executionResult).left.flatMap(handleFatalErrors).flatMap { _ =>
                 if (executed) {
                   executeVariable(executionResult, currentVariable)
                 } else {
@@ -139,14 +139,14 @@ trait VariableExecutionEngine {
     variable.varType(executionResult) match {
       case ChoiceType =>
         variable.defaultValue.map(param => ChoiceType.construct(param, executionResult)) match {
-          case Some(Success(Some(choices))) =>
+          case Some(Right(Some(choices))) =>
             executionResult.registerNewType(ChoiceType.generateType(variable.name, choices)).map(_ => true)
-          case Some(Failure(e, message)) => Failure(e, message)
+          case Some(Left(ex)) => handleFatalErrors(ex)
           case _ =>
             Failure(s"the new type ${variable.name.name} could not be executed properly")
         }
       case AbstractStructureType =>
-        variable.constructT[Structure](executionResult).flatMap {
+        variable.constructT[Structure](executionResult).left.flatMap(handleFatalErrors).flatMap {
           case Some(structure) =>
             executionResult.registerNewType(AbstractStructureType.generateType(variable.name, structure)).map(_ => true)
           case None =>

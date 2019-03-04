@@ -2,7 +2,6 @@ package org.adridadou.openlaw.parser.template.variableTypes
 
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
-import org.adridadou.openlaw.result.{Failure, Result, attempt}
 
 import scala.util.Try
 
@@ -17,17 +16,17 @@ case object SmartContractMetadataType extends VariableType("SmartContractMetadat
 
   override def internalFormat(value: Any): String = VariableType.convert[SmartContractMetadata](value).protocol + ":" + VariableType.convert[SmartContractMetadata](value).address
 
-  override def construct(constructorParams:Parameter, executionResult:TemplateExecutionResult): Result[Option[SmartContractMetadata]] = constructorParams match {
+  override def construct(constructorParams:Parameter, executionResult:TemplateExecutionResult): Either[Throwable, Option[SmartContractMetadata]] = constructorParams match {
       case OneValueParameter(expr) =>
-        attempt(expr.evaluate(executionResult).map(result => cast(result.toString, executionResult)))
+        Try(expr.evaluate(executionResult).map(result => cast(result.toString, executionResult))).toEither
       case Parameters(v) =>
         val values = v.toMap
         for {
-          protocol <- attempt(VariableType.convert[OneValueParameter](values("protocol")).expr.evaluate(executionResult))
-          address <- attempt(VariableType.convert[OneValueParameter](values("address")).expr.evaluate(executionResult))
+          protocol <- Try(VariableType.convert[OneValueParameter](values("protocol")).expr.evaluate(executionResult)).toEither
+          address <- Try(VariableType.convert[OneValueParameter](values("address")).expr.evaluate(executionResult)).toEither
         } yield Some(SmartContractMetadata(protocol.toString, address.toString))
       case _ =>
-        Failure("Smart contract metadata can be constructed with a string only")
+        Left(new Exception("Smart contract metadata can be constructed with a string only"))
     }
 
 

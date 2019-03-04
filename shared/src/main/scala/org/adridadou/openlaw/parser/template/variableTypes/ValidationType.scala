@@ -8,7 +8,6 @@ import io.circe.syntax._
 import io.circe.parser._
 import cats.implicits._
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
-import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 case object ValidationType extends VariableType(name = "Validation") with NoShowInForm {
 
@@ -20,7 +19,7 @@ case object ValidationType extends VariableType(name = "Validation") with NoShow
     case Left(ex) => throw new RuntimeException(ex.getMessage)
   }
 
-  override def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Result[Option[Any]] = constructorParams match {
+  override def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Either[Throwable, Option[Any]] = constructorParams match {
     case Parameters(v) =>
       val values = v.toMap
       validate(Validation(
@@ -28,7 +27,7 @@ case object ValidationType extends VariableType(name = "Validation") with NoShow
         errorMessage = getExpression(values, "errorMessage")
       ), executionResult).map(Some(_))
 
-    case _ => Failure("Validation need to get 'condition' and 'errorMessage' as constructor parameter")
+    case _ => Left(new Exception("Validation need to get 'condition' and 'errorMessage' as constructor parameter"))
   }
   override def internalFormat(value: Any): String = VariableType.convert[Validation](value).asJson.noSpaces
 
@@ -37,15 +36,15 @@ case object ValidationType extends VariableType(name = "Validation") with NoShow
 
   override def defaultFormatter: Formatter = new NoopFormatter
 
-  private def validate(validation:Validation, executionResult: TemplateExecutionResult): Result[Validation] = {
+  private def validate(validation:Validation, executionResult: TemplateExecutionResult):Either[Throwable, Validation] = {
     val conditionType = validation.condition.expressionType(executionResult)
     val errorMessageType = validation.errorMessage.expressionType(executionResult)
     if(conditionType =!= YesNoType){
-      Failure(s"the condition expression of a validation needs to be of type YesNo, instead it is ${conditionType.name}")
+      Left(new Exception(s"the condition expression of a validation needs to be of type YesNo, instead it is ${conditionType.name}"))
     } else if(errorMessageType =!= TextType) {
-      Failure(s"The error message expression of a validation needs to be of type String, instead it is ${errorMessageType.name}")
+      Left(new Exception(s"The error message expression of a validation needs to be of type String, instead it is ${errorMessageType.name}"))
     } else {
-      Success(validation)
+      Right(validation)
     }
   }
 

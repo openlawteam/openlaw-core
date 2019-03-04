@@ -12,7 +12,7 @@ import io.circe.{Decoder, Encoder, HCursor, Json}
 
 import scala.reflect.ClassTag
 import scala.util.Try
-import org.adridadou.openlaw.result.{attempt, Failure, Result, Success}
+import org.adridadou.openlaw.result.{Failure, Result, Success}
 import LocalDateTimeHelper._
 
 trait NoShowInForm
@@ -128,17 +128,17 @@ abstract class VariableType(val name: String) {
 
   def internalFormat(value: Any): String
 
-  def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Result[Option[Any]] = constructorParams match {
+  def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Either[Throwable, Option[Any]] = constructorParams match {
       case OneValueParameter(expr) =>
-        attempt(expr.evaluate(executionResult))
+        Try(expr.evaluate(executionResult)).toEither
       case Parameters(parameterMap) =>
         parameterMap.toMap.get("value") match {
           case Some(parameter) =>
-            attempt(construct(parameter, executionResult)).flatten
-          case None => Success(None)
+            Try(construct(parameter, executionResult)).toEither.flatten
+          case None => Right(None)
         }
       case _ =>
-        Failure(s"the constructor for $name only handles single values")
+        Left(new Exception(s"the constructor for $name only handles single values"))
     }
 
   def defaultFormatter: Formatter =

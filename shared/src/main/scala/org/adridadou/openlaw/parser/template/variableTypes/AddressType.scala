@@ -17,8 +17,8 @@ object AddressType extends VariableType(name = "Address") {
       case Left(ex) => throw new RuntimeException(ex)
     }
 
-  override def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Result[Option[Address]] =
-    Failure("Address type does not support constructor")
+  override def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Either[Throwable, Option[Address]] =
+    Left(new Exception("Address type does not support constructor"))
 
   override def defaultFormatter: Formatter = AddressFormatter
 
