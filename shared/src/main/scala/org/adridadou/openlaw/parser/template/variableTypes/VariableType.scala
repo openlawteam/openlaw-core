@@ -18,11 +18,11 @@ import LocalDateTimeHelper._
 trait NoShowInForm
 
 trait ActionValue {
-  def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions:Seq[OpenlawExecution]):Option[LocalDateTime]
+  def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions:Seq[OpenlawExecution]): Result[Option[LocalDateTime]]
 }
 
 trait ActionType extends NoShowInForm {
-  def actionValue(value:Any):ActionValue
+  def actionValue(value:Any): Result[ActionValue]
 }
 
 trait OpenlawExecution {
@@ -80,7 +80,7 @@ trait ParameterTypeProvider {
 }
 
 abstract class VariableType(val name: String) {
-  def validateOperation(expr: ValueExpression, executionResult: TemplateExecutionResult): Option[String] = None
+  def validateOperation(expr: ValueExpression, executionResult: TemplateExecutionResult): Result[Unit] = Success(())
 
   def accessVariables(name:VariableName, keys:Seq[String], executionResult: TemplateExecutionResult): Seq[VariableName] =
     Seq(name)
@@ -110,13 +110,13 @@ abstract class VariableType(val name: String) {
     thisType
   }
 
-  def plus(optLeft: Option[Any], optRight: Option[Any], executionResult: TemplateExecutionResult): Option[Any] =
+  def plus(optLeft: Option[Any], optRight: Option[Any], executionResult: TemplateExecutionResult): Option[Result[Any]] =
     throw new UnsupportedOperationException(s"$name type does not support addition")
-  def minus(optLeft: Option[Any], optRight: Option[Any], executionResult: TemplateExecutionResult): Option[Any] =
+  def minus(optLeft: Option[Any], optRight: Option[Any], executionResult: TemplateExecutionResult): Option[Result[Any]] =
     throw new UnsupportedOperationException(s"$name type does not support substraction")
-  def multiply(optLeft: Option[Any], optRight: Option[Any], executionResult: TemplateExecutionResult): Option[Any] =
+  def multiply(optLeft: Option[Any], optRight: Option[Any], executionResult: TemplateExecutionResult): Option[Result[Any]] =
     throw new UnsupportedOperationException(s"$name type does not support multiplication")
-  def divide(optLeft: Option[Any], optRight: Option[Any], executionResult: TemplateExecutionResult): Option[Any] =
+  def divide(optLeft: Option[Any], optRight: Option[Any], executionResult: TemplateExecutionResult): Option[Result[Any]] =
     throw new UnsupportedOperationException(s"$name type does not support division")
 
   def isCompatibleType(otherType: VariableType, operation: ValueOperation): Boolean =
@@ -126,7 +126,7 @@ abstract class VariableType(val name: String) {
 
   def missingValueFormat(name: VariableName): Seq[AgreementElement] = Seq(FreeText(Text(s"[[${name.name}]]")))
 
-  def internalFormat(value: Any): String
+  def internalFormat(value: Any): Result[String]
 
   def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Result[Option[Any]] = constructorParams match {
       case OneValueParameter(expr) =>
@@ -222,39 +222,42 @@ object VariableType {
   implicit val eqForVariableType: Eq[VariableType] =
     (x: VariableType, y: VariableType) => x == y
 
-  def getPeriod(v: Expression, executionResult: TemplateExecutionResult): Period =
+  def getPeriod(v: Expression, executionResult: TemplateExecutionResult): Result[Period] =
     get(v,executionResult, PeriodType.cast)
-  def getEthereumAddress(v: Expression, executionResult: TemplateExecutionResult): EthereumAddress =
-    get(v,executionResult,EthAddressType.cast)
-  def getDate(v: Expression, executionResult: TemplateExecutionResult): LocalDateTime =
-    get(v,executionResult, DateTimeType.cast)
-  def getMetadata(v: Expression, executionResult: TemplateExecutionResult): SmartContractMetadata =
-    get(v,executionResult,SmartContractMetadataType.cast)
-  def getString(v: Expression, executionResult: TemplateExecutionResult): String =
-    get(v,executionResult, (str,_) => str)
+  def getEthereumAddress(v: Expression, executionResult: TemplateExecutionResult): Result[EthereumAddress] =
+    get(v, executionResult, EthAddressType.cast)
+  def getDate(v: Expression, executionResult: TemplateExecutionResult): Result[LocalDateTime] =
+    get(v, executionResult, DateTimeType.cast)
+  def getMetadata(v: Expression, executionResult: TemplateExecutionResult): Result[SmartContractMetadata] =
+    get(v, executionResult, SmartContractMetadataType.cast)
+  def getString(v: Expression, executionResult: TemplateExecutionResult): Result[String] =
+    get(v, executionResult, (str,_) => Success(str))
 
-  def get[T](v: Expression, executionResult: TemplateExecutionResult, cast: (String,TemplateExecutionResult) => T)(implicit classTag: ClassTag[T]): T =
-    v.evaluate(executionResult).map({
-      case value:T => value
-      case value:String => cast(value, executionResult)
-      case value => throw new RuntimeException("cannot get value of type " + value.getClass.getSimpleName + ". expecting " + classTag.runtimeClass.getSimpleName)
-    }) match {
+  def get[T](v: Expression, executionResult: TemplateExecutionResult, cast: (String, TemplateExecutionResult) => Result[T])(implicit classTag: ClassTag[T]): Result[T] =
+    v.evaluate(executionResult).map { result =>
+      result.flatMap {
+        case value: T => Success(value)
+        case value: String => cast(value, executionResult)
+        case value => Failure("cannot get value of type " + value.getClass.getSimpleName + ". expecting " + classTag.runtimeClass.getSimpleName)
+      }
+    } match {
       case Some(value) => value
-      case None => throw new RuntimeException("could not get the value. Missing data")
+      case None => Failure("could not get the value. Missing data")
     }
 
-  def convert[T](value:Any)(implicit classTag: ClassTag[T]): T = value match {
+  def convert[T](value:Any)(implicit classTag: ClassTag[T]): Result[T] = value match {
     case convertedValue: T =>
-      convertedValue
+      Success(convertedValue)
     case other =>
       val msg = "invalid type " +
         other.getClass.getSimpleName +
         " expecting " +
         classTag.runtimeClass.getSimpleName +
         s".value:$other"
-      throw new RuntimeException(msg)
+      Failure(msg)
   }
 
+  /*
   def sequence[L,R](seq:Seq[Either[L,R]]):Either[L, Seq[R]] = seq.partition(_.isLeft) match {
     case (Nil,  values) => Right(for(Right(i) <- values.view) yield i)
     case (errs, _) => errs.headOption match {
@@ -262,6 +265,7 @@ object VariableType {
       case _ => Right(Seq())
     }
   }
+  */
 }
 
 object LocalDateTimeHelper {

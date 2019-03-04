@@ -32,11 +32,11 @@ trait ExpressionRules extends JsonRules {
     case "*" => ValueExpression(left, op.expr, Multiple)
     case "||" => BooleanExpression(left, op.expr, Or)
     case "&&" => BooleanExpression(left, op.expr, And)
-    case ">" => ComparaisonExpression(left, op.expr, GreaterThan)
-    case "<" => ComparaisonExpression(left, op.expr, LesserThan)
-    case ">=" => ComparaisonExpression(left, op.expr, GreaterOrEqual)
-    case "<=" => ComparaisonExpression(left, op.expr, LesserOrEqual)
-    case "=" => ComparaisonExpression(left, op.expr, Equals)
+    case ">" => ComparisonExpression(left, op.expr, GreaterThan)
+    case "<" => ComparisonExpression(left, op.expr, LesserThan)
+    case ">=" => ComparisonExpression(left, op.expr, GreaterOrEqual)
+    case "<=" => ComparisonExpression(left, op.expr, LesserOrEqual)
+    case "=" => ComparisonExpression(left, op.expr, Equals)
     case _ => throw new RuntimeException(s"unknown operation ${op.op}")
   }
 

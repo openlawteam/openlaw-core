@@ -1,7 +1,9 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
+import cats.implicits._
 import org.adridadou.openlaw.parser.template.TemplateExecutionResult
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
+import org.adridadou.openlaw.result.{Result, Success}
 import play.api.libs.json.{JsObject, JsString, Json}
 
 
@@ -24,7 +26,7 @@ case object AbstractCollectionType extends VariableType("Collection") with Param
 
 case class CollectionValue(size:Int = 1, values:Map[Int, Any] = Map(), collectionType:CollectionType) {
   def castValue(value:String, executionResult: TemplateExecutionResult):Any = collectionType.typeParameter.cast(value, executionResult)
-  def valueInternalFormat(value:Any):String = collectionType.typeParameter.internalFormat(value)
+  def valueInternalFormat(value:Any): Result[String] = collectionType.typeParameter.internalFormat(value)
   def list:Seq[Any] = values.values.toSeq
 }
 
@@ -41,12 +43,16 @@ case class CollectionType(typeParameter:VariableType) extends VariableType("Coll
 
   override def defaultFormatter: Formatter = new NoopFormatter
 
-  override def internalFormat(value: Any): String = {
-    val collection = VariableType.convert[CollectionValue](value)
-    Json.obj(
-      "values" -> JsObject(collection.values.map({case (key,v) => key.toString -> JsString(typeParameter.internalFormat(v))})),
-      "size" -> collection.size
-    ).toString()
+  override def internalFormat(value: Any): Result[String] = {
+    VariableType.convert[CollectionValue](value).flatMap { collection =>
+      collection
+        .values
+        .map { case (key, v) => key.toString -> typeParameter.internalFormat(v).map(JsString(_)) }
+        .toList
+        .map { case (key, result) => result.map(value => key -> value) }
+        .sequence
+        .map { v => Json.obj("values" -> JsObject(v), "size" -> collection.size).toString }
+    }
   }
 
   override def getTypeClass: Class[_ <: CollectionValue] = classOf[CollectionValue]

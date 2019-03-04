@@ -1,5 +1,6 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
+import cats.implicits._
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.parser.decode
@@ -16,7 +17,7 @@ case object SectionType extends VariableType(name = "Section") with NoShowInForm
 
   override def cast(value: String, executionResult: TemplateExecutionResult): SectionInfo = handleEither(decode[SectionInfo](value))
 
-  override def internalFormat(value: Any): String = VariableType.convert[String](value)
+  override def internalFormat(value: Any): Result[String] = VariableType.convert[String](value)
 
   override def defaultFormatter: Formatter = new SectionFormatter
 
@@ -50,7 +51,7 @@ case object SectionType extends VariableType(name = "Section") with NoShowInForm
 
 class SectionFormatter extends Formatter {
   override def format(value: Any, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] =
-    attempt(VariableType.convert[SectionInfo](value)) map {
+    attempt(VariableType.convert[SectionInfo](value)).flatten.map {
       case SectionInfo(_, _, referenceValue) => Seq(FreeText(Text(referenceValue)))
     }
 }

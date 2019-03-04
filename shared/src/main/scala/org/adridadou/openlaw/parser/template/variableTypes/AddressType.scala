@@ -22,7 +22,7 @@ object AddressType extends VariableType(name = "Address") {
 
   override def defaultFormatter: Formatter = AddressFormatter
 
-  override def internalFormat(value: Any): String = VariableType.convert[Address](value).asJson.noSpaces
+  override def internalFormat(value: Any): Result[String] = VariableType.convert[Address](value).map(_.asJson.noSpaces)
 
   override def keysType(keys: Seq[String], executionResult: TemplateExecutionResult): VariableType = keys.toList match {
     case _::tail if tail.isEmpty => TextType

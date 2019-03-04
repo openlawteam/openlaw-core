@@ -26,13 +26,32 @@ package object result {
 
 package result {
 
-  object Success {
-    def apply[A](a: A): Result[A] = Right(a)
-    def unapply[A](result: Result[A]): Option[A] = result.toOption
+  import cats.data.Validated.Valid
+
+  object SuccessNel {
+    def apply[A](a: A): ResultNel[A] = Valid(a)
+    def unapply[A](result: ResultNel[A]): Option[A] = result.toOption
   }
 
   object FailureNel {
     def apply[A](e: FailureCause): ResultNel[A] = Invalid[NonEmptyList[FailureCause]](one(e))
+    def apply[A](es: NonEmptyList[Exception]): ResultNel[A] = Invalid(es.map(FailureException(_)))
+    def apply[A](e: Exception): ResultNel[A] = apply(FailureException(e))
+    def apply[A](e: Exception, id: String): ResultNel[A] = apply(FailureException(e, Some(id)))
+    def apply[A](message: String): ResultNel[A] = apply(FailureMessage(message))
+    def apply[A](message: String, id: String): ResultNel[A] = apply(FailureMessage(message, Some(id)))
+    // implicits are necessary here to disambiguate arguments after erasure
+    def apply[A](es: NonEmptyList[(Exception, String)])(implicit i: DummyImplicit): ResultNel[A] =
+      Invalid(es.map { case (e, id) => FailureException(e, Some(id)) })
+    def apply[A](messages: NonEmptyList[String])(implicit i: DummyImplicit, i2: DummyImplicit): ResultNel[A] =
+      Invalid(messages.map(FailureMessage(_)))
+    def apply[A](messages: NonEmptyList[(String, String)])(implicit i: DummyImplicit, i2: DummyImplicit, i3: DummyImplicit): ResultNel[A] =
+      Invalid(messages.map { case (m, id) => FailureMessage(m, Some(id)) })
+  }
+
+  object Success {
+    def apply[A](a: A): Result[A] = Right(a)
+    def unapply[A](result: Result[A]): Option[A] = result.toOption
   }
 
   object Failure {
@@ -42,14 +61,6 @@ package result {
     def apply[A](e: Exception, id: String): Result[A] = apply(FailureException(e, Some(id)))
     def apply[A](message: String): Result[A] = apply(FailureMessage(message))
     def apply[A](message: String, id: String): Result[A] = apply(FailureMessage(message, Some(id)))
-    def apply[A](es: NonEmptyList[Exception]): ResultNel[A] = Invalid(es.map(FailureException(_)))
-    // implicits are necessary here to disambiguate arguments after erasure
-    def apply[A](es: NonEmptyList[(Exception, String)])(implicit i: DummyImplicit): ResultNel[A] =
-      Invalid(es.map { case (e, id) => FailureException(e, Some(id)) })
-    def apply[A](messages: NonEmptyList[String])(implicit i: DummyImplicit, i2: DummyImplicit): ResultNel[A] =
-      Invalid(messages.map(FailureMessage(_)))
-    def apply[A](messages: NonEmptyList[(String, String)])(implicit i: DummyImplicit, i2: DummyImplicit, i3: DummyImplicit): ResultNel[A] =
-      Invalid(messages.map { case (m, id) => FailureMessage(m, Some(id)) })
     def unapply(result: Result[_]): Option[(Exception, String)] = result.swap.toOption.map { f => (f.e, f.id) }
   }
 }

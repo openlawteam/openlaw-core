@@ -1,5 +1,6 @@
 package org.adridadou.openlaw.result
 
+import cats.Eq
 import cats.implicits._
 import cats.data.NonEmptyList
 import cats.data.NonEmptyList.of
@@ -10,6 +11,8 @@ import scala.concurrent.duration.Duration
 import scala.util.{Try, Failure => TFailure, Success => TSuccess}
 
 object Implicits {
+
+  implicit val eqFailureCause: Eq[FailureCause] = Eq.fromUniversalEquals
 
   implicit class RichNonEmptyList[T](val nel: NonEmptyList[T]) extends AnyVal {
     def mkString: String = mkString(", ")
@@ -24,7 +27,7 @@ object Implicits {
         val messages = errors.flatMap { case (path, es) => es.map(e => e.message -> path.toString) }
         messages match {
           case Seq() => Failure().toResultNel
-          case Seq(x, xs @ _*) => Failure(of[(String, String)](x, xs : _*))
+          case Seq(x, xs @ _*) => FailureNel(of[(String, String)](x, xs : _*))
         }
     }
   }
@@ -74,6 +77,11 @@ object Implicits {
       case NonEmptyList(x, Seq()) => x
       case nel => FailureException(MultipleCauseException(nel))
     }
+  }
+
+  implicit class RichResultList[T](val list: List[Result[T]]) extends AnyVal {
+    // Convert a list of Results into a ResultNel containing the list, if successful, or the accumulated errors if not
+    def sequenceNel: ResultNel[List[T]] = list.map(_.toResultNel).sequence
   }
 
   implicit def exception2Result[A](e: Exception): Result[A] = Failure[A](e)

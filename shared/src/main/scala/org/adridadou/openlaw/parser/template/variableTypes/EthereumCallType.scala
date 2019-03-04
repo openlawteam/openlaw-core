@@ -7,7 +7,7 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
-import org.adridadou.openlaw.result.{Failure, Result, attempt}
+import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 
 import scala.util.Try
 
@@ -18,9 +18,9 @@ case object EthereumCallType extends VariableType("EthereumCall") with ActionTyp
   override def cast(value: String, executionResult: TemplateExecutionResult): EthereumSmartContractCall =
     handleEither(decode[EthereumSmartContractCall](value))
 
-  override def internalFormat(value: Any): String = value match {
+  override def internalFormat(value: Any): Result[String] = value match {
     case call:EthereumSmartContractCall =>
-      call.asJson.noSpaces
+      Success(call.asJson.noSpaces)
   }
 
   override def defaultFormatter: Formatter = new NoopFormatter
@@ -55,5 +55,5 @@ case object EthereumCallType extends VariableType("EthereumCall") with ActionTyp
     case _ => throw new RuntimeException("invalid parameter type " + param.getClass.getSimpleName + " expecting list of expressions")
   }
 
-  override def actionValue(value: Any): EthereumSmartContractCall = VariableType.convert[EthereumSmartContractCall](value)
+  override def actionValue(value: Any): Result[EthereumSmartContractCall] = VariableType.convert[EthereumSmartContractCall](value)
 }

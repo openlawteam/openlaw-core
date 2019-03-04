@@ -88,13 +88,15 @@ trait VariableExecutionEngine {
   }
 
   private def startSubExecution(variable: VariableDefinition, executionResult: TemplateExecutionResult): Result[TemplateExecutionResult] = {
-    variable.evaluate(executionResult) match {
-      case Some(definition:TemplateDefinition) =>
-        Success(executionResult.copy(state = ExecutionWaitForTemplate(variable.name, definition.name)))
-      case Some(_) =>
-        Failure("the variable didn't return a template definition!")
-      case None =>
-        Failure(s"the template ${variable.name.name} could not be evaluated")
+    variable.evaluate(executionResult).sequence.flatMap { option =>
+      option match {
+        case Some(definition: TemplateDefinition) =>
+          Success(executionResult.copy(state = ExecutionWaitForTemplate(variable.name, definition.name)))
+        case Some(_) =>
+          Failure("the variable didn't return a template definition!")
+        case None =>
+          Failure(s"the template ${variable.name.name} could not be evaluated")
+      }
     }
   }
 
@@ -172,21 +174,28 @@ trait VariableExecutionEngine {
 
     if(newType === oldType) {
       executionResult.aliases.prepend(alias)
-      if(executed) {
-        executionResult.executedVariables appendAll alias.variables(executionResult)
-      }
-      val unknownVariables = alias
-        .variables(executionResult)
-        .filter(variable => executionResult.getVariable(variable.name).isEmpty)
-        .filter(variable => executionResult.getAlias(variable.name).isEmpty)
+      val result: Result[Unit] = if (executed) {
+        alias.variables(executionResult).map(executionResult.executedVariables appendAll _)
+      } else Success(())
 
-      if(unknownVariables.isEmpty) {
-        alias.validate(executionResult).map { _ =>
-          executionResult.aliases.prepend(alias)
-          executionResult
-        }
-      } else {
-        Failure(s"alias expression uses undefined variables ${unknownVariables.map(_.name).mkString(",")}")
+      result.flatMap { _ =>
+        val unknownVariables: Result[Seq[VariableName]] = alias
+          .variables(executionResult)
+          .map { seq =>
+            val unknownVariables = seq
+              .filter(variable => executionResult.getVariable(variable.name).isEmpty)
+              .filter(variable => executionResult.getAlias(variable.name).isEmpty)
+
+            if (unknownVariables.isEmpty) {
+              alias
+                .validate(executionResult).map { _ =>
+                executionResult.aliases.prepend(alias)
+                executionResult
+              }
+            } else {
+              Failure(s"alias expression uses undefined variables ${unknownVariables.map(_.name).mkString(",")}")
+            }
+          }
       }
 
     } else {
@@ -195,20 +204,31 @@ trait VariableExecutionEngine {
   }
 
   private def defineNewAlias(executionResult: TemplateExecutionResult, alias:VariableAliasing, executed:Boolean): Result[TemplateExecutionResult] = {
-    val result = alias.variables(executionResult)
-      .filter(variable => executionResult.getVariable(variable).isEmpty)
-      .filter(variable => executionResult.getAlias(variable).isEmpty).toList match {
-        case Nil =>
-          alias.validate(executionResult).flatMap { _ =>
-            executionResult.aliases.prepend(alias)
-            if (executed) {
-              executionResult.executedVariables appendAll alias.expr.variables(executionResult)
-            }
-            alias.expr.validate(executionResult).map(_ => executionResult)
+    val result: Result[Seq[VariableName]] =
+      alias
+        .variables(executionResult)
+        .flatMap { seq =>
+          val result: Result[TemplateExecutionResult] = seq
+            .filter(variable => executionResult.getVariable(variable).isEmpty)
+            .filter(variable => executionResult.getAlias(variable).isEmpty)
+            .toList match {
+              case Nil =>
+                alias
+                  .validate(executionResult)
+                  .flatMap { _ =>
+                    executionResult.aliases.prepend(alias)
+                    val result: Result[Unit] = if (executed) {
+                      alias.expr.variables(executionResult).map(executionResult.executedVariables appendAll _)
+                    } else {
+                      Success(())
+                    }
+                    result.flatMap(_ => alias.expr.validate(executionResult).map(_ => executionResult))
+                  }
+              case variables =>
+                Failure(s"alias expression uses undefined variables ${variables.map(_.name).mkString(",")}")
           }
-        case variables =>
-          Failure(s"alias expression uses undefined variables ${variables.map(_.name).mkString(",")}")
-      }
+          result
+        }
     result
   }
 }

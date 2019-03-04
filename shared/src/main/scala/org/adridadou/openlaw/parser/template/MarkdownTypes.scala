@@ -131,25 +131,29 @@ case class Section(uuid:String, definition:Option[SectionDefinition], lvl:Int) e
           .collectFirst { case Some(format) => format }
     }
 
-  private def localOverrideSymbol(executionResult: TemplateExecutionResult): Option[SectionSymbol] =
-    for {
+  private def localOverrideSymbol(executionResult: TemplateExecutionResult): Result[Option[SectionSymbol]] =
+    (for {
       definition <- definition
       parameters <- definition.parameters
       parameter <- parameters.parameterMap.toMap.get("symbol")
       expr <- getSingleExpression(parameter)
       name <- expr.evaluate(executionResult)
-      result <- SectionSymbol.withNameOption(VariableType.convert[String](name))
-    } yield result
+    } yield name) match {
+      case Some(n) => VariableType.convert[String](n).map(n => SectionSymbol.withNameOption(n))
+      case None => Success(None)
+    }
 
-  private def localOverrideFormat(executionResult: TemplateExecutionResult): Option[SectionFormat] =
-    for {
+  private def localOverrideFormat(executionResult: TemplateExecutionResult): Result[Option[SectionFormat]] =
+    (for {
       definition <- definition
       parameters <- definition.parameters
       parameter <- parameters.parameterMap.toMap.get("format")
       expr <- getSingleExpression(parameter)
       name <- expr.evaluate(executionResult)
-      result <- SectionFormat.withNameOption(VariableType.convert[String](name))
-    } yield result
+    } yield name) match {
+      case Some(n) => VariableType.convert[String](n).map(n => SectionFormat.withNameOption(n))
+      case None => Success(None)
+    }
 }
 
 object TextElement {

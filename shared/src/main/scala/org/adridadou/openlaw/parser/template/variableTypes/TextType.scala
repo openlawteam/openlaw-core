@@ -1,24 +1,36 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
+import cats.implicits._
 import org.adridadou.openlaw.parser.template.{Divide, FormatterDefinition, TemplateExecutionResult, ValueOperation}
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, UppercaseFormatter}
+import org.adridadou.openlaw.result.Result
 
 
 case object TextType extends VariableType("Text") {
   override def cast(value: String, executionResult: TemplateExecutionResult): String = value
 
-  override def plus(optLeft: Option[Any], optRight: Option[Any], executionResult: TemplateExecutionResult): Option[String] = for(
-    leftValue <- optLeft;
-    rightValue <- optRight
-  ) yield VariableType.convert[String](leftValue) + VariableType.convert[String](rightValue)
+  override def plus(optLeft: Option[Any], optRight: Option[Any], executionResult: TemplateExecutionResult): Result[Option[String]] =
+    (for {
+      leftValue <- optLeft
+      rightValue <- optRight
+    } yield {
+      for {
+        left <- VariableType.convert[String](leftValue)
+        right <- VariableType.convert[String](rightValue)
+      } yield left + right
+    }).sequence
 
 
-  override def divide(optLeft: Option[Any], optRight: Option[Any], executionResult: TemplateExecutionResult): Option[Any] = {
-    for {
-      left <- optLeft.map(VariableType.convert[String])
-      right <- optRight.map(VariableType.convert[String])
-    } yield TemplatePath(Seq(left, right))
-  }
+  override def divide(optLeft: Option[Any], optRight: Option[Any], executionResult: TemplateExecutionResult): Result[Option[Any]] =
+    (for {
+      leftValue <- optLeft
+      rightValue <- optRight
+    } yield {
+      for {
+        left <- VariableType.convert[String](leftValue)
+        right <- VariableType.convert[String](rightValue)
+      } yield TemplatePath(Seq(left, right))
+    }).sequence
 
   override def operationWith(rightType: VariableType, operation: ValueOperation): VariableType = operation match {
     case Divide =>
@@ -27,7 +39,7 @@ case object TextType extends VariableType("Text") {
       TextType
   }
 
-  override def internalFormat(value: Any): String = VariableType.convert[String](value)
+  override def internalFormat(value: Any): Result[String] = VariableType.convert[String](value)
 
   override def checkTypeName(nameToCheck: String): Boolean =
     Seq("Text", "String").exists(_.equalsIgnoreCase(nameToCheck))

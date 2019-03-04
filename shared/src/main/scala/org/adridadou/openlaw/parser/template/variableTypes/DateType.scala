@@ -9,36 +9,37 @@ import org.adridadou.openlaw.parser.template.formatters.Formatter
 import cats.implicits._
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 
-abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => LocalDateTime, formatter:Formatter) extends VariableType(varTypeName) {
+abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => Result[LocalDateTime], formatter:Formatter) extends VariableType(varTypeName) {
   override def defaultFormatter: Formatter = formatter
 
   override def getTypeClass: Class[LocalDateTime] = classOf[LocalDateTime]
 
-  def cast(value: String, executionResult:TemplateExecutionResult):LocalDateTime  = DateConverter.cast(value, executionResult.clock)
-  def internalFormat(value: Any): String = {
+  def cast(value: String, executionResult:TemplateExecutionResult): Result[LocalDateTime] = DateConverter.cast(value, executionResult.clock)
+  def internalFormat(value: Any): Result[String] = {
     val offset = OffsetDateTime.now().getOffset
-    (VariableType.convert[LocalDateTime](value).toEpochSecond(offset) * 1000).toString
+    VariableType.convert[LocalDateTime](value).map(x => (x.toEpochSecond(offset) * 1000).toString)
   }
 
   override def construct(constructorParams:Parameter, executionResult:TemplateExecutionResult): Result[Option[LocalDateTime]] = constructorParams match {
     case OneValueParameter(expr) =>
-      attempt(expr.evaluate(executionResult).map(value => castOrConvert(VariableType.convert[String](value), executionResult)))
+      //upstream attempt(expr.evaluate(executionResult).map(value => castOrConvert(VariableType.convert[String](value), executionResult))).left.map(f => f.e)
+      expr.evaluate(executionResult).map(value => VariableType.convert[String](value).flatMap(x => castOrConvert(x, executionResult))).sequence
     case _ =>
       Failure("constructor only handles single value")
   }
 
-  override def plus(optLeft: Option[Any], optRight: Option[Any], executionResult:TemplateExecutionResult): Option[LocalDateTime] = for {
+  override def plus(optLeft: Option[Any], optRight: Option[Any], executionResult:TemplateExecutionResult): Option[Result[LocalDateTime]] = for {
     left <- optLeft
     right <- optRight
   } yield {
     right match {
-      case period:Period => plus(VariableType.convert[LocalDateTime](left), period)
+      case period:Period => VariableType.convert[LocalDateTime](left).map(plus(_, period))
       case str:String =>
-        attempt(PeriodType.cast(str, executionResult)) match {
-          case Success(period) => plus(VariableType.convert[LocalDateTime](left), period)
-          case Failure(_) => throw new RuntimeException(s"you can only make an addition between a date and a period. You are making an addition between a ${left.getClass.getSimpleName} and ${right.getClass.getSimpleName}")
+        PeriodType.cast(str, executionResult) match {
+          case Success(period) => VariableType.convert[LocalDateTime](left).map(plus(_, period))
+          case Failure(_) => Failure(s"you can only make an addition between a date and a period. You are making an addition between a ${left.getClass.getSimpleName} and ${right.getClass.getSimpleName}")
         }
-      case _ => throw new RuntimeException(s"you can only make an addition between a date and a period. You are making an addition between a ${left.getClass.getSimpleName} and ${right.getClass.getSimpleName}")
+      case _ => Failure(s"you can only make an addition between a date and a period. You are making an addition between a ${left.getClass.getSimpleName} and ${right.getClass.getSimpleName}")
     }
   }
 
@@ -51,18 +52,18 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => L
     .plusMonths(p.months)
     .plusYears(p.years)
 
-  override def minus(optLeft: Option[Any], optRight: Option[Any], executionResult:TemplateExecutionResult): Option[LocalDateTime] = for {
+  override def minus(optLeft: Option[Any], optRight: Option[Any], executionResult:TemplateExecutionResult): Option[Result[LocalDateTime]] = for {
     left <- optLeft
     right <- optRight
   } yield {
     right match {
-      case period:Period => minus(VariableType.convert[LocalDateTime](left), period)
+      case period:Period => VariableType.convert[LocalDateTime](left).map(minus(_, period))
       case str:String =>
-        attempt(PeriodType.cast(str, executionResult)) match {
-          case Success(period) => minus(VariableType.convert[LocalDateTime](left), period)
-          case Failure(_) => throw new RuntimeException(s"you can only make a substraction between a date and a period. You are making an addition between a ${left.getClass.getSimpleName} and ${right.getClass.getSimpleName}")
+        PeriodType.cast(str, executionResult) match {
+          case Success(period) => VariableType.convert[LocalDateTime](left).map(minus(_, period))
+          case Failure(_) => Failure(s"you can only make a substraction between a date and a period. You are making an addition between a ${left.getClass.getSimpleName} and ${right.getClass.getSimpleName}")
         }
-      case _ => throw new RuntimeException(s"you can only make a substraction between a date and a period. You are making an addition between a ${left.getClass.getSimpleName} and ${right.getClass.getSimpleName}")
+      case _ => Failure(s"you can only make a substraction between a date and a period. You are making an addition between a ${left.getClass.getSimpleName} and ${right.getClass.getSimpleName}")
     }
   }
 
@@ -75,10 +76,8 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => L
     .minusMonths(p.months)
     .minusYears(p.years)
 
-  private def castOrConvert(value:String, executionResult:TemplateExecutionResult):LocalDateTime = attempt(cast(value, executionResult)) match {
-    case Success(date) => date
-    case _ => converter(value, executionResult.clock)
-  }
+  private def castOrConvert(value:String, executionResult:TemplateExecutionResult): Result[LocalDateTime] =
+    cast(value, executionResult).left.flatMap(_ => converter(value, executionResult.clock))
 
   override def getFormatter(formatter:FormatterDefinition, executionResult:TemplateExecutionResult): Formatter = formatter.name.toLowerCase match {
     case "date" => new SimpleDateFormatter
@@ -107,22 +106,20 @@ case object DateTimeType extends DateTypeTrait("DateTime", DateConverter.convert
 
 object DateConverter {
 
-  def cast(value:String, clock:Clock): LocalDateTime = attempt(LocalDateTime.ofEpochSecond(value.toLong / 1000, 0, ZoneOffset.UTC)) match {
-    case Success(x) => x
-    case _ => convertToDateTime(value, clock)
-  }
+  def cast(value:String, clock:Clock): Result[LocalDateTime] =
+    attempt(LocalDateTime.ofEpochSecond(value.toLong / 1000, 0, ZoneOffset.UTC)).left.flatMap(_ => convertToDateTime(value, clock))
 
-  def convertToDate(d: String, clock:Clock): LocalDateTime = {
+  def convertToDate(d: String, clock:Clock): Result[LocalDateTime] = {
     val YMD = """(\d{4})-(\d{1,2})-(\d{1,2})""".r
     val MDY = """(\d{1,2})/(\d{1,2})/(\d{4})""".r
     val DMY = """(\d{1,2})\.(\d{1,2})\.(\d{4})""".r
     d match {
-      case YMD(year, month, day) => toLocalDateTime(year.toInt,month.toInt, day.toInt, clock)
-      case MDY(month, day, year) => toLocalDateTime(year.toInt,month.toInt, day.toInt, clock)
-      case DMY(day, month, year) => toLocalDateTime(year.toInt,month.toInt, day.toInt, clock)
+      case YMD(year, month, day) => Success(toLocalDateTime(year.toInt,month.toInt, day.toInt, clock))
+      case MDY(month, day, year) => Success(toLocalDateTime(year.toInt,month.toInt, day.toInt, clock))
+      case DMY(day, month, year) => Success(toLocalDateTime(year.toInt,month.toInt, day.toInt, clock))
 
       case _ =>
-        throw new RuntimeException(s"Invalid date format for '$d' !")
+        Failure(s"Invalid date format for '$d' !")
     }
   }
 
@@ -143,16 +140,16 @@ object DateConverter {
       .withNano(0)
 
 
-  def convertToDateTime(d: String, clock:Clock): LocalDateTime = {
+  def convertToDateTime(d: String, clock:Clock): Result[LocalDateTime] = {
     val YMD = """(\d{4})-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2}):(\d{1,2})""".r
     val MDY = """(\d{1,2})/(\d{1,2})/(\d{4})""".r
     val DMY = """(\d{1,2})\.(\d{1,2})\.(\d{4})""".r
     d match {
-      case YMD(year, month, day,hour,minute,second) => toLocalDateTime(year.toInt, month.toInt, day.toInt, hour.toInt, minute.toInt, second.toInt, clock)
-      case MDY(month, day, year,hour,minute,second) => toLocalDateTime(year.toInt, month.toInt, day.toInt, hour.toInt, minute.toInt, second.toInt, clock)
-      case DMY(day, month, year,hour,minute,second) => toLocalDateTime(year.toInt, month.toInt, day.toInt, hour.toInt, minute.toInt, second.toInt, clock)
+      case YMD(year, month, day,hour,minute,second) => Success(toLocalDateTime(year.toInt, month.toInt, day.toInt, hour.toInt, minute.toInt, second.toInt, clock))
+      case MDY(month, day, year,hour,minute,second) => Success(toLocalDateTime(year.toInt, month.toInt, day.toInt, hour.toInt, minute.toInt, second.toInt, clock))
+      case DMY(day, month, year,hour,minute,second) => Success(toLocalDateTime(year.toInt, month.toInt, day.toInt, hour.toInt, minute.toInt, second.toInt, clock))
       case _ =>
-         throw new RuntimeException(s"Invalid date format! $d")
+         Failure(s"Invalid date format! $d")
     }
   }
 }
@@ -195,7 +192,7 @@ object DateHelper {
     zonedDate
   }
 
-  def convertToDate(value:Any, clock: Clock): Result[LocalDateTime] = attempt(VariableType.convert[LocalDateTime](value)) map {
+  def convertToDate(value:Any, clock: Clock): Result[LocalDateTime] = VariableType.convert[LocalDateTime](value) map {
     case date => DateHelper.prepareDate(date, clock)
   }
 }

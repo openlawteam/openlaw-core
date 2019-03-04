@@ -8,7 +8,7 @@ import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template._
 import cats.implicits._
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
-import org.adridadou.openlaw.result.{attempt, Failure, Result}
+import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 
 import scala.util.Try
 
@@ -38,9 +38,9 @@ case object ChoiceType extends VariableType("Choice") with TypeGenerator[Choices
 
   override def cast(value: String, executionResult: TemplateExecutionResult): Choices = handleEither(decode[Choices](value))
 
-  override def internalFormat(value: Any): String = value match {
+  override def internalFormat(value: Any): Result[String] = value match {
     case call:Choices =>
-      call.asJson.noSpaces
+      Success(call.asJson.noSpaces)
   }
 
   override def checkTypeName(nameToCheck: String): Boolean = Seq("Choice").exists(_.equalsIgnoreCase(nameToCheck))
@@ -65,7 +65,7 @@ case class DefinedChoiceType(choices:Choices, typeName:String) extends VariableT
       }
   }
 
-  override def internalFormat(value: Any): String = VariableType.convert[String](value)
+  override def internalFormat(value: Any): Result[String] = VariableType.convert[String](value)
 
   override def thisType: VariableType = this
 

@@ -1,6 +1,7 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
 import cats.Eq
+import cats.implicits._
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.syntax._
@@ -33,17 +34,22 @@ case object TemplatePathType extends VariableType("TemplateType") with NoShowInF
 
   override def getTypeClass: Class[_ <: TemplatePathType.type ] = this.getClass
 
-  override def internalFormat(value: Any): String =
-    VariableType.convert[TemplatePath](value).asJson.noSpaces
+  override def internalFormat(value: Any): Result[String] =
+    VariableType.convert[TemplatePath](value).map(_.asJson.noSpaces)
 
   override def thisType: VariableType =
     TemplatePathType
 
-  override def divide(optLeft: Option[Any], optRight: Option[Any], executionResult: TemplateExecutionResult): Option[Any] = {
+  override def divide(optLeft: Option[Any], optRight: Option[Any], executionResult: TemplateExecutionResult): Option[Result[Any]] = {
     for {
-      left <- optLeft.map(VariableType.convert[TemplatePath])
-      right <- optRight.map(VariableType.convert[String])
-    } yield TemplatePath(left.path ++ Seq(right))
+      leftOption <- optLeft
+      rightOption <- optRight.map(VariableType.convert[String])
+    } yield {
+      for {
+        left <- VariableType.convert[TemplatePath](leftOption)
+        right <- VariableType.convert[String](leftOption)
+      } yield TemplatePath(left.path ++ Seq(right))
+    }
   }
 }
 
@@ -73,7 +79,7 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
     case _ => Unknown
   }
 
-  private def prepareTemplateName(mappingParameter: Parameters, executionResult: TemplateExecutionResult):Result[Option[TemplateSourceIdentifier]] = {
+  private def prepareTemplateName(mappingParameter: Parameters, executionResult: TemplateExecutionResult): Result[Option[TemplateSourceIdentifier]] = {
 
     val unknownParameters = mappingParameter.parameterMap.map({case (key,_) => key})
       .filter(elem => !availableParameters.contains(elem))
@@ -83,10 +89,14 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
     } else {
       getMandatoryParameter("name", mappingParameter) match {
         case templateName: OneValueParameter =>
-          attempt(templateName.expr.evaluate(executionResult)
-            .map(VariableType.convert[String])
-            .map(title => TemplateSourceIdentifier(TemplateTitle(title)))
-          )
+          attempt {
+            templateName
+              .expr
+              .evaluate(executionResult)
+              .map(VariableType.convert[String])
+              .sequence
+              .map(_.map(title => TemplateSourceIdentifier(TemplateTitle(title))))
+          }.flatten
         case _ =>
           Failure("parameter 'name' accepts only single value")
       }
@@ -95,14 +105,13 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
 
   private def prepareTemplatePath(parameters: Parameters, executionResult:TemplateExecutionResult):Result[Option[TemplatePath]] = parameters.parameterMap.toMap.get("path") match {
     case Some(OneValueParameter(expr)) =>
-      expr.evaluate(executionResult).map({
-        case p: TemplatePath =>
-          Success(Some(p))
-        case p: String =>
-          Success(Some(TemplatePath(Seq(p))))
-        case other =>
-          Failure(s"parameter 'path' should be a path but instead was ${other.getClass.getSimpleName}")
-      }).getOrElse(Success(None))
+      expr.evaluate(executionResult).map { result =>
+        result.flatMap {
+          case p: TemplatePath => Success(Some(p))
+          case p: String => Success(Some(TemplatePath(Seq(p))))
+          case other => Failure(s"parameter 'path' should be a path but instead was ${other.getClass.getSimpleName}")
+        }
+      }.getOrElse(Success(None))
     case Some(other) =>
       Failure(s"parameter 'path' should be a single value, not ${other.getClass.getSimpleName}")
     case None =>
@@ -206,7 +215,7 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
   override def getTypeClass: Class[_ <: TemplateType.type ] = this.getClass
 
   override def cast(value: String, executionResult: TemplateExecutionResult): TemplateDefinition = handleEither(decode[TemplateDefinition](value))
-  override def internalFormat(value: Any): String = VariableType.convert[TemplateDefinition](value).asJson.noSpaces
+  override def internalFormat(value: Any): Result[String] = VariableType.convert[TemplateDefinition](value).map(_.asJson.noSpaces)
   override def defaultFormatter: Formatter = new NoopFormatter
 
   def thisType: VariableType = TemplateType

@@ -1,8 +1,10 @@
 package org.adridadou.openlaw.vm
 
+import cats.implicits._
 import java.util.concurrent.atomic.AtomicInteger
 
-import org.adridadou.openlaw.result._
+import org.adridadou.openlaw.result.{attempt, Failure, Result, Success}
+import org.adridadou.openlaw.result.Implicits.eqFailureCause
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.values.TemplateParameters
@@ -198,11 +200,14 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
   }
 
   private def processSection(section: Section, executionResult: TemplateExecutionResult): Result[TemplateExecutionResult] = {
-    (section.definition.flatMap(_.parameters).flatMap(_.parameterMap.toMap.get("numbering")).flatMap({
-      case OneValueParameter(expr) => expr.evaluate(executionResult)
-      case _ => None
-    }) match {
-      case Some(value:BigDecimal) =>
+    val numberingOption: Option[Result[Any]] =
+      section.definition.flatMap(_.parameters).flatMap(_.parameterMap.toMap.get("numbering")).flatMap {
+        case OneValueParameter(expr) => expr.evaluate(executionResult)
+        case _ => None
+      }
+
+    val numberingResult = numberingOption match {
+      case Some(Success(value: BigDecimal)) =>
         val values = (0 until value.toInt).map(_ => section.lvl)
         val allValues = ((1 until section.lvl)
           .flatMap(lvl => {
@@ -210,74 +215,95 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
           }) ++ values).toList
 
         Success(values,  -1 :: allValues)
+
+      case Some(Failure(e, message)) => Failure(e, message)
+
       case Some(badValue) =>
         Failure(s"numbering parameter in section definition should be a number, not ${badValue.getClass.getSimpleName}")
+
       case None =>
         Success(executionResult.sectionLevelStack, Nil)
-    }).map({ case (numbering, newSectionValues) =>
-      val overrideSymbol = section.overrideSymbol(executionResult)
-      val overrideFormat = section.overrideFormat(executionResult)
-      val sectionValue = SectionHelper.generateListNumber(section.lvl, numbering, overrideSymbol, overrideFormat)
-      val referenceValue = SectionHelper.generateReferenceValue(section.lvl, numbering, overrideSymbol)
-      val params = Seq(
-        "reference value" -> OneValueParameter(StringConstant(generateFullSectionValue(section, referenceValue, executionResult))),
-        "numbering" -> OneValueParameter(StringConstant(sectionValue))
-      )
-      val name = section.definition
-        .map(_.name)
-        .filter(_ =!= "_") //_ means anonymous
-        .map(VariableName(_))
-        .getOrElse(executionResult.createAnonymousVariable())
+    }
 
-      val variable = VariableDefinition(name = name, variableTypeDefinition = Some(VariableTypeDefinition("Section")), defaultValue = Some(Parameters(params)))
-      executionResult.variables.append(variable)
-      executionResult.executedVariables.append(name)
-      executionResult.sectionNameMapping put (section.uuid , name)
-      executionResult.sectionNameMappingInverse put (name, section.uuid)
-      executionResult.addLastSectionByLevel(section.lvl, referenceValue)
-      executionResult.addSectionLevelStack(newSectionValues)
-      executionResult.addProcessedSection(section, SectionHelper.calculateNumberInList(section.lvl, numbering))
+    numberingResult.map {
+      case (numbering, newSectionValues) =>
+        val overrideSymbol = section.overrideSymbol(executionResult)
+        val overrideFormat = section.overrideFormat(executionResult)
+        val sectionValue = SectionHelper.generateListNumber(section.lvl, numbering, overrideSymbol, overrideFormat)
+        val referenceValue = SectionHelper.generateReferenceValue(section.lvl, numbering, overrideSymbol)
+        val params = Seq(
+          "reference value" -> OneValueParameter(StringConstant(generateFullSectionValue(section, referenceValue, executionResult))),
+          "numbering" -> OneValueParameter(StringConstant(sectionValue))
+        )
+        val name = section.definition
+          .map(_.name)
+          .filter(_ =!= "_") //_ means anonymous
+          .map(VariableName(_))
+          .getOrElse(executionResult.createAnonymousVariable())
 
-      executionResult
-    })
+        val variable = VariableDefinition(name = name, variableTypeDefinition = Some(VariableTypeDefinition("Section")), defaultValue = Some(Parameters(params)))
+        executionResult.variables.append(variable)
+        executionResult.executedVariables.append(name)
+        executionResult.sectionNameMapping put (section.uuid , name)
+        executionResult.sectionNameMappingInverse put (name, section.uuid)
+        executionResult.addLastSectionByLevel(section.lvl, referenceValue)
+        executionResult.addSectionLevelStack(newSectionValues)
+        executionResult.addProcessedSection(section, SectionHelper.calculateNumberInList(section.lvl, numbering))
+
+        executionResult
+    }
   }
 
   private def executeForEachBlock(executionResult: TemplateExecutionResult, foreachBlock: ForEachBlock): Result[TemplateExecutionResult] = {
-    foreachBlock.toCompiledTemplate(executionResult).flatMap({ case (template, expressionType) =>
-      val initialValue: Result[TemplateExecutionResult] = Success(executionResult)
-      executionResult.executedVariables appendAll foreachBlock.expression.variables(executionResult)
+    foreachBlock
+      .toCompiledTemplate(executionResult)
+      .flatMap { case (template, expressionType) =>
+        val initialValue: Result[TemplateExecutionResult] = Success(executionResult)
+        foreachBlock
+          .expression
+          .variables(executionResult)
+          .map(executionResult.executedVariables appendAll _)
+          .flatMap { _ =>
+            val elements =
+              foreachBlock
+                .expression
+                .evaluate(executionResult)
+                .map(value => VariableType.convert[CollectionValue](value).map(_.list))
+                .getOrElse(Success(Seq()))
 
-      val elements = foreachBlock.expression.evaluate(executionResult)
-        .map(value => VariableType.convert[CollectionValue](value).list)
-        .getOrElse(Seq())
+            elements.foldLeft(initialValue) { (eitherExecutionResult, element) =>
+              eitherExecutionResult.flatMap { _ =>
+                val anonymousVariable = executionResult.createAnonymousVariable()
+                executionResult.variables append VariableDefinition(name = anonymousVariable, variableTypeDefinition = Some(VariableTypeDefinition(TemplateType.name)), defaultValue = Some(OneValueParameter(StringConstant(anonymousVariable.name))))
+                executionResult.executedVariables append anonymousVariable
 
-      elements.foldLeft(initialValue)((eitherExecutionResult, element) => eitherExecutionResult.flatMap(_ => {
-        val anonymousVariable = executionResult.createAnonymousVariable()
-        executionResult.variables append VariableDefinition(name = anonymousVariable, variableTypeDefinition = Some(VariableTypeDefinition(TemplateType.name)), defaultValue = Some(OneValueParameter(StringConstant(anonymousVariable.name))))
-        executionResult.executedVariables append anonymousVariable
-
-        executionResult.startEmbeddedExecution(anonymousVariable, template, foreachBlock.variable, element, expressionType).map(_ => executionResult)
-      })
-      )
-    })
+                executionResult.startEmbeddedExecution(anonymousVariable, template, foreachBlock.variable, element, expressionType).map(_ => executionResult)
+              }
+            }
+          }
+      }
   }
 
   private def executeConditionalBlockSet(executionResult: TemplateExecutionResult, blocks: Seq[ConditionalBlock]) = {
-    blocks.foreach({
+    val result = blocks.map {
       subBlock =>
         subBlock.conditionalExpression match {
           case variable: VariableDefinition =>
             processVariable(executionResult, variable, executed = true)
           case _ =>
-            executionResult.executedVariables appendAll subBlock.conditionalExpression.variables(executionResult)
+            subBlock.conditionalExpression.variables(executionResult).map(executionResult.executedVariables appendAll _)
         }
-    })
+    }.toList.sequence
 
-    blocks.find(_.conditionalExpression.evaluate(executionResult).exists(VariableType.convert[Boolean]))
-      .map(subBlock => {
-        executionResult.remainingElements.prependAll(subBlock.block.elems)
-        Success(executionResult)
-      }).getOrElse(Success(executionResult))
+    result.flatMap { _ =>
+      blocks
+        .find(_.conditionalExpression.evaluate(executionResult).exists(VariableType.convert[Boolean](_) === Success(true)))
+        .map { subBlock =>
+          executionResult.remainingElements.prependAll(subBlock.block.elems)
+          Success(executionResult)
+        }
+        .getOrElse(Success(executionResult))
+    }
   }
 
   private def getRoot(parent:TemplateExecutionResult):TemplateExecutionResult = parent.parentExecution match {
@@ -350,7 +376,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
         }
     })
 
-    blocks.find(_.conditionalExpression.evaluate(executionResult).exists(VariableType.convert[Boolean])) match {
+    blocks.find(_.conditionalExpression.evaluate(executionResult).exists(VariableType.convert[Boolean](_) === Success(true))) match {
       case Some(subBlock) =>
         executionResult.remainingElements.prependAll(subBlock.block.elems)
       case None =>
@@ -365,7 +391,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
         processVariable(executionResult, variable, executed = false)
       case _ =>
     }
-    if(expression.evaluate(executionResult).exists(VariableType.convert[Boolean])) {
+    if(expression.evaluate(executionResult).exists(VariableType.convert[Boolean](_) === Success(true))) {
       val initialValue:Result[TemplateExecutionResult] = Success(executionResult)
       val initialValue2 = block.elems.foldLeft(initialValue)((exec, elem) => exec.flatMap(processCodeElement(_, templates, elem)))
       elseBlock.map(_.elems.foldLeft(initialValue2)((exec, elem) => exec.flatMap(processCodeElement(_, templates, elem)))).getOrElse(initialValue2)
@@ -379,15 +405,19 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       case Some(_:VariableDefinition) =>
         processDefinedVariable(executionResult, variable, executed)
       case Some(alias:VariableAliasing) if variable.nameOnly =>
-        executionResult.executedVariables appendAll alias.expr.variables(executionResult)
-        Success(executionResult)
+        alias.expr.variables(executionResult).map(executionResult.executedVariables appendAll _).map(_ => executionResult)
       case Some(mappingExpression:MappingExpression) =>
         if(executed) {
           executionResult.parentExecution.map(parent => {
             val initialValue:Result[TemplateExecutionResult] = Success(parent)
-            mappingExpression.expression.variables(parent)
-              .flatMap(name => parent.getVariable(name))
-              .foldLeft(initialValue)((parentExecution,subVariable) => parentExecution.flatMap(pe => executeVariable(pe, subVariable)))
+            mappingExpression
+              .expression
+              .variables(parent)
+              .flatMap { seq =>
+                seq
+                  .flatMap(name => parent.getVariable(name))
+                  .foldLeft(initialValue)((parentExecution, subVariable) => parentExecution.flatMap(pe => executeVariable(pe, subVariable)))
+              }
           })
         }
         Success(executionResult)
@@ -398,7 +428,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     }
   }
 
-  private def executeConditionalBlock(executionResult: TemplateExecutionResult, templates:Map[TemplateSourceIdentifier, CompiledTemplate], subBlock: Block, elseSubBlock:Option[Block], expr: Expression):Result[TemplateExecutionResult] = {
+  private def executeConditionalBlock(executionResult: TemplateExecutionResult, templates:Map[TemplateSourceIdentifier, CompiledTemplate], subBlock: Block, elseSubBlock:Option[Block], expr: Expression): Result[TemplateExecutionResult] = {
     expr.validate(executionResult).flatMap { _ =>
       val exprType = expr match {
         case variable:VariableDefinition =>
@@ -410,12 +440,13 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
           }
           YesNoType
         case _ =>
-          executionResult.executedVariables appendAll expr.variables(executionResult)
+          // TODO: Errors being dropped here?
+          expr.variables(executionResult).map(executionResult.executedVariables appendAll _)
           expr.expressionType(executionResult)
       }
 
       if (exprType === YesNoType) {
-        if(expr.evaluate(executionResult).exists(VariableType.convert[Boolean])) {
+        if(expr.evaluate(executionResult).exists(VariableType.convert[Boolean](_) === Success(true))) {
           executionResult.remainingElements.prependAll(subBlock.elems)
           Success(executionResult)
         } else {
@@ -443,12 +474,13 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
           }
           YesNoType
         case _ =>
-          executionResult.executedVariables appendAll expr.variables(executionResult)
+          // TODO: Dropping errors?
+          expr.variables(executionResult).map(executionResult.executedVariables appendAll _)
           expr.expressionType(executionResult)
       }
 
       if(exprType === YesNoType) {
-        if(expr.evaluate(executionResult).exists(VariableType.convert[Boolean])) {
+        if(expr.evaluate(executionResult).exists(VariableType.convert[Boolean](_) === Success(true))) {
           executionResult.remainingElements.prependAll(subBlock.elems)
           Success(executionResult)
         } else {

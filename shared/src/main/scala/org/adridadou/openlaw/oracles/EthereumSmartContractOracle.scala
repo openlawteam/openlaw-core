@@ -29,15 +29,17 @@ case class EthereumSmartContractOracle() extends OpenlawOracle[EthereumSmartCont
         case Some(execution) =>
           Success(vm.newExecution(event.name, createNewExecution(vm, toOpenlawExecutionStatus(event), event, execution.scheduledDate)))
         case None =>
-          getScheduledDate(actionInfo, vm, event) match {
-            case Some(scheduleDate) =>
-              Success(vm.newExecution(event.name, createNewExecution(vm, toOpenlawExecutionStatus(event), event, scheduleDate)))
-            case None =>
-              logger.warn(s"the transaction ${event.hash.toString} has not been added yet")
-              Success(vm)
+          getScheduledDate(actionInfo, vm, event).map {
+            _ match {
+              case Some(scheduleDate) =>
+                Success(vm.newExecution(event.name, createNewExecution(vm, toOpenlawExecutionStatus(event), event, scheduleDate)))
+              case None =>
+                logger.warn(s"the transaction ${event.hash.toString} has not been added yet")
+                Success(vm)
+            }
           }
       }
-    }.getOrElse(Failure(s"action not found for ${event.name.name}. available ${vm.allNextActions.map(_.name.name).mkString(",")}"))
+    }.getOrElse(vm.allNextActions.flatMap(actions => Failure(s"action not found for ${event.name.name}. available ${actions.map(_.name.name).mkString(",")}")))
   }
 
   private def handleFailedEvent(vm: OpenlawVm, event: FailedEthereumSmartContractCallEvent): Result[OpenlawVm] = {
@@ -65,10 +67,10 @@ case class EthereumSmartContractOracle() extends OpenlawOracle[EthereumSmartCont
       executionStatus = executionStatus,
       tx = event.hash)
 
-  private def getScheduledDate(info:ActionInfo, vm:OpenlawVm, event:EthereumSmartContractCallEvent):Option[LocalDateTime] = {
+  private def getScheduledDate(info:ActionInfo, vm:OpenlawVm, event:EthereumSmartContractCallEvent): Result[Option[LocalDateTime]] = {
     vm.executions[EthereumSmartContractExecution](info.name).find(_.tx === event.hash) match {
       case Some(execution) =>
-        Some(execution.scheduledDate)
+        Success(Some(execution.scheduledDate))
       case None =>
         info.action.nextActionSchedule(info.executionResult, vm.executions(event.name))
     }

@@ -30,7 +30,8 @@ case object ValidationType extends VariableType(name = "Validation") with NoShow
 
     case _ => Failure("Validation need to get 'condition' and 'errorMessage' as constructor parameter")
   }
-  override def internalFormat(value: Any): String = VariableType.convert[Validation](value).asJson.noSpaces
+  override def internalFormat(value: Any): Result[String] =
+    VariableType.convert[Validation](value).map(_.asJson.noSpaces)
 
   override def getTypeClass: Class[_ <: ValidationType.type ] = this.getClass
 
@@ -53,12 +54,13 @@ case object ValidationType extends VariableType(name = "Validation") with NoShow
 }
 
 case class Validation(condition:Expression, errorMessage:Expression) {
-  def validate(executionResult: TemplateExecutionResult):Option[String] = {
-    condition.evaluate(executionResult).map(VariableType.convert[Boolean])
-      .filter(_ === false)
-      .map(_ => errorMessage
-        .evaluate(executionResult).map(VariableType.convert[String])
-        .getOrElse(s"validation error (error message could not be resolved)")
-      )
-  }
+  def validate(executionResult: TemplateExecutionResult):Result[Unit] =
+    for {
+      valueOption <- condition.evaluate(executionResult).map(VariableType.convert[Boolean]).sequence
+      errorMessageText <- errorMessage
+                            .evaluate(executionResult)
+                            .map(VariableType.convert[String])
+                            .getOrElse(Success(s"validation error (error message could not be resolved)"))
+      result <- valueOption.filter(_ === false).map(_ => Failure(errorMessageText)).getOrElse(Success(()))
+    } yield result
 }

@@ -15,16 +15,19 @@ import org.adridadou.openlaw.values.ContractId
 import scala.util.Try
 
 case object EthAddressType extends VariableType("EthAddress") {
-  override def cast(value: String, executionResult:TemplateExecutionResult): EthereumAddress = EthereumAddress(value)
+  override def cast(value: String, executionResult:TemplateExecutionResult): Result[EthereumAddress] = Success(EthereumAddress(value))
 
-  override def internalFormat(value: Any): String = VariableType.convert[EthereumAddress](value).withLeading0x
+  override def internalFormat(value: Any): Result[String] = VariableType.convert[EthereumAddress](value).map(_.withLeading0x)
 
   override def construct(constructorParams: Parameter, executionResult:TemplateExecutionResult): Result[Option[EthereumAddress]] = {
-    getSingleParameter(constructorParams).evaluate(executionResult).map({
-      case value:String => attempt(Some(EthereumAddress(value)))
-      case value:EthereumAddress => Success(Some(value))
-      case value => Failure("wrong type " + value.getClass.getSimpleName + ". expecting String")
-    }).getOrElse(Success(None))
+    getSingleParameter(constructorParams).evaluate(executionResult).sequence.flatMap { option =>
+      option match {
+        case Some(value: String) => attempt(Some(EthereumAddress(value)))
+        case Some(value: EthereumAddress) => Success(Some(value))
+        case None => Success(None)
+        case value => Failure("wrong type " + value.getClass.getSimpleName + ". expecting String")
+      }
+    }
   }
 
   override def getTypeClass: Class[EthereumAddress] = classOf[EthereumAddress]

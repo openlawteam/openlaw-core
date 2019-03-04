@@ -1,5 +1,6 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
+import cats.implicits._
 import org.adridadou.openlaw.parser.template._
 import play.api.libs.json.{JsObject, Json}
 import io.circe.syntax._
@@ -23,9 +24,9 @@ case object AbstractStructureType extends VariableType(name = "Structure") with 
 
   override def defaultFormatter: Formatter = new NoopFormatter
 
-  override def cast(value: String, executionResult: TemplateExecutionResult): Structure = throw new RuntimeException("structured type definition cannot be casted")
+  override def cast(value: String, executionResult: TemplateExecutionResult): Result[Structure] = Failure("structured type definition cannot be casted")
 
-  override def internalFormat(value: Any): String = throw new RuntimeException("no internal format for structured type definition")
+  override def internalFormat(value: Any): Result[String] = Failure("no internal format for structured type definition")
 
   override def getTypeClass: Class[_ <: AbstractStructureType.type] = this.getClass
 
@@ -52,16 +53,17 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
         Success(value)
       case head :: tail =>
         val name = VariableName(head)
-        val values = VariableType.convert[Map[VariableName, Any]](value)
-        (for {
-          result <- values.get(name)
-          keyType <- structure.typeDefinition.get(name)
-        } yield keyType.access(result, tail, executionResult) ) match {
-          case Some(result) => result
-          case None if structure.names.contains(name) =>
-            Success(structure.typeDefinition(name).missingValueFormat(name))
-          case None =>
-            Failure(s"properties '${keys.mkString(".")}' could not be resolved for the structured type $typeName. available properties ${structure.names.map(name => s"'${name.name}'").mkString(",")}")
+        VariableType.convert[Map[VariableName, Any]](value).map { values =>
+          (for {
+            result <- values.get(name)
+            keyType <- structure.typeDefinition.get(name)
+          } yield keyType.access(result, tail, executionResult) ) match {
+            case Some(result) => result
+            case None if structure.names.contains(name) =>
+              Success(structure.typeDefinition(name).missingValueFormat(name))
+            case None =>
+              Failure(s"properties '${keys.mkString(".")}' could not be resolved for the structured type $typeName. available properties ${structure.names.map(name => s"'${name.name}'").mkString(",")}")
+          }
         }
     }
   }
@@ -106,11 +108,18 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
     })
   }
 
-  override def internalFormat(value: Any): String = {
-    val values = VariableType.convert[Map[VariableName, Any]](value)
-    structure.typeDefinition
-      .flatMap({case (fieldName,fieldType) => values.get(fieldName).map(value => fieldName.name -> fieldType.internalFormat(value))})
-      .asJson.noSpaces
+  override def internalFormat(value: Any): Result[String] = {
+    VariableType.convert[Map[VariableName, Any]](value).flatMap { values =>
+      structure
+        .typeDefinition
+        .flatMap { case (fieldName, fieldType) =>
+          values.get(fieldName).map(value => fieldName.name -> fieldType.internalFormat(value))
+        }
+        .toList
+        .map { case (key, result) => result.map(value => key -> value) }
+        .sequence
+        .map { _.asJson.noSpaces }
+    }
   }
 
   override def thisType: VariableType = this

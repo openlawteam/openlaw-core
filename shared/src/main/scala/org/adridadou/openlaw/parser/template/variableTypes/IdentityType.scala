@@ -31,7 +31,7 @@ case object IdentityType extends VariableType(name = "Identity") {
 
   override def missingValueFormat(name: VariableName): Seq[AgreementElement] = Seq(FreeText(Text("")))
 
-  override def internalFormat(value: Any): String = VariableType.convert[Identity](value).asJson.noSpaces
+  override def internalFormat(value: Any): Result[String] = VariableType.convert[Identity](value).map(_.asJson.noSpaces)
 
   override def getFormatter(formatterDefinition: FormatterDefinition, executionResult: TemplateExecutionResult):Formatter = formatterDefinition.name.trim().toLowerCase() match {
     case "signature" => new SignatureFormatter
@@ -40,7 +40,7 @@ case object IdentityType extends VariableType(name = "Identity") {
 
   override def access(value: Any, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Any] = {
     keys.toList match {
-      case head::tail if tail.isEmpty => accessProperty(Some(VariableType.convert[Identity](value)), head)
+      case head::tail if tail.isEmpty => VariableType.convert[Identity](value).flatMap(v => accessProperty(Some(v), head))
       case _::_ => Success(s"Address has only one level of properties. invalid property access ${keys.mkString(".")}")
       case _ => Success(value)
     }
