@@ -1496,4 +1496,14 @@ here""".stripMargin
 
     actualHeader.shouldShowTitle shouldBe true
   }
+
+  it should "define show title as false by default" in {
+    val text =
+      """""".stripMargin
+
+    val Right(template) = compiledAgreement(text)
+
+    val actualHeader = template.header
+    actualHeader.shouldShowTitle shouldBe false
+  }
 }

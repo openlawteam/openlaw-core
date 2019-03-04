@@ -20,11 +20,11 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => L
     (VariableType.convert[LocalDateTime](value).toEpochSecond(offset) * 1000).toString
   }
 
-  override def construct(constructorParams:Parameter, executionResult:TemplateExecutionResult): Either[Throwable, Option[LocalDateTime]] = constructorParams match {
+  override def construct(constructorParams:Parameter, executionResult:TemplateExecutionResult): Result[Option[LocalDateTime]] = constructorParams match {
     case OneValueParameter(expr) =>
-      attempt(expr.evaluate(executionResult).map(value => castOrConvert(VariableType.convert[String](value), executionResult))).left.map(f => f.e)
+      attempt(expr.evaluate(executionResult).map(value => castOrConvert(VariableType.convert[String](value), executionResult)))
     case _ =>
-      Left(new Exception("constructor only handles single value"))
+      Failure("constructor only handles single value")
   }
 
   override def plus(optLeft: Option[Any], optRight: Option[Any], executionResult:TemplateExecutionResult): Option[LocalDateTime] = for {

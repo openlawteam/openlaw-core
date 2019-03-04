@@ -9,21 +9,20 @@ import io.circe.{Decoder, Encoder}
 import org.adridadou.openlaw.oracles.UserId
 import org.adridadou.openlaw.parser.template.variableTypes.EthereumAddress.hex2bytes
 import org.adridadou.openlaw.parser.template.{Parameter, TemplateExecutionResult}
+import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 import org.adridadou.openlaw.values.ContractId
-
-import scala.util.Try
 
 case object EthAddressType extends VariableType("EthAddress") {
   override def cast(value: String, executionResult:TemplateExecutionResult): EthereumAddress = EthereumAddress(value)
 
   override def internalFormat(value: Any): String = VariableType.convert[EthereumAddress](value).withLeading0x
 
-  override def construct(constructorParams: Parameter, executionResult:TemplateExecutionResult): Either[Throwable, Option[EthereumAddress]] = {
+  override def construct(constructorParams: Parameter, executionResult:TemplateExecutionResult): Result[Option[EthereumAddress]] = {
     getSingleParameter(constructorParams).evaluate(executionResult).map({
-      case value:String => Try(Some(EthereumAddress(value))).toEither
-      case value:EthereumAddress => Right(Some(value))
-      case value => Left(new Exception("wrong type " + value.getClass.getSimpleName + ". expecting String"))
-    }).getOrElse(Right(None))
+      case value:String => attempt(Some(EthereumAddress(value)))
+      case value:EthereumAddress => Success(Some(value))
+      case value => Failure("wrong type " + value.getClass.getSimpleName + ". expecting String")
+    }).getOrElse(Success(None))
   }
 
   override def getTypeClass: Class[EthereumAddress] = classOf[EthereumAddress]
