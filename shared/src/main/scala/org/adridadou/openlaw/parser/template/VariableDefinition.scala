@@ -6,11 +6,10 @@ import cats.implicits._
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import org.adridadou.openlaw.parser.template.expressions.Expression
-import org.adridadou.openlaw.result.{Failure, Result, Success}
+import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 import play.api.libs.json.{JsString, Reads, Writes}
 
 import scala.reflect.ClassTag
-import scala.util.Try
 
 case class VariableMember(name:VariableName, keys:Seq[String], formatter:Option[FormatterDefinition]) extends TemplatePart with Expression {
   override def missingInput(executionResult:TemplateExecutionResult): Result[Seq[VariableName]] =
@@ -122,14 +121,14 @@ object VariableName {
 
 case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[VariableTypeDefinition] = None, description:Option[String] = None, formatter:Option[FormatterDefinition] = None, isHidden:Boolean = false, defaultValue:Option[Parameter] = None) extends TemplatePart with Expression with TextElement {
 
-  def constructT[T](executionResult: TemplateExecutionResult)(implicit classTag:ClassTag[T]): Either[Throwable, Option[T]] = {
+  def constructT[T](executionResult: TemplateExecutionResult)(implicit classTag:ClassTag[T]): Result[Option[T]] = {
     construct(executionResult).flatMap({
-      case Some(value) => Try(Some(VariableType.convert[T](value))).toEither
-      case None => Right(None)
+      case Some(value) => attempt(Some(VariableType.convert[T](value)))
+      case None => Success(None)
     })
   }
 
-  def construct(executionResult: TemplateExecutionResult): Either[Throwable, Option[Any]] = defaultValue match {
+  def construct(executionResult: TemplateExecutionResult): Result[Option[Any]] = defaultValue match {
     case Some(parameter) =>
       varType(executionResult).construct(parameter, executionResult)
     case None => Right(None)
@@ -140,7 +139,7 @@ case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[
 
   def varType(executionResult: TemplateExecutionResult):VariableType = variableTypeDefinition.flatMap(name => executionResult.findVariableType(name)).getOrElse(TextType)
 
-  def verifyConstructor(executionResult: TemplateExecutionResult): Either[Throwable, Option[Any]] = {
+  def verifyConstructor(executionResult: TemplateExecutionResult): Result[Option[Any]] = {
     defaultValue match {
       case Some(parameter) =>
         varType(executionResult).construct(parameter, executionResult)
@@ -177,7 +176,7 @@ case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[
     optVariable
       .map(variable => variable.construct(executionResult)) match {
       case Some(Right(value)) => value
-      case Some(Left(ex)) => throw ex
+      case Some(Left(ex)) => throw ex.e
       case None => None
     }
   }

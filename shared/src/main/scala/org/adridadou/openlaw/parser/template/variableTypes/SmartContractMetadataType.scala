@@ -2,8 +2,7 @@ package org.adridadou.openlaw.parser.template.variableTypes
 
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
-
-import scala.util.Try
+import org.adridadou.openlaw.result.{Failure, Result, attempt}
 
 case object SmartContractMetadataType extends VariableType("SmartContractMetadata") {
 
@@ -16,17 +15,22 @@ case object SmartContractMetadataType extends VariableType("SmartContractMetadat
 
   override def internalFormat(value: Any): String = VariableType.convert[SmartContractMetadata](value).protocol + ":" + VariableType.convert[SmartContractMetadata](value).address
 
-  override def construct(constructorParams:Parameter, executionResult:TemplateExecutionResult): Either[Throwable, Option[SmartContractMetadata]] = constructorParams match {
+  override def construct(constructorParams:Parameter, executionResult:TemplateExecutionResult): Result[Option[SmartContractMetadata]] = constructorParams match {
       case OneValueParameter(expr) =>
-        Try(expr.evaluate(executionResult).map(result => cast(result.toString, executionResult))).toEither
+        attempt(expr.evaluate(executionResult).map(result => cast(result.toString, executionResult)))
       case Parameters(v) =>
         val values = v.toMap
         for {
-          protocol <- Try(VariableType.convert[OneValueParameter](values("protocol")).expr.evaluate(executionResult)).toEither
-          address <- Try(VariableType.convert[OneValueParameter](values("address")).expr.evaluate(executionResult)).toEither
-        } yield Some(SmartContractMetadata(protocol.toString, address.toString))
+          optProtocol <- attempt(VariableType.convert[OneValueParameter](values("protocol")).expr.evaluate(executionResult))
+          optAddress <- attempt(VariableType.convert[OneValueParameter](values("address")).expr.evaluate(executionResult))
+        } yield {
+          for {
+            protocol <- optProtocol
+            address <- optAddress
+          } yield SmartContractMetadata(VariableType.convert[String](protocol), VariableType.convert[String](address))
+        }
       case _ =>
-        Left(new Exception("Smart contract metadata can be constructed with a string only"))
+        Failure("Smart contract metadata can be constructed with a string only")
     }
 
 

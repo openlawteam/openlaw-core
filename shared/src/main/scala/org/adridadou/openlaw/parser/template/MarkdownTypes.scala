@@ -93,10 +93,6 @@ case class CodeBlock(elems:Seq[TemplatePart]) extends TemplatePart {
   })
 }
 
-sealed trait ValidationResult
-case object ValidationSuccess extends ValidationResult
-case object ValidationError extends ValidationResult
-
 case class Section(uuid:String, definition:Option[SectionDefinition], lvl:Int) extends TemplatePart {
 
   private def getSingleExpression(param: Parameter): Option[Expression] = param match {
