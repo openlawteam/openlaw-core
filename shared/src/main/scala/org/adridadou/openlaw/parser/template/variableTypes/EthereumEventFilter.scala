@@ -34,7 +34,7 @@ case object EthereumEventFilter extends VariableType("EthereumEventFilter") with
           conditionFilter = getExpression(values, "conditionFilter")
         )))
       case _ =>
-        Failure("Ethereum event listner needs to get 'address', 'abi', 'eventType', 'conditionFilter' as constructor parameter")
+        Failure("Ethereum event listener needs to get 'address', 'abi', 'eventType', 'conditionFilter' as constructor parameter")
     }
   }
 
