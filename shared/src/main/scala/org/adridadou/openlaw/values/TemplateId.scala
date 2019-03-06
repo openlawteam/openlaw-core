@@ -30,13 +30,13 @@ object TemplateId {
 
 case class TemplateIdentifier(title:TemplateTitle, version:Int)
 
-case class TemplateTitle(title:String = "") {
+case class TemplateTitle(title:String) {
   override def toString:String = title
 }
 
 object TemplateTitle {
 
-  def apply(title:String):TemplateTitle = new TemplateTitle(title.toLowerCase())
+  def apply(title:String = ""):TemplateTitle = new TemplateTitle(title.toLowerCase())
 
   implicit val eq:Eq[TemplateTitle] = (x: TemplateTitle, y: TemplateTitle) => x.title === y.title
   implicit val templateTitleEnc:Encoder[TemplateTitle] = deriveEncoder[TemplateTitle]

@@ -12,5 +12,3 @@ case class EventFilterDefinition(
 
   def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions: Seq[OpenlawExecution]): Option[LocalDateTime] = ???
 }
-
-case class ContractCreation(owner: String, newContract: String)
