@@ -124,7 +124,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
           case Right(_) =>
             fail("should fail")
           case Left(ex) =>
-            ex.message shouldBe "cyclic dependency detected on 'another template'"
+            ex.message shouldBe "cyclic dependency detected on 'Another Template'"
         }
 
       case Left(ex) =>
@@ -158,7 +158,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
           case Right(_) =>
             fail("should fail")
           case Left(ex) =>
-            ex.message shouldBe "Variable definition mismatch. variable My Variable is defined as Text in the main template but was Number in another template"
+            ex.message shouldBe "Variable definition mismatch. variable My Variable is defined as Text in the main template but was Number in Another Template"
         }
 
       case Left(ex) =>
