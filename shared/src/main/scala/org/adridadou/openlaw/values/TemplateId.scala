@@ -31,7 +31,7 @@ object TemplateId {
 case class TemplateIdentifier(title:TemplateTitle, version:Int)
 
 case class TemplateTitle(title:String = "") {
-  override def toString:String = title
+  override def toString:String = title.toLowerCase()
 }
 
 object TemplateTitle {
