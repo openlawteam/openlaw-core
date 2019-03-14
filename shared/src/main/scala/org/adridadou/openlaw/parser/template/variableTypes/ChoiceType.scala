@@ -11,14 +11,15 @@ import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatte
 import org.adridadou.openlaw.result.{Failure, Result, attempt}
 
 case class Choices(values: Seq[String])
+
 object Choices {
   def apply(value: String): Choices = Choices(Seq(value))
+
+  implicit val choicesEnc:Encoder[Choices] = deriveEncoder[Choices]
+  implicit val choicesDec:Decoder[Choices] = deriveDecoder[Choices]
 }
 
 case object ChoiceType extends VariableType("Choice") with TypeGenerator[Choices] {
-
-  private implicit val enc: Encoder[Choices] = deriveEncoder[Choices]
-  private implicit val dec: Decoder[Choices] = deriveDecoder[Choices]
 
   override def construct(param:Parameter, executionResult: TemplateExecutionResult): Result[Option[Choices]] = param match {
     case OneValueParameter(value) =>
@@ -49,6 +50,11 @@ case object ChoiceType extends VariableType("Choice") with TypeGenerator[Choices
 
   override def generateType(name: VariableName, choices: Choices): VariableType =
     DefinedChoiceType(choices, name.name)
+}
+
+object DefinedChoiceType {
+  implicit val definedChoiceTypeEnc:Encoder[DefinedChoiceType] = deriveEncoder[DefinedChoiceType]
+  implicit val definedChoiceTypeDec:Decoder[DefinedChoiceType] = deriveDecoder[DefinedChoiceType]
 }
 
 case class DefinedChoiceType(choices:Choices, typeName:String) extends VariableType(name = typeName) {

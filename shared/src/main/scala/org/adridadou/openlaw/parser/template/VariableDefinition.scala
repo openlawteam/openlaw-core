@@ -134,10 +134,10 @@ case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[
     case None => Right(None)
   }
 
-
   def isAnonymous: Boolean = name.isAnonymous
 
-  def varType(executionResult: TemplateExecutionResult):VariableType = variableTypeDefinition.flatMap(name => executionResult.findVariableType(name)).getOrElse(TextType)
+  def varType(executionResult: TemplateExecutionResult):VariableType = variableTypeDefinition
+    .flatMap(typeDefinition => executionResult.findVariableType(typeDefinition)).getOrElse(TextType)
 
   def verifyConstructor(executionResult: TemplateExecutionResult): Result[Option[Any]] = {
     defaultValue match {

@@ -85,7 +85,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
             newResult.state shouldBe ExecutionFinished
             newResult.parentExecution.isDefined shouldBe false
             newResult.subExecutions.size shouldBe 1
-            newResult.subExecutions(VariableName("@@anonymous_3@@")).variables.map(_.name.name) shouldBe Seq("My Variable 2")
+            newResult.subExecutions(VariableName("@@anonymous_3@@")).getVariables.map(_.name.name) shouldBe Seq("My Variable 2")
             newResult.agreements.size shouldBe 1
 
             parser.forReview(newResult.agreements.head,ParagraphEdits()) shouldBe """<p class="no-section">it is just another template hello</p>"""

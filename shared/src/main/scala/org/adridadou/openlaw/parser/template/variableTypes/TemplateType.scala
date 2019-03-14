@@ -11,7 +11,6 @@ import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 import org.adridadou.openlaw.values._
 
-
 case class TemplateDefinition(name:TemplateSourceIdentifier, mappingInternal:Map[String, Expression] = Map(), path:Option[TemplatePath] = None) {
   lazy val mapping: Map[VariableName, Expression] = mappingInternal.map({case (key,value) => VariableName(key) -> value})
 }
@@ -107,7 +106,7 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
       Success(None)
   }
 
-  private def prepareTemplateMappingParamters(parameters: Parameters, result: TemplateExecutionResult):Result[Map[VariableName, Expression]] = parameters.parameterMap.toMap.get("parameters").map({
+  private def prepareTemplateMappingParameters(parameters: Parameters, result: TemplateExecutionResult):Result[Map[VariableName, Expression]] = parameters.parameterMap.toMap.get("parameters").map({
     case mapping:MappingParameter =>
       Success(mapping.mapping)
     case _ =>
@@ -128,7 +127,7 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
       case mappingParameter:Parameters =>
         for {
           path <- prepareTemplatePath(mappingParameter, executionResult)
-          parameters <- prepareTemplateMappingParamters(mappingParameter, executionResult)
+          parameters <- prepareTemplateMappingParameters(mappingParameter, executionResult)
           source <- prepareTemplateSource(mappingParameter, executionResult, parameters, path)
         } yield Some(source)
 
@@ -143,18 +142,13 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
 
   override def access(value: Any, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Any] = keys.toList match {
     case Nil =>
-      Right(value)
+      Success(value)
     case head::tail =>
       executionResult.subExecutions.get(VariableName(head)).flatMap(subExecution =>
         subExecution.getExpression(VariableName(head))
           .flatMap(variable => variable.evaluate(subExecution)
             .map(subValue => variable.expressionType(subExecution).access(subValue, tail, subExecution))
-          )) match {
-        case Some(result) =>
-          result
-        case None =>
-          throw new RuntimeException(s"properties '${tail.mkString(".")}' could not be resolved in sub template '$head'")
-      }
+          )).getOrElse(Failure(s"properties '${tail.mkString(".")}' could not be resolved in sub template '$head'"))
   }
 
   override def keysType(keys: Seq[String], executionResult: TemplateExecutionResult): VariableType = {

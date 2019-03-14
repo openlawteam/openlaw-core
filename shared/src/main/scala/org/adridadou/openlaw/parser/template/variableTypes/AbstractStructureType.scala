@@ -1,20 +1,32 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
+import io.circe.{Decoder, Encoder}
 import org.adridadou.openlaw.parser.template._
 import play.api.libs.json.{JsObject, Json}
 import io.circe.syntax._
+import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
-import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
+import org.adridadou.openlaw.result.{Failure, Result, Success}
 
-case class Structure(typeDefinition: Map[VariableName, VariableType], names:Seq[VariableName])
+
+object Structure {
+  implicit val structureEnc:Encoder[Structure] = deriveEncoder[Structure]
+  implicit val structureDec:Decoder[Structure] = deriveDecoder[Structure]
+}
+
+
+case class Structure(typeDefinitionInternal: Map[String, VariableType], names:Seq[VariableName]) {
+  def typeDefinition:Map[VariableName, VariableType] = typeDefinitionInternal.map({ case (key, value) => VariableName(key) -> value })
+}
 
 case object AbstractStructureType extends VariableType(name = "Structure") with TypeGenerator[Structure] {
   override def construct(param:Parameter, executionResult: TemplateExecutionResult): Result[Option[Structure]] = param match {
     case Parameters(values) =>
-      attempt(Some(
-        Structure(typeDefinition = values
-          .flatMap({case (key,value) => getField(key,value, executionResult)}).toMap, names = values.map({case (key,_) => VariableName(key)}))
-      ))
+      VariableType.sequence(values
+        .map({case (key,value) => getField(key,value, executionResult)})).map(_.flatten)
+        .map(fieldMap => Some(
+            Structure(typeDefinitionInternal = fieldMap.toMap, names = values.map({case (key,_) => VariableName(key)}))
+          ))
     case parameter =>
       Failure(s"structure must have one or more expressions as constructor parameters, instead received ${parameter.getClass}")
   }
@@ -34,10 +46,19 @@ case object AbstractStructureType extends VariableType(name = "Structure") with 
   override def generateType(name: VariableName, structure: Structure): VariableType =
     DefinedStructureType(structure, name.name)
 
-  private def getField(name:String, value:Parameter, executionResult: TemplateExecutionResult): Option[(VariableName, VariableType)] = value match {
-    case OneValueParameter(VariableName(typeName)) => executionResult.findVariableType(VariableTypeDefinition(typeName)).map(VariableName(name) -> _)
-    case _ => throw new RuntimeException("error in the constructor for Structured Type")
+  private def getField(name:String, value:Parameter, executionResult: TemplateExecutionResult): Result[Option[(String, VariableType)]] = value match {
+    case OneValueParameter(VariableName(typeName)) =>
+      Success(executionResult
+        .findVariableType(VariableTypeDefinition(typeName))
+        .map(name -> _))
+    case _ =>
+      Failure("error in the constructor for Structured Type")
   }
+}
+
+object DefinedStructureType {
+  implicit val definedStructureTypeEnc:Encoder[DefinedStructureType] = deriveEncoder[DefinedStructureType]
+  implicit val definedStructureTypeDec:Decoder[DefinedStructureType] = deriveDecoder[DefinedStructureType]
 }
 
 case class DefinedStructureType(structure:Structure, typeName:String) extends VariableType(name = typeName) {
