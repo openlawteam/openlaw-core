@@ -203,6 +203,7 @@ object VariableType {
     EthAddressType,
     EthereumCallType,
     StripeCallType,
+    EthereumEventFilter,
     IdentityType,
     LargeTextType,
     ImageType,
