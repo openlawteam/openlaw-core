@@ -47,7 +47,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
         case agreement:CompiledAgreement if newResult.agreements.isEmpty =>
           attempt(executionResult.structuredMainTemplate(agreement))
             .map { t =>
-              newResult.agreements.append(t)
+              newResult.agreementsInternal.append(t)
               newResult
             }
         case _ =>
@@ -101,7 +101,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       } yield {
         executionResult.template match {
           case agreement:CompiledAgreement =>
-            Try(getRoot(parent).agreements.append(executionResult.structuredInternal(agreement)))
+            Try(getRoot(parent).agreementsInternal.append(executionResult.structuredInternal(agreement)))
               .toEither
               .left
               .map(_.getMessage )
@@ -309,7 +309,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     existingSection.appendAll(section.variables.map(_.name))
 
     if(!executionResult.variableSectionsInternal.contains(section.name)) {
-      executionResult.variableSectionList.append(section.name)
+      executionResult.variableSectionListInternal.append(section.name)
     }
 
     executionResult.variableSectionsInternal.put(section.name, existingSection)

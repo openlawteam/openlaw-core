@@ -1,5 +1,5 @@
 package org.adridadou.openlaw.parser.template
-import java.time.Clock
+import java.time.{Clock, ZoneId}
 import java.util.concurrent.atomic.AtomicInteger
 
 import cats.Eq
@@ -15,6 +15,7 @@ import scala.reflect.ClassTag
 import VariableName._
 import io.circe._
 import io.circe.generic.auto._
+import io.circe.generic.semiauto._
 import io.circe.syntax._
 import org.adridadou.openlaw.oracles.OpenlawSignatureProof
 import org.adridadou.openlaw.result.{Failure, Result, Success}
@@ -36,6 +37,8 @@ trait TemplateExecutionResult {
   def embedded:Boolean
   def processedSections:Seq[(Section, Int)]
   def executedVariables:Seq[VariableName]
+  def agreements:Seq[StructuredAgreement]
+  def variableSectionList:Seq[String]
 
   def hasSigned(email: Email):Boolean =
     if(signatureProofs.contains(email)) true else parentExecution.exists(_.hasSigned(email))
@@ -183,6 +186,32 @@ trait TemplateExecutionResult {
     executedVariables.distinct.map(name => (this, name)) ++ subExecutions.values.flatMap(_.getAllExecutedVariables)
 
 
+  @tailrec
+  final def getAllVariables:Seq[(TemplateExecutionResult, VariableDefinition)] = {
+    parentExecution match {
+      case Some(execution) =>
+        execution.getAllVariables
+      case None =>
+        getAllVariablesFromRoot
+    }
+  }
+
+  private def getAllVariablesFromRoot:Seq[(TemplateExecutionResult, VariableDefinition)] = {
+    getVariables.map(variable => (this, variable)) ++ subExecutions.values.flatMap(_.getAllVariablesFromRoot)
+  }
+
+  def getVariableNames:Seq[VariableName] = getVariables.foldLeft(DistinctVariableBuilder())({case (builder, variable) => if(builder.names.contains(variable.name)) {
+    builder
+  } else {
+    builder.add(variable)
+  }}).variables.map(_.name)
+
+  def getAllVariableNames:Seq[VariableName] = getAllVariables.foldLeft(DistinctVariableBuilder())({case (builder, (_, variable)) => if(builder.names.contains(variable.name)) {
+    builder
+  } else {
+    builder.add(variable)
+  }}).variables.map(_.name)
+
   def findVariableType(variableTypeDefinition: VariableTypeDefinition):Option[VariableType] = {
     val mainType = findVariableTypeInternal(variableTypeDefinition)
     val parameterType = variableTypeDefinition.typeParameter.flatMap(findVariableTypeInternal)
@@ -222,13 +251,33 @@ trait TemplateExecutionResult {
 
   def validate(): Seq[String] = getVariableValues[Validation](ValidationType)
     .flatMap(_.validate(this).left.toOption.map(_.message))
+
+  def getExecutedVariables:Seq[VariableName] = {
+    val variableNames = getAllVariableNames
+    getAllExecutedVariables.
+      filter({case (_, variable) => variableNames.contains(variable)})
+      .map({case (_, name) => name}).distinct
+  }
+
+  def getAllExecutionResults:Seq[TemplateExecutionResult] =
+    subExecutions.values.flatMap(_.getAllExecutionResults).toSeq ++ Seq(this)
+}
+
+object SerializableTemplateExecutionResult {
+  implicit val serializableTemplateExecutionResultEnc:Encoder[SerializableTemplateExecutionResult] = deriveEncoder[SerializableTemplateExecutionResult]
+  implicit val serializableTemplateExecutionResultDec:Decoder[SerializableTemplateExecutionResult] = deriveDecoder[SerializableTemplateExecutionResult]
+
+  implicit val clockEnc:Encoder[Clock] = (a: Clock) => Json.fromString(a.getZone.getId)
+  implicit val clockDec:Decoder[Clock] = (c: HCursor) => c.as[String].map(id => Clock.system(ZoneId.of(id)))
 }
 
 case class SerializableTemplateExecutionResult(id:TemplateExecutionResultId,
                                                templateDefinition: Option[TemplateDefinition] = None,
                                                subExecutionIds:Map[VariableName, TemplateExecutionResultId],
-                                               executions:Map[TemplateExecutionResultId, TemplateExecutionResult],
+                                               executions:Map[TemplateExecutionResultId, SerializableTemplateExecutionResult],
                                                parentExecutionId:Option[TemplateExecutionResultId],
+                                               agreements:Seq[StructuredAgreement],
+                                               variableSectionList:Seq[String],
                                                signatureProofs:Map[Email, OpenlawSignatureProof],
                                                variables:Seq[VariableDefinition],
                                                executedVariables:Seq[VariableName],
@@ -259,8 +308,8 @@ case class OpenlawExecutionState(
                                     aliasesInternal:mutable.Buffer[VariableAliasing] = mutable.Buffer(),
                                     executedVariablesInternal:mutable.Buffer[VariableName] = mutable.Buffer(),
                                     variableSectionsInternal:mutable.Map[String, mutable.Buffer[VariableName]] = mutable.Map(),
-                                    variableSectionList:mutable.Buffer[String] = mutable.Buffer(),
-                                    agreements:mutable.Buffer[StructuredAgreement] = mutable.Buffer(),
+                                    variableSectionListInternal:mutable.Buffer[String] = mutable.Buffer(),
+                                    agreementsInternal:mutable.Buffer[StructuredAgreement] = mutable.Buffer(),
                                     subExecutionsInternal:mutable.Map[VariableName, OpenlawExecutionState] = mutable.Map(),
                                     embeddedExecutions:mutable.Buffer[OpenlawExecutionState] = mutable.Buffer(),
                                     finishedEmbeddedExecutions:mutable.Buffer[OpenlawExecutionState] = mutable.Buffer(),
@@ -284,6 +333,8 @@ case class OpenlawExecutionState(
   def variableTypes:Seq[VariableType] = variableTypesInternal
   def processedSections: Seq[(Section, Int)] = processedSectionsInternal
   def executedVariables:Seq[VariableName] = executedVariablesInternal
+  def agreements:Seq[StructuredAgreement] = agreementsInternal
+  def variableSectionList:Seq[String] = variableSectionListInternal
 
   override def variableSections: Map[String, Seq[VariableName]] = variableSectionsInternal.toMap
 
@@ -409,7 +460,7 @@ case class OpenlawExecutionState(
   }
 
   def toSerializable:SerializableTemplateExecutionResult = {
-    val executions = getAllExecutions.map(e => e.id -> e).toMap
+    val executions = getSubExecutions.map(e => e.id -> e.toSerializable).toMap
     val subExecutionIds = subExecutions.map({ case (name, execution) => name -> execution.id})
 
     SerializableTemplateExecutionResult(
@@ -417,6 +468,8 @@ case class OpenlawExecutionState(
       templateDefinition = templateDefinition,
       subExecutionIds = subExecutionIds,
       executions = executions,
+      agreements = agreements,
+      variableSectionList = variableSectionList,
       parentExecutionId = parentExecution.map(_.id),
       signatureProofs = signatureProofs,
       variables = variables,
@@ -433,7 +486,7 @@ case class OpenlawExecutionState(
     )
   }
 
-  private def getAllExecutions:Seq[OpenlawExecutionState] = subExecutionsInternal.values.toSeq ++ Seq(this)
+  private def getSubExecutions:Seq[OpenlawExecutionState] = subExecutionsInternal.values.toSeq
 
   private def resultFromMissingInput(seq:Result[Seq[VariableName]]): (Seq[VariableName], Seq[String]) = seq match {
     case Right(inputs) => (inputs, Seq())
@@ -475,16 +528,6 @@ case class OpenlawExecutionState(
         VariableName(s"@@anonymous_$currentCounter@@")
     }
   }
-
-  def getExecutedVariables:Seq[VariableName] = {
-    val variableNames = getAllVariableNames
-    getAllExecutedVariables.
-      filter({case (_, variable) => variableNames.contains(variable)})
-      .map({case (_, name) => name}).distinct
-  }
-
-  def getAllExecutionResults:Seq[TemplateExecutionResult] =
-    subExecutionsInternal.values.flatMap(_.getAllExecutionResults).toSeq ++ Seq(this)
 
   def getTemplateIdentifier:Option[TemplateSourceIdentifier] = state match {
     case ExecutionWaitForTemplate(_, identifier) =>
@@ -561,34 +604,14 @@ case class OpenlawExecutionState(
   def structuredInternal(agreement: CompiledAgreement): StructuredAgreement =
     agreement.structuredInternal(this, templateDefinition.flatMap(_.path))
 
-  @tailrec
-  final def getAllVariables:Seq[(OpenlawExecutionState, VariableDefinition)] = {
-    parentExecution match {
-      case Some(execution) =>
-        execution.getAllVariables
-      case None =>
-        getAllVariablesFromRoot
-    }
-  }
-
-  private def getAllVariablesFromRoot:Seq[(OpenlawExecutionState, VariableDefinition)] = {
-    getVariables.map(variable => (this, variable)) ++ subExecutionsInternal.values.flatMap(_.getAllVariablesFromRoot)
-  }
-
-  def getVariableNames:Seq[VariableName] = getVariables.foldLeft(DistinctVariableBuilder())({case (builder, variable) => if(builder.names.contains(variable.name)) {
-    builder
-  } else {
-    builder.add(variable)
-  }}).variables.map(_.name)
-
-  def getAllVariableNames:Seq[VariableName] = getAllVariables.foldLeft(DistinctVariableBuilder())({case (builder, (_, variable)) => if(builder.names.contains(variable.name)) {
-    builder
-  } else {
-   builder.add(variable)
-  }}).variables.map(_.name)
 }
 
 case class StructuredAgreementId(id:String)
+
+object StructuredAgreement {
+  implicit val structuredAgreementEnc:Encoder[StructuredAgreement] = deriveEncoder[StructuredAgreement]
+  implicit val structuredAgreementDec:Decoder[StructuredAgreement] = deriveDecoder[StructuredAgreement]
+}
 
 case class StructuredAgreement(executionResult: SerializableTemplateExecutionResult, mainTemplate:Boolean = false, header:TemplateHeader, paragraphs:List[Paragraph] = List(), path:Option[TemplatePath] = None) {
   def title: TemplateTitle = {
@@ -733,6 +756,10 @@ case class ActionInfo(action:ActionValue, name:VariableName, executionResult: Te
 
 object TemplateExecutionResultId {
   implicit val templateExecutionResultIdEq:Eq[TemplateExecutionResultId] = Eq.fromUniversalEquals
+  implicit val templateExecutionResultIdEnc:Encoder[TemplateExecutionResultId] = deriveEncoder[TemplateExecutionResultId]
+  implicit val templateExecutionResultIdDec:Decoder[TemplateExecutionResultId] = deriveDecoder[TemplateExecutionResultId]
+  implicit val templateExecutionResultIdKeyEnc:KeyEncoder[TemplateExecutionResultId] = (key: TemplateExecutionResultId) => key.id
+  implicit val templateExecutionResultIdKeyDec:KeyDecoder[TemplateExecutionResultId] = (key: String) => Some(TemplateExecutionResultId(key))
 }
 
 case class TemplateExecutionResultId(id:String)

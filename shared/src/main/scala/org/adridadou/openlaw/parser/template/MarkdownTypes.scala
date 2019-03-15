@@ -3,11 +3,13 @@ package org.adridadou.openlaw.parser.template
 import cats.implicits._
 import io.circe.{Decoder, Encoder, HCursor, Json}
 import io.circe.generic.auto._
-import io.circe.syntax._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 import org.adridadou.openlaw.values.TemplateParameters
+
+import io.circe.generic.semiauto._
+import io.circe.syntax._
 
 import scala.reflect.ClassTag
 
@@ -96,6 +98,11 @@ case class CodeBlock(elems:Seq[TemplatePart]) extends TemplatePart {
     case elem:EthereumSmartContractCall => Some(elem)
     case _ => None
   })
+}
+
+object Section {
+  implicit val sectionEnc:Encoder[Section] = deriveEncoder[Section]
+  implicit val sectionDec:Decoder[Section] = deriveDecoder[Section]
 }
 
 case class Section(uuid:String, definition:Option[SectionDefinition], lvl:Int) extends TemplatePart {

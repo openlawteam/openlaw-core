@@ -49,16 +49,18 @@ object TemplateDefinition {
   implicit val templateDefinitionEnc: Encoder[TemplateDefinition] = deriveEncoder[TemplateDefinition]
   implicit val templateDefinitionDec: Decoder[TemplateDefinition] = deriveDecoder[TemplateDefinition]
   implicit val templateDefinitionEq:Eq[TemplateDefinition] = Eq.fromUniversalEquals
+}
 
+object TemplateSourceIdentifier {
   implicit val templateIdentifierEnc: Encoder[TemplateSourceIdentifier] = deriveEncoder[TemplateSourceIdentifier]
   implicit val templateIdentifierDec: Decoder[TemplateSourceIdentifier] = deriveDecoder[TemplateSourceIdentifier]
   implicit val templateIdentifierEq:Eq[TemplateSourceIdentifier] = Eq.fromUniversalEquals
 }
 
 object TemplatePath {
-  implicit val templateIdentifierEnc: Encoder[TemplatePath] = deriveEncoder[TemplatePath]
-  implicit val templateIdentifierDec: Decoder[TemplatePath] = deriveDecoder[TemplatePath]
-  implicit val templateIdentifierEq:Eq[TemplatePath] = Eq.fromUniversalEquals
+  implicit val templatePathEnc: Encoder[TemplatePath] = deriveEncoder[TemplatePath]
+  implicit val templatePathDec: Decoder[TemplatePath] = deriveDecoder[TemplatePath]
+  implicit val templatePathEq:Eq[TemplatePath] = Eq.fromUniversalEquals
 }
 
 case object TemplateType extends VariableType("Template") with NoShowInForm {
