@@ -101,7 +101,7 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       "biz.enef"                %% "slogging-slf4j"      % "0.6.1",
       "com.lihaoyi"             %% "scalatags"           % "0.6.7",
       //Test
-      "org.scalacheck"          %% "scalacheck"          % "1.14.0"       % Test,
+      "org.scalacheck"          %% "scalacheck"          % "1.14.0"        % Test,
       "org.scalatest"           %% "scalatest"           % "3.2.0-SNAP10"  % Test,
     )
   ).jsSettings(

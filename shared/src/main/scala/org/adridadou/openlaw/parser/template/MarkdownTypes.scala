@@ -1,10 +1,15 @@
 package org.adridadou.openlaw.parser.template
 
 import cats.implicits._
+import io.circe.{Decoder, Encoder, HCursor, Json}
+import io.circe.generic.auto._
+import io.circe.syntax._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 import org.adridadou.openlaw.values.TemplateParameters
+
+import scala.reflect.ClassTag
 
 /**
   * Created by davidroon on 06.06.17.
@@ -153,7 +158,58 @@ object TextElement {
     case Text(str) => str.isEmpty
     case _ => false
   }
+
+  private def className[T](implicit classTag: ClassTag[T]):String = classTag.runtimeClass.getSimpleName
+
+  implicit val textElementEnc:Encoder[TextElement] = (a: TextElement) => {
+    val nameField = "name" -> Json.fromString(a.getClass.getSimpleName)
+
+    a match {
+      case t:Text => Json.obj(
+        nameField,
+        "value" -> t.asJson
+      )
+      case v:VariableDefinition => Json.obj(
+        nameField,
+        "value" -> v.asJson
+      )
+      case _ => Json.obj(
+        nameField
+      )
+    }
+  }
+
+  implicit val textElementDec:Decoder[TextElement] = (c: HCursor) => {
+    c.downField("name").as[String]
+      .flatMap(decodeElement(_, c))
+  }
+
+  private def decodeElement(name:String, c:HCursor):Decoder.Result[TextElement] = {
+    name match {
+      case _ if className[Text] === name =>
+        c.downField("value").as[Text]
+      case _ if className[VariableDefinition] === name =>
+        c.downField("value").as[VariableDefinition]
+      case _ if className[Em.type] === name =>
+        Right(Em)
+      case _ if className[Strong.type] === name =>
+        Right(Strong)
+      case _ if className[PageBreak.type] === name =>
+        Right(PageBreak)
+      case _ if className[Centered.type] === name =>
+        Right(Centered)
+      case _ if className[RightAlign.type] === name =>
+        Right(RightAlign)
+      case _ if className[RightThreeQuarters.type] === name =>
+        Right(RightThreeQuarters)
+      case _ if className[ParagraphSeparator.type] === name =>
+        Right(ParagraphSeparator)
+      case _ if className[Indent.type] === name =>
+        Right(Indent)
+    }
+  }
 }
+
 trait TextElement extends TemplatePart
 case class Text(str: String) extends TextElement
 case object Em extends TextElement

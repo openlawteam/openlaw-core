@@ -26,7 +26,7 @@ case class CompiledAgreement(
     val paragraphs = cleanupParagraphs(generateParagraphs(getAgreementElements(List(), block.elems.toList, executionResult)))
     StructuredAgreement(
       header = header,
-      executionResult = executionResult,
+      executionResult = executionResult.toSerializable,
       path = path,
       mainTemplate = mainTemplate,
       paragraphs = paragraphs)

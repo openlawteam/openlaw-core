@@ -13,8 +13,9 @@ import org.adridadou.openlaw.parser.template.variableTypes._
 import scala.annotation.tailrec
 import scala.reflect.ClassTag
 import VariableName._
-import io.circe.{Decoder, Encoder}
-import io.circe.generic.semiauto._
+import io.circe._
+import io.circe.generic.auto._
+import io.circe.syntax._
 import org.adridadou.openlaw.oracles.OpenlawSignatureProof
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 
@@ -221,11 +222,6 @@ trait TemplateExecutionResult {
 
   def validate(): Seq[String] = getVariableValues[Validation](ValidationType)
     .flatMap(_.validate(this).left.toOption.map(_.message))
-}
-
-object SerializableTemplateExecutionResult {
-  //implicit val serializableTemplateExecutionResultEnc: Encoder[SerializableTemplateExecutionResult] = deriveEncoder[SerializableTemplateExecutionResult]
-  //implicit val serializableTemplateExecutionResultDec: Decoder[SerializableTemplateExecutionResult] = deriveDecoder[SerializableTemplateExecutionResult]
 }
 
 case class SerializableTemplateExecutionResult(id:TemplateExecutionResultId,
@@ -594,7 +590,7 @@ case class OpenlawExecutionState(
 
 case class StructuredAgreementId(id:String)
 
-case class StructuredAgreement(executionResult: TemplateExecutionResult, mainTemplate:Boolean = false, header:TemplateHeader, paragraphs:List[Paragraph] = List(), path:Option[TemplatePath] = None) {
+case class StructuredAgreement(executionResult: SerializableTemplateExecutionResult, mainTemplate:Boolean = false, header:TemplateHeader, paragraphs:List[Paragraph] = List(), path:Option[TemplatePath] = None) {
   def title: TemplateTitle = {
     if(header.shouldShowTitle) {
       executionResult.templateDefinition.map(template => template.name.name).getOrElse(TemplateTitle(""))
@@ -609,17 +605,81 @@ case class StructuredAgreement(executionResult: TemplateExecutionResult, mainTem
   def directory:TemplatePath = path.getOrElse(TemplatePath())
 }
 
-trait AgreementElement
+sealed trait AgreementElement {
+  def serialize:Json
+}
 
-case class ImageElement(url: String) extends AgreementElement
-case class FreeText(elem: TextElement) extends AgreementElement
-case class Link(label:String, url:String) extends AgreementElement
-case class VariableElement(name: String, variableType: Option[VariableType], content:List[AgreementElement], dependencies: Seq[String]) extends AgreementElement
-case class SectionElement(value: String, lvl:Int, number:Int, resetNumbering:Option[Int], overriddenSymbol: Option[SectionSymbol], overridenFormat: Option[SectionFormat]) extends AgreementElement
-case class ConditionalStart(dependencies: Seq[String]) extends AgreementElement
-case class ConditionalStartWithElse(dependencies: Seq[String]) extends AgreementElement
-case class ConditionalEnd(dependencies: Seq[String]) extends AgreementElement
-case class ConditionalEndWithElse(dependencies: Seq[String]) extends AgreementElement
+object AgreementElement {
+
+  private def className[T](implicit classTag: ClassTag[T]):String = classTag.runtimeClass.getSimpleName
+
+  implicit val agreementElementEnc:Encoder[AgreementElement] = (a: AgreementElement) => {
+    Json.obj(
+      "name" -> Json.fromString(a.getClass.getSimpleName),
+      "value" -> a.serialize
+    )
+  }
+  implicit val agreementElementDec:Decoder[AgreementElement] = (c: HCursor) =>
+    c.downField("name").as[String].flatMap(decodeAgreementElement(_, c))
+
+  private def decodeAgreementElement(name: String, c: HCursor):Decoder.Result[AgreementElement] = {
+    name match {
+      case _ if name === className[PlainText] =>
+        c.downField("value").as[PlainText]
+      case _ if name === className[Title] =>
+        c.downField("value").as[Title]
+      case _ if name === className[ImageElement] =>
+        c.downField("value").as[ImageElement]
+      case _ if name === className[FreeText] =>
+        c.downField("value").as[FreeText]
+      case _ if name === className[Link] =>
+        c.downField("value").as[Link]
+      case _ if name === className[VariableElement] =>
+        c.downField("value").as[VariableElement]
+      case _ if name === className[SectionElement] =>
+        c.downField("value").as[SectionElement]
+      case _ if name === className[ConditionalStart] =>
+        c.downField("value").as[ConditionalStart]
+      case _ if name === className[ConditionalEnd] =>
+        c.downField("value").as[ConditionalEnd]
+      case _ =>
+        Left(DecodingFailure(s"unknown agreement element type $name", List()))
+    }
+  }
+}
+/** Special agreement element type used internally by this printer to demark text to be output without any
+  * styling or wrapping elements.
+  */
+final case class PlainText(str: String) extends AgreementElement {
+  override def serialize: Json = this.asJson
+}
+/** Agreement element to wrap a title to support printing titles in downloaded documents.
+  */
+final case class Title(title: TemplateTitle) extends AgreementElement {
+  override def serialize: Json = this.asJson
+}
+final case class ImageElement(url: String) extends AgreementElement {
+  override def serialize: Json = this.asJson
+}
+final case class FreeText(elem: TextElement) extends AgreementElement {
+  override def serialize: Json = this.asJson
+}
+final case class Link(label:String, url:String) extends AgreementElement {
+  override def serialize: Json = this.asJson
+}
+final case class VariableElement(name: String, variableType: Option[VariableType], content:List[AgreementElement], dependencies: Seq[String]) extends AgreementElement {
+  override def serialize: Json = this.asJson
+}
+final case class SectionElement(value: String, lvl:Int, number:Int, resetNumbering:Option[Int], overriddenSymbol: Option[SectionSymbol], overriddenFormat: Option[SectionFormat]) extends AgreementElement {
+  override def serialize: Json = this.asJson
+}
+final case class ConditionalStart(dependencies: Seq[String]) extends AgreementElement {
+  override def serialize: Json = this.asJson
+}
+
+final case class ConditionalEnd(dependencies: Seq[String]) extends AgreementElement {
+  override def serialize: Json = this.asJson
+}
 
 case class ParagraphBuilder(paragraphs:List[Paragraph] = List(), lastParagraph:Paragraph = Paragraph()) {
   def addAllToLastParagraph(elements: List[AgreementElement]): ParagraphBuilder = elements.foldLeft(this)((builder, element) => builder.add(element))
@@ -632,13 +692,24 @@ case class ParagraphBuilder(paragraphs:List[Paragraph] = List(), lastParagraph:P
 
 }
 
-case class Paragraph(elements: List[AgreementElement] = List()) extends AgreementElement {
+final case class Paragraph(elements: List[AgreementElement] = List()) extends AgreementElement {
   def appendElement(element: AgreementElement): Paragraph = this.copy(elements :+ element)
+
+  override def serialize: Json = this.asJson
 }
 
-case class TableElement(header: List[List[AgreementElement]], rows: List[List[List[AgreementElement]]]) extends AgreementElement {
+final case class TableElement(header: List[List[AgreementElement]], rows: List[List[List[AgreementElement]]]) extends AgreementElement {
   val rowCount: Int = rows.size
   val columnCount: Int = header.size
+
+  override def serialize: Json = this.asJson
+}
+
+final case class HeaderAnnotation(content:String) extends TemplatePart with AgreementElement {
+  override def serialize: Json = this.asJson
+}
+final case class NoteAnnotation(content:String) extends TemplatePart with AgreementElement {
+  override def serialize: Json = this.asJson
 }
 
 case class DistinctVariableBuilder(variables:mutable.Buffer[VariableDefinition] = mutable.Buffer(), names:mutable.Set[VariableName] = mutable.Set()) {
@@ -662,8 +733,6 @@ case class ActionInfo(action:ActionValue, name:VariableName, executionResult: Te
 
 object TemplateExecutionResultId {
   implicit val templateExecutionResultIdEq:Eq[TemplateExecutionResultId] = Eq.fromUniversalEquals
-  implicit val templateExecutionResultIdEnc:Encoder[TemplateExecutionResultId] = deriveEncoder[TemplateExecutionResultId]
-  implicit val templateExecutionResultIdDec:Decoder[TemplateExecutionResultId] = deriveDecoder[TemplateExecutionResultId]
 }
 
 case class TemplateExecutionResultId(id:String)
