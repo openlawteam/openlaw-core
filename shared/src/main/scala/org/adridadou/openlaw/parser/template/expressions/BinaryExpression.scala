@@ -31,7 +31,6 @@ trait BinaryExpression extends Expression {
     }
   }
 
-
   override def variables(executionResult: TemplateExecutionResult): Seq[VariableName] =
     left.variables(executionResult) ++ right.variables(executionResult)
 }

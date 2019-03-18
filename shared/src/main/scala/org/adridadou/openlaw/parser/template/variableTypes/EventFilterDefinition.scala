@@ -1,6 +1,6 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
-import java.time.{LocalDateTime, ZoneOffset}
+import java.time.LocalDateTime
 
 import org.adridadou.openlaw.parser.abi.{AbiEntry, AbiParser}
 import org.adridadou.openlaw.parser.template._

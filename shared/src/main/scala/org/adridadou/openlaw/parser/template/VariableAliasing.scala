@@ -2,7 +2,6 @@ package org.adridadou.openlaw.parser.template
 
 import org.adridadou.openlaw.parser.template.variableTypes.VariableType
 
-import scala.util.{Failure, Success, Try}
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.result.Result
 

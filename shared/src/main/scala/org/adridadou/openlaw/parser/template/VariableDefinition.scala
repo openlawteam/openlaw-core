@@ -33,10 +33,9 @@ case class VariableMember(name:VariableName, keys:Seq[String], formatter:Option[
     })
   }
 
-  override def variables(executionResult:TemplateExecutionResult): Seq[VariableName] = {
-    val expr = name.aliasOrVariable(executionResult)
-    expr.expressionType(executionResult).accessVariables(name, keys, executionResult)
-  }
+  override def variables(executionResult:TemplateExecutionResult): Seq[VariableName] =
+    name.variables(executionResult)
+
 }
 
 case class VariableName(name:String) extends Expression {
@@ -237,7 +236,7 @@ case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[
   override def missingInput(executionResult:TemplateExecutionResult): Result[Seq[VariableName]] = {
     val eitherMissing = name.missingInput(executionResult)
     val eitherMissingFromParameters = defaultValue
-      .map(getMissingValuesFromParameter(executionResult, _)).getOrElse(Right(Seq()))
+      .map(getMissingValuesFromParameter(executionResult, _)).getOrElse(Success(Seq()))
 
     for {
       missing <- eitherMissing

@@ -1,10 +1,12 @@
 package org.adridadou.openlaw.vm
 
 import java.time.Clock
+
 import org.adridadou.openlaw.result.Implicits.failureCause2Exception
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes._
+import org.adridadou.openlaw.result.{Failure, Success}
 import org.adridadou.openlaw.values.{TemplateParameters, TemplateTitle}
 import org.scalatest.{FlatSpec, Matchers}
 import play.api.libs.json.Json
@@ -53,6 +55,23 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         result.state shouldBe ExecutionFinished
         result.variables.map(_.name.name) shouldBe Seq("My Variable", "Other one")
       case Left(ex) => fail(ex)
+    }
+  }
+
+  it should "handle event filter properly" in {
+    val template = compile("""[[Id:Identity]]
+                  [[Employer Ethereum Address:EthAddress]]
+
+                  [[Contract Creation Event: EthereumEventFilter(
+                  contract address: "0x531E0957391dAbF46f8a9609d799fFD067bDbbC0";
+                  interface: [];
+                  event type name: "ContractCreation";
+                  conditional filter: this.owner = Employer Ethereum Address)]]""")
+
+    engine.execute(template, TemplateParameters()) match {
+      case Success(_) =>
+      case Failure(ex, message) =>
+        fail(message, ex)
     }
   }
 

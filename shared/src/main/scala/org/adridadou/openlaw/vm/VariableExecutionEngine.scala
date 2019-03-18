@@ -21,16 +21,24 @@ trait VariableExecutionEngine {
           }
 
           addNewVariable(executionResult, currentVariable)
-          currentVariable.defaultValue.map(_.variables(executionResult)).getOrElse(Seq())
-            .filter(newVariable => executionResult.getVariable(newVariable.name).isEmpty).toList match {
+          val missingVariables = currentVariable.defaultValue.map(_.variables(executionResult)).getOrElse(Seq())
+            .filter(newVariable => executionResult.getVariable(newVariable.name).isEmpty).toList
+
+          (if(currentVariable.varType(executionResult) === EthereumEventFilter) {
+            missingVariables.filter(_.name =!= "this")
+          } else {
+            missingVariables
+          }) match {
             case Nil =>
               variable.verifyConstructor(executionResult).flatMap { _ =>
-                if (executed) {
-                  executeVariable(executionResult, currentVariable)
+              if (executed) {
+                executeVariable(executionResult, currentVariable)
                 } else {
-                  Success(executionResult)
-                }
+                Success(executionResult)
               }
+            }
+            case list if list.length === 1 =>
+              Failure(s"error while processing the new variable ${variable.name}. The variable ${list.map(v => "\"" + v.name + "\"").mkString(",")} is used in the constructor but has not been defined")
             case list =>
               Failure(s"error while processing the new variable ${variable.name}. The variables ${list.map(v => "\"" + v.name + "\"").mkString(",")} are used in the constructor but have not been defined")
           }
@@ -74,14 +82,13 @@ trait VariableExecutionEngine {
   }
 
   protected def executeVariable(executionResult: TemplateExecutionResult, variable:VariableDefinition): Result[TemplateExecutionResult] = {
-    executionResult.executedVariables append variable.name
     executionResult.getVariable(variable.name).map(_.varType(executionResult)) match {
       case Some(TemplateType) =>
+        executionResult.executedVariables append variable.name
         startSubExecution(variable, executionResult)
       case _ =>
         val currentVariable = executionResult.getVariable(variable.name).getOrElse(variable)
-        executionResult.executedVariables appendAll currentVariable.defaultValue
-          .map(_.variables(executionResult)).getOrElse(Seq())
+        executionResult.executedVariables appendAll currentVariable.variables(executionResult)
         Success(executionResult)
     }
   }
