@@ -25,16 +25,16 @@ case object SectionType extends VariableType(name = "Section") with NoShowInForm
   // TODO: SectionType is a special type and we should handle it differently. i.e. it shouldn't be possible to use it in the code directly.
   override def checkTypeName(nameToCheck: String): Boolean = Seq("Section").exists(_.equalsIgnoreCase(nameToCheck))
 
-  override def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Either[Throwable, Option[SectionInfo]] = {
+  override def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Result[Option[SectionInfo]] = {
     constructorParams match {
       case Parameters(seq) =>
         val map = seq.toMap
-        Right(for {
+        Success(for {
           numbering <- map.get("numbering")
           referenceValue <- map.get("reference value")
         } yield SectionInfo(None, getOneValueConstant(numbering), getOneValueConstant(referenceValue)))
       case _ =>
-        Left(new Exception("""Section requires parameters, not a unique value or a list"""))
+        Failure("""Section requires parameters, not a unique value or a list""")
     }
   }
 
