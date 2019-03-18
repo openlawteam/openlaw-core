@@ -7,8 +7,7 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
-
-import scala.util.Try
+import org.adridadou.openlaw.result.{Failure, Result, attempt}
 
 case object EthereumCallType extends VariableType("EthereumCall") with ActionType {
   implicit val smartContractEnc: Encoder[EthereumSmartContractCall] = deriveEncoder[EthereumSmartContractCall]
@@ -24,12 +23,12 @@ case object EthereumCallType extends VariableType("EthereumCall") with ActionTyp
 
   override def defaultFormatter: Formatter = new NoopFormatter
 
-  override def construct(constructorParams:Parameter, executionResult: TemplateExecutionResult): Either[Throwable, Option[EthereumSmartContractCall]] = {
+  override def construct(constructorParams:Parameter, executionResult: TemplateExecutionResult): Result[Option[EthereumSmartContractCall]] = {
     constructorParams match {
       case Parameters(v) =>
         val values = v.toMap
         val optNetwork = values.get("network").map(getExpression).getOrElse(NoopConstant(TextType))
-        Try(Some(EthereumSmartContractCall(
+        attempt(Some(EthereumSmartContractCall(
           address = getExpression(values, "contract"),
           metadata = getExpression(values, "interface"),
           network = optNetwork,
@@ -38,9 +37,9 @@ case object EthereumCallType extends VariableType("EthereumCall") with ActionTyp
           startDate = values.get("startDate").map(name => getExpression(name)),
           endDate = values.get("endDate").map(getExpression),
           every = values.get("repeatEvery").map(getExpression)
-        ))).toEither
+        )))
       case _ =>
-        Left(new Exception("Ethereum Calls need to get 'contract', 'interface', 'network', 'function' as constructor parameter"))
+        Failure("Ethereum Calls need to get 'contract', 'interface', 'network', 'function' as constructor parameter")
     }
   }
 
