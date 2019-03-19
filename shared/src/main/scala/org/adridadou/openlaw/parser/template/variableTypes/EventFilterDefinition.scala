@@ -15,7 +15,7 @@ case class EventFilterDefinition(
   conditionalFilter: Expression) extends ActionValue {
 
   def abiEntries(executionResult: TemplateExecutionResult): Result[List[AbiEntry]] = for {
-    interfaceAny <- attempt(interface.evaluate(executionResult)).map(_.toResult(s"expression '$interface' failed to evaluate"))
+    interfaceAny <- attempt(interface.evaluate(executionResult)).flatMap(_.toResult(s"expression '$interface' failed to evaluate"))
     interfaceString <- attempt(VariableType.convert[String](interfaceAny))
     entries <- AbiParser.parse(interfaceString)
   } yield entries

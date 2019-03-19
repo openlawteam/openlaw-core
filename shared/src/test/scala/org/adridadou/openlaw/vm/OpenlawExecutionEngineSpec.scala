@@ -6,12 +6,12 @@ import org.adridadou.openlaw.result.Implicits.failureCause2Exception
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes._
-import org.adridadou.openlaw.result.{Failure, Success}
+import org.adridadou.openlaw.result.{Failure, FailureException, Success}
 import org.adridadou.openlaw.values.{TemplateParameters, TemplateTitle}
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.{FlatSpec, Matchers, OptionValues}
 import play.api.libs.json.Json
 
-class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
+class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValues {
 
   val parser = new OpenlawTemplateLanguageParserService(Clock.systemDefaultZone())
   val engine = new OpenlawExecutionEngine()
@@ -59,17 +59,27 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
   }
 
   it should "handle event filter properly" in {
-    val template = compile("""[[Id:Identity]]
+    val abi = """[{"constant":false,"inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"}],"name":"approve","outputs":[{"name":"success","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"success","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[],"name":"registerTokenLaunch","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"success","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"},{"name":"_spender","type":"address"}],"name":"allowance","outputs":[{"name":"remaining","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"inputs":[],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"name":"from","type":"address"},{"indexed":true,"name":"to","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Transfer","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"owner","type":"address"},{"indexed":true,"name":"spender","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Approval","type":"event"}]"""
+    val template = compile(s"""[[Id:Identity]]
                   [[Employer Ethereum Address:EthAddress]]
 
                   [[Contract Creation Event: EthereumEventFilter(
                   contract address: "0x531E0957391dAbF46f8a9609d799fFD067bDbbC0";
-                  interface: [];
+                  interface: $abi;
                   event type name: "ContractCreation";
                   conditional filter: this.owner = Employer Ethereum Address)]]""")
 
     engine.execute(template, TemplateParameters()) match {
-      case Success(_) =>
+      case Success(executionResult) =>
+        val v = executionResult.getVariable("Contract Creation Event").value
+        println(s"v: $v")
+        val value = executionResult.getVariableValue[EventFilterDefinition](v.name).value
+        println(s"value: $value")
+        val entries = value.abiEntries(executionResult) match {
+          case Success(entries) => entries
+          case Failure(e, message) => throw e
+        }
+        println(s"entries: $entries")
       case Failure(ex, message) =>
         fail(message, ex)
     }
