@@ -100,6 +100,7 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       "io.github.cquiroz"       %% "scala-java-time"     % "2.0.0-RC1",
       "biz.enef"                %% "slogging-slf4j"      % "0.6.1",
       "com.lihaoyi"             %% "scalatags"           % "0.6.7",
+      "com.beachape"            %% "enumeratum"          % "1.5.13",
       //Test
       "org.scalacheck"          %% "scalacheck"          % "1.14.0"       % Test,
       "org.scalatest"           %% "scalatest"           % "3.2.0-SNAP10"  % Test,
@@ -118,6 +119,7 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       "io.circe"                %%% "circe-parser"         % circeV,
       "com.typesafe.play"       %%% "play-json"            % playJsonV,
       "com.lihaoyi"             %%% "scalatags"            % "0.6.7",
+      "com.beachape"            %%% "enumeratum"           % "1.5.13",
       //Test
       "org.scalacheck"          %%% "scalacheck"          % "1.14.0"        % Test,
       "org.scalatest"           %%% "scalatest"           % "3.2.0-SNAP10"  % Test
