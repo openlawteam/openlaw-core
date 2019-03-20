@@ -46,7 +46,7 @@ case class EventFilterDefinition(
 
   def convertVariable(param: AbiParam): Result[VariableDefinition] =
     attempt(AbiType.withName(param.`type`)).map { variableType =>
-      VariableDefinition(VariableName(param.name), Some(VariableTypeDefinition(variableType.entryName)))
+      VariableDefinition(VariableName(param.name), Some(VariableTypeDefinition(variableType.openlawType.name)))
     }
 
   def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions: Seq[OpenlawExecution]): Option[LocalDateTime] = ???
