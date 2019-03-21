@@ -613,17 +613,17 @@ object StructuredAgreement {
   implicit val structuredAgreementDec:Decoder[StructuredAgreement] = deriveDecoder[StructuredAgreement]
 }
 
-case class StructuredAgreement(executionResult: SerializableTemplateExecutionResult, mainTemplate:Boolean = false, header:TemplateHeader, paragraphs:List[Paragraph] = List(), path:Option[TemplatePath] = None) {
+case class StructuredAgreement(executionResultId:TemplateExecutionResultId, templateDefinition:Option[TemplateDefinition], mainTemplate:Boolean = false, header:TemplateHeader, paragraphs:List[Paragraph] = List(), path:Option[TemplatePath] = None) {
   def title: TemplateTitle = {
     if(header.shouldShowTitle) {
-      executionResult.templateDefinition.map(template => template.name.name).getOrElse(TemplateTitle(""))
+      templateDefinition.map(template => template.name.name).getOrElse(TemplateTitle(""))
     } else {
       TemplateTitle("")
     }
   }
 
   def name: String =
-    executionResult.templateDefinition.map(template => template.path.map(_.path.mkString("/") + "/").getOrElse("") + template.name.name.title).getOrElse("")
+    templateDefinition.map(template => template.path.map(_.path.mkString("/") + "/").getOrElse("") + template.name.name.title).getOrElse("")
 
   def directory:TemplatePath = path.getOrElse(TemplatePath())
 }

@@ -25,8 +25,9 @@ case class CompiledAgreement(
   private def structured(executionResult: OpenlawExecutionState, path:Option[TemplatePath], mainTemplate:Boolean): StructuredAgreement = {
     val paragraphs = cleanupParagraphs(generateParagraphs(getAgreementElements(List(), block.elems.toList, executionResult)))
     StructuredAgreement(
+      executionResultId = executionResult.id,
       header = header,
-      executionResult = executionResult.toSerializable,
+      templateDefinition = executionResult.templateDefinition,
       path = path,
       mainTemplate = mainTemplate,
       paragraphs = paragraphs)
