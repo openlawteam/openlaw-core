@@ -517,7 +517,7 @@ case class StructuredAgreement(executionResult: TemplateExecutionResult, mainTem
     if(header.shouldShowTitle) {
       executionResult.templateDefinition.map(template => template.name.name).getOrElse(TemplateTitle(""))
     } else {
-      TemplateTitle("")
+      TemplateTitle()
     }
   }
 
