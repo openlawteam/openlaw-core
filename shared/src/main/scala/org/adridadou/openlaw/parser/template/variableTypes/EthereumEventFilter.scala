@@ -48,11 +48,5 @@ case object EthereumEventFilter extends VariableType("EthereumEventFilter") with
 
   def thisType: VariableType = EthereumEventFilter
 
-  private def getExpressionList(param:Parameter):Seq[Expression] = param match {
-    case ListParameter(exprs) => exprs
-    case OneValueParameter(expr) => Seq(expr)
-    case _ => throw new RuntimeException("invalid parameter type " + param.getClass.getSimpleName + " expecting list of expressions")
-  }
-
   override def actionValue(value: Any): EventFilterDefinition = VariableType.convert[EventFilterDefinition](value)
 }
