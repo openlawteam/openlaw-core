@@ -50,7 +50,8 @@ object AbiParser {
     case object Bool extends AbiType(YesNoType)
     case object String extends AbiType(TextType, true)
     case object Address extends AbiType(AddressType)
-    /*
+
+    /* Not supported for now
     case object Array extends AbiType
     case object Bytes extends AbiType
     case object Bytes32 extends AbiType

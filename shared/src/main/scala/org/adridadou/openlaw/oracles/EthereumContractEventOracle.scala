@@ -7,7 +7,7 @@ import io.circe._
 import io.circe.java8.time._
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.syntax._
-import org.adridadou.openlaw.parser.template.{OpenlawTemplateLanguageParserService, VariableName}
+import org.adridadou.openlaw.parser.template.{OpenlawTemplateLanguageParserService, TemplateExecutionResult, VariableDefinition, VariableName, VariableTypeDefinition}
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.result.{Result, Success}
 import org.adridadou.openlaw.vm.{OpenlawVm, OpenlawVmEvent}
@@ -27,9 +27,11 @@ case class EthereumEventFilterOracle(val parser: OpenlawTemplateLanguageParserSe
             .map {
               case Success(Some(eventFilter)) =>
                 val anonymous = executionResult.createAnonymousVariable()
+                val name = VariableName("this")
                 val result = for {
                   template <- parser.compileTemplate("")
-                  child <- executionResult.startEmbeddedExecution(anonymous, template, VariableName("this"), event.values, EthereumEventWrapper)
+                  variables <- eventFilter.abiVariables(executionResult)
+                  child <- executionResult.startEmbeddedExecution(anonymous, template, name, event.values, generateStructureType(name, variables, executionResult))
                 } yield {
                   val matchFilter = eventFilter.conditionalFilter.evaluate(child).exists(VariableType.convert[Boolean])
                   if (matchFilter) {
@@ -44,6 +46,16 @@ case class EthereumEventFilterOracle(val parser: OpenlawTemplateLanguageParserSe
       }
       .flatten
       .getOrElse(Success(vm))
+  }
+
+  private def generateStructureType(name: VariableName, varDefinitions: List[VariableDefinition], executionResult: TemplateExecutionResult): VariableType = {
+    val typeDefinitions =
+      varDefinitions
+        .collect { case VariableDefinition(name, Some(typeDef), _, _, _, _) => (name -> executionResult.findVariableType(typeDef)) }
+        .collect { case (name, Some(variableType)) => name -> variableType }
+
+    val structure = Structure(typeDefinitions.toMap, typeDefinitions.map { case(k, _) => k })
+    AbstractStructureType.generateType(name, structure)
   }
 
   private def toOpenlawExecutionStatus(event:EthereumSmartContractCallEvent):OpenlawExecutionStatus = event match {
@@ -63,12 +75,14 @@ case class EthereumEventFilterOracle(val parser: OpenlawTemplateLanguageParserSe
 }
 
 object EthereumEventFilterEvent {
+  /*
   implicit val variableNameEnc = Encoder[VariableName]
   implicit val ethereumHashEnc = Encoder[EthereumHash]
   implicit val variableNameDec = Decoder[VariableName]
   implicit val ethereumHashDec = Decoder[EthereumHash]
   implicit val ethereumEventFilterEventEnc: Encoder[EthereumEventFilterEvent] = deriveEncoder[EthereumEventFilterEvent]
   implicit val ethereumEventFilterEventDec: Decoder[EthereumEventFilterEvent] = deriveDecoder[EthereumEventFilterEvent]
+  */
 }
 
 final case class EthereumEventFilterEvent(
@@ -80,5 +94,5 @@ final case class EthereumEventFilterEvent(
   executionDate:LocalDateTime) extends OpenlawVmEvent {
 
   override def typeIdentifier: String = className[EthereumEventFilterEvent]
-  override def serialize: String = this.asJson.noSpaces
+  override def serialize: String = ""//this.asJson.noSpaces
 }
