@@ -14,7 +14,7 @@ lazy val scalaV = "2.12.8"
 lazy val catsV = "1.6.0"
 lazy val parboiledV = "2.1.5"
 lazy val circeV = "0.11.1"
-lazy val playJsonV = "2.7.1"
+lazy val playJsonV = "2.7.2"
 
 lazy val repositories = Seq(
   Resolver.jcenterRepo,

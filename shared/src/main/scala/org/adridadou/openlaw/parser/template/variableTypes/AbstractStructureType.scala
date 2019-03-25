@@ -1,8 +1,8 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
-import io.circe.{Decoder, Encoder}
+import io.circe.{Decoder, Encoder, HCursor, Json}
 import org.adridadou.openlaw.parser.template._
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.JsObject
 import io.circe.syntax._
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
@@ -57,11 +57,23 @@ case object AbstractStructureType extends VariableType(name = "Structure") with 
 }
 
 object DefinedStructureType {
-  implicit val definedStructureTypeEnc:Encoder[DefinedStructureType] = deriveEncoder[DefinedStructureType]
-  implicit val definedStructureTypeDec:Decoder[DefinedStructureType] = deriveDecoder[DefinedStructureType]
+  implicit val definedStructureTypeEnc:Encoder[DefinedStructureType] = (a: DefinedStructureType) => a.serialize
+  implicit val definedStructureTypeDec:Decoder[DefinedStructureType] = (c:HCursor) => for {
+    name <- c.downField("name").as[String]
+    structure <- c.downField("structure").as[Structure]
+  } yield DefinedStructureType(structure = structure, typeName = name)
+
 }
 
 case class DefinedStructureType(structure:Structure, typeName:String) extends VariableType(name = typeName) {
+
+
+  override def serialize: Json = {
+    Json.obj(
+      "name" -> Json.fromString(typeName),
+      "structure" -> structure.asJson
+    )
+  }
 
   override def defaultFormatter: Formatter = new NoopFormatter
 
@@ -118,7 +130,7 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
   }
 
   override def cast(value: String, executionResult: TemplateExecutionResult): Map[VariableName, Any] = {
-    val json = Json.parse(value)
+    val json = play.api.libs.json.Json.parse(value)
 
     structure.typeDefinition.flatMap({case (fieldName, fieldType) =>
           (json.as[JsObject] \ fieldName.name).asOpt[String].map(value => fieldName -> fieldType.cast(value, executionResult))

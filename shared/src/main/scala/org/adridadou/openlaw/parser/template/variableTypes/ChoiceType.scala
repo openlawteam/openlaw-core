@@ -1,6 +1,6 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
-import io.circe.{Decoder, Encoder}
+import io.circe.{Decoder, Encoder, HCursor, Json}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.syntax._
 import io.circe.parser._
@@ -53,11 +53,23 @@ case object ChoiceType extends VariableType("Choice") with TypeGenerator[Choices
 }
 
 object DefinedChoiceType {
-  implicit val definedChoiceTypeEnc:Encoder[DefinedChoiceType] = deriveEncoder[DefinedChoiceType]
-  implicit val definedChoiceTypeDec:Decoder[DefinedChoiceType] = deriveDecoder[DefinedChoiceType]
+  implicit val definedChoiceTypeEnc:Encoder[DefinedChoiceType] = (a: DefinedChoiceType) => a.serialize
+  implicit val definedChoiceTypeDec:Decoder[DefinedChoiceType] = (c: HCursor) => {
+    for {
+      name <- c.downField("name").as[String]
+      values <- c.downField("values").as[Seq[String]]
+    } yield DefinedChoiceType(choices = Choices(values), typeName = name)
+  }
 }
 
 case class DefinedChoiceType(choices:Choices, typeName:String) extends VariableType(name = typeName) {
+
+
+  override def serialize: Json = {
+    Json.obj(
+      "name" -> Json.fromString(typeName),
+      "values" -> Json.arr(choices.values.map(v => Json.fromString(v)):_*))
+  }
 
   override def cast(value: String, executionResult: TemplateExecutionResult): Any = {
     choices.values

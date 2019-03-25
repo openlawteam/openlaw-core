@@ -81,7 +81,7 @@ trait ParameterTypeProvider {
 
 abstract class VariableType(val name: String) {
 
-  def serialize: Json = io.circe.Json.fromString(name)
+  def serialize: Json = Json.obj("name" -> io.circe.Json.fromString(name))
 
   def validateOperation(expr: ValueExpression, executionResult: TemplateExecutionResult): Option[String] = None
 
@@ -266,7 +266,9 @@ object VariableType {
     }
   }
 
-  implicit val variableTypeEnc: Encoder[VariableType] = (a: VariableType) => a.serialize
+  implicit val variableTypeEnc: Encoder[VariableType] = (a: VariableType) =>
+    a.serialize
+
   implicit val variableTypeDec: Decoder[VariableType] = (c: HCursor) => c.downField("name").as[String]
     .flatMap(name => VariableType.allTypes().find(_.name === name) match {
         case Some(varType) => Right(varType)
