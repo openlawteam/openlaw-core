@@ -36,6 +36,8 @@ case class VariableMember(name:VariableName, keys:Seq[String], formatter:Option[
   override def variables(executionResult:TemplateExecutionResult): Seq[VariableName] =
     name.variables(executionResult)
 
+  override def toString: String =
+    (Seq(name.name) ++ keys).mkString(".")
 }
 
 case class VariableName(name:String) extends Expression {

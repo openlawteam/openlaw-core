@@ -1,5 +1,6 @@
 package org.adridadou.openlaw.parser.template
 import java.time.Clock
+import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
 
 import cats.Eq
@@ -337,6 +338,33 @@ case class TemplateExecutionResult(
 
   def getCompiledTemplate(templates: Map[TemplateSourceIdentifier, CompiledTemplate]):Option[CompiledTemplate] =
     getTemplateIdentifier flatMap templates.get
+
+  def startEphemeralExecution(name:VariableName, value:Any, varType:VariableType): Result[TemplateExecutionResult] = {
+    this.getAliasOrVariableType(name) match {
+      case Success(_) =>
+        Failure(s"${name.name} has been already defined!")
+      case Failure(_) =>
+        val result = TemplateExecutionResult(
+          id = TemplateExecutionResultId(UUID.randomUUID().toString),
+          embedded = true,
+          parameters = TemplateParameters(name.name -> varType.internalFormat(value)),
+          sectionLevelStack = mutable.Buffer(),
+          template = CompiledAgreement(header = TemplateHeader()),
+          anonymousVariableCounter = new AtomicInteger(anonymousVariableCounter.get()),
+          clock = clock,
+          parentExecution = Some(this),
+          variableRedefinition = this.variableRedefinition
+        )
+
+        result.registerNewType(varType)
+
+        result.variables.append(VariableDefinition(name, Some(VariableTypeDefinition(name = varType.name, None)) ))
+
+        result.executedVariables.append(name)
+
+        Success(result)
+    }
+  }
 
   def startEmbeddedExecution(variableName:VariableName, template:CompiledTemplate, name:VariableName, value:Any, varType:VariableType): Result[TemplateExecutionResult] = {
     startSubExecution(variableName, template, embedded = true).map(result => {

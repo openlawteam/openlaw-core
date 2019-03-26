@@ -72,16 +72,12 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
     engine.execute(template, TemplateParameters()) match {
       case Success(executionResult) =>
         val v = executionResult.getVariable("Contract Creation Event").value
-        println(s"v: $v")
         val value = executionResult.getVariableValue[EventFilterDefinition](v.name).value
-        println(s"value: $value")
         val entries = value.abiVariables(executionResult) match {
           case Success(entries) =>
-            println(s"entries: $entries")
             entries
           case Failure(e, message) => throw e
         }
-        println(s"entries: $entries")
       case Failure(ex, message) =>
         fail(message, ex)
     }

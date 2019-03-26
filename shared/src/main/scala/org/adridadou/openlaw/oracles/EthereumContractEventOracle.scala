@@ -1,72 +1,56 @@
 package org.adridadou.openlaw.oracles
 
-import java.time.{Duration, LocalDate, LocalDateTime}
+import java.time.LocalDateTime
 
 import cats.implicits._
-import io.circe._
-import io.circe.java8.time._
-import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
-import io.circe.syntax._
-import org.adridadou.openlaw.parser.template.{OpenlawTemplateLanguageParserService, TemplateExecutionResult, VariableDefinition, VariableName, VariableTypeDefinition}
+import org.adridadou.openlaw.parser.template.{OpenlawTemplateLanguageParserService, TemplateExecutionResult, VariableDefinition, VariableName}
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.result.{Result, Success}
 import org.adridadou.openlaw.vm.{OpenlawVm, OpenlawVmEvent}
 import slogging.LazyLogging
 
-case class EthereumEventFilterOracle(val parser: OpenlawTemplateLanguageParserService) extends OpenlawOracle[EthereumEventFilterEvent] with LazyLogging {
+case class EthereumEventFilterOracle(parser: OpenlawTemplateLanguageParserService) extends OpenlawOracle[EthereumEventFilterEvent] with LazyLogging {
 
   override def incoming(vm: OpenlawVm, event: EthereumEventFilterEvent): Result[OpenlawVm] = {
     vm
       .getAllVariables(EthereumEventFilter)
-      .find { case (_, variable) => variable.name === event.name } //TODO: match as well by the event type and the filter in case many variables with the same name exist
-      .map {
-        case (executionResult, variable) =>
-          variable
-            .defaultValue
-            .map(EthereumEventFilter.construct(_, executionResult))
-            .map {
-              case Success(Some(eventFilter)) =>
-                val anonymous = executionResult.createAnonymousVariable()
-                val name = VariableName("this")
-                val result = for {
-                  template <- parser.compileTemplate("")
-                  variables <- eventFilter.abiVariables(executionResult)
-                  child <- executionResult.startEmbeddedExecution(anonymous, template, name, event.values, generateStructureType(name, variables, executionResult))
-                } yield {
-                  val matchFilter = eventFilter.conditionalFilter.evaluate(child).exists(VariableType.convert[Boolean])
-                  if (matchFilter) {
-                    Success(vm.newExecution(event.name, null))
-                  } else {
-                    Success(vm)
-                  }
+      .find { case (_, variable) => variable.name === event.name }.flatMap {
+      case (executionResult, variable) =>
+        variable
+          .defaultValue
+          .map(EthereumEventFilter.construct(_, executionResult))
+          .map {
+            case Success(Some(eventFilter)) =>
+              val name = VariableName("this")
+              val result = for {
+                variables <- eventFilter.abiVariables(executionResult)
+                child <- executionResult.startEphemeralExecution(name, event.values, generateStructureType(name, variables, executionResult))
+              } yield {
+
+                val matchFilter = eventFilter.conditionalFilter.evaluate(child)
+                println("******" + matchFilter)
+                if (matchFilter.exists(VariableType.convert[Boolean])) {
+                  Success(vm.newExecution(event.name, null))
+                } else {
+                  Success(vm)
                 }
-                result.flatten
-              case _ => Success(vm)
-            }
-      }
-      .flatten
+              }
+              result.flatten
+            case _ => Success(vm)
+          }
+    }
       .getOrElse(Success(vm))
   }
 
   private def generateStructureType(name: VariableName, varDefinitions: List[VariableDefinition], executionResult: TemplateExecutionResult): VariableType = {
     val typeDefinitions =
       varDefinitions
-        .collect { case VariableDefinition(name, Some(typeDef), _, _, _, _) => (name -> executionResult.findVariableType(typeDef)) }
-        .collect { case (name, Some(variableType)) => name -> variableType }
+        .collect { case VariableDefinition(n, Some(typeDef), _, _, _, _) => n -> executionResult.findVariableType(typeDef) }
+        .collect { case (n, Some(variableType)) => n -> variableType }
 
     val structure = Structure(typeDefinitions.toMap, typeDefinitions.map { case(k, _) => k })
     AbstractStructureType.generateType(name, structure)
   }
-
-  private def toOpenlawExecutionStatus(event:EthereumSmartContractCallEvent):OpenlawExecutionStatus = event match {
-    case _:SuccessfulEthereumSmartContractCallEvent =>
-      SuccessfulExecution
-    case _:PendingEthereumSmartContractCallEvent=>
-      PendingExecution
-    case _:FailedEthereumSmartContractCallEvent =>
-      FailedExecution
-  }
-
 
   override def shouldExecute(event: OpenlawVmEvent): Boolean = event match {
     case _:EthereumEventFilterEvent => true
@@ -90,7 +74,7 @@ final case class EthereumEventFilterEvent(
   hash:EthereumHash,
   smartContractAddress:EthereumAddress,
   eventType:String,
-  values:Map[String, Any],
+  values:Map[VariableName, Any],
   executionDate:LocalDateTime) extends OpenlawVmEvent {
 
   override def typeIdentifier: String = className[EthereumEventFilterEvent]

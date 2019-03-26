@@ -49,7 +49,7 @@ object AbiParser {
     case object Int256 extends AbiType(NumberType)
     case object Bool extends AbiType(YesNoType)
     case object String extends AbiType(TextType, true)
-    case object Address extends AbiType(AddressType)
+    case object Address extends AbiType(EthAddressType)
 
     /* Not supported for now
     case object Array extends AbiType

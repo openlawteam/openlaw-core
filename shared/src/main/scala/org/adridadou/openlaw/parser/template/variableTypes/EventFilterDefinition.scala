@@ -39,7 +39,7 @@ case class EventFilterDefinition(
       .toResult(s"no entry found for event named $targetName")
 
   def convertVariables(entry: AbiEntry): Result[List[VariableDefinition]] =
-    (entry.inputs.getOrElse(Nil) ++ entry.outputs.getOrElse(Nil)) match {
+    entry.inputs.getOrElse(Nil) ++ entry.outputs.getOrElse(Nil) match {
       case Nil => Failure("no inputs or outputs in ABI entry")
       case list => list.map(convertVariable).sequence
     }
