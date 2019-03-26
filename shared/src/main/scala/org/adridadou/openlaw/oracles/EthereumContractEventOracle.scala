@@ -9,6 +9,10 @@ import org.adridadou.openlaw.result.{Result, Success}
 import org.adridadou.openlaw.vm.{OpenlawVm, OpenlawVmEvent}
 import slogging.LazyLogging
 
+case class EthereumEventFilterExecution(executionDate: LocalDateTime, key: Any, executionStatus: OpenlawExecutionStatus = PendingExecution) extends OpenlawExecution {
+  val scheduledDate = executionDate
+}
+
 case class EthereumEventFilterOracle(parser: OpenlawTemplateLanguageParserService) extends OpenlawOracle[EthereumEventFilterEvent] with LazyLogging {
 
   override def incoming(vm: OpenlawVm, event: EthereumEventFilterEvent): Result[OpenlawVm] = {
@@ -29,7 +33,7 @@ case class EthereumEventFilterOracle(parser: OpenlawTemplateLanguageParserServic
 
                 val matchFilter = eventFilter.conditionalFilter.evaluate(child)
                 if (matchFilter.exists(VariableType.convert[Boolean])) {
-                 val execution = EthereumSmartContractExecution(scheduledDate = LocalDateTime.now, executionDate = event.executionDate, tx = event.hash)
+                 val execution = EthereumEventFilterExecution(event.executionDate, event.hash)
                   Success(vm.newExecution(event.name, execution))
                 } else {
                   Success(vm)
