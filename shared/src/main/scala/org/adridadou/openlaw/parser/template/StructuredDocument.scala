@@ -669,6 +669,14 @@ object AgreementElement {
         a.as[ConditionalStart]
       case _ if name === className[ConditionalEnd] =>
         a.as[ConditionalEnd]
+      case _ if name === className[TableElement] =>
+        a.as[TableElement]
+      case _ if name === className[NoteAnnotation] =>
+        a.as[NoteAnnotation]
+      case _ if name === className[Title] =>
+        a.as[Title]
+      case _ if name === className[Paragraph] =>
+        a.as[Paragraph]
       case _ =>
         Left(DecodingFailure(s"unknown agreement element type $name", List()))
     }
