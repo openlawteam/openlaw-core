@@ -272,7 +272,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     val ethereumEventFilterOracle = EthereumEventFilterOracle(parser)
     ethereumEventFilterOracle.incoming(vm, event) match {
       case Right(vm) =>
-        vm.executionState shouldBe ContractCreated
+        vm.executionState shouldBe ContractRunning
       case Failure(ex, message) =>
         fail(message, ex)
     }

@@ -28,15 +28,12 @@ case class EthereumEventFilterOracle(parser: OpenlawTemplateLanguageParserServic
               } yield {
 
                 val matchFilter = eventFilter.conditionalFilter.evaluate(child)
-                println("******" + matchFilter)
-
-                vm.allExecutions.toSeq.collect { case (_, Seq(head, _*)) => head }.headOption.map { execution =>
-                  if (matchFilter.exists(VariableType.convert[Boolean])) {
-                    Success(vm.newExecution(event.name, execution))
-                  } else {
-                    Success(vm)
-                  }
-                }.getOrElse(Success(vm))
+                if (matchFilter.exists(VariableType.convert[Boolean])) {
+                 val execution = EthereumSmartContractExecution(scheduledDate = LocalDateTime.now, executionDate = event.executionDate, tx = event.hash)
+                  Success(vm.newExecution(event.name, execution))
+                } else {
+                  Success(vm)
+                }
               }
               result.flatten
             case _ => Success(vm)
