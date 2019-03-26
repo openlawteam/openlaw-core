@@ -642,29 +642,33 @@ object AgreementElement {
       "value" -> a.serialize
     )
   }
-  implicit val agreementElementDec:Decoder[AgreementElement] = (c: HCursor) =>
-    c.downField("name").as[String].flatMap(decodeAgreementElement(_, c))
+  implicit val agreementElementDec:Decoder[AgreementElement] = (c: HCursor) => {
+    for {
+      name <- c.downField("name").as[String]
+      value <- decodeAgreementElement(name, c.downField("value"))
+    } yield value
+  }
 
-  private def decodeAgreementElement(name: String, c: HCursor):Decoder.Result[AgreementElement] = {
+  private def decodeAgreementElement(name: String, a: ACursor):Decoder.Result[AgreementElement] = {
     name match {
       case _ if name === className[PlainText] =>
-        c.downField("value").as[PlainText]
+        a.as[PlainText]
       case _ if name === className[Title] =>
-        c.downField("value").as[Title]
+        a.as[Title]
       case _ if name === className[ImageElement] =>
-        c.downField("value").as[ImageElement]
+        a.as[ImageElement]
       case _ if name === className[FreeText] =>
-        c.downField("value").as[FreeText]
+        a.as[FreeText]
       case _ if name === className[Link] =>
-        c.downField("value").as[Link]
+        a.as[Link]
       case _ if name === className[VariableElement] =>
-        c.downField("value").as[VariableElement]
+        a.as[VariableElement]
       case _ if name === className[SectionElement] =>
-        c.downField("value").as[SectionElement]
+        a.as[SectionElement]
       case _ if name === className[ConditionalStart] =>
-        c.downField("value").as[ConditionalStart]
+        a.as[ConditionalStart]
       case _ if name === className[ConditionalEnd] =>
-        c.downField("value").as[ConditionalEnd]
+        a.as[ConditionalEnd]
       case _ =>
         Left(DecodingFailure(s"unknown agreement element type $name", List()))
     }

@@ -1,17 +1,14 @@
 package org.adridadou.openlaw.parser.template
 
 import cats.implicits._
-import io.circe.{Decoder, Encoder, HCursor, Json}
+import io.circe._
 import io.circe.generic.auto._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 import org.adridadou.openlaw.values.TemplateParameters
-
 import io.circe.generic.semiauto._
 import io.circe.syntax._
-
-import scala.reflect.ClassTag
 
 /**
   * Created by davidroon on 06.06.17.
@@ -161,15 +158,14 @@ case class Section(uuid:String, definition:Option[SectionDefinition], lvl:Int) e
 }
 
 object TextElement {
+
   def isEmpty(elem: TextElement): Boolean = elem match {
     case Text(str) => str.isEmpty
     case _ => false
   }
 
-  private def className[T](implicit classTag: ClassTag[T]):String = classTag.runtimeClass.getSimpleName
-
   implicit val textElementEnc:Encoder[TextElement] = (a: TextElement) => {
-    val nameField = "name" -> Json.fromString(a.getClass.getSimpleName)
+    val nameField = "name" -> Json.fromString(a.elementTypeName)
 
     a match {
       case t:Text => Json.obj(
@@ -193,37 +189,39 @@ object TextElement {
 
   private def decodeElement(name:String, c:HCursor):Decoder.Result[TextElement] = {
     name match {
-      case _ if className[Text] === name =>
+      case _ if "Text" === name =>
         c.downField("value").as[Text]
-      case _ if className[VariableDefinition] === name =>
+      case _ if "VariableDefinition" === name =>
         c.downField("value").as[VariableDefinition]
-      case _ if className[Em.type] === name =>
+      case _ if "Em" === name =>
         Right(Em)
-      case _ if className[Strong.type] === name =>
+      case _ if "Strong" === name =>
         Right(Strong)
-      case _ if className[PageBreak.type] === name =>
+      case _ if "PageBreak" === name =>
         Right(PageBreak)
-      case _ if className[Centered.type] === name =>
+      case _ if "Centered" === name =>
         Right(Centered)
-      case _ if className[RightAlign.type] === name =>
+      case _ if "RightAlign" === name =>
         Right(RightAlign)
-      case _ if className[RightThreeQuarters.type] === name =>
+      case _ if "RightThreeQuarters" === name =>
         Right(RightThreeQuarters)
-      case _ if className[ParagraphSeparator.type] === name =>
+      case _ if "ParagraphSeparator" === name =>
         Right(ParagraphSeparator)
-      case _ if className[Indent.type] === name =>
+      case _ if "Indent" === name =>
         Right(Indent)
+      case _ =>
+        Left(DecodingFailure(s"unknown text element type $name", List()))
     }
   }
 }
 
-trait TextElement extends TemplatePart
-case class Text(str: String) extends TextElement
-case object Em extends TextElement
-case object Strong extends TextElement
-case object PageBreak extends TextElement
-case object Centered extends TextElement
-case object RightAlign extends TextElement
-case object RightThreeQuarters extends TextElement
-case object ParagraphSeparator extends TextElement
-case object Indent extends TextElement
+abstract class TextElement(val elementTypeName:String) extends TemplatePart
+case class Text(str: String) extends TextElement("Text")
+case object Em extends TextElement("Em")
+case object Strong extends TextElement("Strong")
+case object PageBreak extends TextElement("PageBreak")
+case object Centered extends TextElement("Centered")
+case object RightAlign extends TextElement("RightAlign")
+case object RightThreeQuarters extends TextElement("RightThreeQuarters")
+case object ParagraphSeparator extends TextElement("ParagraphSeparator")
+case object Indent extends TextElement("Indent")

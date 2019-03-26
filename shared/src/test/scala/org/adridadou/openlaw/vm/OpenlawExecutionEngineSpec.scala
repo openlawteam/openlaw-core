@@ -8,6 +8,7 @@ import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.values.{TemplateParameters, TemplateTitle}
 import org.scalatest.{FlatSpec, Matchers}
 import play.api.libs.json.Json
+import io.circe.parser._
 
 class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
@@ -1156,6 +1157,17 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     compile(text)
   }
 
+  it should "handle serialisation properly" in {
+    val json = "{\"id\":{\"id\":\"@@anonymous_main_template_id@@\"},\"templateDefinition\":null,\"subExecutionIds\":{},\"executions\":{},\"parentExecutionId\":null,\"agreements\":[{\"executionResultId\":{\"id\":\"@@anonymous_main_template_id@@\"},\"templateDefinition\":null,\"mainTemplate\":true,\"header\":{\"values\":{}},\"paragraphs\":[{\"elements\":[{\"name\":\"FreeText\",\"value\":{\"elem\":{\"name\":\"Text\",\"value\":{\"str\":\"this is a test\\n/centered \"}}}},{\"name\":\"FreeText\",\"value\":{\"elem\":{\"name\":\"Em\"}}},{\"name\":\"FreeText\",\"value\":{\"elem\":{\"name\":\"Text\",\"value\":{\"str\":\"bla bla\"}}}},{\"name\":\"FreeText\",\"value\":{\"elem\":{\"name\":\"Em\"}}}]}],\"path\":null}],\"variableSectionList\":[],\"signatureProofs\":{},\"variables\":[],\"executedVariables\":[],\"mapping\":{},\"aliases\":[],\"sectionNameMappingInverse\":{},\"variableTypes\":[{\"name\":\"Collection\"},{\"name\":\"Address\"},{\"name\":\"Choice\"},{\"name\":\"Date\"},{\"name\":\"DateTime\"},{\"name\":\"EthAddress\"},{\"name\":\"EthereumCall\"},{\"name\":\"StripeCall\"},{\"name\":\"Identity\"},{\"name\":\"LargeText\"},{\"name\":\"Image\"},{\"name\":\"Number\"},{\"name\":\"Period\"},{\"name\":\"Section\"},{\"name\":\"SmartContractMetadata\"},{\"name\":\"Structure\"},{\"name\":\"Template\"},{\"name\":\"Text\"},{\"name\":\"Validation\"},{\"name\":\"YesNo\"}],\"variableSections\":{},\"parameters\":{\"params\":{}},\"embedded\":false,\"processedSections\":[],\"clock\":\"Z\"}"
+
+    decode[SerializableTemplateExecutionResult](json) match {
+      case Right(_) =>
+      case Left(ex) =>
+        ex.printStackTrace()
+        fail(ex)
+    }
+  }
+
   it should "handle tables preceding other elements" in {
     val text="""this is a test
 
@@ -1175,7 +1187,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
     engine.execute(template, TemplateParameters("texts" -> paramValue)) match {
       case Right(result) =>
-        val text = parser.forReview(result.agreements.head)
+        parser.forReview(result.agreements.head)
       case Left(ex) =>
         ex.printStackTrace()
         fail(ex.message)
