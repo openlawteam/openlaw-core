@@ -29,7 +29,8 @@ case class EthereumEventFilterOracle(parser: OpenlawTemplateLanguageParserServic
 
                 val matchFilter = eventFilter.conditionalFilter.evaluate(child)
                 println("******" + matchFilter)
-                vm.allExecutions.toSeq.headOption.map { case (_, head) => head }.flatMap (_.headOption).map { execution =>
+
+                vm.allExecutions.toSeq.collect { case (_, Seq(head, _*)) => head }.headOption.map { execution =>
                   if (matchFilter.exists(VariableType.convert[Boolean])) {
                     Success(vm.newExecution(event.name, execution))
                   } else {
