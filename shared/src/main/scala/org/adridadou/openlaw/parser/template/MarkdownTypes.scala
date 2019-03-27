@@ -81,7 +81,7 @@ case class ForEachBlock(variable:VariableName, expression: Expression, block:Blo
     }
   }
 }
-case class ClauseBlock(variable:VariableName, expression: Expression, block:Block) extends TemplatePart {
+case class ClauseBlock(variable:VariableName, expression: Seq[Expression], block:Seq[Block]) extends TemplatePart {
   def toCompiledTemplate(executionResult: TemplateExecutionResult): Result[(CompiledTemplate, VariableType)] = {
     expression.expressionType(executionResult) match {
       case clauseType:ClauseDefinition =>
