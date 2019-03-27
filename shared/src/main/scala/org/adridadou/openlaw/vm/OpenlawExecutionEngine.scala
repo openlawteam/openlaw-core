@@ -163,6 +163,9 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     case foreachBlock:ForEachBlock =>
       executeForEachBlock(executionResult, foreachBlock)
 
+    case clauseBlock:ClauseBlock =>
+      executeClauseBlock(executionResult, clauseBlock)
+
     case Table(header, rows) =>
       val initialValue:Result[TemplateExecutionResult] = Success(executionResult)
       (header.flatten ++ rows.flatten.flatten)
@@ -262,6 +265,26 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     })
   }
 
+  private def executeClauseBlock(executionResult: TemplateExecutionResult, clauseBlock:ClauseBlock): Result[TemplateExecutionResult] = {
+    clauseBlock.toCompiledTemplate(executionResult).flatMap({ case (template, expressionType) =>
+      val initialValue: Result[TemplateExecutionResult] = Success(executionResult)
+      executionResult.executedVariables appendAll clauseBlock.expression.variables(executionResult)
+
+      val elements = clauseBlock.expression.evaluate(executionResult)
+        .map(value => VariableType.convert[CollectionValue](value).list)
+        .getOrElse(Seq())
+
+      elements.foldLeft(initialValue)((eitherExecutionResult, element) => eitherExecutionResult.flatMap(_ => {
+        val anonymousVariable = executionResult.createAnonymousVariable()
+        executionResult.variables append VariableDefinition(name = anonymousVariable, variableTypeDefinition = Some(VariableTypeDefinition(TemplateType.name)), defaultValue = Some(OneValueParameter(StringConstant(anonymousVariable.name))))
+        executionResult.executedVariables append anonymousVariable
+
+        executionResult.startEmbeddedExecution(anonymousVariable, template, clauseBlock.variable, element, expressionType).map(_ => executionResult)
+      })
+      )
+    })
+  }
+
   private def executeConditionalBlockSet(executionResult: TemplateExecutionResult, blocks: Seq[ConditionalBlock]) = {
     blocks.foreach({
       subBlock =>
@@ -283,6 +306,24 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
   private def getRoot(parent:TemplateExecutionResult):TemplateExecutionResult = parent.parentExecution match {
     case Some(parentExecution) => getRoot(parentExecution)
     case None => parent
+  }
+
+  private def validateSubExecutionClause(result: TemplateExecutionResult, clauseDefinition: ClauseDefinition): Result[TemplateExecutionResult] = {
+    val initialValue:Result[TemplateExecutionResult] = Success(result)
+    result.getVariables
+      .foldLeft(initialValue)((value, variable) =>
+        value.flatMap(_ => validateSubExecutionClause(result, clauseDefinition, variable))
+      )
+  }
+
+  private def validateSubExecutionClause(result:TemplateExecutionResult, currentClauseDefinition:ClauseDefinition, variable:VariableDefinition): Result[TemplateExecutionResult] = {
+    val otherType = result.getVariable(variable.name).map(_.varType(result)).getOrElse(variable.varType(result))
+    if(otherType =!= variable.varType(result)) {
+      val typeString = variable.variableTypeDefinition.map(_.name).getOrElse("<undefined>")
+      Failure(s"Variable definition mismatch. variable ${variable.name} is defined as $typeString in ${currentClauseDefinition.name.name} but was ${otherType.name} in ${result.templateDefinition.map(_.name.name.title).getOrElse("the main template")}")
+    } else {
+      result.parentExecution.map(parent => validateSubExecutionClause(parent, currentClauseDefinition, variable)).getOrElse(Success(result))
+    }
   }
 
   private def validateSubExecution(result: TemplateExecutionResult, templateDefinition: TemplateDefinition): Result[TemplateExecutionResult] = {

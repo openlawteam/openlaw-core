@@ -13,7 +13,6 @@ import io.circe.{Decoder, Encoder, HCursor, Json}
 import scala.reflect.ClassTag
 import scala.util.Try
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
-import LocalDateTimeHelper._
 
 trait NoShowInForm
 
@@ -198,11 +197,11 @@ object VariableType {
     AbstractCollectionType,
     AddressType,
     ChoiceType,
+    ClauseType,
     DateType,
     DateTimeType,
     EthAddressType,
     EthereumCallType,
-    StripeCallType,
     IdentityType,
     LargeTextType,
     ImageType,

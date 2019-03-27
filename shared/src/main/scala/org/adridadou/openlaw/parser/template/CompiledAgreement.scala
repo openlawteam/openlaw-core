@@ -150,6 +150,18 @@ case class CompiledAgreement(
           val subExecution = executionResult.finishedEmbeddedExecutions.remove(0)
           getAgreementElements(subElements, subBlock.elems.toList, subExecution)
         })
+
+      case ClauseBlock(_, expression, subBlock) =>
+        val collection = expression.
+          evaluate(executionResult)
+          .map(value => VariableType.convert[CollectionValue](value).list)
+          .getOrElse(Seq())
+
+        collection.foldLeft(renderedElements)((subElements, _) => {
+          val subExecution = executionResult.finishedEmbeddedExecutions.remove(0)
+          getAgreementElements(subElements, subBlock.elems.toList, subExecution)
+        })
+
       case section @ Section(uuid, definition, lvl) =>
         val resetNumbering = definition
           .flatMap(_.parameters)

@@ -23,6 +23,7 @@ case class Block(elems:Seq[TemplatePart] = Seq()) {
     case ConditionalBlock(block, elseBlock, conditionalExpression) => block.variables() ++ elseBlock.map(_.variables()).getOrElse(Seq()) ++ expressionVariables(conditionalExpression)
     case ConditionalBlockSet(blocks) => variables(blocks, aliases)
     case ForEachBlock(_, expression, block) => block.variables() ++ expressionVariables(expression)
+    case ClauseBlock(_, expression, block) => block.variables() ++ expressionVariables(expression)
     case CodeBlock(e2) => variables(e2, aliases)
     case section:VariableSection => section.variables
     case TemplateText(subElems) => variables(subElems, aliases)

@@ -263,6 +263,31 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     }
   }
 
+  it should "define path for sub clause in template" in {
+    val mainTemplate =
+      compile("""<%
+                [[var]]
+                [[template:Clause(
+                name: "clause";
+                path: var / "template" / "me";
+                parameters:
+                  other var -> var + " world")]]
+              %>
+
+              [[template]]""".stripMargin)
+
+    val subTemplate = compile("[[other var]]")
+
+    val name = ClauseType.convertToTemplateSourceIdentifier(ClauseSourceIdentifier(TemplateTitle("template")))
+
+    engine.execute(mainTemplate, TemplateParameters("var" -> "Hello"), Map(name -> subTemplate)) match {
+      case Right(result) =>
+        result.agreements.head.directory.path shouldBe Seq("Hello", "clause", "me")
+      case Left(ex) =>
+        fail(ex)
+    }
+  }
+
   it should "define path for sub templates even if only one level" in {
     val mainTemplate =
       compile("""<%
@@ -313,6 +338,31 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     engine.execute(mainTemplate, TemplateParameters("var" -> "Hello", "cond" -> "true"), Map(TemplateSourceIdentifier(TemplateTitle("template")) -> subTemplate)) match {
       case Right(result) =>
         result.getExecutedVariables.map(_.name).toSet shouldBe Set("template", "var", "cond")
+      case Left(ex) =>
+        fail(ex)
+    }
+  }
+
+  it should "see a variable as executed if it has been executed in a sub clause" in {
+    val mainTemplate =
+      compile("""
+                |<%
+                |[[var]]
+                |[[var 2]]
+                |%>
+                |
+                |
+                |[[clause:Clause(
+                |name: "template";
+                |parameters: var -> var
+                |)]]
+              """.stripMargin)
+
+    val subTemplate = compile("[[var]] [[var 2]]")
+
+    engine.execute(mainTemplate, TemplateParameters(), Map(TemplateSourceIdentifier(TemplateTitle("template")) -> subTemplate)) match {
+      case Right(result) =>
+        result.getExecutedVariables.map(_.name) shouldBe Seq("clause", "var", "var 2")
       case Left(ex) =>
         fail(ex)
     }

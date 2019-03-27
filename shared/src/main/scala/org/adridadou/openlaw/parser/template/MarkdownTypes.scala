@@ -81,6 +81,23 @@ case class ForEachBlock(variable:VariableName, expression: Expression, block:Blo
     }
   }
 }
+case class ClauseBlock(variable:VariableName, expression: Expression, block:Block) extends TemplatePart {
+  def toCompiledTemplate(executionResult: TemplateExecutionResult): Result[(CompiledTemplate, VariableType)] = {
+    expression.expressionType(executionResult) match {
+      case listType:CollectionType =>
+        val newVariable = VariableDefinition(variable, Some(VariableTypeDefinition(listType.typeParameter.name)))
+        val specialCodeBlock = CodeBlock(Seq(newVariable))
+
+        Success(CompiledDeal(
+          TemplateHeader(),
+          Block(Seq(specialCodeBlock) ++ block.elems),
+          VariableRedefinition(),
+          executionResult.clock), listType.typeParameter)
+      case otherType =>
+        Failure(s"for each expression should be a collection but is ${otherType.getClass.getSimpleName}")
+    }
+  }
+}
 case class ConditionalBlockSet(blocks:Seq[ConditionalBlock]) extends TemplatePart
 
 case object AEnd extends TemplatePart
