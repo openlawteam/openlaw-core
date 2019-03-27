@@ -36,7 +36,8 @@ case class TemplateTitle(originalTitle:String = "", title:String) {
 
 object TemplateTitle {
 
-  def apply(title:String):TemplateTitle = new TemplateTitle(originalTitle = title, title = title.toLowerCase())
+  def apply():TemplateTitle = TemplateTitle("")
+  def apply(title:String):TemplateTitle = TemplateTitle(originalTitle = title, title = title.toLowerCase())
 
   implicit val eq:Eq[TemplateTitle] = (x: TemplateTitle, y: TemplateTitle) => x.title === y.title
   implicit val templateTitleEnc:Encoder[TemplateTitle] = deriveEncoder[TemplateTitle]
