@@ -102,7 +102,7 @@ case object ClauseType extends VariableType("Clause") with NoShowInForm {
       Success(None)
   }
 
-  //needed for mapping so we don't have to make unneeded methods in execution engine
+  //may be needed for mapping so we don't have to make unneeded methods in execution engine?
 
   def convertToTemplateSourceIdentifier(identifier:ClauseSourceIdentifier): TemplateSourceIdentifier = {
     TemplateSourceIdentifier(identifier.name)

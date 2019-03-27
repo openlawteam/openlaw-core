@@ -153,9 +153,7 @@ case class CompiledAgreement(
 
       case ClauseBlock(_, expression, subBlock) =>
         val collection = expression.
-          evaluate(executionResult)
-          .map(value => VariableType.convert[CollectionValue](value).list)
-          .getOrElse(Seq())
+          evaluate(executionResult).map(value => VariableType.convert[ClauseDefinition](value))
 
         collection.foldLeft(renderedElements)((subElements, _) => {
           val subExecution = executionResult.finishedEmbeddedExecutions.remove(0)
