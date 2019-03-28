@@ -35,10 +35,11 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     }
   }
 
-  "it" should "run a simple clause in template" in {
+  it should "run a simple clause in template and detect variable" in {
     val text =
       """
         |<%
+        |[[clauseVar:LargeText]]
         |[[clause:Clause(
         |name: "clause";
         |parameters: clauseVar -> clauseVar
@@ -334,31 +335,6 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     engine.execute(mainTemplate, TemplateParameters("var" -> "Hello", "cond" -> "true"), Map(TemplateSourceIdentifier(TemplateTitle("template")) -> subTemplate)) match {
       case Right(result) =>
         result.getExecutedVariables.map(_.name).toSet shouldBe Set("template", "var", "cond")
-      case Left(ex) =>
-        fail(ex)
-    }
-  }
-
-  it should "see a variable as executed if it has been executed in a sub clause" in {
-    val mainTemplate =
-      compile("""
-                |<%
-                |[[var]]
-                |[[var 2]]
-                |%>
-                |
-                |
-                |[[clause:Clause(
-                |name: "clause";
-                |parameters: var -> var
-                |)]]
-              """.stripMargin)
-
-    val subTemplate = compile("[[var]] [[var 2]]")
-
-    engine.executeClause(mainTemplate, TemplateParameters(), Map(TemplateSourceIdentifier(TemplateTitle("clause")) -> subTemplate)) match {
-      case Right(result) =>
-        result.getExecutedVariables.map(_.name) shouldBe Seq("clause", "var", "var 2")
       case Left(ex) =>
         fail(ex)
     }

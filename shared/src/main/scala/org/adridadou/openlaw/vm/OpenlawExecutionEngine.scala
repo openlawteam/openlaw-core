@@ -64,7 +64,6 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
   def executeClause(mainTemplate:CompiledTemplate, parameters:TemplateParameters, templates:Map[TemplateSourceIdentifier, CompiledTemplate]):Result[TemplateExecutionResult] =
     executeClause(mainTemplate, parameters, templates, Map())
 
-
   def executeClause(mainTemplate:CompiledTemplate, parameters:TemplateParameters, templates:Map[TemplateSourceIdentifier, CompiledTemplate], signatureProofs:Map[Email, SignatureProof]):Result[TemplateExecutionResult] = {
     val executionResult = TemplateExecutionResult(
       parameters = parameters,
@@ -79,10 +78,14 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     )
 
     val anonymousVariable = executionResult.createAnonymousVariable()
+
+    println("original execution result for clause" + executionResult)
+    println("original variables in clause execution result example" + executionResult.variables)
     executionResult.variables append VariableDefinition(name = anonymousVariable, variableTypeDefinition = Some(VariableTypeDefinition(TemplateType.name)), defaultValue = Some(OneValueParameter(StringConstant(anonymousVariable.name))))
     executionResult.executedVariables append anonymousVariable
 
     executionResult.variables.map(variable => executionResult.startEmbeddedExecution(anonymousVariable, mainTemplate, variable.name, executionResult.getExpression(variable.name), executionResult.findVariableType(variable.variableTypeDefinition.getOrElse(VariableTypeDefinition(TextType.name))).getOrElse(TextType)))
+    println("new execution result for clause after running startEmbeddedExecution" + executionResult)
     Success(executionResult)
   }
 
