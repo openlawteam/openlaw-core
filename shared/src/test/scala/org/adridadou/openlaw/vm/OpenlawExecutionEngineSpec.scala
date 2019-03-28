@@ -35,6 +35,27 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     }
   }
 
+  "it" should "run a simple clause in template" in {
+    val text =
+      """
+        |<%
+        |[[clause:Clause(
+        |name: "clause";
+        |parameters: clauseVar -> clauseVar
+        |)]]
+        |%>
+      """.stripMargin
+
+    val compiledTemplate = compile(text)
+    val parameters = TemplateParameters("clauseVar" -> "1")
+    engine.executeClause(compiledTemplate, parameters, Map()) match {
+      case Right(result) =>
+        result.state shouldBe ExecutionFinished
+        result.variables.map(_.name.name) shouldBe Seq("clauseVar")
+      case Left(ex) => fail(ex)
+    }
+  }
+
   it should "run a simple template with large text" in {
     val text =
       """
@@ -328,14 +349,14 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
                 |
                 |
                 |[[clause:Clause(
-                |name: "template";
+                |name: "clause";
                 |parameters: var -> var
                 |)]]
               """.stripMargin)
 
     val subTemplate = compile("[[var]] [[var 2]]")
 
-    engine.execute(mainTemplate, TemplateParameters(), Map(TemplateSourceIdentifier(TemplateTitle("template")) -> subTemplate)) match {
+    engine.executeClause(mainTemplate, TemplateParameters(), Map(TemplateSourceIdentifier(TemplateTitle("clause")) -> subTemplate)) match {
       case Right(result) =>
         result.getExecutedVariables.map(_.name) shouldBe Seq("clause", "var", "var 2")
       case Left(ex) =>

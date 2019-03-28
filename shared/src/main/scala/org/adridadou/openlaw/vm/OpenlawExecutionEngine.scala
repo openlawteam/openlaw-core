@@ -56,6 +56,37 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
   }
 
   /**
+    *
+    */
+  def executeClause(mainTemplate:CompiledTemplate, parameters:TemplateParameters):Result[TemplateExecutionResult] =
+    executeClause(mainTemplate, parameters, Map())
+
+  def executeClause(mainTemplate:CompiledTemplate, parameters:TemplateParameters, templates:Map[TemplateSourceIdentifier, CompiledTemplate]):Result[TemplateExecutionResult] =
+    executeClause(mainTemplate, parameters, templates, Map())
+
+
+  def executeClause(mainTemplate:CompiledTemplate, parameters:TemplateParameters, templates:Map[TemplateSourceIdentifier, CompiledTemplate], signatureProofs:Map[Email, SignatureProof]):Result[TemplateExecutionResult] = {
+    val executionResult = TemplateExecutionResult(
+      parameters = parameters,
+      id = TemplateExecutionResultId(s"@@anonymous_main_template_id@@"),
+      template = mainTemplate,
+      anonymousVariableCounter = new AtomicInteger(0),
+      embedded = false,
+      variableRedefinition = mainTemplate.redefinition,
+      remainingElements = mutable.Buffer(mainTemplate.block.elems:_*),
+      clock = mainTemplate.clock,
+      signatureProofs = signatureProofs
+    )
+
+    val anonymousVariable = executionResult.createAnonymousVariable()
+    executionResult.variables append VariableDefinition(name = anonymousVariable, variableTypeDefinition = Some(VariableTypeDefinition(TemplateType.name)), defaultValue = Some(OneValueParameter(StringConstant(anonymousVariable.name))))
+    executionResult.executedVariables append anonymousVariable
+
+    executionResult.variables.map(variable => executionResult.startEmbeddedExecution(anonymousVariable, mainTemplate, variable.name, executionResult.getExpression(variable.name), executionResult.findVariableType(variable.variableTypeDefinition.getOrElse(VariableTypeDefinition(TextType.name))).getOrElse(TextType)))
+    Success(executionResult)
+  }
+
+  /**
     * This method is used if the execution stops due to a missing template and you want to resume the execution
     */
   @tailrec
