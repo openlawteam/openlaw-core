@@ -81,20 +81,7 @@ case class ForEachBlock(variable:VariableName, expression: Expression, block:Blo
     }
   }
 }
-case class ClauseBlock(variable:VariableName, expression: Seq[Expression], block:Seq[Block]) extends TemplatePart {
-  def toCompiledTemplate(executionResult: TemplateExecutionResult): Result[(CompiledTemplate, VariableType)] = {
-    expression.expressionType(executionResult) match {
-      case clauseType:ClauseDefinition =>
-        Success(CompiledDeal(
-          TemplateHeader(),
-          Block(block.elems),
-          VariableRedefinition(),
-          executionResult.clock), clauseType)
-      case otherType =>
-        Failure(s"group of expressions should be clause but is ${otherType.getClass.getSimpleName}")
-    }
-  }
-}
+
 case class ConditionalBlockSet(blocks:Seq[ConditionalBlock]) extends TemplatePart
 
 case object AEnd extends TemplatePart

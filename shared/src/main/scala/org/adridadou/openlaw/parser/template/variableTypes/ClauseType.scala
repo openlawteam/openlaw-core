@@ -12,62 +12,10 @@ import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatte
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 import org.adridadou.openlaw.values._
 
-case class ClauseDefinition(name:ClauseSourceIdentifier, mappingInternal:Map[String, Expression] = Map(), path:Option[ClausePath] = None) {
-  lazy val mapping: Map[VariableName, Expression] = mappingInternal.map({case (key,value) => VariableName(key) -> value})
-}
-
-case class ClauseSourceIdentifier(name:TemplateTitle)
-
-case class ClausePath(path:Seq[String] = Seq()) {
-  def innerFile(name:String):ClausePath = ClausePath(path ++ Seq(name))
-}
-
-case object ClausePathType extends VariableType("ClauseType") with NoShowInForm {
-  override def cast(value: String, executionResult: TemplateExecutionResult): ClausePath =
-    decode[ClausePath](value) match {
-      case Right(result) =>
-        result
-      case Left(ex) =>
-        throw new RuntimeException(ex)
-    }
-
-  override def getTypeClass: Class[_ <: ClausePathType.type ] = this.getClass
-
-  override def internalFormat(value: Any): String =
-    VariableType.convert[ClausePath](value).asJson.noSpaces
-
-  override def thisType: VariableType =
-    ClausePathType
-
-  override def divide(optLeft: Option[Any], optRight: Option[Any], executionResult: TemplateExecutionResult): Option[Any] = {
-    for {
-      left <- optLeft.map(VariableType.convert[ClausePath])
-      right <- optRight.map(VariableType.convert[String])
-    } yield ClausePath(left.path ++ Seq(right))
-  }
-}
-
-
-object ClauseDefinition {
-  implicit val clauseDefinitionEnc: Encoder[ClauseDefinition] = deriveEncoder[ClauseDefinition]
-  implicit val clauseDefinitionDec: Decoder[ClauseDefinition] = deriveDecoder[ClauseDefinition]
-  implicit val clauseDefinitionEq:Eq[ClauseDefinition] = Eq.fromUniversalEquals
-
-  implicit val clauseIdentifierEnc: Encoder[ClauseSourceIdentifier] = deriveEncoder[ClauseSourceIdentifier]
-  implicit val clauseIdentifierDec: Decoder[ClauseSourceIdentifier] = deriveDecoder[ClauseSourceIdentifier]
-  implicit val clauseIdentifierEq:Eq[ClauseSourceIdentifier] = Eq.fromUniversalEquals
-}
-
-object ClausePath {
-  implicit val clausePathEnc: Encoder[ClausePath] = deriveEncoder[ClausePath]
-  implicit val clausePathDec: Decoder[ClausePath] = deriveDecoder[ClausePath]
-  implicit val clausePathEq:Eq[ClausePath] = Eq.fromUniversalEquals
-}
-
 case object ClauseType extends VariableType("Clause") with NoShowInForm {
-  private val availableParameters = Seq("parameters", "name", "path")
+  private val availableParameters = Seq("parameters", "name")
 
-  private def prepareClauseName(mappingParameter: Parameters, executionResult: TemplateExecutionResult):Result[Option[ClauseSourceIdentifier]] = {
+  /*private def prepareClauseName(mappingParameter: Parameters, executionResult: TemplateExecutionResult):Result[Option[TemplateSourceIdentifier]] = {
 
     val unknownParameters = mappingParameter.parameterMap.map({case (key,_) => key})
       .filter(elem => !availableParameters.contains(elem))
@@ -79,33 +27,11 @@ case object ClauseType extends VariableType("Clause") with NoShowInForm {
         case templateName: OneValueParameter =>
           attempt(templateName.expr.evaluate(executionResult)
             .map(VariableType.convert[String])
-            .map(title => ClauseSourceIdentifier(TemplateTitle(title))))
+            .map(title => TemplateSourceIdentifier(TemplateTitle(title))))
         case _ =>
           Failure("parameter 'name' accepts only single value")
       }
     }
-  }
-
-  private def prepareClausePath(parameters: Parameters, executionResult:TemplateExecutionResult):Result[Option[ClausePath]] = parameters.parameterMap.toMap.get("path") match {
-    case Some(OneValueParameter(expr)) =>
-      expr.evaluate(executionResult).map({
-        case p: ClausePath =>
-          Success(Some(p))
-        case p: String =>
-          Success(Some(ClausePath(Seq(p))))
-        case other =>
-          Failure(s"parameter 'path' should be a path but instead was ${other.getClass.getSimpleName}")
-      }).getOrElse(Right(None))
-    case Some(other) =>
-      Failure(s"parameter 'path' should be a single value, not ${other.getClass.getSimpleName}")
-    case None =>
-      Success(None)
-  }
-
-  //may be needed for mapping so we don't have to make unneeded methods in execution engine?
-
-  def convertToTemplateSourceIdentifier(identifier:ClauseSourceIdentifier): TemplateSourceIdentifier = {
-    TemplateSourceIdentifier(identifier.name)
   }
 
   private def prepareClauseMappingParamters(parameters: Parameters, result: TemplateExecutionResult):Result[Map[VariableName, Expression]] = parameters.parameterMap.toMap.get("parameters").map({
@@ -115,31 +41,13 @@ case object ClauseType extends VariableType("Clause") with NoShowInForm {
       Failure("parameter 'parameters' should be a list of mapping values")
   }).getOrElse(Success(Map()))
 
-  def prepareClauseSource(mappingParameter: Parameters, executionResult: TemplateExecutionResult, parameters: Map[VariableName, Expression], path: Option[ClausePath]):Result[ClauseDefinition] = {
+  def prepareClauseSource(mappingParameter: Parameters, executionResult: TemplateExecutionResult, parameters: Map[VariableName, Expression], path: Option[TemplatePath]):Result[TemplateDefinition] = {
     prepareClauseName(mappingParameter, executionResult).flatMap({
       case Some(source) =>
-        Success(ClauseDefinition(name = source, path = path, mappingInternal = parameters.map({ case (key, value) => key.name -> value })))
+        Success(TemplateDefinition(name = source, path = path, mappingInternal = parameters.map({ case (key, value) => key.name -> value })))
       case None =>
         Failure("name cannot be resolved yet!")
     })
-  }
-
-  override def construct(constructorParams:Parameter, executionResult: TemplateExecutionResult):Result[Option[ClauseDefinition]] = {
-    constructorParams match {
-      case mappingParameter:Parameters =>
-        for {
-          path <- prepareClausePath(mappingParameter, executionResult)
-          parameters <- prepareClauseMappingParamters(mappingParameter, executionResult)
-          source <- prepareClauseSource(mappingParameter, executionResult, parameters, path)
-        } yield Some(source)
-
-      case _ =>
-        super.construct(constructorParams, executionResult)
-          .map({
-            case Some(n) => Some(ClauseDefinition(ClauseSourceIdentifier(TemplateTitle(n.toString))))
-            case None => None
-          })
-    }
   }
 
   override def access(value: Any, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Any] = keys.toList match {
@@ -199,12 +107,12 @@ case object ClauseType extends VariableType("Clause") with NoShowInForm {
             .accessVariables(VariableName(head), tail, subExecution)
           )
       ).getOrElse(Seq(name))
-  }
+  }*/
 
   override def getTypeClass: Class[_ <: ClauseType.type ] = this.getClass
 
-  override def cast(value: String, executionResult: TemplateExecutionResult): ClauseDefinition = handleEither(decode[ClauseDefinition](value))
-  override def internalFormat(value: Any): String = VariableType.convert[ClauseDefinition](value).asJson.noSpaces
+  override def cast(value: String, executionResult: TemplateExecutionResult): TemplateDefinition = handleEither(decode[TemplateDefinition](value))
+  override def internalFormat(value: Any): String = VariableType.convert[TemplateDefinition](value).asJson.noSpaces
   override def defaultFormatter: Formatter = new NoopFormatter
 
   def thisType: VariableType = ClauseType

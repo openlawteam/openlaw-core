@@ -33,12 +33,6 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
     ForEachBlock(variable, expression, block))
   }
 
-  def clauseBlockKey:Rule1[ClauseBlock]= rule { &(openB) ~ clauseBlock }
-
-  def clauseBlock:Rule1[ClauseBlock] = rule { openB ~ "Clause:" ~ zeroOrMore(variableName) ~ ws ~ zeroOrMore(ExpressionRule) ~ ws ~ zeroOrMore(blockRule) ~ closeB ~> ((variable:VariableName, expression:Seq[Expression], block: Seq[Block]) =>
-    ClauseBlock(variable, expression, block))
-  }
-
   def conditionalBlockKey:Rule1[ConditionalBlock]= rule { &(openB) ~ conditionalBlock }
 
   def conditionalBlock:Rule1[ConditionalBlock] = rule { openB ~ ws  ~ conditionalExpressionRule ~ optional(ws ~ "=>") ~ ws ~ blockInConditionalRule ~ optional(conditionalBlockElse) ~ closeB ~> ((expression:Expression, block: Block, elseBlock:Option[Block]) => ConditionalBlock(block, elseBlock, expression))}

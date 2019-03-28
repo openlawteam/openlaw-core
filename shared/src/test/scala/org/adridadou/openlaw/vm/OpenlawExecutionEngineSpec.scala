@@ -263,31 +263,6 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     }
   }
 
-  it should "define path for sub clause in template" in {
-    val mainTemplate =
-      compile("""<%
-                [[var]]
-                [[template:Clause(
-                name: "clause";
-                path: var / "template" / "me";
-                parameters:
-                  other var -> var + " world")]]
-              %>
-
-              [[template]]""".stripMargin)
-
-    val subTemplate = compile("[[other var]]")
-
-    val name = ClauseType.convertToTemplateSourceIdentifier(ClauseSourceIdentifier(TemplateTitle("template")))
-
-    engine.execute(mainTemplate, TemplateParameters("var" -> "Hello"), Map(name -> subTemplate)) match {
-      case Right(result) =>
-        result.agreements.head.directory.path shouldBe Seq("Hello", "clause", "me")
-      case Left(ex) =>
-        fail(ex)
-    }
-  }
-
   it should "define path for sub templates even if only one level" in {
     val mainTemplate =
       compile("""<%

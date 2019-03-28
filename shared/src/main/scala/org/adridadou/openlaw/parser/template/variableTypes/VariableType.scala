@@ -13,6 +13,7 @@ import io.circe.{Decoder, Encoder, HCursor, Json}
 import scala.reflect.ClassTag
 import scala.util.Try
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
+import LocalDateTimeHelper._
 
 trait NoShowInForm
 
