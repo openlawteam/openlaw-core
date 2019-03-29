@@ -673,6 +673,8 @@ object AgreementElement {
         a.as[TableElement]
       case _ if name === className[NoteAnnotation] =>
         a.as[NoteAnnotation]
+      case _ if name === className[HeaderAnnotation] =>
+        a.as[HeaderAnnotation]
       case _ if name === className[Title] =>
         a.as[Title]
       case _ if name === className[Paragraph] =>
