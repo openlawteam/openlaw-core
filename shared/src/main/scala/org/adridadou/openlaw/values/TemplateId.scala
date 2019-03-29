@@ -1,7 +1,7 @@
 package org.adridadou.openlaw.values
 
 import cats.Eq
-import io.circe.{Decoder, Encoder}
+import io.circe.{Decoder, Encoder, HCursor, Json}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import cats.implicits._
 import org.adridadou.openlaw.parser.template.variableTypes.EthereumAddress
@@ -30,8 +30,15 @@ object TemplateId {
 
 case class TemplateIdentifier(title:TemplateTitle, version:Int)
 
-case class TemplateTitle(originalTitle:String = "", title:String) {
+case class TemplateTitle(originalTitle:String, title:String) {
   override def toString:String = title
+
+  override def equals(obj: Any): Boolean = obj match {
+    case other:TemplateTitle => this === other
+    case _ => false
+  }
+
+  override def hashCode(): Int = this.title.hashCode
 }
 
 object TemplateTitle {
@@ -39,8 +46,14 @@ object TemplateTitle {
   def apply(title:String):TemplateTitle = new TemplateTitle(originalTitle = title, title = title.toLowerCase())
 
   implicit val eq:Eq[TemplateTitle] = (x: TemplateTitle, y: TemplateTitle) => x.title === y.title
-  implicit val templateTitleEnc:Encoder[TemplateTitle] = deriveEncoder[TemplateTitle]
-  implicit val templateTitleDec:Decoder[TemplateTitle] = deriveDecoder[TemplateTitle]
+  implicit val templateTitleEnc:Encoder[TemplateTitle] = (a: TemplateTitle) => Json.fromString(a.originalTitle)
+  implicit val templateTitleDec:Decoder[TemplateTitle] = (c: HCursor) => (for {
+    title <- c.downField("title").as[String]
+  } yield TemplateTitle(title)) match {
+    case Right(title) => Right(title)
+    case Left(_) =>
+      c.as[String].map(TemplateTitle(_))
+  }
 }
 
 
