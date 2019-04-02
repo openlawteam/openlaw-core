@@ -44,6 +44,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         |name: "clause";
         |parameters: clauseVar -> clauseVar
         |)]]
+        |[[clauseVar]]
         |%>
       """.stripMargin
 

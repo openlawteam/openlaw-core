@@ -70,7 +70,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       id = TemplateExecutionResultId(s"@@anonymous_main_template_id@@"),
       template = mainTemplate,
       anonymousVariableCounter = new AtomicInteger(0),
-      embedded = false,
+      embedded = true,
       variableRedefinition = mainTemplate.redefinition,
       remainingElements = mutable.Buffer(mainTemplate.block.elems:_*),
       clock = mainTemplate.clock,
@@ -80,7 +80,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     val anonymousVariable = executionResult.createAnonymousVariable()
 
     println("original execution result for clause" + executionResult)
-    println("original variables in clause execution result example" + executionResult.variables)
+    println("original variables in clause execution result example" + executionResult.parameters)
     executionResult.variables append VariableDefinition(name = anonymousVariable, variableTypeDefinition = Some(VariableTypeDefinition(TemplateType.name)), defaultValue = Some(OneValueParameter(StringConstant(anonymousVariable.name))))
     executionResult.executedVariables append anonymousVariable
 
