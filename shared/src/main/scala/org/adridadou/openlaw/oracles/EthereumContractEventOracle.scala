@@ -27,7 +27,7 @@ case class EthereumEventFilterOracle(parser: OpenlawTemplateLanguageParserServic
             case Success(Some(eventFilter)) =>
               val name = VariableName("this")
               val result = for {
-                variables <- eventFilter.abiVariables(executionResult)
+                variables <- eventFilter.abiOpenlawVariables(executionResult)
                 child <- executionResult.startEphemeralExecution(name, event.values, generateStructureType(name, variables, executionResult))
               } yield {
 

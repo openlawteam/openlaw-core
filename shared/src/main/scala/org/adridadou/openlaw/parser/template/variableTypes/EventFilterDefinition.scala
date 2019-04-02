@@ -22,13 +22,32 @@ case class EventFilterDefinition(
     entries <- AbiParser.parse(interfaceString)
   } yield entries
 
-  def abiVariables(executionResult: TemplateExecutionResult): Result[List[VariableDefinition]] =
+  def abiClasses(executionResult: TemplateExecutionResult): Result[List[Class[_]]] = {
     for {
       entries <- abiEntries(executionResult)
       eventTypeAny <- eventType.evaluate(executionResult).toResult("could not evaluate eventType")
       eventTypeString <- attempt(VariableType.convert[String](eventTypeAny))
       entry <- findNameEntry(eventTypeString, entries)
-      variables <- convertVariables(entry)
+      variables <- convertVariablesScalaTypes(entry)
+    } yield variables
+  }
+
+  def abiOpenlawVariables(executionResult: TemplateExecutionResult): Result[List[VariableDefinition]] =
+    for {
+      entries <- abiEntries(executionResult)
+      eventTypeAny <- eventType.evaluate(executionResult).toResult("could not evaluate eventType")
+      eventTypeString <- attempt(VariableType.convert[String](eventTypeAny))
+      entry <- findNameEntry(eventTypeString, entries)
+      variables <- convertVariablesOpenlawType(entry)
+    } yield variables
+
+  def abiScalaVariables(executionResult: TemplateExecutionResult): Result[List[Class[_]]] =
+    for {
+      entries <- abiEntries(executionResult)
+      eventTypeAny <- eventType.evaluate(executionResult).toResult("could not evaluate eventType")
+      eventTypeString <- attempt(VariableType.convert[String](eventTypeAny))
+      entry <- findNameEntry(eventTypeString, entries)
+      variables <- convertVariablesScalaTypes(entry)
     } yield variables
 
   def findNameEntry(targetName: String, entries: List[AbiEntry]): Result[AbiEntry] =
@@ -38,16 +57,25 @@ case class EventFilterDefinition(
       .map { case (_, entry) => entry }
       .toResult(s"no entry found for event named $targetName")
 
-  def convertVariables(entry: AbiEntry): Result[List[VariableDefinition]] =
+  def convertVariablesOpenlawType(entry: AbiEntry): Result[List[VariableDefinition]] =
     entry.inputs.getOrElse(Nil) ++ entry.outputs.getOrElse(Nil) match {
       case Nil => Failure("no inputs or outputs in ABI entry")
-      case list => list.map(convertVariable).sequence
+      case list => list.map(convertVariableOpenlawType).sequence
     }
 
-  def convertVariable(param: AbiParam): Result[VariableDefinition] =
+  def convertVariablesScalaTypes(entry: AbiEntry): Result[List[Class[_]]] =
+    entry.inputs.getOrElse(Nil) ++ entry.outputs.getOrElse(Nil) match {
+      case Nil => Failure("no inputs or outputs in ABI entry")
+      case list => list.map(convertVariableScalaTypes).sequence
+    }
+
+  def convertVariableOpenlawType(param: AbiParam): Result[VariableDefinition] =
     attempt(AbiType.withName(param.`type`)).map { variableType =>
       VariableDefinition(VariableName(param.name), Some(VariableTypeDefinition(variableType.openlawType.name)))
     }
+
+  def convertVariableScalaTypes(param: AbiParam): Result[Class[_]] =
+    attempt(AbiType.withName(param.`type`)).map { variableType => variableType.scalaType }
 
   def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions: Seq[OpenlawExecution]): Option[LocalDateTime] = ???
 }

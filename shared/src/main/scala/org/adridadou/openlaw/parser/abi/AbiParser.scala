@@ -11,7 +11,6 @@ case class AbiParam(indexed: Option[Boolean], name: String, `type`: String) {
   def isArray: Boolean = `type`.contains("[")
   def isDynamic: Boolean = `type`.contains("[]") || `type` == "string" || `type` == "bytes"
   override def toString: String = "AbiParam{" + "indexed=" + indexed + ", name='" + name + '\'' + ", type='" + `type` + '\'' + '}'
-
 }
 
 case class AbiEntry (
@@ -28,28 +27,28 @@ case class AbiEntry (
 
 object AbiParser {
 
-  sealed abstract class AbiType(val openlawType: VariableType, val dynamic: Boolean = true) extends EnumEntry with Lowercase
+  sealed abstract class AbiType(val scalaType: Class[_], val openlawType: VariableType, val dynamic: Boolean = true) extends EnumEntry with Lowercase
 
   object AbiType extends Enum[AbiType] {
     val values = findValues
 
-    case object Uint extends AbiType(NumberType)
-    case object Uint8 extends AbiType(NumberType)
-    case object Uint16 extends AbiType(NumberType)
-    case object Uint32 extends AbiType(NumberType)
-    case object Uint64 extends AbiType(NumberType)
-    case object Uint128 extends AbiType(NumberType)
-    case object Uint256 extends AbiType(NumberType)
-    case object Int extends AbiType(NumberType)
-    case object Int8 extends AbiType(NumberType)
-    case object Int16 extends AbiType(NumberType)
-    case object Int32 extends AbiType(NumberType)
-    case object Int64 extends AbiType(NumberType)
-    case object Int128 extends AbiType(NumberType)
-    case object Int256 extends AbiType(NumberType)
-    case object Bool extends AbiType(YesNoType)
-    case object String extends AbiType(TextType, true)
-    case object Address extends AbiType(EthAddressType)
+    case object Uint extends AbiType(classOf[Int], NumberType)
+    case object Uint8 extends AbiType(classOf[Int], NumberType)
+    case object Uint16 extends AbiType(classOf[Int], NumberType)
+    case object Uint32 extends AbiType(classOf[Int], NumberType)
+    case object Uint64 extends AbiType(classOf[Int], NumberType)
+    case object Uint128 extends AbiType(classOf[Long], NumberType)
+    case object Uint256 extends AbiType(classOf[Long], NumberType)
+    case object Int extends AbiType(classOf[Int], NumberType)
+    case object Int8 extends AbiType(classOf[Int], NumberType)
+    case object Int16 extends AbiType(classOf[Int], NumberType)
+    case object Int32 extends AbiType(classOf[Int], NumberType)
+    case object Int64 extends AbiType(classOf[Long], NumberType)
+    case object Int128 extends AbiType(classOf[Long], NumberType)
+    case object Int256 extends AbiType(classOf[Long], NumberType)
+    case object Bool extends AbiType(classOf[Boolean], YesNoType)
+    case object String extends AbiType(classOf[String], TextType, true)
+    case object Address extends AbiType(classOf[EthereumAddress], EthAddressType)
 
     /* Not supported for now
     case object Array extends AbiType
