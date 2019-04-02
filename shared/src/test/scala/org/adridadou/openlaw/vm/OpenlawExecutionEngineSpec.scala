@@ -1,6 +1,7 @@
 package org.adridadou.openlaw.vm
 
 import java.time.Clock
+
 import org.adridadou.openlaw.result.Implicits.failureCause2Exception
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template._
@@ -40,12 +41,12 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       """
         |<%
         |[[clauseVar:LargeText]]
+        |%>
         |[[clause:Clause(
         |name: "clause";
         |parameters: clauseVar -> clauseVar
         |)]]
         |[[clauseVar]]
-        |%>
       """.stripMargin
 
     val compiledTemplate = compile(text)
@@ -53,7 +54,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     engine.executeClause(compiledTemplate, parameters, Map()) match {
       case Right(result) =>
         result.state shouldBe ExecutionFinished
-        result.variables.map(_.name.name) shouldBe Seq("clauseVar")
+        result.variables.map(_.name.name) shouldBe Seq("clause", "clauseVar")
       case Left(ex) => fail(ex)
     }
   }
@@ -112,6 +113,44 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
             newResult.agreements.size shouldBe 1
 
             parser.forReview(newResult.agreements.head,ParagraphEdits()) shouldBe """<p class="no-section">it is just another template hello</p>"""
+          case Left(ex) =>
+            fail(ex)
+        }
+
+      case Left(ex) =>
+        fail(ex)
+    }
+  }
+
+  it should "wait for a clause and then finish its execution" in {
+    val text =
+      """
+        |<%
+        |[[My Variable:Text]]
+        |[[_:Text]]
+        |[[_:Text]]
+        |[[Other one:Number]]
+        |%>
+        |
+        |[[My Variable]] - [[Other one]]
+        |
+        |[[_:Clause("A Clause")]]
+      """.stripMargin
+
+    val text2 = "it is just another template [[My Variable 2:Text]]"
+    val compiledTemplate = compile(text)
+    val otherCompiledTemplate = compile(text2)
+    val parameters = TemplateParameters("My Variable 2" -> "hello", "Other one" -> "334")
+    engine.executeClause(compiledTemplate, parameters, Map()) match {
+      case Right(result) =>
+        result.state shouldBe ExecutionFinished
+        result.variables.map(_.name.name) shouldBe Seq("My Variable","@@anonymous_1@@", "@@anonymous_2@@", "Other one", "@@anonymous_3@@")
+
+        engine.resumeExecution(result, Map(TemplateSourceIdentifier(TemplateTitle("A Clause")) -> otherCompiledTemplate), true) match {
+          case Right(newResult) =>
+            newResult.state shouldBe ExecutionFinished
+            newResult.parentExecution.isDefined shouldBe false
+            newResult.subExecutions.size shouldBe 0
           case Left(ex) =>
             fail(ex)
         }
@@ -189,6 +228,40 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     }
   }
 
+  it should "detect variable type mismatch in clause" in {
+    val text =
+      """
+        |<%
+        |[[My Variable:Text]]
+        |[[Other one:Number]]
+        |%>
+        |
+        |[[My Variable]] - [[Other one]]
+        |
+        |[[My Clause: Clause("My Clause")]]
+      """.stripMargin
+
+    val text2 = """[[My Variable:Number]]"""
+    val compiledTemplate = compile(text)
+    val otherCompiledTemplate = compile(text2)
+    val parameters = TemplateParameters()
+    engine.executeClause(compiledTemplate, parameters, Map()) match {
+      case Right(result) =>
+        result.state shouldBe ExecutionFinished 
+        result.variables.map(_.name.name) shouldBe Seq("My Variable", "Other one", "My Clause")
+
+        engine.resumeExecution(result, Map(TemplateSourceIdentifier(TemplateTitle("My Clause")) -> otherCompiledTemplate, TemplateSourceIdentifier(TemplateTitle("My Clause")) -> compiledTemplate), true) match {
+          case Right(_) =>
+            fail("should fail")
+          case Left(ex) =>
+            ex.message shouldBe "Variable definition mismatch. variable My Variable is defined as Text in the main template but was Number in another template"
+        }
+
+      case Left(ex) =>
+        fail(ex)
+    }
+  }
+
   it should "add one agreement in the execution result if the main template is an agreement" in {
     val text =
       """
@@ -242,6 +315,28 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
   }
 
   it should "map variable for sub templates" in {
+    val mainTemplate =
+      compile("""<%
+                [[var]]
+                [[template:Template(
+                name: "template";
+                parameters:
+                  other var -> var + " world")]]
+              %>
+
+              [[template]]""".stripMargin)
+
+    val subTemplate = compile("[[other var]]")
+
+    engine.execute(mainTemplate, TemplateParameters("var" -> "Hello"), Map(TemplateSourceIdentifier(TemplateTitle("template")) -> subTemplate)) match {
+      case Right(result) =>
+        parser.forReview(result.agreements.head,ParagraphEdits()) shouldBe """<p class="no-section">Hello world</p>"""
+      case Left(ex) =>
+        fail(ex)
+    }
+  }
+
+  it should "map variable for clause" in {
     val mainTemplate =
       compile("""<%
                 [[var]]
