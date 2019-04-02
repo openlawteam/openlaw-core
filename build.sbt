@@ -14,7 +14,8 @@ lazy val scalaV = "2.12.8"
 lazy val catsV = "1.6.0"
 lazy val parboiledV = "2.1.5"
 lazy val circeV = "0.11.1"
-lazy val playJsonV = "2.7.1"
+lazy val playJsonV = "2.7.2"
+lazy val scalaTagsV = "0.6.8"
 
 lazy val repositories = Seq(
   Resolver.jcenterRepo,
@@ -100,8 +101,8 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       "org.typelevel"           %% "cats-free"           % catsV,
       "io.github.cquiroz"       %% "scala-java-time"     % "2.0.0-RC1",
       "biz.enef"                %% "slogging-slf4j"      % "0.6.1",
-      "com.lihaoyi"             %% "scalatags"           % "0.6.7",
       "com.beachape"            %% "enumeratum"          % "1.5.13",
+      "com.lihaoyi"             %% "scalatags"           % scalaTagsV,
       //Test
       "org.scalacheck"          %% "scalacheck"          % "1.14.0"       % Test,
       "org.scalatest"           %% "scalatest"           % "3.2.0-SNAP10"  % Test,
@@ -120,8 +121,8 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       "io.circe"                %%% "circe-parser"         % circeV,
       "io.circe"                %%% "circe-java8"         % circeV,
       "com.typesafe.play"       %%% "play-json"            % playJsonV,
-      "com.lihaoyi"             %%% "scalatags"            % "0.6.7",
       "com.beachape"            %%% "enumeratum"           % "1.5.13",
+      "com.lihaoyi"             %%% "scalatags"            % scalaTagsV,
       //Test
       "org.scalacheck"          %%% "scalacheck"          % "1.14.0"        % Test,
       "org.scalatest"           %%% "scalatest"           % "3.2.0-SNAP10"  % Test
