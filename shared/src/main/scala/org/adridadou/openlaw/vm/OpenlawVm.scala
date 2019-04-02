@@ -35,17 +35,17 @@ case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
                            executionState:ContractExecutionState,
                            clock:Clock) extends LazyLogging {
 
-  def updateTemplate(id: TemplateId, compiledTemplate: CompiledTemplate, event:LoadTemplate): OpenlawVmState =
-    update(templates + (id -> compiledTemplate), state, executionResult, event)
+  def updateTemplate(id: TemplateId, compiledTemplate: CompiledTemplate, event:LoadTemplate, willBeUsedForEmbedded:Boolean): OpenlawVmState =
+    update(templates + (id -> compiledTemplate), state, executionResult, event, willBeUsedForEmbedded)
       .copy(contents = contents + (id -> event.content))
 
   def updateExecutionState(newState: ContractExecutionState, event: OpenlawVmEvent): OpenlawVmState = {
     this.copy(executionState = newState, events = event :: events)
   }
 
-  def updateParameter(name:VariableName, value:String, event:OpenlawVmEvent) :OpenlawVmState = {
+  def updateParameter(name:VariableName, value:String, event:OpenlawVmEvent, willBeUsedForEmbedded:Boolean) :OpenlawVmState = {
     val newParams = state + (name -> value)
-    update(templates, newParams, createNewExecutionResult(newParams, templates, signatureProofs), event).copy(
+    update(templates, newParams, createNewExecutionResult(newParams, templates, signatureProofs), event, willBeUsedForEmbedded).copy(
       state = newParams
     )
   }
@@ -55,7 +55,7 @@ case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
     case None => createNewExecutionResult(state, templates, signatureProofs)
   }
 
-  private def update(templates:Map[TemplateId, CompiledTemplate], parameters:TemplateParameters, optExecution:Option[TemplateExecutionResult], event:OpenlawVmEvent) : OpenlawVmState = {
+  private def update(templates:Map[TemplateId, CompiledTemplate], parameters:TemplateParameters, optExecution:Option[TemplateExecutionResult], event:OpenlawVmEvent, willBeUsedForEmbedded:Boolean) : OpenlawVmState = {
     val execution = optExecution match {
       case Some(executionResult) =>
         Some(executionResult)
@@ -63,7 +63,7 @@ case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
         createNewExecutionResult(parameters, templates, signatureProofs)
     }
 
-    execution.map(executeContract(templates, _) match {
+    execution.map(executeContract(templates, _, willBeUsedForEmbedded) match {
       case Right(newResult) =>
         this.copy(optExecutionResult = Some(newResult))
 
@@ -76,13 +76,13 @@ case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
     )
   }
 
-  private def executeContract(currentTemplates:Map[TemplateId, CompiledTemplate], execution: TemplateExecutionResult):Result[TemplateExecutionResult] = execution.state match {
+  private def executeContract(currentTemplates:Map[TemplateId, CompiledTemplate], execution: TemplateExecutionResult, willBeUsedForEmbedded:Boolean):Result[TemplateExecutionResult] = execution.state match {
     case ExecutionFinished =>
       Success(execution)
 
     case _ =>
       val templates = definition.templates.flatMap({case (templateDefinition, id) => currentTemplates.get(id).map(templateDefinition -> _)})
-      executionEngine.resumeExecution(execution, templates)
+      executionEngine.resumeExecution(execution, templates, willBeUsedForEmbedded)
   }
 
   def createNewExecutionResult(signatureProofs:Map[Email, SignatureProof]):Option[TemplateExecutionResult] =
@@ -327,16 +327,16 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
       Right(this)
   }
 
-  def apply(cmd:OpenlawVmCommand): Result[OpenlawVm] = cmd match {
+  def apply(cmd:OpenlawVmCommand, willBeUsedForEmbedded:Option[Boolean] = None): Result[OpenlawVm] = cmd match {
     case LoadTemplateCommand(id, event) =>
-      loadTemplate(id, event)
+      loadTemplate(id, event, willBeUsedForEmbedded.getOrElse(false))
     case UpdateExecutionStateCommand(name, event) =>
       Right(updateExecutionState(name, event))
   }
 
-  private def loadTemplate(id:TemplateId, event:LoadTemplate): Result[OpenlawVm] = {
+  private def loadTemplate(id:TemplateId, event:LoadTemplate, willBeUsedForEmbedded:Boolean): Result[OpenlawVm] = {
     parser.compileTemplate(event.content).map(template => {
-      state = state.updateTemplate(id, template , event)
+      state = state.updateTemplate(id, template , event, willBeUsedForEmbedded)
       this
     })
   }

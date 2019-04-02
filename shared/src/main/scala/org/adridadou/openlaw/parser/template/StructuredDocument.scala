@@ -330,7 +330,7 @@ case class TemplateExecutionResult(
   }
 
   def getTemplateIdentifier:Option[TemplateSourceIdentifier] = state match {
-    case ExecutionWaitForTemplate(_, identifier) =>
+    case ExecutionWaitForTemplate(_, identifier, _) =>
       Some(identifier)
     case _ => None
   }
@@ -574,7 +574,7 @@ object TemplateExecutionState {
 sealed trait TemplateExecutionState
 case object ExecutionFinished extends TemplateExecutionState
 case object ExecutionReady extends TemplateExecutionState
-final case class ExecutionWaitForTemplate(variableName:VariableName, template:TemplateSourceIdentifier) extends TemplateExecutionState
+final case class ExecutionWaitForTemplate(variableName:VariableName, template:TemplateSourceIdentifier, willBeUsedForEmbedded:Boolean) extends TemplateExecutionState
 
 case class ActionInfo(action:ActionValue, name:VariableName, executionResult: TemplateExecutionResult)
 

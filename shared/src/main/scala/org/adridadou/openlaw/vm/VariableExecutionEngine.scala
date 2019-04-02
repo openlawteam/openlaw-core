@@ -7,7 +7,7 @@ import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 trait VariableExecutionEngine {
 
-  protected def processNewVariable(executionResult: TemplateExecutionResult, variable:VariableDefinition, executed:Boolean): Result[TemplateExecutionResult] = {
+  protected def processNewVariable(executionResult: TemplateExecutionResult, variable:VariableDefinition, executed:Boolean, willBeUsedForEmbedded:Boolean): Result[TemplateExecutionResult] = {
     registerNewTypeIfNeeded(executionResult, variable).flatMap {
       case true =>
         addNewVariable(executionResult, variable)
@@ -26,7 +26,7 @@ trait VariableExecutionEngine {
             case Nil =>
               variable.verifyConstructor(executionResult).flatMap { _ =>
                 if (executed) {
-                  executeVariable(executionResult, currentVariable)
+                  executeVariable(executionResult, currentVariable, willBeUsedForEmbedded)
                 } else {
                   Success(executionResult)
                 }
@@ -38,10 +38,10 @@ trait VariableExecutionEngine {
     }
   }
 
-  protected def processDefinedVariable(executionResult: TemplateExecutionResult, variable: VariableDefinition, executed: Boolean): Result[TemplateExecutionResult] = {
+  protected def processDefinedVariable(executionResult: TemplateExecutionResult, variable: VariableDefinition, executed: Boolean, willBeUsedForEmbedded:Boolean): Result[TemplateExecutionResult] = {
     if(variable.nameOnly) {
       if(executed) {
-        executeVariable(executionResult, variable)
+        executeVariable(executionResult, variable, willBeUsedForEmbedded)
       } else {
         Success(executionResult)
       }
@@ -49,7 +49,7 @@ trait VariableExecutionEngine {
       val definedVariable = executionResult.getVariable(variable.name).getOrElse(variable)
       validateVariableRedefinition(executionResult, definedVariable, variable) flatMap { _ =>
         if(executed) {
-          executeVariable(executionResult, variable)
+          executeVariable(executionResult, variable, willBeUsedForEmbedded)
         } else {
           Success(executionResult)
         }
@@ -73,11 +73,11 @@ trait VariableExecutionEngine {
     }
   }
 
-  protected def executeVariable(executionResult: TemplateExecutionResult, variable:VariableDefinition): Result[TemplateExecutionResult] = {
+  protected def executeVariable(executionResult: TemplateExecutionResult, variable:VariableDefinition, willBeUsedForEmbedded:Boolean): Result[TemplateExecutionResult] = {
     executionResult.executedVariables append variable.name
     executionResult.getVariable(variable.name).map(_.varType(executionResult)) match {
       case Some(TemplateType) =>
-        startSubExecution(variable, executionResult)
+        startSubExecution(variable, executionResult, willBeUsedForEmbedded)
       case _ =>
         val currentVariable = executionResult.getVariable(variable.name).getOrElse(variable)
         executionResult.executedVariables appendAll currentVariable.defaultValue
@@ -86,10 +86,10 @@ trait VariableExecutionEngine {
     }
   }
 
-  private def startSubExecution(variable: VariableDefinition, executionResult: TemplateExecutionResult): Result[TemplateExecutionResult] = {
+  private def startSubExecution(variable: VariableDefinition, executionResult: TemplateExecutionResult, willBeUsedForEmbedded:Boolean): Result[TemplateExecutionResult] = {
     variable.evaluate(executionResult) match {
       case Some(definition:TemplateDefinition) =>
-        Success(executionResult.copy(state = ExecutionWaitForTemplate(variable.name, definition.name)))
+        Success(executionResult.copy(state = ExecutionWaitForTemplate(variable.name, definition.name, willBeUsedForEmbedded)))
       case Some(_) =>
         Failure("the variable didn't return a template definition!")
       case None =>
