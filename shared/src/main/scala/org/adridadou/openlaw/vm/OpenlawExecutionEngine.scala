@@ -76,17 +76,6 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       clock = mainTemplate.clock,
       signatureProofs = signatureProofs
     )
-
-    /*val anonymousVariable = executionResult.createAnonymousVariable()
-
-    println("original execution result for clause" + executionResult)
-    println("original variables in clause execution result example" + executionResult.parameters)
-    executionResult.variables append VariableDefinition(name = anonymousVariable, variableTypeDefinition = Some(VariableTypeDefinition(TemplateType.name)), defaultValue = Some(OneValueParameter(StringConstant(anonymousVariable.name))))
-    executionResult.executedVariables append anonymousVariable
-
-    executionResult.variables.map(variable => executionResult.startEmbeddedExecution(anonymousVariable, mainTemplate, variable.name, executionResult.getExpression(variable.name), executionResult.findVariableType(variable.variableTypeDefinition.getOrElse(VariableTypeDefinition(TextType.name))).getOrElse(TextType)))
-    println("new execution result for clause after running startEmbeddedExecution" + executionResult)
-    Success(executionResult)*/
     resumeExecution(executionResult, templates, true).flatMap(newResult => {
       mainTemplate match {
         case agreement:CompiledAgreement if newResult.agreements.isEmpty =>
@@ -124,16 +113,17 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
           case Some(template) =>
             // has to be in a matcher for tail call optimization
             willBeUsedForEmbedded match {
-                //TODO - make it work with any variable type - the TextType is just hardcoded for testing
-              case true =>  attempt(executionResult.startEmbeddedExecution(variableName, template, variableName, executionResult.getExpression(variableName), TextType)).flatten match {
-                case Success(result) => resumeExecution(result, templates, willBeUsedForEmbedded)
-                case f @ Failure(_) => f
-              }
-              case false => attempt(executionResult.startTemplateExecution(variableName, template)).flatten match {
-                case Success(result) => resumeExecution(result, templates, willBeUsedForEmbedded)
-                case f @ Failure(_) => f
-              }
-            }
+              case true =>
+                val variable = executionResult.variables.filter(_.name == variableName).head
+                attempt(executionResult.startEmbeddedExecution(variableName, template, variableName, executionResult.getExpression(variableName), executionResult.findVariableType(variable.variableTypeDefinition.getOrElse(VariableTypeDefinition(TextType.name))).getOrElse(TextType))).flatten match {
+                    case Success(result) => resumeExecution(result, templates, willBeUsedForEmbedded)
+                    case f@Failure(_) => f
+                  }
+                  case false => attempt(executionResult.startTemplateExecution(variableName, template)).flatten match {
+                    case Success(result) => resumeExecution(result, templates, willBeUsedForEmbedded)
+                    case f@Failure(_) => f
+                  }
+                }
           case None => Success(executionResult)
         }
 
