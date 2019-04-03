@@ -35,24 +35,31 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     }
   }
 
-  it should "run a simple clause in template and detect variable" in {
+  it should "run a simple clause in template and detect variables of different types" in {
     val text =
       """
         |<%
         |[[clauseVar:LargeText]]
+        |[[anotherVar:Text]]
+        |[[number:Number]]
+        |%>
         |[[clause:Clause(
         |name: "clause";
-        |parameters: clauseVar -> clauseVar
+        |parameters: clauseVar -> "var1",
+        |anotherVar -> "var2",
+        |number -> "2"
         |)]]
-        |%>
+        |[[clauseVar]]
+        |[[anotherVar]]
+        |[[number]]
       """.stripMargin
 
     val compiledTemplate = compile(text)
-    val parameters = TemplateParameters("clauseVar" -> "1")
+    val parameters = TemplateParameters("clauseVar" -> "var1", "anotherVar" -> "var2", "number" -> "2")
     engine.executeClause(compiledTemplate, parameters, Map()) match {
       case Right(result) =>
         result.state shouldBe ExecutionFinished
-        result.variables.map(_.name.name) shouldBe Seq("clauseVar")
+        result.variables.map(_.name.name) shouldBe Seq("clauseVar", "anotherVar", "number", "clause")
       case Left(ex) => fail(ex)
     }
   }
@@ -99,10 +106,10 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     val parameters = TemplateParameters("My Variable 2" -> "hello", "Other one" -> "334")
     engine.execute(compiledTemplate, parameters, Map()) match {
       case Right(result) =>
-        result.state shouldBe ExecutionWaitForTemplate(VariableName("@@anonymous_3@@"), TemplateSourceIdentifier(TemplateTitle("Another Template")))
+        result.state shouldBe ExecutionWaitForTemplate(VariableName("@@anonymous_3@@"), TemplateSourceIdentifier(TemplateTitle("Another Template")), false)
         result.variables.map(_.name.name) shouldBe Seq("My Variable","@@anonymous_1@@", "@@anonymous_2@@", "Other one", "@@anonymous_3@@")
 
-        engine.resumeExecution(result, Map(TemplateSourceIdentifier(TemplateTitle("another Template")) -> otherCompiledTemplate)) match {
+        engine.resumeExecution(result, Map(TemplateSourceIdentifier(TemplateTitle("another Template")) -> otherCompiledTemplate), false) match {
           case Right(newResult) =>
             newResult.state shouldBe ExecutionFinished
             newResult.parentExecution.isDefined shouldBe false
@@ -111,6 +118,44 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
             newResult.agreements.size shouldBe 1
 
             parser.forReview(newResult.agreements.head,ParagraphEdits()) shouldBe """<p class="no-section">it is just another template hello</p>"""
+          case Left(ex) =>
+            fail(ex)
+        }
+
+      case Left(ex) =>
+        fail(ex)
+    }
+  }
+
+  it should "wait for a clause and then finish its execution" in {
+    val text =
+      """
+        |<%
+        |[[My Variable:Text]]
+        |[[_:Text]]
+        |[[_:Text]]
+        |[[Other one:Number]]
+        |%>
+        |
+        |[[My Variable]] - [[Other one]]
+        |
+        |[[_:Clause("A Clause")]]
+      """.stripMargin
+
+    val text2 = "it is just another template [[My Variable 2:Text]]"
+    val compiledTemplate = compile(text)
+    val otherCompiledTemplate = compile(text2)
+    val parameters = TemplateParameters("My Variable 2" -> "hello", "Other one" -> "334")
+    engine.executeClause(compiledTemplate, parameters, Map()) match {
+      case Right(result) =>
+        result.state shouldBe ExecutionFinished
+        result.variables.map(_.name.name) shouldBe Seq("My Variable","@@anonymous_1@@", "@@anonymous_2@@", "Other one", "@@anonymous_3@@")
+
+        engine.resumeExecution(result, Map(TemplateSourceIdentifier(TemplateTitle("A Clause")) -> otherCompiledTemplate), true) match {
+          case Right(newResult) =>
+            newResult.state shouldBe ExecutionFinished
+            newResult.parentExecution.isDefined shouldBe false
+            newResult.subExecutions.size shouldBe 0
           case Left(ex) =>
             fail(ex)
         }
@@ -139,10 +184,10 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     val parameters = TemplateParameters()
     engine.execute(compiledTemplate, parameters, Map()) match {
       case Right(result) =>
-        result.state shouldBe ExecutionWaitForTemplate(VariableName("My Template"), TemplateSourceIdentifier(TemplateTitle("Another Template")))
+        result.state shouldBe ExecutionWaitForTemplate(VariableName("My Template"), TemplateSourceIdentifier(TemplateTitle("Another Template")), false)
         result.variables.map(_.name.name) shouldBe Seq("My Variable", "Other one", "My Template")
 
-        engine.resumeExecution(result, Map(TemplateSourceIdentifier(TemplateTitle("Another Template")) -> otherCompiledTemplate, TemplateSourceIdentifier(TemplateTitle("My Template")) -> compiledTemplate)) match {
+        engine.resumeExecution(result, Map(TemplateSourceIdentifier(TemplateTitle("Another Template")) -> otherCompiledTemplate, TemplateSourceIdentifier(TemplateTitle("My Template")) -> compiledTemplate), false) match {
           case Right(_) =>
             fail("should fail")
           case Left(ex) =>
@@ -173,10 +218,10 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     val parameters = TemplateParameters()
     engine.execute(compiledTemplate, parameters, Map()) match {
       case Right(result) =>
-        result.state shouldBe ExecutionWaitForTemplate(VariableName("My Template"), TemplateSourceIdentifier(TemplateTitle("Another Template")))
+        result.state shouldBe ExecutionWaitForTemplate(VariableName("My Template"), TemplateSourceIdentifier(TemplateTitle("Another Template")), false)
         result.variables.map(_.name.name) shouldBe Seq("My Variable", "Other one", "My Template")
 
-        engine.resumeExecution(result, Map(TemplateSourceIdentifier(TemplateTitle("Another Template")) -> otherCompiledTemplate, TemplateSourceIdentifier(TemplateTitle("My Template")) -> compiledTemplate)) match {
+        engine.resumeExecution(result, Map(TemplateSourceIdentifier(TemplateTitle("Another Template")) -> otherCompiledTemplate, TemplateSourceIdentifier(TemplateTitle("My Template")) -> compiledTemplate), false) match {
           case Right(_) =>
             fail("should fail")
           case Left(ex) =>
@@ -235,6 +280,31 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     engine.execute(mainTemplate, TemplateParameters(), Map(TemplateSourceIdentifier(TemplateTitle("template")) -> subTemplate)) match {
       case Right(result) =>
         result.getExecutedVariables.map(_.name) shouldBe Seq("template", "var", "var 2")
+      case Left(ex) =>
+        fail(ex)
+    }
+  }
+
+  it should "see a variable as executed if it has been executed in a clause" in {
+    val mainTemplate =
+      compile("""
+                |<%
+                |[[var]]
+                |[[var 2]]
+                |%>
+                |
+                |
+                |[[clause:Clause(
+                |name: "clause";
+                |parameters: var -> var
+                |)]]
+              """.stripMargin)
+
+    val subTemplate = compile("[[var]] [[var 2]]")
+
+    engine.executeClause(mainTemplate, TemplateParameters(), Map(TemplateSourceIdentifier(TemplateTitle("template")) -> subTemplate)) match {
+      case Right(result) =>
+        result.getExecutedVariables.map(_.name) shouldBe Seq("clause", "var")
       case Left(ex) =>
         fail(ex)
     }
