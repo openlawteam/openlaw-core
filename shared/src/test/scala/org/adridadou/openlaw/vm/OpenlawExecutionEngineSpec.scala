@@ -1,7 +1,6 @@
 package org.adridadou.openlaw.vm
 
 import java.time.Clock
-
 import org.adridadou.openlaw.result.Implicits.failureCause2Exception
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template._
@@ -110,7 +109,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         result.state shouldBe ExecutionWaitForTemplate(VariableName("@@anonymous_3@@"), TemplateSourceIdentifier(TemplateTitle("Another Template")), false)
         result.variables.map(_.name.name) shouldBe Seq("My Variable","@@anonymous_1@@", "@@anonymous_2@@", "Other one", "@@anonymous_3@@")
 
-        engine.resumeExecution(result, Map(TemplateSourceIdentifier(TemplateTitle("Another Template")) -> otherCompiledTemplate), false) match {
+        engine.resumeExecution(result, Map(TemplateSourceIdentifier(TemplateTitle("another Template")) -> otherCompiledTemplate), false) match {
           case Right(newResult) =>
             newResult.state shouldBe ExecutionFinished
             newResult.parentExecution.isDefined shouldBe false
