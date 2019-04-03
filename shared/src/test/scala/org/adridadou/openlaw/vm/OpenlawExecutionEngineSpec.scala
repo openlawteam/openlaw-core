@@ -36,17 +36,20 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     }
   }
 
-  it should "run a simple clause in template and detect variable" in {
+  it should "run a simple clause in template and detect variables" in {
     val text =
       """
         |<%
         |[[clauseVar:LargeText]]
+        |[[anotherVar:Text]]
         |%>
         |[[clause:Clause(
         |name: "clause";
-        |parameters: clauseVar -> clauseVar
+        |parameters: clauseVar -> "var1",
+        |anotherVar -> "var2"
         |)]]
         |[[clauseVar]]
+        |[[anotherVar]]
       """.stripMargin
 
     val compiledTemplate = compile(text)
@@ -54,7 +57,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     engine.executeClause(compiledTemplate, parameters, Map()) match {
       case Right(result) =>
         result.state shouldBe ExecutionFinished
-        result.variables.map(_.name.name) shouldBe Seq("clause", "clauseVar")
+        result.variables.map(_.name.name) shouldBe Seq("clause", "anotherVar", "clauseVar")
       case Left(ex) => fail(ex)
     }
   }
@@ -247,7 +250,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     val parameters = TemplateParameters()
     engine.executeClause(compiledTemplate, parameters, Map()) match {
       case Right(result) =>
-        result.state shouldBe ExecutionFinished 
+        result.state shouldBe ExecutionFinished
         result.variables.map(_.name.name) shouldBe Seq("My Variable", "Other one", "My Clause")
 
         engine.resumeExecution(result, Map(TemplateSourceIdentifier(TemplateTitle("My Clause")) -> otherCompiledTemplate, TemplateSourceIdentifier(TemplateTitle("My Clause")) -> compiledTemplate), true) match {
@@ -315,28 +318,6 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
   }
 
   it should "map variable for sub templates" in {
-    val mainTemplate =
-      compile("""<%
-                [[var]]
-                [[template:Template(
-                name: "template";
-                parameters:
-                  other var -> var + " world")]]
-              %>
-
-              [[template]]""".stripMargin)
-
-    val subTemplate = compile("[[other var]]")
-
-    engine.execute(mainTemplate, TemplateParameters("var" -> "Hello"), Map(TemplateSourceIdentifier(TemplateTitle("template")) -> subTemplate)) match {
-      case Right(result) =>
-        parser.forReview(result.agreements.head,ParagraphEdits()) shouldBe """<p class="no-section">Hello world</p>"""
-      case Left(ex) =>
-        fail(ex)
-    }
-  }
-
-  it should "map variable for clause" in {
     val mainTemplate =
       compile("""<%
                 [[var]]
