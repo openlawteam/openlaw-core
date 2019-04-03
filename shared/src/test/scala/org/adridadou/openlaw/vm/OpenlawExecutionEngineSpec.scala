@@ -36,28 +36,31 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     }
   }
 
-  it should "run a simple clause in template and detect variables" in {
+  it should "run a simple clause in template and detect variables of different types" in {
     val text =
       """
         |<%
         |[[clauseVar:LargeText]]
         |[[anotherVar:Text]]
+        |[[number:Number]]
         |%>
         |[[clause:Clause(
         |name: "clause";
         |parameters: clauseVar -> "var1",
-        |anotherVar -> "var2"
+        |anotherVar -> "var2",
+        |number -> "2"
         |)]]
         |[[clauseVar]]
         |[[anotherVar]]
+        |[[number]]
       """.stripMargin
 
     val compiledTemplate = compile(text)
-    val parameters = TemplateParameters("clauseVar" -> "1")
+    val parameters = TemplateParameters("clauseVar" -> "var1", "anotherVar" -> "var2", "number" -> "2")
     engine.executeClause(compiledTemplate, parameters, Map()) match {
       case Right(result) =>
         result.state shouldBe ExecutionFinished
-        result.variables.map(_.name.name) shouldBe Seq("clause", "anotherVar", "clauseVar")
+        result.variables.map(_.name.name) shouldBe Seq("clauseVar", "anotherVar", "number", "clause")
       case Left(ex) => fail(ex)
     }
   }
@@ -220,40 +223,6 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         result.variables.map(_.name.name) shouldBe Seq("My Variable", "Other one", "My Template")
 
         engine.resumeExecution(result, Map(TemplateSourceIdentifier(TemplateTitle("Another Template")) -> otherCompiledTemplate, TemplateSourceIdentifier(TemplateTitle("My Template")) -> compiledTemplate), false) match {
-          case Right(_) =>
-            fail("should fail")
-          case Left(ex) =>
-            ex.message shouldBe "Variable definition mismatch. variable My Variable is defined as Text in the main template but was Number in another template"
-        }
-
-      case Left(ex) =>
-        fail(ex)
-    }
-  }
-
-  it should "detect variable type mismatch in clause" in {
-    val text =
-      """
-        |<%
-        |[[My Variable:Text]]
-        |[[Other one:Number]]
-        |%>
-        |
-        |[[My Variable]] - [[Other one]]
-        |
-        |[[My Clause: Clause("My Clause")]]
-      """.stripMargin
-
-    val text2 = """[[My Variable:Number]]"""
-    val compiledTemplate = compile(text)
-    val otherCompiledTemplate = compile(text2)
-    val parameters = TemplateParameters()
-    engine.executeClause(compiledTemplate, parameters, Map()) match {
-      case Right(result) =>
-        result.state shouldBe ExecutionFinished
-        result.variables.map(_.name.name) shouldBe Seq("My Variable", "Other one", "My Clause")
-
-        engine.resumeExecution(result, Map(TemplateSourceIdentifier(TemplateTitle("My Clause")) -> otherCompiledTemplate, TemplateSourceIdentifier(TemplateTitle("My Clause")) -> compiledTemplate), true) match {
           case Right(_) =>
             fail("should fail")
           case Left(ex) =>
