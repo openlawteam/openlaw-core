@@ -35,6 +35,7 @@ lazy val commonSettings = Seq(
 )
 
 lazy val publishSettings = Seq(
+  publishArtifact in (Test, packageBin) := true,
   homepage := Some(url(s"https://github.com/$username/$repo")),
   licenses += ("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0")),
   bintrayReleaseOnPublish in ThisBuild := true,
