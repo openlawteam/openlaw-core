@@ -35,37 +35,6 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     }
   }
 
-  it should "run a simple clause in template and detect variables of different types" in {
-    val text =
-      """
-        |<%
-        |[[clauseVar:LargeText]]
-        |[[anotherVar:Text]]
-        |[[number:Number]]
-        |%>
-        |[[clause:Clause(
-        |name: "clause";
-        |parameters: clauseVar -> "var1",
-        |anotherVar -> "var2",
-        |number -> "2"
-        |)]]
-        |[[clauseVar]]
-        |[[anotherVar]]
-        |[[number]]
-      """.stripMargin
-
-    val compiledTemplate = compile(text)
-    val parameters = TemplateParameters("clauseVar" -> "var1", "anotherVar" -> "var2", "number" -> "2")
-    engine.execute(compiledTemplate, parameters, Map()) match {
-      case Right(result) =>
-        result.state shouldBe ExecutionFinished
-        result.agreements.length shouldBe 1
-        result.variables.map(_.name.name) shouldBe Seq("clauseVar", "anotherVar", "number", "clause")
-        parser.forReview(result.agreements.head) shouldBe ""
-      case Left(ex) => fail(ex.message, ex)
-    }
-  }
-
   it should "run a simple template with large text" in {
     val text =
       """
@@ -134,8 +103,6 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       """
         |<%
         |[[My Variable:Text]]
-        |[[_:Text]]
-        |[[_:Text]]
         |[[Other one:Number]]
         |%>
         |
@@ -150,14 +117,11 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     val parameters = TemplateParameters("My Variable 2" -> "hello", "Other one" -> "334")
     engine.execute(compiledTemplate, parameters, Map()) match {
       case Right(result) =>
-        result.state shouldBe ExecutionFinished
-        result.variables.map(_.name.name) shouldBe Seq("My Variable","@@anonymous_1@@", "@@anonymous_2@@", "Other one", "@@anonymous_3@@")
-
+        result.state shouldBe ExecutionWaitForTemplate(VariableName("@@anonymous_1@@"),TemplateSourceIdentifier(TemplateTitle("a clause")), willBeUsedForEmbedded = true)
         engine.resumeExecution(result, Map(TemplateSourceIdentifier(TemplateTitle("A Clause")) -> otherCompiledTemplate)) match {
           case Right(newResult) =>
             newResult.state shouldBe ExecutionFinished
-            newResult.parentExecution.isDefined shouldBe false
-            newResult.subExecutions.size shouldBe 0
+            newResult.subExecutions.size shouldBe 1
           case Left(ex) =>
             fail(ex)
         }

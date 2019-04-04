@@ -31,7 +31,7 @@ case class TemplateExecutionResult(
                                     variableSectionList:mutable.Buffer[String] = mutable.Buffer(),
                                     agreements:mutable.Buffer[StructuredAgreement] = mutable.Buffer(),
                                     subExecutions:mutable.Map[VariableName, TemplateExecutionResult] = mutable.Map(),
-                                    embeddedExecutions:mutable.Buffer[TemplateExecutionResult] = mutable.Buffer(),
+                                    forEachExecutions:mutable.Buffer[TemplateExecutionResult] = mutable.Buffer(),
                                     finishedEmbeddedExecutions:mutable.Buffer[TemplateExecutionResult] = mutable.Buffer(),
                                     state:TemplateExecutionState = ExecutionReady,
                                     remainingElements:mutable.Buffer[TemplatePart] = mutable.Buffer(),
@@ -341,7 +341,7 @@ case class TemplateExecutionResult(
   def startForEachExecution(variableName:VariableName, template:CompiledTemplate, name:VariableName, value:Any, varType:VariableType): Result[TemplateExecutionResult] = {
     startSubExecution(variableName, template, embedded = true).map(result => {
       val newResult = result.copy(parameters = parameters + (name -> varType.internalFormat(value)))
-      this.embeddedExecutions append newResult
+      this.forEachExecutions append newResult
       newResult
     })
   }

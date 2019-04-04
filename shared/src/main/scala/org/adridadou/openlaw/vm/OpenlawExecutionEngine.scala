@@ -125,9 +125,9 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
   }
 
   private final def executeInternal(execution: TemplateExecutionResult, templates:Map[TemplateSourceIdentifier, CompiledTemplate]): Result[TemplateExecutionResult] = {
-    execution.embeddedExecutions.headOption match {
+    execution.forEachExecutions.headOption match {
       case Some(embeddedExecution) =>
-        execution.embeddedExecutions.remove(0)
+        execution.forEachExecutions.remove(0)
         Success(embeddedExecution)
       case _ =>
         execution.remainingElements.headOption match {
