@@ -113,11 +113,19 @@ case class CompiledAgreement(
       case variableDefinition:VariableDefinition if !variableDefinition.isHidden =>
         executionResult.getAliasOrVariableType(variableDefinition.name) match {
           case Right(variableType @ SectionType) =>
-            renderedElements.:+(VariableElement(variableDefinition.name.name, Some(variableType), generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult), getDependencies(variableDefinition.name, executionResult)))
+            renderedElements :+ VariableElement(variableDefinition.name.name, Some(variableType), generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult), getDependencies(variableDefinition.name, executionResult))
+          case Right(ClauseType) =>
+            executionResult.subExecutions.get(variableDefinition.name) match {
+              case Some(subExecution) =>
+                getAgreementElements(renderedElements, subExecution.template.block.elems.toList, subExecution)
+              case None =>
+                renderedElements
+            }
+
           case Right(_:NoShowInForm) =>
             renderedElements
           case Right(variableType) =>
-            renderedElements.:+(VariableElement(variableDefinition.name.name, Some(variableType), generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult), getDependencies(variableDefinition.name, executionResult)))
+            renderedElements :+ VariableElement(variableDefinition.name.name, Some(variableType), generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult), getDependencies(variableDefinition.name, executionResult))
           case Left(_) =>
             renderedElements
         }

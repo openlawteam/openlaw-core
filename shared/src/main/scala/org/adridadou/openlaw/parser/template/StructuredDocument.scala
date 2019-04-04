@@ -338,14 +338,18 @@ case class TemplateExecutionResult(
   def getCompiledTemplate(templates: Map[TemplateSourceIdentifier, CompiledTemplate]):Option[CompiledTemplate] =
     getTemplateIdentifier flatMap templates.get
 
-  def startEmbeddedExecution(variableName:VariableName, template:CompiledTemplate, name:VariableName, value:Any, varType:VariableType): Result[TemplateExecutionResult] = {
+  def startForEachExecution(variableName:VariableName, template:CompiledTemplate, name:VariableName, value:Any, varType:VariableType): Result[TemplateExecutionResult] = {
     startSubExecution(variableName, template, embedded = true).map(result => {
       val newResult = result.copy(parameters = parameters + (name -> varType.internalFormat(value)))
-      this.subExecutions.put(variableName, newResult)
       this.embeddedExecutions append newResult
       newResult
     })
   }
+
+  def startClauseExecution(variableName:VariableName, template:CompiledTemplate): Result[TemplateExecutionResult] =
+    startSubExecution(variableName, template, embedded = true).map(result => {
+      result
+    })
 
   def startTemplateExecution(variableName:VariableName, template:CompiledTemplate): Result[TemplateExecutionResult] =
     startSubExecution(variableName, template, embedded = false)
@@ -376,6 +380,7 @@ case class TemplateExecutionResult(
         }
 
         this.subExecutions.put(variableName, execution)
+
         execution
       })
     }).getOrElse(Failure(s"template ${variableName.name} was not resolved! ${variables.map(_.name)}"))
@@ -538,6 +543,8 @@ case class ConditionalStart(dependencies: Seq[String]) extends AgreementElement
 case class ConditionalStartWithElse(dependencies: Seq[String]) extends AgreementElement
 case class ConditionalEnd(dependencies: Seq[String]) extends AgreementElement
 case class ConditionalEndWithElse(dependencies: Seq[String]) extends AgreementElement
+
+case class ClauseAnchorElement(variableName:VariableName) extends AgreementElement
 
 case class ParagraphBuilder(paragraphs:List[Paragraph] = List(), lastParagraph:Paragraph = Paragraph()) {
   def addAllToLastParagraph(elements: List[AgreementElement]): ParagraphBuilder = elements.foldLeft(this)((builder, element) => builder.add(element))
