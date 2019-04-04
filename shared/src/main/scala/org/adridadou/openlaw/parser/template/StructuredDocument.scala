@@ -31,7 +31,7 @@ case class TemplateExecutionResult(
                                     variableSectionList:mutable.Buffer[String] = mutable.Buffer(),
                                     agreements:mutable.Buffer[StructuredAgreement] = mutable.Buffer(),
                                     subExecutions:mutable.Map[VariableName, TemplateExecutionResult] = mutable.Map(),
-                                    embeddedExecutions:mutable.Buffer[TemplateExecutionResult] = mutable.Buffer(),
+                                    forEachExecutions:mutable.Buffer[TemplateExecutionResult] = mutable.Buffer(),
                                     finishedEmbeddedExecutions:mutable.Buffer[TemplateExecutionResult] = mutable.Buffer(),
                                     state:TemplateExecutionState = ExecutionReady,
                                     remainingElements:mutable.Buffer[TemplatePart] = mutable.Buffer(),
@@ -330,7 +330,7 @@ case class TemplateExecutionResult(
   }
 
   def getTemplateIdentifier:Option[TemplateSourceIdentifier] = state match {
-    case ExecutionWaitForTemplate(_, identifier) =>
+    case ExecutionWaitForTemplate(_, identifier, _) =>
       Some(identifier)
     case _ => None
   }
@@ -338,19 +338,15 @@ case class TemplateExecutionResult(
   def getCompiledTemplate(templates: Map[TemplateSourceIdentifier, CompiledTemplate]):Option[CompiledTemplate] =
     getTemplateIdentifier flatMap templates.get
 
-  def startEmbeddedExecution(variableName:VariableName, template:CompiledTemplate, name:VariableName, value:Any, varType:VariableType): Result[TemplateExecutionResult] = {
+  def startForEachExecution(variableName:VariableName, template:CompiledTemplate, name:VariableName, value:Any, varType:VariableType): Result[TemplateExecutionResult] = {
     startSubExecution(variableName, template, embedded = true).map(result => {
       val newResult = result.copy(parameters = parameters + (name -> varType.internalFormat(value)))
-      this.subExecutions.put(variableName, newResult)
-      this.embeddedExecutions append newResult
+      this.forEachExecutions append newResult
       newResult
     })
   }
 
-  def startTemplateExecution(variableName:VariableName, template:CompiledTemplate): Result[TemplateExecutionResult] =
-    startSubExecution(variableName, template, embedded = false)
-
-  private def startSubExecution(variableName:VariableName, template:CompiledTemplate, embedded:Boolean): Result[TemplateExecutionResult] = {
+  def startSubExecution(variableName:VariableName, template:CompiledTemplate, embedded:Boolean): Result[TemplateExecutionResult] = {
     getVariableValue[TemplateDefinition](variableName).map(templateDefinition => {
       detectCyclicDependency(templateDefinition).map(_ => {
         val newExecution = TemplateExecutionResult(
@@ -376,6 +372,7 @@ case class TemplateExecutionResult(
         }
 
         this.subExecutions.put(variableName, execution)
+
         execution
       })
     }).getOrElse(Failure(s"template ${variableName.name} was not resolved! ${variables.map(_.name)}"))
@@ -574,7 +571,7 @@ object TemplateExecutionState {
 sealed trait TemplateExecutionState
 case object ExecutionFinished extends TemplateExecutionState
 case object ExecutionReady extends TemplateExecutionState
-final case class ExecutionWaitForTemplate(variableName:VariableName, template:TemplateSourceIdentifier) extends TemplateExecutionState
+final case class ExecutionWaitForTemplate(variableName:VariableName, template:TemplateSourceIdentifier, willBeUsedForEmbedded:Boolean) extends TemplateExecutionState
 
 case class ActionInfo(action:ActionValue, name:VariableName, executionResult: TemplateExecutionResult)
 

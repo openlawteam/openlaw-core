@@ -15,6 +15,7 @@ import org.adridadou.openlaw.values._
 case class TemplateDefinition(name:TemplateSourceIdentifier, mappingInternal:Map[String, Expression] = Map(), path:Option[TemplatePath] = None) {
   lazy val mapping: Map[VariableName, Expression] = mappingInternal.map({case (key,value) => VariableName(key) -> value})
 }
+
 case class TemplateSourceIdentifier(name:TemplateTitle)
 
 case class TemplatePath(path:Seq[String] = Seq()) {
@@ -107,7 +108,7 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
       Success(None)
   }
 
-  private def prepareTemplateMappingParamters(parameters: Parameters, result: TemplateExecutionResult):Result[Map[VariableName, Expression]] = parameters.parameterMap.toMap.get("parameters").map({
+  private def prepareTemplateMappingParameters(parameters: Parameters, result: TemplateExecutionResult):Result[Map[VariableName, Expression]] = parameters.parameterMap.toMap.get("parameters").map({
     case mapping:MappingParameter =>
       Success(mapping.mapping)
     case _ =>
@@ -128,7 +129,7 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
       case mappingParameter:Parameters =>
         for {
           path <- prepareTemplatePath(mappingParameter, executionResult)
-          parameters <- prepareTemplateMappingParamters(mappingParameter, executionResult)
+          parameters <- prepareTemplateMappingParameters(mappingParameter, executionResult)
           source <- prepareTemplateSource(mappingParameter, executionResult, parameters, path)
         } yield Some(source)
 
