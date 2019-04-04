@@ -346,15 +346,7 @@ case class TemplateExecutionResult(
     })
   }
 
-  def startClauseExecution(variableName:VariableName, template:CompiledTemplate): Result[TemplateExecutionResult] =
-    startSubExecution(variableName, template, embedded = true).map(result => {
-      result
-    })
-
-  def startTemplateExecution(variableName:VariableName, template:CompiledTemplate): Result[TemplateExecutionResult] =
-    startSubExecution(variableName, template, embedded = false)
-
-  private def startSubExecution(variableName:VariableName, template:CompiledTemplate, embedded:Boolean): Result[TemplateExecutionResult] = {
+  def startSubExecution(variableName:VariableName, template:CompiledTemplate, embedded:Boolean): Result[TemplateExecutionResult] = {
     getVariableValue[TemplateDefinition](variableName).map(templateDefinition => {
       detectCyclicDependency(templateDefinition).map(_ => {
         val newExecution = TemplateExecutionResult(
@@ -543,8 +535,6 @@ case class ConditionalStart(dependencies: Seq[String]) extends AgreementElement
 case class ConditionalStartWithElse(dependencies: Seq[String]) extends AgreementElement
 case class ConditionalEnd(dependencies: Seq[String]) extends AgreementElement
 case class ConditionalEndWithElse(dependencies: Seq[String]) extends AgreementElement
-
-case class ClauseAnchorElement(variableName:VariableName) extends AgreementElement
 
 case class ParagraphBuilder(paragraphs:List[Paragraph] = List(), lastParagraph:Paragraph = Paragraph()) {
   def addAllToLastParagraph(elements: List[AgreementElement]): ParagraphBuilder = elements.foldLeft(this)((builder, element) => builder.add(element))

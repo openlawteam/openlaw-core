@@ -76,16 +76,9 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
         templates.get(identifier) match {
           case Some(template) =>
             // has to be in a matcher for tail call optimization
-            if (willBeUsedForEmbedded) {
-              attempt(executionResult.startClauseExecution(variableName, template)).flatten match {
-                case Success(result) => resumeExecution(result, templates)
-                case f@Failure(_) => f
-              }
-            } else {
-              attempt(executionResult.startTemplateExecution(variableName, template)).flatten match {
-                case Success(result) => resumeExecution(result, templates)
-                case f@Failure(_) => f
-              }
+            attempt(executionResult.startSubExecution(variableName, template, willBeUsedForEmbedded)).flatten match {
+              case Success(result) => resumeExecution(result, templates)
+              case f@Failure(_) => f
             }
           case None => Success(executionResult)
         }
