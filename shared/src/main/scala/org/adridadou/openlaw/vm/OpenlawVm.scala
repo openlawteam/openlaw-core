@@ -24,12 +24,12 @@ case class Executions(executionMap:Map[LocalDateTime,OpenlawExecution] = Map()) 
 
 case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
                            templates:Map[TemplateId, CompiledTemplate] = Map(),
-                           optExecutionResult:Option[TemplateExecutionResult],
+                           optExecutionResult:Option[OpenlawExecutionState],
                            definition:ContractDefinition,
                            state:TemplateParameters,
                            executions:Map[VariableName, Executions],
                            signatures:Map[Email, OpenlawSignatureEvent],
-                           signatureProofs:Map[Email, SignatureProof] = Map(),
+                           signatureProofs:Map[Email, OpenlawSignatureProof] = Map(),
                            events:List[OpenlawVmEvent] = List(),
                            executionEngine: OpenlawExecutionEngine,
                            executionState:ContractExecutionState,
@@ -50,12 +50,12 @@ case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
     )
   }
 
-  def executionResult:Option[TemplateExecutionResult] = optExecutionResult match {
+  def executionResult:Option[OpenlawExecutionState] = optExecutionResult match {
     case Some(result) => Some(result)
     case None => createNewExecutionResult(state, templates, signatureProofs)
   }
 
-  private def update(templates:Map[TemplateId, CompiledTemplate], parameters:TemplateParameters, optExecution:Option[TemplateExecutionResult], event:OpenlawVmEvent) : OpenlawVmState = {
+  private def update(templates:Map[TemplateId, CompiledTemplate], parameters:TemplateParameters, optExecution:Option[OpenlawExecutionState], event:OpenlawVmEvent) : OpenlawVmState = {
     val execution = optExecution match {
       case Some(executionResult) =>
         Some(executionResult)
@@ -76,7 +76,7 @@ case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
     )
   }
 
-  private def executeContract(currentTemplates:Map[TemplateId, CompiledTemplate], execution: TemplateExecutionResult):Result[TemplateExecutionResult] = execution.state match {
+  private def executeContract(currentTemplates:Map[TemplateId, CompiledTemplate], execution: OpenlawExecutionState):Result[OpenlawExecutionState] = execution.state match {
     case ExecutionFinished =>
       Success(execution)
 
@@ -85,10 +85,10 @@ case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
       executionEngine.resumeExecution(execution, templates)
   }
 
-  def createNewExecutionResult(signatureProofs:Map[Email, SignatureProof]):Option[TemplateExecutionResult] =
+  def createNewExecutionResult(signatureProofs:Map[Email, OpenlawSignatureProof]):Option[OpenlawExecutionState] =
     createNewExecutionResult(state, templates, signatureProofs)
 
-  def createNewExecutionResult(params:TemplateParameters, templates:Map[TemplateId, CompiledTemplate],signatureProofs:Map[Email, SignatureProof]):Option[TemplateExecutionResult] = {
+  def createNewExecutionResult(params:TemplateParameters, templates:Map[TemplateId, CompiledTemplate],signatureProofs:Map[Email, OpenlawSignatureProof]):Option[OpenlawExecutionState] = {
     val templateDefinitions = definition.templates.flatMap({case (templateDefinition, id) => templates.get(id).map(templateDefinition -> _)})
     templates.get(definition.mainTemplate).map(executionEngine.execute(_, params, templateDefinitions, signatureProofs)) match {
       case None => None
@@ -225,7 +225,7 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
 
   def mainTemplate:CompiledTemplate = state.templates(contractDefinition.mainTemplate)
 
-  def executionResult:Option[TemplateExecutionResult] = state.executionResult
+  def executionResult:Option[OpenlawExecutionState] = state.executionResult
 
   def content(templateId: TemplateId): String = state.contents(templateId)
 

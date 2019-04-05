@@ -87,6 +87,9 @@ object Email {
 
   private val emailRegex = """^[a-zA-Z0-9\.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$""".r
 
+  implicit val emailKeyEnc:KeyEncoder[Email] = (key: Email) => key.email
+  implicit val emailKeyDec:KeyDecoder[Email] = (key: String) => Email.validate(key).toOption
+
   implicit val eqEmail:Eq[Email] = Eq.fromUniversalEquals
   implicit val emailEnc: Encoder[Email] = (a: Email) => Json.fromString(a.email)
   implicit val emailDec: Decoder[Email] = (c: HCursor) =>

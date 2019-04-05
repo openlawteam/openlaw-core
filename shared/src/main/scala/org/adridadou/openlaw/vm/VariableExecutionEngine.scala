@@ -7,7 +7,7 @@ import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 trait VariableExecutionEngine {
 
-  protected def processNewVariable(executionResult: TemplateExecutionResult, variable:VariableDefinition, executed:Boolean): Result[TemplateExecutionResult] = {
+  protected def processNewVariable(executionResult: OpenlawExecutionState, variable:VariableDefinition, executed:Boolean): Result[OpenlawExecutionState] = {
     registerNewTypeIfNeeded(executionResult, variable).flatMap {
       case true =>
         addNewVariable(executionResult, variable)
@@ -38,7 +38,7 @@ trait VariableExecutionEngine {
     }
   }
 
-  protected def processDefinedVariable(executionResult: TemplateExecutionResult, variable: VariableDefinition, executed: Boolean): Result[TemplateExecutionResult] = {
+  protected def processDefinedVariable(executionResult: OpenlawExecutionState, variable: VariableDefinition, executed: Boolean): Result[OpenlawExecutionState] = {
     if(variable.nameOnly) {
       if(executed) {
         executeVariable(executionResult, variable)
@@ -57,7 +57,7 @@ trait VariableExecutionEngine {
     }
   }
 
-  protected def validateVariableRedefinition(executionResult: TemplateExecutionResult, definedVariable: VariableDefinition, variable: VariableDefinition): Result[VariableDefinition] = {
+  protected def validateVariableRedefinition(executionResult: OpenlawExecutionState, definedVariable: VariableDefinition, variable: VariableDefinition): Result[VariableDefinition] = {
     if (definedVariable.varType(executionResult) =!= variable.varType(executionResult)) {
       val title = executionResult.getTemplateDefinitionForVariable(definedVariable.name)
         .map(_.name.name.title)
@@ -73,8 +73,8 @@ trait VariableExecutionEngine {
     }
   }
 
-  protected def executeVariable(executionResult: TemplateExecutionResult, variable:VariableDefinition): Result[TemplateExecutionResult] = {
-    executionResult.executedVariables append variable.name
+  protected def executeVariable(executionResult: OpenlawExecutionState, variable:VariableDefinition): Result[OpenlawExecutionState] = {
+    executionResult.executedVariablesInternal append variable.name
     executionResult.getVariable(variable.name).map(_.varType(executionResult)) match {
       case Some(TemplateType) =>
         startSubExecution(variable, executionResult, willBeUsedForEmbedded = false)
@@ -82,13 +82,13 @@ trait VariableExecutionEngine {
         startSubExecution(variable, executionResult, willBeUsedForEmbedded = true)
       case _ =>
         val currentVariable = executionResult.getVariable(variable.name).getOrElse(variable)
-        executionResult.executedVariables appendAll currentVariable.defaultValue
+        executionResult.executedVariablesInternal appendAll currentVariable.defaultValue
           .map(_.variables(executionResult)).getOrElse(Seq())
         Success(executionResult)
     }
   }
 
-  private def startSubExecution(variable: VariableDefinition, executionResult: TemplateExecutionResult, willBeUsedForEmbedded:Boolean): Result[TemplateExecutionResult] = {
+  private def startSubExecution(variable: VariableDefinition, executionResult: OpenlawExecutionState, willBeUsedForEmbedded:Boolean): Result[OpenlawExecutionState] = {
     variable.evaluate(executionResult) match {
       case Some(definition:TemplateDefinition) =>
         Success(executionResult.copy(state = ExecutionWaitForTemplate(variable.name, definition.name, willBeUsedForEmbedded)))
@@ -99,21 +99,21 @@ trait VariableExecutionEngine {
     }
   }
 
-  protected def addNewVariable(executionResult: TemplateExecutionResult, variable:VariableDefinition):Unit =
-    executionResult.variables append redefineDescription(executionResult, redefineType(executionResult, variable))
+  protected def addNewVariable(executionResult: OpenlawExecutionState, variable:VariableDefinition):Unit =
+    executionResult.variablesInternal append redefineDescription(executionResult, redefineType(executionResult, variable))
 
-  private def redefineType(executionResult: TemplateExecutionResult, variable:VariableDefinition):VariableDefinition =
+  private def redefineType(executionResult: OpenlawExecutionState, variable:VariableDefinition):VariableDefinition =
     executionResult
       .variableRedefinition.typeMap.get(variable.name.name)
       .map(otherType => variable.copy(variableTypeDefinition = Some(otherType)))
       .getOrElse(variable)
 
-  private def redefineDescription(executionResult: TemplateExecutionResult, variable:VariableDefinition):VariableDefinition =
+  private def redefineDescription(executionResult: OpenlawExecutionState, variable:VariableDefinition):VariableDefinition =
     executionResult.variableRedefinition.descriptions
       .get(variable.name.name).map(description => variable.copy(description = Some(description)))
       .getOrElse(variable)
 
-  protected def processAlias(executionResult: TemplateExecutionResult, alias: VariableAliasing, executed:Boolean): Result[TemplateExecutionResult] = {
+  protected def processAlias(executionResult: OpenlawExecutionState, alias: VariableAliasing, executed:Boolean): Result[OpenlawExecutionState] = {
     executionResult.getVariable(alias.name) match {
       case Some(variable) if variable.nameOnly =>
         Failure(s"The alias '${alias.name}' was used before being defined.")
@@ -124,7 +124,7 @@ trait VariableExecutionEngine {
     }
   }
 
-  private def defineAlias(executionResult: TemplateExecutionResult, alias:VariableAliasing, executed:Boolean): Result[TemplateExecutionResult] = {
+  private def defineAlias(executionResult: OpenlawExecutionState, alias:VariableAliasing, executed:Boolean): Result[OpenlawExecutionState] = {
     executionResult.getAlias(alias.name) match {
       case Some(definedAlias:VariableAliasing) =>
         redefineAlias(executionResult, alias, definedAlias, executed)
@@ -136,7 +136,7 @@ trait VariableExecutionEngine {
     }
   }
 
-  private def registerNewTypeIfNeeded(executionResult: TemplateExecutionResult, variable:VariableDefinition): Result[Boolean] = {
+  private def registerNewTypeIfNeeded(executionResult: OpenlawExecutionState, variable:VariableDefinition): Result[Boolean] = {
     variable.varType(executionResult) match {
       case ChoiceType =>
         variable.defaultValue.map(param => ChoiceType.construct(param, executionResult)) match {
@@ -158,7 +158,7 @@ trait VariableExecutionEngine {
     }
   }
 
-  private def validateType(executionResult: TemplateExecutionResult, variableDefinition: VariableDefinition): Result[Unit] =
+  private def validateType(executionResult: OpenlawExecutionState, variableDefinition: VariableDefinition): Result[Unit] =
     variableDefinition.variableTypeDefinition.map { typeName =>
       if (executionResult.findVariableType(typeName).isDefined) {
         variableDefinition.validate(executionResult)
@@ -167,14 +167,14 @@ trait VariableExecutionEngine {
       }
     }.getOrElse(Success(()))
 
-  protected def redefineAlias(executionResult: TemplateExecutionResult, alias: VariableAliasing, definedAlias: VariableAliasing, executed: Boolean): Result[TemplateExecutionResult] = {
+  protected def redefineAlias(executionResult: OpenlawExecutionState, alias: VariableAliasing, definedAlias: VariableAliasing, executed: Boolean): Result[OpenlawExecutionState] = {
     val newType = alias.expressionType(executionResult)
     val oldType = definedAlias.expressionType(executionResult)
 
     if(newType === oldType) {
-      executionResult.aliases.prepend(alias)
+      executionResult.aliasesInternal.prepend(alias)
       if(executed) {
-        executionResult.executedVariables appendAll alias.variables(executionResult)
+        executionResult.executedVariablesInternal appendAll alias.variables(executionResult)
       }
       val unknownVariables = alias
         .variables(executionResult)
@@ -183,7 +183,7 @@ trait VariableExecutionEngine {
 
       if(unknownVariables.isEmpty) {
         alias.validate(executionResult).map { _ =>
-          executionResult.aliases.prepend(alias)
+          executionResult.aliasesInternal.prepend(alias)
           executionResult
         }
       } else {
@@ -195,15 +195,15 @@ trait VariableExecutionEngine {
     }
   }
 
-  private def defineNewAlias(executionResult: TemplateExecutionResult, alias:VariableAliasing, executed:Boolean): Result[TemplateExecutionResult] = {
+  private def defineNewAlias(executionResult: OpenlawExecutionState, alias:VariableAliasing, executed:Boolean): Result[OpenlawExecutionState] = {
     val result = alias.variables(executionResult)
       .filter(variable => executionResult.getVariable(variable).isEmpty)
       .filter(variable => executionResult.getAlias(variable).isEmpty).toList match {
         case Nil =>
           alias.validate(executionResult).flatMap { _ =>
-            executionResult.aliases.prepend(alias)
+            executionResult.aliasesInternal.prepend(alias)
             if (executed) {
-              executionResult.executedVariables appendAll alias.expr.variables(executionResult)
+              executionResult.executedVariablesInternal appendAll alias.expr.variables(executionResult)
             }
             alias.expr.validate(executionResult).map(_ => executionResult)
           }
