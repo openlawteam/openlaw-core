@@ -1262,7 +1262,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       case Right(_) =>
         fail("should fail")
       case Left(ex) =>
-        ex.message shouldBe "type mismatch. the constructor result type should be String but instead is BigDecimal"
+        ex.message shouldBe "type mismatch while building the default value for type Text. the constructor result type should be String but instead is BigDecimal"
     }
   }
 

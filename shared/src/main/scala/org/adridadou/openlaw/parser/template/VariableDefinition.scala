@@ -154,14 +154,16 @@ case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[
     implicit val eqCls:Eq[Class[_]] = Eq.fromUniversalEquals
     defaultValue match {
       case Some(parameter) =>
-        varType(executionResult).construct(parameter, executionResult).flatMap({
+        val variableType = varType(executionResult)
+
+        variableType.construct(parameter, executionResult).flatMap({
           case Some(result) =>
             val expectedType = this.varType(executionResult).getTypeClass
             val resultType = result.getClass
             if(expectedType == resultType) {
               Success(Some(result))
             } else {
-            Failure(s"type mismatch. the constructor result type should be ${expectedType.getSimpleName} but instead is ${result.getClass.getSimpleName}")
+            Failure(s"type mismatch while building the default value for type ${variableType.name}. the constructor result type should be ${expectedType.getSimpleName} but instead is ${result.getClass.getSimpleName}")
           }
           case None => Success(None)
         })
