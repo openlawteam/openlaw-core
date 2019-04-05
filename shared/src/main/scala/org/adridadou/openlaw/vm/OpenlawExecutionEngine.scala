@@ -13,7 +13,6 @@ import org.adridadou.openlaw.parser.template.printers.SectionHelper
 
 import scala.annotation.tailrec
 import scala.collection.mutable
-import scala.util.Try
 
 class OpenlawExecutionEngine extends VariableExecutionEngine {
 
@@ -74,13 +73,13 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
             Success(executionResult)
         }
 
-      case ExecutionWaitForTemplate(variableName, identifier) =>
+      case ExecutionWaitForTemplate(variableName, identifier, willBeUsedForEmbedded) =>
         templates.get(identifier) match {
           case Some(template) =>
             // has to be in a matcher for tail call optimization
-            attempt(executionResult.startTemplateExecution(variableName, template)).flatten match {
+            attempt(executionResult.startSubExecution(variableName, template, willBeUsedForEmbedded)).flatten match {
               case Success(result) => resumeExecution(result, templates)
-              case f @ Failure(_) => f
+              case f@Failure(_) => f
             }
           case None => Success(executionResult)
         }
@@ -99,14 +98,12 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       (for {
         definition <- executionResult.templateDefinition
       } yield {
-        executionResult.template match {
-          case agreement:CompiledAgreement =>
-            Try(getRoot(parent).agreementsInternal.append(executionResult.structuredInternal(agreement)))
-              .toEither
-              .left
-              .map(_.getMessage )
-
-          case _ =>
+        if(!executionResult.embedded) {
+          executionResult.template match {
+            case agreement:CompiledAgreement =>
+              attempt(getRoot(parent).agreementsInternal.append(executionResult.structuredInternal(agreement)))
+            case _ =>
+          }
         }
 
         validateSubExecution(executionResult, definition).map(_ => {
@@ -122,9 +119,9 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
   }
 
   private final def executeInternal(execution: OpenlawExecutionState, templates:Map[TemplateSourceIdentifier, CompiledTemplate]): Result[OpenlawExecutionState] = {
-    execution.embeddedExecutions.headOption match {
+    execution.forEachExecutions.headOption match {
       case Some(embeddedExecution) =>
-        execution.embeddedExecutions.remove(0)
+        execution.forEachExecutions.remove(0)
         Success(embeddedExecution)
       case _ =>
         execution.remainingElements.headOption match {
@@ -257,7 +254,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
         executionResult.variablesInternal append VariableDefinition(name = anonymousVariable, variableTypeDefinition = Some(VariableTypeDefinition(TemplateType.name)), defaultValue = Some(OneValueParameter(StringConstant(anonymousVariable.name))))
         executionResult.executedVariablesInternal append anonymousVariable
 
-        executionResult.startEmbeddedExecution(anonymousVariable, template, foreachBlock.variable, element, expressionType).map(_ => executionResult)
+        executionResult.startForEachExecution(anonymousVariable, template, foreachBlock.variable, element, expressionType).map(_ => executionResult)
       })
       )
     })

@@ -85,6 +85,7 @@ case class ForEachBlock(variable:VariableName, expression: Expression, block:Blo
     }
   }
 }
+
 case class ConditionalBlockSet(blocks:Seq[ConditionalBlock]) extends TemplatePart
 
 case object AEnd extends TemplatePart

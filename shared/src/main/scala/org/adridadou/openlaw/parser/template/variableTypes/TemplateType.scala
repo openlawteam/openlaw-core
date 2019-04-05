@@ -14,6 +14,7 @@ import org.adridadou.openlaw.values._
 case class TemplateDefinition(name:TemplateSourceIdentifier, mappingInternal:Map[String, Expression] = Map(), path:Option[TemplatePath] = None) {
   lazy val mapping: Map[VariableName, Expression] = mappingInternal.map({case (key,value) => VariableName(key) -> value})
 }
+
 case class TemplateSourceIdentifier(name:TemplateTitle)
 
 case class TemplatePath(path:Seq[String] = Seq()) {
