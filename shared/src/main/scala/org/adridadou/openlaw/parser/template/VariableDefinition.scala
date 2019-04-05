@@ -3,7 +3,7 @@ package org.adridadou.openlaw.parser.template
 import cats.Eq
 import org.adridadou.openlaw.parser.template.variableTypes._
 import cats.implicits._
-import io.circe.{Decoder, Encoder}
+import io.circe.{Decoder, Encoder, KeyDecoder, KeyEncoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
@@ -113,6 +113,8 @@ object VariableDefinition {
 object VariableName {
   implicit val variableNameEnc: Encoder[VariableName] = deriveEncoder[VariableName]
   implicit val variableNameDec: Decoder[VariableName] = deriveDecoder[VariableName]
+  implicit val variableNameKeyEncoder: KeyEncoder[VariableName] = (key: VariableName) => key.name
+  implicit val variableNameKeyDecoder: KeyDecoder[VariableName] = (key: String) => Some(VariableName(key))
   implicit val variableNameEq:Eq[VariableName] = Eq.fromUniversalEquals
   implicit val variableNameJsonWriter:Writes[VariableName] = Writes {name => JsString(name.name)}
   implicit val variableNameJsonReader:Reads[VariableName] = Reads {value => value.validate[String].map(VariableName.apply)}

@@ -245,7 +245,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     val vm = vmProvider.create(definition, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq())
     vm(LoadTemplate(template))
 
-    val values = Map(VariableName("owner") -> EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0"), VariableName("value") -> BigDecimal(2939))
+    val values = Map(VariableName("owner") -> EthAddressType.internalFormat(EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0")), VariableName("value") -> NumberType.internalFormat(BigDecimal(2939)))
     val event = EthereumEventFilterEvent(VariableName("Signature"), null, null, "", values, LocalDateTime.now)
 
     val ethereumEventFilterOracle = EthereumEventFilterOracle(parser)
@@ -277,7 +277,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     val vm = vmProvider.create(definition, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq())
     vm(LoadTemplate(template))
 
-    val values = Map(VariableName("owner") -> EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0"), VariableName("value") -> BigDecimal(1000))
+    val values = Map(VariableName("owner") -> EthAddressType.internalFormat(EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0")), VariableName("value") -> NumberType.internalFormat(BigDecimal(1000)))
     val event = EthereumEventFilterEvent(VariableName("Signature"), null, null, "", values, LocalDateTime.now)
 
     val ethereumEventFilterOracle = EthereumEventFilterOracle(parser)
