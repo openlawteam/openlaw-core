@@ -7,7 +7,7 @@ import org.adridadou.openlaw.result.Result
 
 case object ClauseType extends VariableType("Clause") with NoShowInForm {
 
-  override def getTypeClass: Class[_ <: ClauseType.type ] = this.getClass
+  override def getTypeClass: Class[_ <: TemplateDefinition ] = classOf[TemplateDefinition]
 
   override def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Result[Option[Any]] = TemplateType
     .construct(constructorParams, executionResult)

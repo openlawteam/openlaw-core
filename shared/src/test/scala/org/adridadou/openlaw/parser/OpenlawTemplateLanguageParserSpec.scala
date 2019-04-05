@@ -1200,7 +1200,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     executeTemplate(text, Map("My Number" -> "3")) match {
       case Right(executionResult) =>
         executionResult.validate() should contain("My Number needs to be higher than 5")
-      case Left(ex) => fail(ex)
+      case Left(ex) => fail(ex.message, ex)
     }
   }
 
