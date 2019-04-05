@@ -1,0 +1,64 @@
+version: v1.0
+name: First test pipeline
+agent:
+  machine:
+    type: e1-standard-4
+    os_image: ubuntu1804
+
+blocks:
+  - name: "Build"
+    task:
+      secrets:
+      - name: AWS
+      jobs:
+      - name: Docker cached build
+        env_vars:
+          - name: AWS_DEFAULT_REGION
+            value: eu-central-1
+          - name: ECR_IMAGE
+            value: 889468772737.dkr.ecr.eu-central-1.amazonaws.com/openlawteam/openlaw-core
+          - name: PUSH_CACHE
+            value: "1"
+        commands:
+          - checkout
+          - aws ecr get-login --no-include-email | bash
+          - REMOTE_IMAGE=$ECR_IMAGE BRANCH=$SEMAPHORE_GIT_BRANCH ./ci/build.sh
+  
+  - name: "Test"
+    task:
+      secrets:
+      - name: AWS
+      - name: codacy-credentials
+      env_vars:
+        - name: AWS_DEFAULT_REGION
+          value: eu-central-1
+        - name: ECR_IMAGE
+          value: 889468772737.dkr.ecr.eu-central-1.amazonaws.com/openlawteam/openlaw-core
+
+      jobs:
+      - name: Test
+        commands:
+          - aws ecr get-login --no-include-email | bash
+          - docker pull ${ECR_IMAGE}:buildcache-${SEMAPHORE_GIT_BRANCH}
+          - docker run --rm -it ${ECR_IMAGE}:buildcache-${SEMAPHORE_GIT_BRANCH} ./scripts/test.sh
+
+      - name: Coverage report
+        env_vars:
+          - name: UPLOAD_RESULTS
+            value: "0"
+        commands:
+          - aws ecr get-login --no-include-email | bash
+          - docker pull ${ECR_IMAGE}:buildcache-${SEMAPHORE_GIT_BRANCH}
+          - |
+            docker run --rm -it \
+            --env CODACY_PROJECT_TOKEN=${CODACY_PROJECT_TOKEN} \
+            --env UPLOAD_RESULTS=${UPLOAD_RESULTS} \
+            ${ECR_IMAGE}:buildcache-${SEMAPHORE_GIT_BRANCH} ./scripts/coverage_report.sh
+
+promotions:
+  - name: Release to Bintray
+    pipeline_file: bintray-release.yml
+    auto_promote_on:
+      - result: passed
+        branch:
+          - "^refs/tags/v*"

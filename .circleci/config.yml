@@ -1,36 +1,92 @@
-# Scala CircleCI 2.0 configuration file
-#
-# Check https://circleci.com/docs/2.0/sample-config/ for more details
-version: 2
-jobs:
-  build:
+version: 2.1
+# https://circleci.com/docs/2.0/reusing-config/#authoring-reusable-executors
+executors:
+  dockerbuilder:
     docker:
-      - image: openlaw/scala-builder:node
-
-    working_directory: /src
+      - image: docker:stable
+    resource_class: medium # default & only option while on free plan
     environment:
       # Customize the JVM maximum heap limit
       # default environment size without paying on circle-ci is 4gb:
       # https://circleci.com/docs/2.0/configuration-reference/#resource_class
       JVM_OPTS: -Xmx3200m
+      # Enable BuildKit so we can pretend it's the future!
+      # Unfortunately this wrecks havoc with layer cache export method for now
+      # DOCKER_BUILDKIT: 1
+  
+  corerunner:
+    resource_class: medium # default & only option while on free plan
+    docker:
+      - image: openlaw/core:buildcache-<< parameters.branchname >>
+    working_directory: /src
+    parameters:
+      branchname:
+        type: string
+        default: circle-${CIRCLE_BRANCH}
 
+jobs:
+  build:
+    executor: dockerbuilder
     steps:
       - checkout
-
-      - restore_cache:
-          keys:
-            - v1-dependencies-{{ checksum "build.sbt" }}
-            # fallback to using the latest cache if no exact match is found
-            - v1-dependencies-
-
-      - run: sbt compile test:compile fastOptJS
-
-      - save_cache:
-          paths:
-            - ~/.ivy2/cache
-            - ~/.sbt
-            - ~/.m2
-          key: v1-dependencies--{{ checksum "build.sbt" }}
-
+      - setup_remote_docker:
+          version: 18.09.3
+      - run:
+          name: login to Docker Hub
+          command: echo "$DOCKER_PASS" | docker login --username "$DOCKER_USER" --password-stdin
+      - run: BRANCH=circle-${CIRCLE_BRANCH} PUSH_CACHE=1 ./ci/build.sh
+  
+  test:
+    executor: corerunner
+    steps:
       - run: ./scripts/test.sh
-      
+
+  coverage:
+    executor: corerunner
+    environment:
+      - UPLOAD_RESULTS: "0"
+    steps:
+      - run: ./scripts/coverage_report.sh
+
+  release:
+    executor: corerunner
+    environment:
+      - RELEASE_TRIGGER: "false"
+    steps:
+      # for release step, need .git directory, so do a local checkout
+      - checkout
+      - run: ./scripts/release.sh
+
+workflows:
+  version: 2.1
+  build-test-release:
+    jobs:
+      - build:
+          context: DockerHubCredentials
+          filters:  # required since `test` has tag filters AND requires `build`
+            tags:
+              only: /.*/
+      - test:
+          requires:
+            - build
+          filters:  # required since `deploy` has tag filters AND requires `test`
+            tags:
+              only: /.*/
+      - coverage:
+          context: CodacyCredentials
+          requires:
+            - build
+          filters:  # required since ???
+            tags:
+              only: /.*/
+      - release:
+          context: BintrayCredentials
+          requires:
+            - test
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+          # sadly circle-ci only ORs, need to handle logic in release script itself?
+          # https://discuss.circleci.com/t/how-to-deploy-only-on-tagged-and-master-commits/25581
