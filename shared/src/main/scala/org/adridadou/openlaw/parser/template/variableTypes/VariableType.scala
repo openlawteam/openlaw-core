@@ -8,7 +8,7 @@ import org.adridadou.openlaw.parser.template.formatters.{DefaultFormatter, Forma
 import cats.Eq
 import cats.implicits._
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
-import io.circe.{Decoder, Encoder, HCursor, Json}
+import io.circe._
 
 import scala.reflect.ClassTag
 import scala.util.Try
@@ -80,6 +80,9 @@ trait ParameterTypeProvider {
 }
 
 abstract class VariableType(val name: String) {
+
+  def serialize: Json = Json.obj("name" -> io.circe.Json.fromString(name))
+
   def validateOperation(expr: ValueExpression, executionResult: TemplateExecutionResult): Option[String] = None
 
   def accessVariables(name:VariableName, keys:Seq[String], executionResult: TemplateExecutionResult): Seq[VariableName] =
@@ -198,11 +201,11 @@ object VariableType {
     AbstractCollectionType,
     AddressType,
     ChoiceType,
+    ClauseType,
     DateType,
     DateTimeType,
     EthAddressType,
     EthereumCallType,
-    StripeCallType,
     EthereumEventFilter,
     IdentityType,
     LargeTextType,
@@ -261,6 +264,25 @@ object VariableType {
     case (errs, _) => errs.headOption match {
       case Some(Left(err)) => Left(err)
       case _ => Right(Seq())
+    }
+  }
+
+  implicit val variableTypeEnc: Encoder[VariableType] = (a: VariableType) =>
+    a.serialize
+
+  implicit val variableTypeDec: Decoder[VariableType] = (c: HCursor) => c.downField("name").as[String]
+    .flatMap(name => VariableType.allTypes().find(_.name === name) match {
+        case Some(varType) => Right(varType)
+        case None => createCustomType(c, name)
+      })
+
+  private def createCustomType(cursor: HCursor, name:String):Decoder.Result[VariableType] = {
+    DefinedStructureType.definedStructureTypeDec(cursor) match {
+      case Right(value) => Right(value)
+      case Left(_) => DefinedChoiceType.definedChoiceTypeDec(cursor) match {
+        case Right(value) => Right(value)
+        case Left(_) => Left(DecodingFailure(s"unknown type $name. or error while decoding", List()))
+      }
     }
   }
 }

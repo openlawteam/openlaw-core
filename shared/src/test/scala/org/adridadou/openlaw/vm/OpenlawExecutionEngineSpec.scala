@@ -10,6 +10,7 @@ import org.adridadou.openlaw.result.{Failure, FailureException, Success}
 import org.adridadou.openlaw.values.{TemplateParameters, TemplateTitle}
 import org.scalatest.{FlatSpec, Matchers, OptionValues}
 import play.api.libs.json.Json
+import io.circe.parser._
 
 class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValues {
 
@@ -54,7 +55,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
       case Right(result) =>
         result.state shouldBe ExecutionFinished
         result.variables.map(_.name.name) shouldBe Seq("My Variable", "Other one")
-      case Left(ex) => fail(ex)
+      case Left(ex) => fail(ex.message, ex)
     }
   }
 
@@ -104,7 +105,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
     val parameters = TemplateParameters("My Variable 2" -> "hello", "Other one" -> "334")
     engine.execute(compiledTemplate, parameters, Map()) match {
       case Right(result) =>
-        result.state shouldBe ExecutionWaitForTemplate(VariableName("@@anonymous_3@@"), TemplateSourceIdentifier(TemplateTitle("Another Template")))
+        result.state shouldBe ExecutionWaitForTemplate(VariableName("@@anonymous_3@@"), TemplateSourceIdentifier(TemplateTitle("Another Template")), willBeUsedForEmbedded = false)
         result.variables.map(_.name.name) shouldBe Seq("My Variable","@@anonymous_1@@", "@@anonymous_2@@", "Other one", "@@anonymous_3@@")
 
         engine.resumeExecution(result, Map(TemplateSourceIdentifier(TemplateTitle("another Template")) -> otherCompiledTemplate)) match {
@@ -112,7 +113,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
             newResult.state shouldBe ExecutionFinished
             newResult.parentExecution.isDefined shouldBe false
             newResult.subExecutions.size shouldBe 1
-            newResult.subExecutions(VariableName("@@anonymous_3@@")).variables.map(_.name.name) shouldBe Seq("My Variable 2")
+            newResult.subExecutions(VariableName("@@anonymous_3@@")).getVariables.map(_.name.name) shouldBe Seq("My Variable 2")
             newResult.agreements.size shouldBe 1
 
             parser.forReview(newResult.agreements.head,ParagraphEdits()) shouldBe """<p class="no-section">it is just another template hello</p>"""
@@ -121,7 +122,40 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
         }
 
       case Left(ex) =>
-        fail(ex)
+        fail(ex.message, ex)
+    }
+  }
+
+  it should "wait for a clause and then finish its execution" in {
+    val text =
+      """
+        |<%
+        |[[My Variable:Text]]
+        |[[Other one:Number]]
+        |%>
+        |
+        |[[My Variable]] - [[Other one]]
+        |
+        |[[_:Clause("A Clause")]]
+      """.stripMargin
+
+    val text2 = "it is just another template [[My Variable 2:Text]]"
+    val compiledTemplate = compile(text)
+    val otherCompiledTemplate = compile(text2)
+    val parameters = TemplateParameters("My Variable 2" -> "hello", "Other one" -> "334")
+    engine.execute(compiledTemplate, parameters, Map()) match {
+      case Right(result) =>
+        result.state shouldBe ExecutionWaitForTemplate(VariableName("@@anonymous_1@@"),TemplateSourceIdentifier(TemplateTitle("a clause")), willBeUsedForEmbedded = true)
+        engine.resumeExecution(result, Map(TemplateSourceIdentifier(TemplateTitle("A Clause")) -> otherCompiledTemplate)) match {
+          case Right(newResult) =>
+            newResult.state shouldBe ExecutionFinished
+            newResult.subExecutions.size shouldBe 1
+          case Left(ex) =>
+            fail(ex)
+        }
+
+      case Left(ex) =>
+        fail(ex.message, ex)
     }
   }
 
@@ -144,7 +178,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
     val parameters = TemplateParameters()
     engine.execute(compiledTemplate, parameters, Map()) match {
       case Right(result) =>
-        result.state shouldBe ExecutionWaitForTemplate(VariableName("My Template"), TemplateSourceIdentifier(TemplateTitle("Another Template")))
+        result.state shouldBe ExecutionWaitForTemplate(VariableName("My Template"), TemplateSourceIdentifier(TemplateTitle("Another Template")), willBeUsedForEmbedded = false)
         result.variables.map(_.name.name) shouldBe Seq("My Variable", "Other one", "My Template")
 
         engine.resumeExecution(result, Map(TemplateSourceIdentifier(TemplateTitle("Another Template")) -> otherCompiledTemplate, TemplateSourceIdentifier(TemplateTitle("My Template")) -> compiledTemplate)) match {
@@ -178,7 +212,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
     val parameters = TemplateParameters()
     engine.execute(compiledTemplate, parameters, Map()) match {
       case Right(result) =>
-        result.state shouldBe ExecutionWaitForTemplate(VariableName("My Template"), TemplateSourceIdentifier(TemplateTitle("Another Template")))
+        result.state shouldBe ExecutionWaitForTemplate(VariableName("My Template"), TemplateSourceIdentifier(TemplateTitle("Another Template")), willBeUsedForEmbedded = false)
         result.variables.map(_.name.name) shouldBe Seq("My Variable", "Other one", "My Template")
 
         engine.resumeExecution(result, Map(TemplateSourceIdentifier(TemplateTitle("Another Template")) -> otherCompiledTemplate, TemplateSourceIdentifier(TemplateTitle("My Template")) -> compiledTemplate)) match {
@@ -242,6 +276,32 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
         result.getExecutedVariables.map(_.name) shouldBe Seq("template", "var", "var 2")
       case Left(ex) =>
         fail(ex)
+    }
+  }
+
+  it should "see a variable as executed if it has been executed in a clause" in {
+    val mainTemplate =
+      compile("""
+                |<%
+                |[[var]]
+                |[[var 2]]
+                |%>
+                |
+                |
+                |[[clause:Clause(
+                |name: "clause";
+                |parameters: sub var -> var
+                |)]]
+              """.stripMargin)
+
+    val subTemplate = compile("[[sub var]] [[var 2]]")
+
+    engine.execute(mainTemplate, TemplateParameters("var" -> "hello", "var 2" -> "world"), Map(TemplateSourceIdentifier(TemplateTitle("clause")) -> subTemplate)) match {
+      case Right(result) =>
+        result.getExecutedVariables.map(_.name) shouldBe Seq("clause", "var", "var 2")
+        parser.forReview(result.agreements.head) shouldBe "<p class=\"no-section\"><br /><br /></p><p class=\"no-section\">hello world<br />              </p>"
+      case Left(ex) =>
+        fail(ex.message, ex)
     }
   }
 
@@ -515,7 +575,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
       case Right(result) =>
         result.getExecutedVariables.map(_.name).toSet shouldBe Set("@@anonymous_1@@", "@@anonymous_3@@","call1", "call2")
       case Left(ex) =>
-        fail(ex)
+        fail(ex.message, ex)
     }
   }
 
@@ -545,7 +605,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
         result.agreements.size shouldBe 2
         result.getExecutedVariables.map(_.name).toSet shouldBe Set("employees", "@@anonymous_1@@", "@@anonymous_3@@", "@@anonymous_5@@", "@@anonymous_7@@", "@@anonymous_9@@","@@anonymous_11@@")
       case Left(ex) =>
-        fail(ex)
+        fail(ex.message, ex)
     }
   }
 
@@ -1183,6 +1243,17 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
     compile(text)
   }
 
+  it should "handle serialisation properly" in {
+    val json = "{\"id\":{\"id\":\"@@anonymous_main_template_id@@\"},\"templateDefinition\":null,\"subExecutionIds\":{},\"executions\":{},\"parentExecutionId\":null,\"agreements\":[{\"executionResultId\":{\"id\":\"@@anonymous_main_template_id@@\"},\"templateDefinition\":null,\"mainTemplate\":true,\"header\":{\"values\":{}},\"paragraphs\":[{\"elements\":[{\"name\":\"FreeText\",\"value\":{\"elem\":{\"name\":\"Text\",\"value\":{\"str\":\"this is a test\\n/centered \"}}}},{\"name\":\"FreeText\",\"value\":{\"elem\":{\"name\":\"Em\"}}},{\"name\":\"FreeText\",\"value\":{\"elem\":{\"name\":\"Text\",\"value\":{\"str\":\"bla bla\"}}}},{\"name\":\"FreeText\",\"value\":{\"elem\":{\"name\":\"Em\"}}}]}],\"path\":null}],\"variableSectionList\":[],\"signatureProofs\":{},\"variables\":[],\"executedVariables\":[],\"mapping\":{},\"aliases\":[],\"sectionNameMappingInverse\":{},\"variableTypes\":[{\"name\":\"Collection\"},{\"name\":\"Address\"},{\"name\":\"Choice\"},{\"name\":\"Date\"},{\"name\":\"DateTime\"},{\"name\":\"EthAddress\"},{\"name\":\"EthereumCall\"},{\"name\":\"Identity\"},{\"name\":\"LargeText\"},{\"name\":\"Image\"},{\"name\":\"Number\"},{\"name\":\"Period\"},{\"name\":\"Section\"},{\"name\":\"SmartContractMetadata\"},{\"name\":\"Structure\"},{\"name\":\"Template\"},{\"name\":\"Text\"},{\"name\":\"Validation\"},{\"name\":\"YesNo\"}],\"variableSections\":{},\"parameters\":{\"params\":{}},\"embedded\":false,\"processedSections\":[],\"clock\":\"Z\"}"
+
+    decode[SerializableTemplateExecutionResult](json) match {
+      case Right(_) =>
+      case Left(ex) =>
+        ex.printStackTrace()
+        fail(ex)
+    }
+  }
+
   it should "handle tables preceding other elements" in {
     val text="""this is a test
 
@@ -1202,10 +1273,23 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
 
     engine.execute(template, TemplateParameters("texts" -> paramValue)) match {
       case Right(result) =>
-        val text = parser.forReview(result.agreements.head)
+        parser.forReview(result.agreements.head)
       case Left(ex) =>
         ex.printStackTrace()
         fail(ex.message)
+    }
+  }
+
+  it should "show an error if the constructor is of the wrong type" in {
+    val text="[[test:Text(1223)]]"
+
+    val template = compile(text)
+
+    engine.execute(template, TemplateParameters()) match {
+      case Right(_) =>
+        fail("should fail")
+      case Left(ex) =>
+        ex.message shouldBe "type mismatch while building the default value for type Text. the constructor result type should be String but instead is BigDecimal"
     }
   }
 

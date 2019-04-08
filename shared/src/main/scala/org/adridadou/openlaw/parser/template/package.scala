@@ -1,27 +1,16 @@
 package org.adridadou.openlaw.parser
 
 import cats.Eq
-import cats.implicits._
 
 package object template {
 
-  implicit val agreementElementEq = new Eq[AgreementElement] {
-    override def eqv(x: AgreementElement, y: AgreementElement): Boolean = x.equals(y)
-  }
+  implicit val agreementElementEq:Eq[AgreementElement] = Eq.fromUniversalEquals
 
-  implicit val parametersEq = new Eq[Parameters] {
-    override def eqv(x: Parameters, y: Parameters): Boolean = x.parameterMap.equals(y.parameterMap)
-  }
+  implicit val parametersEq:Eq[Parameters] = Eq.fromUniversalEquals
 
-  implicit val sectionDefinitionEq = new Eq[SectionDefinition] {
-    override def eqv(x: SectionDefinition, y: SectionDefinition): Boolean = x.name === y.name && x.parameters === y.parameters
-  }
+  implicit val sectionDefinitionEq:Eq[SectionDefinition] = Eq.fromUniversalEquals
 
-  implicit val sectionEq = new Eq[Section] {
-    override def eqv(x: Section, y: Section): Boolean = {
-      x.definition === y.definition && x.lvl === y.lvl && x.uuid === y.uuid
-    }
-  }
+  implicit val sectionEq:Eq[Section] = Eq.fromUniversalEquals
 
   val SectionFormats: List[(SectionSymbol, SectionAlign, SectionFormat, Int, Int)] =
     (Decimal, AlignLeft, Period, 0, 360) ::
@@ -36,7 +25,7 @@ package object template {
       Nil
 
   object SectionSymbol {
-    val values = Seq(Decimal, LowerLetter, UpperLetter, LowerRoman, UpperRoman, Hide)
+    val values: Seq[SectionSymbol] = Seq(Decimal, LowerLetter, UpperLetter, LowerRoman, UpperRoman, Hide)
     def withNameOption(name: String): Option[SectionSymbol] = values.find(_.toString.toLowerCase.equals(name.toLowerCase))
   }
   sealed trait SectionSymbol
@@ -48,7 +37,7 @@ package object template {
   case object Hide extends SectionSymbol
 
   object SectionFormat {
-    val values = Seq(Period, Parens, RightParen)
+    val values: Seq[SectionFormat] = Seq(Period, Parens, RightParen)
     def withNameOption(name: String): Option[SectionFormat] = values.find(_.toString.toLowerCase.equals(name.toLowerCase))
   }
   sealed trait SectionFormat {
@@ -63,7 +52,7 @@ package object template {
   case object RightParen extends SectionFormat
 
   object SectionAlign {
-    val values = Seq(AlignLeft, AlignRight, AlignRightThreeQuarters)
+    val values: Seq[SectionAlign] = Seq(AlignLeft, AlignRight, AlignRightThreeQuarters)
     def withNameOption(name: String): Option[SectionAlign] = values.find(_.toString.toLowerCase.equals(name.toLowerCase))
   }
   sealed trait SectionAlign

@@ -100,6 +100,11 @@ case class VariableName(name:String) extends Expression {
 
 }
 
+object FormatterDefinition {
+  implicit val formatterDefinitionEnc:Encoder[FormatterDefinition] = deriveEncoder[FormatterDefinition]
+  implicit val formatterDefinitionDec:Decoder[FormatterDefinition] = deriveDecoder[FormatterDefinition]
+}
+
 case class FormatterDefinition(name:String, parameters:Option[Parameter])
 
 object VariableDefinition {
@@ -108,21 +113,25 @@ object VariableDefinition {
 
   def apply(name:VariableName):VariableDefinition =
     new VariableDefinition(name = name)
+
+  implicit val variableDefinitionEnc: Encoder[VariableDefinition] = deriveEncoder[VariableDefinition]
+  implicit val variableDefinitionDec: Decoder[VariableDefinition] = deriveDecoder[VariableDefinition]
 }
 
 object VariableName {
   implicit val variableNameEnc: Encoder[VariableName] = deriveEncoder[VariableName]
   implicit val variableNameDec: Decoder[VariableName] = deriveDecoder[VariableName]
-  implicit val variableNameKeyEncoder: KeyEncoder[VariableName] = (key: VariableName) => key.name
-  implicit val variableNameKeyDecoder: KeyDecoder[VariableName] = (key: String) => Some(VariableName(key))
+  implicit val variableNameKeyEnc: KeyEncoder[VariableName] = (key: VariableName) => key.name
+  implicit val variableNameKeyDec: KeyDecoder[VariableName] = (key: String) => Some(VariableName(key))
   implicit val variableNameEq:Eq[VariableName] = Eq.fromUniversalEquals
   implicit val variableNameJsonWriter:Writes[VariableName] = Writes {name => JsString(name.name)}
   implicit val variableNameJsonReader:Reads[VariableName] = Reads {value => value.validate[String].map(VariableName.apply)}
 
+
   def apply(name:String):VariableName = new VariableName(name.trim)
 }
 
-case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[VariableTypeDefinition] = None, description:Option[String] = None, formatter:Option[FormatterDefinition] = None, isHidden:Boolean = false, defaultValue:Option[Parameter] = None) extends TemplatePart with Expression with TextElement {
+case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[VariableTypeDefinition] = None, description:Option[String] = None, formatter:Option[FormatterDefinition] = None, isHidden:Boolean = false, defaultValue:Option[Parameter] = None) extends TextElement("VariableDefinition") with TemplatePart with Expression {
 
   def constructT[T](executionResult: TemplateExecutionResult)(implicit classTag:ClassTag[T]): Result[Option[T]] = {
     construct(executionResult).flatMap({
@@ -137,15 +146,28 @@ case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[
     case None => Right(None)
   }
 
-
   def isAnonymous: Boolean = name.isAnonymous
 
-  def varType(executionResult: TemplateExecutionResult):VariableType = variableTypeDefinition.flatMap(name => executionResult.findVariableType(name)).getOrElse(TextType)
+  def varType(executionResult: TemplateExecutionResult):VariableType = variableTypeDefinition
+    .flatMap(typeDefinition => executionResult.findVariableType(typeDefinition)).getOrElse(TextType)
 
   def verifyConstructor(executionResult: TemplateExecutionResult): Result[Option[Any]] = {
+    implicit val eqCls:Eq[Class[_]] = Eq.fromUniversalEquals
     defaultValue match {
       case Some(parameter) =>
-        varType(executionResult).construct(parameter, executionResult)
+        val variableType = varType(executionResult)
+
+        variableType.construct(parameter, executionResult).flatMap({
+          case Some(result) =>
+            val expectedType = this.varType(executionResult).getTypeClass
+            val resultType = result.getClass
+            if(expectedType == resultType) {
+              Success(Some(result))
+            } else {
+            Failure(s"type mismatch while building the default value for type ${variableType.name}. the constructor result type should be ${expectedType.getSimpleName} but instead is ${result.getClass.getSimpleName}")
+          }
+          case None => Success(None)
+        })
       case None => Right(None)
     }
   }

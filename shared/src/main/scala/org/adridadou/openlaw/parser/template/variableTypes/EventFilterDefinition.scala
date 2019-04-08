@@ -78,7 +78,6 @@ case class EventFilterDefinition(
     attempt(AbiType.withName(param.`type`)).map { variableType => variableType.scalaType }
 
   def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions: Seq[OpenlawExecution]): Option[LocalDateTime] = {
-    println(s"adding action schedule")
     pastExecutions match {
       case Seq() => Some(LocalDateTime.now)
       case _ => None
