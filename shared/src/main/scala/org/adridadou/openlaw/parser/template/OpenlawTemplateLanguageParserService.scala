@@ -116,7 +116,7 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
     forReview(structuredAgreement, ParagraphEdits())
 
   def forReview(structuredAgreement: StructuredAgreement, overriddenParagraphs: ParagraphEdits): String =
-    XHtmlAgreementPrinter(preview = false, overriddenParagraphs, structuredAgreement.executionResult.getVariables.map(_.name.name)).printParagraphs(structuredAgreement.paragraphs).print
+    XHtmlAgreementPrinter(preview = false, overriddenParagraphs, Seq()).printParagraphs(structuredAgreement.paragraphs).print
 
   def forReview(structuredAgreement: StructuredAgreement, overriddenParagraphs:ParagraphEdits, variables:Seq[String]):String =
     XHtmlAgreementPrinter(preview = false, overriddenParagraphs, variables).printParagraphs(structuredAgreement.paragraphs).print

@@ -16,17 +16,18 @@ case class CompiledAgreement(
 
   private val endOfParagraph = "(.)*[\\ |\t|\r]*\n[\\ |\t|\r]*\n[\\ |\t|\r|\n]*".r
 
-  def structuredMainTemplate(executionResult:TemplateExecutionResult):StructuredAgreement =
+  def structuredMainTemplate(executionResult:OpenlawExecutionState):StructuredAgreement =
     structured(executionResult, None, mainTemplate = true)
 
-  def structuredInternal(executionResult: TemplateExecutionResult, path:Option[TemplatePath]):StructuredAgreement =
+  def structuredInternal(executionResult: OpenlawExecutionState, path:Option[TemplatePath]):StructuredAgreement =
     structured(executionResult, path, mainTemplate = false)
 
-  private def structured(executionResult: TemplateExecutionResult, path:Option[TemplatePath], mainTemplate:Boolean): StructuredAgreement = {
+  private def structured(executionResult: OpenlawExecutionState, path:Option[TemplatePath], mainTemplate:Boolean): StructuredAgreement = {
     val paragraphs = cleanupParagraphs(generateParagraphs(getAgreementElements(List(), block.elems.toList, executionResult)))
     StructuredAgreement(
+      executionResultId = executionResult.id,
       header = header,
-      executionResult = executionResult,
+      templateDefinition = executionResult.templateDefinition,
       path = path,
       mainTemplate = mainTemplate,
       paragraphs = paragraphs)
@@ -74,7 +75,7 @@ case class CompiledAgreement(
     case other =>  List(other)
   }
 
-  @tailrec private def getAgreementElements(renderedElements:List[AgreementElement], elements:List[TemplatePart], executionResult: TemplateExecutionResult):List[AgreementElement] = {
+  @tailrec private def getAgreementElements(renderedElements:List[AgreementElement], elements:List[TemplatePart], executionResult: OpenlawExecutionState):List[AgreementElement] = {
     elements match {
       case Nil =>
         renderedElements
@@ -83,7 +84,7 @@ case class CompiledAgreement(
     }
   }
 
-  private def getAgreementElementsFromElement(renderedElements:List[AgreementElement], element:TemplatePart, executionResult: TemplateExecutionResult):List[AgreementElement] = {
+  private def getAgreementElementsFromElement(renderedElements:List[AgreementElement], element:TemplatePart, executionResult: OpenlawExecutionState):List[AgreementElement] = {
     element match {
       case t:Table =>
         val headerElements = t.header.map(entry => getAgreementElements(List(), entry, executionResult))
@@ -113,11 +114,19 @@ case class CompiledAgreement(
       case variableDefinition:VariableDefinition if !variableDefinition.isHidden =>
         executionResult.getAliasOrVariableType(variableDefinition.name) match {
           case Right(variableType @ SectionType) =>
-            renderedElements.:+(VariableElement(variableDefinition.name.name, Some(variableType), generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult), getDependencies(variableDefinition.name, executionResult)))
+            renderedElements :+ VariableElement(variableDefinition.name.name, Some(variableType), generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult), getDependencies(variableDefinition.name, executionResult))
+          case Right(ClauseType) =>
+            executionResult.subExecutionsInternal.get(variableDefinition.name) match {
+              case Some(subExecution) =>
+                getAgreementElements(renderedElements, subExecution.template.block.elems.toList, subExecution)
+              case None =>
+                renderedElements
+            }
+
           case Right(_:NoShowInForm) =>
             renderedElements
           case Right(variableType) =>
-            renderedElements.:+(VariableElement(variableDefinition.name.name, Some(variableType), generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult), getDependencies(variableDefinition.name, executionResult)))
+            renderedElements :+ VariableElement(variableDefinition.name.name, Some(variableType), generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult), getDependencies(variableDefinition.name, executionResult))
           case Left(_) =>
             renderedElements
         }
@@ -150,6 +159,7 @@ case class CompiledAgreement(
           val subExecution = executionResult.finishedEmbeddedExecutions.remove(0)
           getAgreementElements(subElements, subBlock.elems.toList, subExecution)
         })
+
       case section @ Section(uuid, definition, lvl) =>
         val resetNumbering = definition
           .flatMap(_.parameters)

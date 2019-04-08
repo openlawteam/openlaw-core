@@ -239,5 +239,3 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
 
 case class VariableSection(name:String, variables:Seq[VariableDefinition]) extends TemplatePart
 case class SectionDefinition(name:String, parameters:Option[Parameters])
-case class HeaderAnnotation(content:String) extends TemplatePart with AgreementElement
-case class NoteAnnotation(content:String) extends TemplatePart with AgreementElement

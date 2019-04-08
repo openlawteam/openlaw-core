@@ -5,8 +5,10 @@ import cats.data.NonEmptyList
 import cats.data.NonEmptyList.of
 import cats.data.Validated.Valid
 import play.api.libs.json._
+
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.Duration
+import scala.language.implicitConversions
 import scala.util.{Try, Failure => TFailure, Success => TSuccess}
 
 object Implicits {
@@ -44,7 +46,7 @@ object Implicits {
   }
 
   implicit class RichFuture[T](val future: Future[T]) extends AnyVal {
-    def getResult(timeout: Duration): Result[T] = Try(Await.result(future, timeout)).toResult
+    def getResult(timeout: Duration): Result[T] = attempt(Await.result(future, timeout))
   }
 
   implicit class RichResult[T](val result: Result[T]) extends AnyVal {
@@ -53,7 +55,7 @@ object Implicits {
         case FailureException(e, _) if pf.isDefinedAt(e) => FailureException(pf(e))
         case f => f
       }
-    def recoverMerge(f: (FailureCause) => T): T = result.fold(failure => f(failure), success => success)
+    def recoverMerge(f: FailureCause => T): T = result.fold(failure => f(failure), success => success)
     def recoverWith(pf: PartialFunction[FailureCause, Result[T]]): Result[T] = result.left.flatMap { error =>
       if (pf.isDefinedAt(error)) pf(error) else result
     }

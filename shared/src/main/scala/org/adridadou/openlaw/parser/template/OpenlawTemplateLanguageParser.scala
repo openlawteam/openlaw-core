@@ -6,6 +6,8 @@ import org.adridadou.openlaw.parser.template.variableTypes.{LargeTextType, Templ
 import org.parboiled2._
 import cats.implicits._
 import VariableTypeDefinition._
+import io.circe.{Decoder, Encoder}
+import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 
 /**
   * Created by davidroon on 05.06.16.
@@ -66,12 +68,14 @@ class OpenlawTemplateLanguageParser(val input: ParserInput, internalClock:Clock)
   })
 }
 
+object TemplateHeader {
+  implicit val templateHeaderEnc:Encoder[TemplateHeader] = deriveEncoder[TemplateHeader]
+  implicit val templateHeaderDec:Decoder[TemplateHeader] = deriveDecoder[TemplateHeader]
+}
 
 case class TemplateHeader(values:Map[String, String] = Map()) {
   def shouldShowTitle: Boolean = {
     values.get("show title").exists(_.toBoolean) ||
       values.get("title").exists(_ === "show")
   }
-
-
 }

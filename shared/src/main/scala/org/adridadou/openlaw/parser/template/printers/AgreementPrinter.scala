@@ -40,7 +40,6 @@ trait AgreementPrinter[T] {
 
   def hasSection(paragraph: Paragraph):Boolean = paragraph.elements.headOption.exists {
     case _: ConditionalStart => paragraph.elements.lift(1) exists hasSection
-    case _: ConditionalStartWithElse => paragraph.elements.lift(1) exists hasSection
     case elem => hasSection(elem)
   }
 
