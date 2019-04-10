@@ -14,7 +14,10 @@ pipeline {
       }
       steps {
         container('jx-base') {
-          sh "PUSH_CACHE=1 scripts/build.sh"
+          sh "PUSH_CACHE=1 \
+              REMOTE_IMAGE='889468772737.dkr.ecr.us-west-2.amazonaws.com/openlawteam/openlaw-core' \
+              BUILD_PARAMS='--network=host' \
+              scripts/build.sh"
         }
       }
     }
