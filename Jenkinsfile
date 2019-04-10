@@ -14,7 +14,7 @@ pipeline {
       }
       steps {
         container('jx-base') {
-          sh "docker build --network=host ."
+          sh "PUSH_CACHE=1 scripts/build.sh"
         }
       }
     }
