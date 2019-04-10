@@ -18,7 +18,7 @@ pipeline {
               PUSH_CACHE=1 \
               REMOTE_IMAGE='889468772737.dkr.ecr.us-west-2.amazonaws.com/openlawteam/openlaw-core' \
               BUILD_PARAMS='--network=host' \
-              scripts/build.sh"
+              ci/build.sh"
         }
       }
     }
