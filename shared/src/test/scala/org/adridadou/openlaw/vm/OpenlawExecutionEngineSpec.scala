@@ -628,7 +628,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         |**SOLE INCORPORATOR ****OF**
         |**[[Company Name | Uppercase]]**
         |
-        |The undersigned, being the sole incorporator of **[[Company Name]]**, a Delaware corporation (the "***Company***"), pursuant to Section 108 of the Delaware General Corporation Law, adopts the following resolution by written consent:
+        |The undersigned __Name__, being the sole incorporator of **[[Company Name]]**, a Delaware corporation (the "***Company***"), pursuant to Section 108 of the Delaware General Corporation Law, adopts the following resolution by written consent:
         |
         |**Appointment of Directors**
         |
@@ -642,7 +642,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       case Right(result) =>
         result.state shouldBe ExecutionFinished
         val text = parser.forReview(result.agreements.head,ParagraphEdits())
-        text shouldBe """<p class="no-section"><br /></p><p class="no-section align-center"><strong>ACTION BY WRITTEN CONSENT OF</strong><br /><strong>SOLE INCORPORATOR </strong><strong>OF</strong><br /><strong>[[Company Name]]</strong></p><p class="no-section">The undersigned, being the sole incorporator of <strong>[[Company Name]]</strong>, a Delaware corporation (the &quot;<strong><em>Company</em></strong>&quot;), pursuant to Section 108 of the Delaware General Corporation Law, adopts the following resolution by written consent:</p><p class="no-section"><strong>Appointment of Directors</strong></p><p class="no-section"><strong>Resolved,</strong> that, effective as of this date, the following person is appointed an initial director of the Company to serve until the earliest of (i) the Company’s first annual meeting of stockholders, (ii) the due election and qualification of such director’s successor or (iii) such director’s death, resignation or removal:</p><p class="no-section">test1test2test3<br />      </p>"""
+        text shouldBe """<p class="no-section"><br /></p><p class="no-section align-center"><strong>ACTION BY WRITTEN CONSENT OF</strong><br /><strong>SOLE INCORPORATOR </strong><strong>OF</strong><br /><strong>[[Company Name]]</strong></p><p class="no-section">The undersigned <u>Name</u>, being the sole incorporator of <strong>[[Company Name]]</strong>, a Delaware corporation (the &quot;<strong><em>Company</em></strong>&quot;), pursuant to Section 108 of the Delaware General Corporation Law, adopts the following resolution by written consent:</p><p class="no-section"><strong>Appointment of Directors</strong></p><p class="no-section"><strong>Resolved,</strong> that, effective as of this date, the following person is appointed an initial director of the Company to serve until the earliest of (i) the Company’s first annual meeting of stockholders, (ii) the due election and qualification of such director’s successor or (iii) such director’s death, resignation or removal:</p><p class="no-section">test1test2test3<br />      </p>"""
       case Left(ex) =>
         fail(ex)
     }
