@@ -9,9 +9,6 @@ pipeline {
   }
   stages {
     stage('Cached Build') {
-      // when {
-      //   branch 'PR-*'
-      // }
       steps {
         container('jx-base') {
           sh "BRANCH=$GIT_BRANCH \
