@@ -1,5 +1,5 @@
 pipeline {
-  agent {
+  agent  {
     label "jenkins-jx-base"
   }
   environment {
@@ -8,10 +8,10 @@ pipeline {
     CHARTMUSEUM_CREDS = credentials('jenkins-x-chartmuseum')
   }
   stages {
-    stage('CI Build and push snapshot') {
-      when {
-        branch 'PR-*'
-      }
+    stage('CI Cached Build') {
+      // when {
+      //   branch 'PR-*'
+      // }
       steps {
         container('jx-base') {
           sh "BRANCH=$GIT_BRANCH \
@@ -22,10 +22,19 @@ pipeline {
         }
       }
     }
-  }
-  post {
-        always {
-          cleanWs()
+
+    stage('CI Test') {
+      steps {
+        container('jx-base') {
+          sh "docker run --rm -v ${PWD}/scripts:/scripts openlaw/core /scripts/tesh.sh"
         }
+      }
+    }
+  }
+
+  post {
+    always {
+      cleanWs()
+    }
   }
 }
