@@ -117,19 +117,19 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
     textNoReturn ~> ((s: Seq[TemplatePart]) => TemplateText(s)) }
 
   def textElement: Rule1[Seq[TemplatePart]] = rule {
-    tableKey | strongWord | emWord | text | pipeText | starText
+    tableKey | strongWord | emWord | text | pipeText | starText | underLineText
   }
 
   def textElementNoStrong: Rule1[Seq[TemplatePart]] = rule {
-    innerEmWord | textNoReturn | pipeText
+    innerEmWord | textNoReturn | pipeText | underLineText
   }
 
   def textElementNoColons: Rule1[Seq[TemplatePart]] = rule {
-    tableKey| strongWord | emWord | textNoColons | pipeText | starText
+    tableKey| strongWord | emWord | textNoColons | pipeText | starText | underLineText
   }
 
   def textElementNoEm: Rule1[Seq[TemplatePart]] = rule {
-    innerStrongWord | textNoReturn | pipeText
+    innerStrongWord | textNoReturn | pipeText | underLineText
   }
 
   def textElementNoUnder: Rule1[Seq[TemplatePart]] = rule {
@@ -172,6 +172,10 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
 
   def starText: Rule1[Seq[TemplatePart]] = rule {
     capture(em) ~> ((s: String) => Seq(Text(TextCleaning.dots(s))))
+  }
+
+  def underLineText: Rule1[Seq[TemplatePart]] = rule {
+    capture(under) ~> ((s: String) => Seq(Text(TextCleaning.dots(s))))
   }
 
   def pipeText: Rule1[Seq[TemplatePart]] = rule {
