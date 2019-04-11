@@ -37,8 +37,8 @@ trait MarkdownRules extends GlobalRules {
   def loosenEmWord: Rule1[Seq[TextElement]] = rule { oneStar ~ loosenOneStarcontents ~ oneStar ~> ((elems:Seq[TextElement]) => Seq(Em) ++ elems ++ Seq(Em)) }
 
   def underLines: Rule0 = rule(under ~ !underLines)
-  def loosenUnderLinescontents: Rule1[Seq[TextElement]] = rule { loosenUnderWord | (!underLines ~ loosenTextElement) }
-  def loosenUnderWord: Rule1[Seq[TextElement]] = rule { underLines ~ loosenUnderLinescontents ~ underLines ~> ((elems:Seq[TextElement]) => Seq(Em) ++ elems ++ Seq(Em)) }
+  def loosenUnderLinesContents: Rule1[Seq[TextElement]] = rule { loosenUnderWord | (!underLines ~ loosenTextElement) }
+  def loosenUnderWord: Rule1[Seq[TextElement]] = rule { underLines ~ loosenUnderLinesContents ~ underLines ~> ((elems:Seq[TextElement]) => Seq(Under) ++ elems ++ Seq(Under)) }
 
   def textLoosen: Rule1[Seq[Text]] = rule {
     capture(loosenCharacters) ~> ((s: String) => Seq(Text(TextCleaning.dots(s))))

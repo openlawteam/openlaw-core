@@ -117,7 +117,7 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
     textNoReturn ~> ((s: Seq[TemplatePart]) => TemplateText(s)) }
 
   def textElement: Rule1[Seq[TemplatePart]] = rule {
-    tableKey | strongWord | emWord | text | pipeText | starText | underLineText
+    tableKey | strongWord | emWord | underWord | text | pipeText | starText | underLineText
   }
 
   def textElementNoStrong: Rule1[Seq[TemplatePart]] = rule {
@@ -125,15 +125,15 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   }
 
   def textElementNoColons: Rule1[Seq[TemplatePart]] = rule {
-    tableKey| strongWord | emWord | textNoColons | pipeText | starText | underLineText
+    tableKey | strongWord | emWord | underWord | textNoColons | pipeText | starText | underLineText
   }
 
   def textElementNoEm: Rule1[Seq[TemplatePart]] = rule {
-    innerStrongWord | innerUnderWord | textNoReturn | pipeText | underLineText
+     innerStrongWord | innerUnderWord | textNoReturn | pipeText | underLineText
   }
 
   def textElementNoUnder: Rule1[Seq[TemplatePart]] = rule {
-     innerStrongWord | innerEmWord | textNoReturn | pipeText
+     innerStrongWord | innerEmWord | textNoReturn | pipeText | starText
   }
 
   def twoStar: Rule0 = rule(strong)
@@ -155,7 +155,7 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   def innerUnderLinescontents: Rule1[Seq[TemplatePart]] = rule { !underLines ~ blockNoStrongNoEmNoUnder ~> ((block: Block) => block.elems) }
 
   def underWord: Rule1[Seq[TemplatePart]] = rule { underLines ~ underLinescontents ~ underLines ~> ((elems: Seq[TemplatePart]) => Seq(Em) ++ elems ++ Seq(Em)) }
-  def innerUnderWord: Rule1[Seq[TemplatePart]] = rule { oneStar ~ underLinescontents ~ underLines ~> ((elems: Seq[TemplatePart]) => Seq(Em) ++ elems ++ Seq(Em)) }
+  def innerUnderWord: Rule1[Seq[TemplatePart]] = rule { underLines ~ underLinescontents ~ underLines ~> ((elems: Seq[TemplatePart]) => Seq(Em) ++ elems ++ Seq(Em)) }
 
 
   def text: Rule1[Seq[TemplatePart]] = rule {
