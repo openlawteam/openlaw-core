@@ -110,8 +110,8 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   def textPartNoUnder: Rule1[TemplateText] = rule {
     textElementNoUnder ~> ((s: Seq[TemplatePart]) => TemplateText(s)) }
 
-  def textPartNoStrongNoEm: Rule1[TemplateText] = rule {
-    textNoReturn ~> ((s: Seq[TemplatePart]) => TemplateText(s)) }
+  /*def textPartNoStrongNoEm: Rule1[TemplateText] = rule {
+    textNoReturn ~> ((s: Seq[TemplatePart]) => TemplateText(s)) }*/
 
   def textPartNoStrongNoEmNoUnder: Rule1[TemplateText] = rule {
     textNoReturn ~> ((s: Seq[TemplatePart]) => TemplateText(s)) }
@@ -154,8 +154,8 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   def underLinescontents: Rule1[Seq[TemplatePart]] = rule { !underLines ~ blockNoUnder ~> ((block: Block) => block.elems) }
   def innerUnderLinescontents: Rule1[Seq[TemplatePart]] = rule { !underLines ~ blockNoStrongNoEmNoUnder ~> ((block: Block) => block.elems) }
 
-  def underWord: Rule1[Seq[TemplatePart]] = rule { underLines ~ underLinescontents ~ underLines ~> ((elems: Seq[TemplatePart]) => Seq(Em) ++ elems ++ Seq(Em)) }
-  def innerUnderWord: Rule1[Seq[TemplatePart]] = rule { underLines ~ underLinescontents ~ underLines ~> ((elems: Seq[TemplatePart]) => Seq(Em) ++ elems ++ Seq(Em)) }
+  def underWord: Rule1[Seq[TemplatePart]] = rule { underLines ~ underLinescontents ~ underLines ~> ((elems: Seq[TemplatePart]) => Seq(Under) ++ elems ++ Seq(Under)) }
+  def innerUnderWord: Rule1[Seq[TemplatePart]] = rule { underLines ~ underLinescontents ~ underLines ~> ((elems: Seq[TemplatePart]) => Seq(Under) ++ elems ++ Seq(Under)) }
 
 
   def text: Rule1[Seq[TemplatePart]] = rule {
