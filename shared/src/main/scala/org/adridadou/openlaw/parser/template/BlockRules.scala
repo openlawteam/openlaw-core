@@ -108,7 +108,7 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
     textElementNoEm ~> ((s: Seq[TemplatePart]) => TemplateText(s)) }
 
   def textPartNoUnder: Rule1[TemplateText] = rule {
-    textElementNoEm ~> ((s: Seq[TemplatePart]) => TemplateText(s)) }
+    textElementNoUnder ~> ((s: Seq[TemplatePart]) => TemplateText(s)) }
 
   def textPartNoStrongNoEm: Rule1[TemplateText] = rule {
     textNoReturn ~> ((s: Seq[TemplatePart]) => TemplateText(s)) }
@@ -121,7 +121,7 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   }
 
   def textElementNoStrong: Rule1[Seq[TemplatePart]] = rule {
-    innerEmWord | textNoReturn | pipeText | underLineText
+    innerEmWord | innerUnderWord | textNoReturn | pipeText | underLineText
   }
 
   def textElementNoColons: Rule1[Seq[TemplatePart]] = rule {
@@ -129,11 +129,11 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   }
 
   def textElementNoEm: Rule1[Seq[TemplatePart]] = rule {
-    innerStrongWord | textNoReturn | pipeText | underLineText
+    innerStrongWord | innerUnderWord | textNoReturn | pipeText | underLineText
   }
 
   def textElementNoUnder: Rule1[Seq[TemplatePart]] = rule {
-    innerStrongWord | textNoReturn | pipeText
+     innerStrongWord | innerEmWord | textNoReturn | pipeText
   }
 
   def twoStar: Rule0 = rule(strong)
