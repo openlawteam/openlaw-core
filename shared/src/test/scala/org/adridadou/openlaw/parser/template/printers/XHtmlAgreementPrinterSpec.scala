@@ -66,7 +66,7 @@ class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues
     val agreement = structureAgreement(text)
     val html = XHtmlAgreementPrinter(false).printParagraphs(agreement.right.value.paragraphs.toList).print
     html shouldBe
-      """<p class="no-section"></p><ul class="list-lvl-1"><li><p>1.  <strong>Section 1</strong></p><p>This is a test.</p></li><li><p>2.  Section 2.</p><p>This is a test.</p><ul class="list-lvl-2"><li><p>(a)  Section 2.a</p><p>This is a test.</p></li><li><p>(b)  Section 2.b</p><p>This is a test.</p></li></ul></li><li><p>3.  Section 3.</p><p>This is a test.<br /></p></li></ul>"""
+      """<p class="no-section"></p><ul class="list-lvl-1"><li><p>1. <strong>Section 1</strong></p><p>This is a test.</p></li><li><p>2.  Section 2.</p><p>This is a test.</p><ul class="list-lvl-2"><li><p>(a)  Section 2.a</p><p>This is a test.</p></li><li><p>(b)  Section 2.b</p><p>This is a test.</p></li></ul></li><li><p>3.  Section 3.</p><p>This is a test.<br /></p></li></ul>"""
   }
 
   it should "properly parse text with newlines" in {
@@ -92,6 +92,13 @@ class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues
     val agreement = structureAgreement(text)
     val html = XHtmlAgreementPrinter(false).printParagraphs(agreement.right.value.paragraphs.toList).print
     html shouldBe """<p class="no-section align-right"> <strong>[[Company Name]]</strong></p>"""
+  }
+
+  it should "handle right aligned underlined section" in {
+    val text = """\right __[[Company Name | Uppercase]]__"""
+    val agreement = structureAgreement(text)
+    val html = XHtmlAgreementPrinter(false).printParagraphs(agreement.right.value.paragraphs.toList).print
+    html shouldBe """<p class="no-section align-right"> <under>[[Company Name]]</under></p>"""
   }
 
   it should "handle right 3/4 aligned section" in {

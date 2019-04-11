@@ -30,6 +30,7 @@ trait GlobalRules extends Parser {
   val pipe = "|"
   val em = "*"
   val strong = "**"
+  val under = "__"
   val colons = "::"
 
   val indent = "\\indent"

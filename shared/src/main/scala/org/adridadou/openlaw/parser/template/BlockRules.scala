@@ -23,7 +23,9 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
 
   def blockNoEm:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | indentLine | varAliasKey | varKey | varMemberKey | headerAnnotationPart | noteAnnotationPart | textPartNoEm) ~> ((s: Seq[TemplatePart]) => Block(s))}
 
-  def blockNoStrongNoEm:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | indentLine | varAliasKey | varKey | varMemberKey | headerAnnotationPart | noteAnnotationPart | textPartNoStrongNoEm) ~> ((s: Seq[TemplatePart]) => Block(s))}
+  def blockNoUnder:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | indentLine | varAliasKey | varKey | varMemberKey | headerAnnotationPart | noteAnnotationPart | textPartNoUnder) ~> ((s: Seq[TemplatePart]) => Block(s))}
+
+  def blockNoStrongNoEmNoUnder:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | indentLine | varAliasKey | varKey | varMemberKey | headerAnnotationPart | noteAnnotationPart | textPartNoStrongNoEmNoUnder) ~> ((s: Seq[TemplatePart]) => Block(s))}
 
   def conditionalBlockSetKey:Rule1[ConditionalBlockSet]= rule { openB ~ oneOrMore(ws ~ conditionalBlockKey ~ ws) ~ closeB ~> ((blocks:Seq[ConditionalBlock]) => ConditionalBlockSet(blocks)) }
 
@@ -105,7 +107,13 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   def textPartNoEm: Rule1[TemplateText] = rule {
     textElementNoEm ~> ((s: Seq[TemplatePart]) => TemplateText(s)) }
 
+  def textPartNoUnder: Rule1[TemplateText] = rule {
+    textElementNoEm ~> ((s: Seq[TemplatePart]) => TemplateText(s)) }
+
   def textPartNoStrongNoEm: Rule1[TemplateText] = rule {
+    textNoReturn ~> ((s: Seq[TemplatePart]) => TemplateText(s)) }
+
+  def textPartNoStrongNoEmNoUnder: Rule1[TemplateText] = rule {
     textNoReturn ~> ((s: Seq[TemplatePart]) => TemplateText(s)) }
 
   def textElement: Rule1[Seq[TemplatePart]] = rule {
@@ -124,19 +132,31 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
     innerStrongWord | textNoReturn | pipeText
   }
 
+  def textElementNoUnder: Rule1[Seq[TemplatePart]] = rule {
+    innerStrongWord | textNoReturn | pipeText
+  }
+
   def twoStar: Rule0 = rule(strong)
   def twoStarcontents: Rule1[Block] = rule { !twoStar ~ blockNoStrong }
-  def innerTwoStarcontents: Rule1[Block] = rule { !twoStar ~ blockNoStrongNoEm }
+  def innerTwoStarcontents: Rule1[Block] = rule { !twoStar ~ blockNoStrongNoEmNoUnder }
 
   def strongWord: Rule1[Seq[TemplatePart]] = rule { twoStar ~ twoStarcontents ~ twoStar ~> ((block: Block) => Seq(Strong) ++ block.elems ++ Seq(Strong)) }
   def innerStrongWord: Rule1[Seq[TemplatePart]] = rule { twoStar ~ innerTwoStarcontents ~ twoStar ~> ((block: Block) => Seq(Strong) ++ block.elems ++ Seq(Strong)) }
 
   def oneStar: Rule0 = rule(em)
   def oneStarcontents: Rule1[Seq[TemplatePart]] = rule { !oneStar ~ blockNoEm ~> ((block: Block) => block.elems) }
-  def innerOneStarcontents: Rule1[Seq[TemplatePart]] = rule { !oneStar ~ blockNoStrongNoEm ~> ((block: Block) => block.elems) }
+  def innerOneStarcontents: Rule1[Seq[TemplatePart]] = rule { !oneStar ~ blockNoStrongNoEmNoUnder ~> ((block: Block) => block.elems) }
 
   def emWord: Rule1[Seq[TemplatePart]] = rule { oneStar ~ oneStarcontents ~ oneStar ~> ((elems: Seq[TemplatePart]) => Seq(Em) ++ elems ++ Seq(Em)) }
   def innerEmWord: Rule1[Seq[TemplatePart]] = rule { oneStar ~ innerOneStarcontents ~ oneStar ~> ((elems: Seq[TemplatePart]) => Seq(Em) ++ elems ++ Seq(Em)) }
+
+  def underLines: Rule0 = rule(under)
+  def underLinescontents: Rule1[Seq[TemplatePart]] = rule { !underLines ~ blockNoUnder ~> ((block: Block) => block.elems) }
+  def innerUnderLinescontents: Rule1[Seq[TemplatePart]] = rule { !underLines ~ blockNoStrongNoEmNoUnder ~> ((block: Block) => block.elems) }
+
+  def underWord: Rule1[Seq[TemplatePart]] = rule { underLines ~ underLinescontents ~ underLines ~> ((elems: Seq[TemplatePart]) => Seq(Em) ++ elems ++ Seq(Em)) }
+  def innerUnderWord: Rule1[Seq[TemplatePart]] = rule { oneStar ~ underLinescontents ~ underLines ~> ((elems: Seq[TemplatePart]) => Seq(Em) ++ elems ++ Seq(Em)) }
+
 
   def text: Rule1[Seq[TemplatePart]] = rule {
     capture(characters) ~> ((s: String) => Seq(Text(TextCleaning.dots(s))))

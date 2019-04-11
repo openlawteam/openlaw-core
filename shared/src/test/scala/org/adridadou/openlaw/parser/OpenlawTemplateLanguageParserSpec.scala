@@ -230,11 +230,11 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     val text =
       """[[Id:Identity]]
         |
-        |^ **Services**. This is a test.
+        |^ **Services**. This is a __test__.
         |""".stripMargin
 
     val text2 =
-      """<p class="no-section"></p><ul class="list-lvl-1"><li><p>1.  <strong>Services</strong>. This is a test.<br /></p></li></ul>"""
+      """<p class="no-section"></p><ul class="list-lvl-1"><li><p>1.  <strong>Services</strong>. This is a <under>test</under>.<br /></p></li></ul>"""
 
     val text3 =
       """<div class="openlaw-paragraph paragraph-1"><p class="no-section"></p></div><ul class="list-lvl-1"><li><div class="openlaw-paragraph paragraph-2"><p>1.  <strong>Services</strong>. This is a test.<br /></p></div></li></ul>"""
@@ -328,6 +328,11 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
   it should "be able to emphasize variables" in {
     val text = "* [[Var]] * ** [[Var]] ** *** [[Var]] ***"
     resultShouldBe(forReview(text, Map("Var" -> "hello world")), """<p class="no-section"><em> hello world </em> <strong> hello world </strong> <strong><em> hello world </em></strong></p>""")
+  }
+
+  it should "be able to underline variables" in {
+    val text = "__[[Var]]__"
+    resultShouldBe(forReview(text, Map("Var" -> "hello world")), """<p class="no-section"><under> hello world </under></p>""")
   }
 
   it should "be able to override section symbols" in {
