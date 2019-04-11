@@ -110,9 +110,6 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   def textPartNoUnder: Rule1[TemplateText] = rule {
     textElementNoUnder ~> ((s: Seq[TemplatePart]) => TemplateText(s)) }
 
-  /*def textPartNoStrongNoEm: Rule1[TemplateText] = rule {
-    textNoReturn ~> ((s: Seq[TemplatePart]) => TemplateText(s)) }*/
-
   def textPartNoStrongNoEmNoUnder: Rule1[TemplateText] = rule {
     textNoReturn ~> ((s: Seq[TemplatePart]) => TemplateText(s)) }
 
