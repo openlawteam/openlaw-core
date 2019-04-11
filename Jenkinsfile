@@ -8,10 +8,7 @@ pipeline {
     CHARTMUSEUM_CREDS = credentials('jenkins-x-chartmuseum')
   }
   stages {
-    stage('CI Build and push snapshot') {
-      when {
-        branch 'PR-*'
-      }
+    stage('Cached Build') {
       steps {
         container('jx-base') {
           sh "BRANCH=$GIT_BRANCH \
@@ -22,10 +19,35 @@ pipeline {
         }
       }
     }
-  }
-  post {
-        always {
-          cleanWs()
+
+    stage('Test') {
+      failFast true
+      parallel {
+
+        stage('Run Tests') {
+          steps {
+            container('jx-base') {
+              sh "docker run --network=host --rm openlaw/core ./scripts/test.sh"
+            }
+          }
         }
+
+        stage('Coverage Report') {
+          steps {
+            container('jx-base') {
+              sh "docker run --network=host --rm openlaw/core ./scripts/coverage_report.sh"
+            }
+          }
+        }
+
+      }
+    }
+  
+  }
+
+  post {
+    always {
+      cleanWs()
+    }
   }
 }
