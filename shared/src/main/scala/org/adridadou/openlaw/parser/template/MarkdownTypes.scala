@@ -198,6 +198,8 @@ object TextElement {
         Right(Em)
       case _ if "Strong" === name =>
         Right(Strong)
+      case _ if "Under" === name =>
+        Right(Under)
       case _ if "PageBreak" === name =>
         Right(PageBreak)
       case _ if "Centered" === name =>
@@ -220,6 +222,7 @@ abstract class TextElement(val elementTypeName:String) extends TemplatePart
 case class Text(str: String) extends TextElement("Text")
 case object Em extends TextElement("Em")
 case object Strong extends TextElement("Strong")
+case object Under extends TextElement("Under")
 case object PageBreak extends TextElement("PageBreak")
 case object Centered extends TextElement("Centered")
 case object RightAlign extends TextElement("RightAlign")

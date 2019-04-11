@@ -228,6 +228,11 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
           val frag = strong(recurse(inner, conditionalBlockDepth, inSection))
           tailRecurse(remaining.drop(1), conditionalBlockDepth, inSection, { elems => continue(frag +: elems) })
 
+        case FreeText(Under) =>
+          val (inner, remaining) = partitionAtItem(xs, x)
+          val frag = u(recurse(inner, conditionalBlockDepth, inSection))
+          tailRecurse(remaining.drop(1), conditionalBlockDepth, inSection, { elems => continue(frag +: elems) })
+
         case FreeText(PageBreak) =>
           tailRecurse(xs, conditionalBlockDepth, inSection, { elems => continue(hr(`class` := "pagebreak") +: elems) })
 
