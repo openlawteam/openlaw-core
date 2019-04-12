@@ -1,16 +1,20 @@
 #!/bin/sh
-# Builds the local image, suitable for running tests or doing a release. This
-# script handles doing "layer cached build" in CI by storing the previous image
-# between runs.
-
-set -x # TODO: DEBUGGING so echo on for now 
+# Speeds up a "serverless" CI build, by manually storing a copy of the previous
+# docker build and pulling it and taking advantage of `--cache-from` directive
+# to use it as cache when there is no local cache present.
+#
+# In the (hopefully not-so-distant) future, Docker BuildKit should enable easier
+# storage of a distributed cache system shared amongst serverless workers
+# without this hack.
 
 # Allow passing a $REMOTE_IMAGE variable if the remote image tag will be
 # different (e.g. pushing somewhere other than Docker Hub).
 IMAGE="openlaw/core"
 REMOTE_IMAGE=${REMOTE_IMAGE:-$IMAGE}
 
-# Default is not to push the cache, to override define PUSH_CACHE=1 env var.
+# Default is not to push the cache to remote, to override define PUSH_CACHE=1
+# env var. In most cases in CI we will want to be pushing the cache, but since
+# it requires docker to be logged in prior, make sure it's an explicit request.
 PUSH_CACHE=${PUSH_CACHE:-0}
 
 # Get the current git branch name, this will be used to tag the buildcache such
@@ -23,11 +27,14 @@ PUSH_CACHE=${PUSH_CACHE:-0}
 # sure this is passed in CI based on the particular host's methodology.
 BRANCH=${BRANCH:-$(git rev-parse --abbrev-ref HEAD)}
 
-# Define full tags for both current branch and master branch
+# Define full tags for both current branch and master branch. We want to be 
+# able to fall back to the last master branch build in the situation where
+# this is the first build for a new branch/PR, so we don't start from scratch
+# in that situation.
 MASTER_TAG="${REMOTE_IMAGE}:buildcache-master"
 BRANCH_TAG="${REMOTE_IMAGE}:buildcache-${BRANCH}"
 
-# pull previous cached image
+# Pull previous cached image(s) from remote docker registry.
 docker pull "$MASTER_TAG" || true
 docker pull "$BRANCH_TAG" || true
 
