@@ -138,6 +138,9 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
 lazy val openlawCoreJvm = openlawCore.jvm
 lazy val openlawCoreJs = openlawCore.js
 
+git.useGitDescribe := true
+
 val root = (project in file("."))
   .dependsOn(openlawCoreJvm, openlawCoreJs)
   .aggregate(openlawCoreJvm, openlawCoreJs)
+  .enablePlugins(GitVersioning)
