@@ -17,6 +17,7 @@ case class EthereumSmartContractCall(
   arguments: Seq[Expression],
   startDate: Option[Expression],
   endDate: Option[Expression],
+  from: Option[Expression],
   every: Option[Expression]) extends ActionValue {
   def getEvery(executionResult: TemplateExecutionResult): Option[Period] =
     every.map(getPeriod(_ , executionResult))

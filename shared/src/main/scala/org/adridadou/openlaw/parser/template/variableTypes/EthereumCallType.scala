@@ -27,16 +27,17 @@ case object EthereumCallType extends VariableType("EthereumCall") with ActionTyp
     constructorParams match {
       case Parameters(v) =>
         val values = v.toMap
-        val optNetwork = values.get("network").map(getExpression).getOrElse(NoopConstant(TextType))
+        val optNetwork = getParameter(values, "network").map(getExpression).getOrElse(NoopConstant(TextType))
         attempt(Some(EthereumSmartContractCall(
-          address = getExpression(values, "contract"),
-          metadata = getExpression(values, "interface"),
+          address = getExpression(values, "contract", "to"),
+          metadata = getExpression(values, "interface", "abi"),
           network = optNetwork,
           functionName = getExpression(values, "function"),
-          arguments = values.get("arguments").map(getExpressionList).getOrElse(Seq()),
+          arguments = getParameter(values, "arguments", "parameters", "params").map(getExpressionList).getOrElse(Seq()),
           startDate = values.get("startDate").map(name => getExpression(name)),
-          endDate = values.get("endDate").map(getExpression),
-          every = values.get("repeatEvery").map(getExpression)
+          endDate = getParameter(values, "endDate").map(getExpression),
+          every = getParameter(values, "repeatEvery").map(getExpression),
+          from = getParameter(values, "from").map(getExpression)
         )))
       case _ =>
         Failure("Ethereum Calls need to get 'contract', 'interface', 'network', 'function' as constructor parameter")
