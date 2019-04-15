@@ -10,6 +10,8 @@ addSbtPlugin("org.portable-scala" % "sbt-scalajs-crossproject" % "0.6.0")
 addSbtPlugin("org.foundweekends" % "sbt-bintray" % "0.5.4")
 addSbtPlugin("com.github.gseitz" % "sbt-release" % "1.0.11")
 
+addSbtPlugin("com.typesafe.sbt" % "sbt-git" % "1.0.0")
+
 addSbtPlugin("org.lyranthe.sbt" % "partial-unification" % "1.1.0")
 addSbtPlugin("com.timushev.sbt" % "sbt-updates" % "0.3.4")
 
