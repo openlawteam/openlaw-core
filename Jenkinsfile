@@ -42,6 +42,17 @@ pipeline {
 
       }
     }
+
+    stage('Release') {
+      // TODO: we should verify master branch as well?
+      // TODO: how to configure to ensure JenkinsX gets github "release" event notifications?
+      when { tag "v*" }
+      steps {
+        container('jx-base') {
+          sh "docker run --network=host --rm openlaw/core ./scripts/release.sh"
+        }
+      }
+    }
   
   }
 
