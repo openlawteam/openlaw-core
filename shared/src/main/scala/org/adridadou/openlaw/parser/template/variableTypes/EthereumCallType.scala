@@ -30,7 +30,7 @@ case object EthereumCallType extends VariableType("EthereumCall") with ActionTyp
         val optNetwork = getParameter(values, "network").map(getExpression).getOrElse(NoopConstant(TextType))
         attempt(Some(EthereumSmartContractCall(
           address = getExpression(values, "contract", "to"),
-          metadata = getExpression(values, "interface", "abi"),
+          abi = getExpression(values, "interface", "abi"),
           network = optNetwork,
           functionName = getExpression(values, "function"),
           arguments = getParameter(values, "arguments", "parameters", "params").map(getExpressionList).getOrElse(Seq()),

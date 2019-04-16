@@ -10,15 +10,15 @@ import LocalDateTimeHelper._
 import cats.implicits._
 
 case class EthereumSmartContractCall(
-  address: Expression,
-  metadata: Expression,
-  network: Expression,
-  functionName: Expression,
-  arguments: Seq[Expression],
-  startDate: Option[Expression],
-  endDate: Option[Expression],
-  from: Option[Expression],
-  every: Option[Expression]) extends ActionValue {
+    address: Expression,
+    abi: Expression,
+    network: Expression,
+    functionName: Expression,
+    arguments: Seq[Expression],
+    startDate: Option[Expression],
+    endDate: Option[Expression],
+    from: Option[Expression],
+    every: Option[Expression]) extends ActionValue {
   def getEvery(executionResult: TemplateExecutionResult): Option[Period] =
     every.map(getPeriod(_ , executionResult))
   def getStartDate(executionResult: TemplateExecutionResult): Option[LocalDateTime] =
@@ -34,9 +34,9 @@ case class EthereumSmartContractCall(
       .map(VariableType.convert[String])
 
   def getInterfaceProtocol(executionResult: TemplateExecutionResult): String =
-    getMetadata(metadata, executionResult).protocol
+    getMetadata(abi, executionResult).protocol
   def getInterfaceAddress(executionResult: TemplateExecutionResult): String =
-    getMetadata(metadata, executionResult).address
+    getMetadata(abi, executionResult).address
 
   override def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions:Seq[OpenlawExecution]): Option[LocalDateTime] = {
     val executions = pastExecutions.map(VariableType.convert[EthereumSmartContractExecution])
