@@ -37,14 +37,14 @@ object EthereumSmartContractExecution {
   implicit val smartContractExecutionDec: Decoder[EthereumSmartContractExecution] = deriveDecoder[EthereumSmartContractExecution]
 }
 
-case class EthereumSmartContractExecution(scheduledDate:LocalDateTime, executionDate:LocalDateTime, executionStatus: OpenlawExecutionStatus = PendingExecution, tx:Option[EthereumHash]) extends OpenlawExecution {
+case class EthereumSmartContractExecution(scheduledDate:LocalDateTime, executionDate:LocalDateTime, executionStatus: OpenlawExecutionStatus = PendingExecution, tx:EthereumHash) extends OpenlawExecution {
   def message: String = executionStatus match {
     case PendingExecution => "the transaction has been submitted, waiting for the transaction to be executed"
     case SuccessfulExecution => "the transaction has been added to the chain and successfully executed"
     case FailedExecution => "the transaction execution has failed"
   }
 
-  def key:EthereumHash = tx.getOrElse(EthereumHash.empty)
+  def key:EthereumHash = tx
 }
 
 sealed abstract class OpenlawExecutionStatus(val name:String)
