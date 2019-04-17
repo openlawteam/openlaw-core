@@ -33,7 +33,7 @@ case class VariableMember(name:VariableName, keys:Seq[String], formatter:Option[
     val exprType = expr.expressionType(executionResult)
 
     val optValue = expr.evaluate(executionResult)
-    optValue.map(exprType.access(_, keys, executionResult) match {
+    optValue.map(exprType.access(_, name, keys, executionResult) match {
       case Right(value) => value
       case Left(ex) => throw new RuntimeException(ex.e)
     })

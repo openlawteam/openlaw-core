@@ -5,11 +5,13 @@ import io.circe._
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.parser._
 import io.circe.syntax._
+import org.adridadou.openlaw.oracles.EthereumEventFilterExecution
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 import org.adridadou.openlaw.result.Implicits.RichOption
+import org.adridadou.openlaw.vm.Executions
 
 case object EthereumEventFilterType extends VariableType("EthereumEventFilter") with ActionType {
   implicit val smartContractEnc: Encoder[EventFilterDefinition] = deriveEncoder[EventFilterDefinition]
@@ -38,17 +40,24 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
       case _ => super.keysType(keys, expr, executionResult)
     }
 
-  override def access(value: Any, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Any] = {
+  override def access(value: Any, name: VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Any] = {
     keys.toList match {
       case Nil => Success(value)
       case head::tail if tail.isEmpty =>
         value match {
-          case eventFilterDefinition: EventFilterDefinition =>
-            eventFilterDefinition
-              .abiOpenlawVariables(executionResult)
-              .map(list => list.find(_.name.name === head).toResult(s"failed to find event field named $head"))
-              .flatten
-              .map(definition => definition.evaluate(executionResult))
+          case eventFilter: EventFilterDefinition =>
+
+            executionResult
+              .executions
+              .get(name)
+              .toResult(s"could not find execution for this variabl")
+              .flatMap { executions =>
+                generateStructureType(VariableName("none"), eventFilter, executionResult).flatMap { structure =>
+                  //structure.access(structure.cast(), name, keys, executionResult)
+                  structure.access(value, name, keys, executionResult)
+                }
+              }
+
           case x => Failure(s"unexpected value provided, expected EventFilterDefinition: $x")
         }
 
@@ -73,6 +82,18 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
       case _ =>
         Failure("Ethereum event listener needs to get 'contract address', 'interface', 'event type name', 'conditional filter' as constructor parameter")
     }
+  }
+
+  private def generateStructureType(name: VariableName, eventFilter: EventFilterDefinition, executionResult: TemplateExecutionResult): Result[VariableType] = {
+    eventFilter.abiOpenlawVariables(executionResult).map(varDefinitions => {
+      val typeDefinitions =
+        varDefinitions
+          .collect { case VariableDefinition(n, Some(typeDef), _, _, _, _) => n -> executionResult.findVariableType(typeDef) }
+          .collect { case (n, Some(variableType)) => n -> variableType }
+
+      val structure = Structure(typeDefinitions.toMap, typeDefinitions.map { case(k, _) => k })
+      AbstractStructureType.generateType(name, structure)
+    })
   }
 
   override def getTypeClass: Class[_ <: EventFilterDefinition] = classOf[EventFilterDefinition]

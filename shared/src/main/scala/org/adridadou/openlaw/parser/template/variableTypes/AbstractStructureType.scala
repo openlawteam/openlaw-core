@@ -76,7 +76,7 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
 
   override def defaultFormatter: Formatter = new NoopFormatter
 
-  override def access(value: Any, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Any] = {
+  override def access(value: Any, name: VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Any] = {
     keys.toList match {
       case Nil =>
         Success(value)
@@ -86,7 +86,7 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
         (for {
           result <- values.get(name)
           keyType <- structure.typeDefinition.get(name)
-        } yield keyType.access(result, tail, executionResult) ) match {
+        } yield keyType.access(result, name, tail, executionResult) ) match {
           case Some(result) => result
           case None if structure.names.contains(name) =>
             Success(structure.typeDefinition(name).missingValueFormat(name))

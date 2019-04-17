@@ -143,14 +143,14 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
     }
   }
 
-  override def access(value: Any, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Any] = keys.toList match {
+  override def access(value: Any, name: VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Any] = keys.toList match {
     case Nil =>
       Success(value)
     case head::tail =>
       executionResult.subExecutions.get(VariableName(head)).flatMap(subExecution =>
         subExecution.getExpression(VariableName(head))
           .flatMap(variable => variable.evaluate(subExecution)
-            .map(subValue => variable.expressionType(subExecution).access(subValue, tail, subExecution))
+            .map(subValue => variable.expressionType(subExecution).access(subValue, VariableName(head), tail, subExecution))
           )).getOrElse(Failure(s"properties '${tail.mkString(".")}' could not be resolved in sub template '$head'"))
   }
 

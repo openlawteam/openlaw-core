@@ -225,7 +225,7 @@ case class CompiledAgreement(
           .keysType(keys, expression, executionResult)
           .flatMap { keysType =>
             varType
-              .access(value, keys, executionResult)
+              .access(value, name, keys, executionResult)
               .flatMap(keysType.format(formatter, _, executionResult))
           }
       }
