@@ -9,7 +9,6 @@ import cats.Eq
 import cats.implicits._
 import io.circe._
 import io.circe.syntax._
-import io.circe.parser._
 import io.circe.generic.semiauto._
 
 import scala.reflect.ClassTag
@@ -118,7 +117,7 @@ abstract class VariableType(val name: String) {
   def operationWith(rightType: VariableType, operation: ValueOperation): VariableType =
     this
 
-  def access(value: Any, name: VariableName, keys: Seq[String], executionResult:TemplateExecutionResult): Result[Any] = {
+  def access(value: Any, name:VariableName, keys: Seq[String], executionResult:TemplateExecutionResult): Result[Any] = {
     if(keys.isEmpty) {
       Success(value)
     } else {

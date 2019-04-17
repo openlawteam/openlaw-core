@@ -5,13 +5,11 @@ import io.circe._
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.parser._
 import io.circe.syntax._
-import org.adridadou.openlaw.oracles.EthereumEventFilterExecution
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 import org.adridadou.openlaw.result.Implicits.RichOption
-import org.adridadou.openlaw.vm.Executions
 
 case object EthereumEventFilterType extends VariableType("EthereumEventFilter") with ActionType {
   implicit val smartContractEnc: Encoder[EventFilterDefinition] = deriveEncoder[EventFilterDefinition]
@@ -40,7 +38,7 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
       case _ => super.keysType(keys, expr, executionResult)
     }
 
-  override def access(value: Any, name: VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Any] = {
+  override def access(value: Any, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Any] = {
     keys.toList match {
       case Nil => Success(value)
       case head::tail if tail.isEmpty =>
@@ -50,7 +48,7 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
             executionResult
               .executions
               .get(name)
-              .toResult(s"could not find execution for this variabl")
+              .toResult(s"could not find execution for this variable")
               .flatMap { executions =>
                 generateStructureType(VariableName("none"), eventFilter, executionResult).flatMap { structure =>
                   //structure.access(structure.cast(), name, keys, executionResult)
