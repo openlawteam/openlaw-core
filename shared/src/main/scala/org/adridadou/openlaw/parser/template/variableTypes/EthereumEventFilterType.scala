@@ -5,6 +5,7 @@ import io.circe._
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.parser._
 import io.circe.syntax._
+import org.adridadou.openlaw.oracles.EthereumEventFilterExecution
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
@@ -41,7 +42,7 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
   override def access(value: Any, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Any] = {
     keys.toList match {
       case Nil => Success(value)
-      case head::tail if tail.isEmpty =>
+      case _::tail if tail.isEmpty =>
         value match {
           case eventFilter: EventFilterDefinition =>
 
@@ -50,10 +51,17 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
               .get(name)
               .toResult(s"could not find execution for this variable")
               .flatMap { executions =>
-                generateStructureType(VariableName("none"), eventFilter, executionResult).flatMap { structure =>
-                  //structure.access(structure.cast(), name, keys, executionResult)
-                  structure.access(value, name, keys, executionResult)
+                executions.executionMap.values.headOption match {
+                  case Some(execution:EthereumEventFilterExecution) =>
+                    generateStructureType(VariableName("none"), eventFilter, executionResult).flatMap { structure =>
+                      structure.access(structure.cast(execution.event.values.asJson.noSpaces, executionResult), name, keys, executionResult)
+                    }
+                  case Some(other) =>
+                    Failure(s"the execution type should be EthereumEventFilterExecution but was ${other.getClass.getSimpleName} instead")
+                  case None =>
+                    Success(None)
                 }
+
               }
 
           case x => Failure(s"unexpected value provided, expected EventFilterDefinition: $x")
