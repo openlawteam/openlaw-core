@@ -20,6 +20,7 @@ import io.circe.generic.semiauto._
 import io.circe.syntax._
 import org.adridadou.openlaw.oracles.OpenlawSignatureProof
 import org.adridadou.openlaw.result.{Failure, Result, Success}
+import org.adridadou.openlaw.vm.Executions
 
 trait TemplateExecutionResult {
   def id:TemplateExecutionResultId
@@ -40,6 +41,7 @@ trait TemplateExecutionResult {
   def executedVariables:Seq[VariableName]
   def agreements:Seq[StructuredAgreement]
   def variableSectionList:Seq[String]
+  def executions:Map[VariableName, Executions]
 
   def hasSigned(email: Email):Boolean =
     if(signatureProofs.contains(email)) true else parentExecution.exists(_.hasSigned(email))
@@ -277,6 +279,7 @@ trait TemplateExecutionResult {
           anonymousVariableCounter = new AtomicInteger(0),
           clock = clock,
           parentExecution = Some(this),
+          executions = this.executions,
           variableRedefinition = VariableRedefinition()
         )
 
@@ -302,7 +305,8 @@ object SerializableTemplateExecutionResult {
 case class SerializableTemplateExecutionResult(id:TemplateExecutionResultId,
                                                templateDefinition: Option[TemplateDefinition] = None,
                                                subExecutionIds:Map[VariableName, TemplateExecutionResultId],
-                                               executions:Map[TemplateExecutionResultId, SerializableTemplateExecutionResult],
+                                               templateExecutions:Map[TemplateExecutionResultId, SerializableTemplateExecutionResult],
+                                               executions:Map[VariableName, Executions],
                                                parentExecutionId:Option[TemplateExecutionResultId],
                                                agreements:Seq[StructuredAgreement],
                                                variableSectionList:Seq[String],
@@ -319,8 +323,8 @@ case class SerializableTemplateExecutionResult(id:TemplateExecutionResultId,
                                                processedSections:Seq[(Section, Int)],
                                                clock:Clock) extends TemplateExecutionResult {
 
-  override def subExecutions: Map[VariableName, TemplateExecutionResult] = subExecutionIds.flatMap({case (name, executionId) => executions.get(executionId).map(name -> _)})
-  override def parentExecution: Option[TemplateExecutionResult] = parentExecutionId.flatMap(executions.get)
+  override def subExecutions: Map[VariableName, TemplateExecutionResult] = subExecutionIds.flatMap({case (name, executionId) => templateExecutions.get(executionId).map(name -> _)})
+  override def parentExecution: Option[TemplateExecutionResult] = parentExecutionId.flatMap(templateExecutions.get)
 }
 
 
@@ -328,6 +332,7 @@ case class OpenlawExecutionState(
                                     id:TemplateExecutionResultId,
                                     parameters:TemplateParameters,
                                     embedded:Boolean,
+                                    executions:Map[VariableName,Executions],
                                     signatureProofs:Map[Email, OpenlawSignatureProof] = Map(),
                                     template:CompiledTemplate,
                                     forEachQueue:mutable.Buffer[Any] = mutable.Buffer(),
@@ -489,13 +494,14 @@ case class OpenlawExecutionState(
   }
 
   def toSerializable:SerializableTemplateExecutionResult = {
-    val executions = getSubExecutions.map(e => e.id -> e.toSerializable).toMap
+    val templateExecutions = getSubExecutions.map(e => e.id -> e.toSerializable).toMap
     val subExecutionIds = subExecutions.map({ case (name, execution) => name -> execution.id})
 
     SerializableTemplateExecutionResult(
       id = id,
       templateDefinition = templateDefinition,
       subExecutionIds = subExecutionIds,
+      templateExecutions = templateExecutions,
       executions = executions,
       agreements = agreements,
       variableSectionList = variableSectionList,
@@ -591,7 +597,8 @@ case class OpenlawExecutionState(
           variableRedefinition = template.redefinition,
           templateDefinition = Some(templateDefinition),
           mapping = templateDefinition.mapping,
-          remainingElements = mutable.Buffer(template.block.elems: _*)
+          remainingElements = mutable.Buffer(template.block.elems: _*),
+          executions = this.executions
         )
 
         val execution = template match {
