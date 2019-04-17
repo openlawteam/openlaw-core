@@ -36,7 +36,14 @@ object OpenlawExecution {
   implicit val openlawExecutionDec:Decoder[OpenlawExecution] = (c: HCursor) => c.downField("type").as[String]
     .flatMap(convertOpenlawExecution(_, c.downField("value")))
 
-  private def convertOpenlawExecution(str: String, cursor: ACursor):Decoder.Result[OpenlawExecution] = ???
+  protected def className[T]()(implicit cls:ClassTag[T]):String = cls.runtimeClass.getName
+
+  private def convertOpenlawExecution(typeDefinition: String, cursor: ACursor):Decoder.Result[OpenlawExecution] = typeDefinition match {
+    case _ if typeDefinition === className[EthereumEventFilterExecution] =>
+      cursor.as[EthereumEventFilterExecution]
+    case _ if typeDefinition === className[EthereumSmartContractExecution] =>
+      cursor.as[EthereumSmartContractExecution]
+  }
 }
 
 trait OpenlawExecution {
