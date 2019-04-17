@@ -33,6 +33,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       parameters = parameters,
       id = TemplateExecutionResultId(s"@@anonymous_main_template_id@@"),
       template = mainTemplate,
+      executions = ???,
       anonymousVariableCounter = new AtomicInteger(0),
       embedded = false,
       variableRedefinition = mainTemplate.redefinition,

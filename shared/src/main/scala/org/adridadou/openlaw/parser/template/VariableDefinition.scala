@@ -20,16 +20,13 @@ case class VariableMember(name:VariableName, keys:Seq[String], formatter:Option[
     name.aliasOrVariable(executionResult).expressionType(executionResult)
       .validateKeys(name, keys, executionResult)
 
-  override def expressionType(executionResult:TemplateExecutionResult): VariableType =
-    evaluate(executionResult)
-      .toResult(s"failed to evaluate expression while checking expression type")
-      .flatMap { value =>
-        name
-          .aliasOrVariable(executionResult)
-          .expressionType(executionResult)
-          .keysType(keys, value, executionResult)
-      }
-    .getOrThrow
+  override def expressionType(executionResult:TemplateExecutionResult): VariableType = {
+    val expression = name.aliasOrVariable(executionResult)
+    expression
+      .expressionType(executionResult)
+      .keysType(keys, expression, executionResult)
+      .getOrThrow
+  }
 
   override def evaluate(executionResult:TemplateExecutionResult): Option[Any] = {
     val expr = name.aliasOrVariable(executionResult)

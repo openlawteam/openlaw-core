@@ -22,24 +22,26 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
       call.asJson.noSpaces
   }
 
-  override def keysType(keys: Seq[String], definition: VariableDefinition, executionResult: TemplateExecutionResult): Result[VariableType] = {
-    definition.defaultValue.map(param => definition.varType(executionResult).construct(param, executionResult))
-
+  override def keysType(keys: Seq[String], definition: VariableDefinition, executionResult: TemplateExecutionResult): Result[VariableType] =
     keys match {
       case Seq(key) =>
-        value match {
-          case definition: EventFilterDefinition =>
-            definition
-              .abiOpenlawVariables(executionResult)
-              .map(list => list.find(_.name.name === key).toResult(s"failed to find event field named $key"))
-              .flatten
-              .map(variableType => variableType.expressionType(executionResult))
-          case _ =>
-            super.keysType(keys, value, executionResult)
-        }
-      case _ => super.keysType(keys, value, executionResult)
+        definition
+          .defaultValue
+          .toResult(s"could not access event filter definition")
+          .flatMap(param => definition.varType(executionResult).construct(param, executionResult).map(_.toResult(s"could not construct definition for event filter")))
+          .flatten
+          .map {
+            case eventFilterDefinition: EventFilterDefinition =>
+              eventFilterDefinition
+                .abiOpenlawVariables(executionResult)
+                .map(list => list.find(_.name.name === key).toResult(s"failed to find event field named $key"))
+                .flatten
+                .map(variableType => variableType.expressionType(executionResult))
+            case x => Failure(s"unexpected value provided, expected EventFilterDefinition: $x")
+          }
+          .flatten
+      case _ => super.keysType(keys, definition, executionResult)
     }
-  }
 
   override def access(value: Any, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Any] = super.access(value, keys, executionResult)
 

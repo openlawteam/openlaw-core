@@ -5,6 +5,7 @@ import org.adridadou.openlaw.parser.template._
 import play.api.libs.json.JsObject
 import io.circe.syntax._
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
+import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 
@@ -97,7 +98,7 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
 
   override def getTypeClass: Class[Map[VariableName, Any]] = classOf[Map[VariableName, Any]]
 
-  override def keysType(keys: Seq[String], value: Any, executionResult: TemplateExecutionResult): Result[VariableType] = {
+  override def keysType(keys: Seq[String], expression: Expression, executionResult: TemplateExecutionResult): Result[VariableType] = {
     keys.toList match {
       case Nil =>
         Success(AbstractStructureType)
@@ -105,7 +106,7 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
         val name = VariableName(head)
         structure.typeDefinition.get(name) match {
           case Some(varType) =>
-            varType.keysType(keys, value, executionResult)
+            varType.keysType(keys, expression, executionResult)
           case None =>
             throw new RuntimeException(s"property '${keys.mkString(".")}' could not be resolved in structure value '$head'")
         }
