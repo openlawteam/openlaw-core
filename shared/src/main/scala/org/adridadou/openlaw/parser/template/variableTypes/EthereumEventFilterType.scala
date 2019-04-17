@@ -6,18 +6,13 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.parser._
 import io.circe.syntax._
 import org.adridadou.openlaw.parser.template._
-import org.adridadou.openlaw.parser.template.expressions.{Expression, ValueExpression}
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
 import org.adridadou.openlaw.result.{Failure, Result, attempt}
-import org.adridadou.openlaw.result.Implicits.{RichOption, RichResult}
+import org.adridadou.openlaw.result.Implicits.RichOption
 
-case object EthereumEventFilter extends VariableType("EthereumEventFilter") with ActionType {
+case object EthereumEventFilterType extends VariableType("EthereumEventFilter") with ActionType {
   implicit val smartContractEnc: Encoder[EventFilterDefinition] = deriveEncoder[EventFilterDefinition]
   implicit val smartContractDec: Decoder[EventFilterDefinition] = deriveDecoder[EventFilterDefinition]
-
-  override def validateOperation(expr: ValueExpression, executionResult: TemplateExecutionResult): Option[String] = {
-    None
-  }
 
   override def cast(value: String, executionResult: TemplateExecutionResult): EventFilterDefinition =
     handleEither(decode[EventFilterDefinition](value))
@@ -27,19 +22,26 @@ case object EthereumEventFilter extends VariableType("EthereumEventFilter") with
       call.asJson.noSpaces
   }
 
-  override def keysType(keys: Seq[String], value: Any, executionResult: TemplateExecutionResult): Result[VariableType] = keys match {
-    case Seq(key) =>
-      value match {
-        case definition: EventFilterDefinition =>
-          definition
-            .abiOpenlawVariables(executionResult)
-            .map(list => list.find(_.name.name === key).toResult(s"failed to find event field named $key"))
-            .flatten
-            .map(variableType => variableType.expressionType(executionResult))
-        case _ => super.keysType(keys, value, executionResult)
-      }
-    case _ => super.keysType(keys, value, executionResult)
+  override def keysType(keys: Seq[String], definition: VariableDefinition, executionResult: TemplateExecutionResult): Result[VariableType] = {
+    definition.defaultValue.map(param => definition.varType(executionResult).construct(param, executionResult))
+
+    keys match {
+      case Seq(key) =>
+        value match {
+          case definition: EventFilterDefinition =>
+            definition
+              .abiOpenlawVariables(executionResult)
+              .map(list => list.find(_.name.name === key).toResult(s"failed to find event field named $key"))
+              .flatten
+              .map(variableType => variableType.expressionType(executionResult))
+          case _ =>
+            super.keysType(keys, value, executionResult)
+        }
+      case _ => super.keysType(keys, value, executionResult)
+    }
   }
+
+  override def access(value: Any, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Any] = super.access(value, keys, executionResult)
 
   override def defaultFormatter: Formatter = new NoopFormatter
 
@@ -62,7 +64,7 @@ case object EthereumEventFilter extends VariableType("EthereumEventFilter") with
 
   override def getTypeClass: Class[_ <: EventFilterDefinition] = classOf[EventFilterDefinition]
 
-  def thisType: VariableType = EthereumEventFilter
+  def thisType: VariableType = EthereumEventFilterType
 
   override def actionValue(value: Any): EventFilterDefinition = VariableType.convert[EventFilterDefinition](value)
 }

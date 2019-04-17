@@ -107,7 +107,7 @@ abstract class VariableType(val name: String) {
   def validateKeys(name:VariableName, keys:Seq[String], executionResult: TemplateExecutionResult): Result[Unit] =
     keys.headOption.map(_ => Failure(s"The variable type $name has no properties")).getOrElse(Success(()))
 
-  def keysType(keys: Seq[String], value: Any, executionResult: TemplateExecutionResult):Result[VariableType] = if(keys.nonEmpty) {
+  def keysType(keys: Seq[String], definition: VariableDefinition, executionResult: TemplateExecutionResult):Result[VariableType] = if(keys.nonEmpty) {
     Failure(s"the type $name has no properties")
   } else {
     Success(thisType)
@@ -206,7 +206,7 @@ object VariableType {
     DateTimeType,
     EthAddressType,
     EthereumCallType,
-    EthereumEventFilter,
+    EthereumEventFilterType,
     IdentityType,
     LargeTextType,
     ImageType,

@@ -24,7 +24,7 @@ trait VariableExecutionEngine {
           val missingVariables = currentVariable.defaultValue.map(_.variables(executionResult)).getOrElse(Seq())
             .filter(newVariable => executionResult.getVariable(newVariable.name).isEmpty).toList
 
-          (if(currentVariable.varType(executionResult) === EthereumEventFilter) {
+          (if(currentVariable.varType(executionResult) === EthereumEventFilterType) {
             missingVariables.filter(_.name =!= "this")
           } else {
             missingVariables

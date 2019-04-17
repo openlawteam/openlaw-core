@@ -24,12 +24,12 @@ case class EthereumEventFilterOracle(parser: OpenlawTemplateLanguageParserServic
 
   override def incoming(vm: OpenlawVm, event: EthereumEventFilterEvent): Result[OpenlawVm] = {
     vm
-      .getAllVariables(EthereumEventFilter)
+      .getAllVariables(EthereumEventFilterType)
       .find { case (_, variable) => variable.name === event.name }.flatMap {
       case (executionResult, variable) =>
         variable
           .defaultValue
-          .map(EthereumEventFilter.construct(_, executionResult))
+          .map(EthereumEventFilterType.construct(_, executionResult))
           .map {
             case Success(Some(eventFilter)) =>
               val name = VariableName("this")
