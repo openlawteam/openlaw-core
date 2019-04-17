@@ -7,17 +7,17 @@ import io.circe.{Decoder, Encoder, KeyDecoder, KeyEncoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
-import org.adridadou.openlaw.result.Implicits.{RichOption, RichResult}
+import org.adridadou.openlaw.result.Implicits.RichResult
 import play.api.libs.json.{JsString, Reads, Writes}
 
 import scala.reflect.ClassTag
 
 case class VariableMember(name:VariableName, keys:Seq[String], formatter:Option[FormatterDefinition]) extends TemplatePart with Expression {
   override def missingInput(executionResult:TemplateExecutionResult): Result[Seq[VariableName]] =
-    name.aliasOrVariable(executionResult).missingInput(executionResult)
+    name.missingInput(executionResult)
 
   override def validate(executionResult:TemplateExecutionResult): Result[Unit] =
-    name.aliasOrVariable(executionResult).expressionType(executionResult)
+    name.expressionType(executionResult)
       .validateKeys(name, keys, executionResult)
 
   override def expressionType(executionResult:TemplateExecutionResult): VariableType = {
@@ -25,7 +25,7 @@ case class VariableMember(name:VariableName, keys:Seq[String], formatter:Option[
     expression
       .expressionType(executionResult)
       .keysType(keys, expression, executionResult)
-      .getOrThrow
+      .getOrThrow()
   }
 
   override def evaluate(executionResult:TemplateExecutionResult): Option[Any] = {

@@ -32,7 +32,7 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
                 .abiOpenlawVariables(executionResult)
                 .map(list => list.find(_.name.name === key).toResult(s"failed to find event field named $key"))
                 .flatten
-                .map(variableType => variableType.expressionType(executionResult))
+                .map(definition => definition.varType(executionResult))
             case x => Failure(s"unexpected value provided, expected EventFilterDefinition: $x")
           }.getOrElse(Failure("the ethereum event filter definition could not be found"))
       case _ => super.keysType(keys, expr, executionResult)

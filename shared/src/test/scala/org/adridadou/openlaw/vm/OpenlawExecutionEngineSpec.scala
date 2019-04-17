@@ -67,7 +67,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
                   [[Contract Creation Event: EthereumEventFilter(
                   contract address: "0x531E0957391dAbF46f8a9609d799fFD067bDbbC0";
                   interface: $abi;
-                  event type name: "ContractCreation";
+                  event type name: "Approval";
                   conditional filter: this.owner = Employer Ethereum Address)]]
 
       [[some address:EthAddress]]
