@@ -215,10 +215,12 @@ case class CompiledAgreement(
 
   private def generateVariable(name: VariableName, keys:Seq[String], formatter:Option[FormatterDefinition], executionResult: TemplateExecutionResult):List[AgreementElement] = {
     executionResult.getAliasOrVariableType(name).flatMap(varType => {
-      val keysVarType:VariableType = varType.keysType(keys, executionResult)
-
       executionResult.getExpression(name).flatMap(_.evaluate(executionResult))
-        .map(varType.access(_, keys, executionResult).flatMap(keysVarType.format(formatter, _, executionResult)))
+        .map { value =>
+          varType.
+            keysType(keys, value, executionResult)
+            .flatMap(keysType => varType.access(value, keys, executionResult).flatMap(keysType.format(formatter, _, executionResult)))
+        }
         .getOrElse(Right(varType.missingValueFormat(name)))
     }) match {
       case Right(result) => result.toList

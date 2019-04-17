@@ -1,5 +1,6 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
+import cats.implicits._
 import io.circe._
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.parser._
@@ -8,6 +9,7 @@ import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.{Expression, ValueExpression}
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
 import org.adridadou.openlaw.result.{Failure, Result, attempt}
+import org.adridadou.openlaw.result.Implicits.{RichOption, RichResult}
 
 case object EthereumEventFilter extends VariableType("EthereumEventFilter") with ActionType {
   implicit val smartContractEnc: Encoder[EventFilterDefinition] = deriveEncoder[EventFilterDefinition]
@@ -23,6 +25,20 @@ case object EthereumEventFilter extends VariableType("EthereumEventFilter") with
   override def internalFormat(value: Any): String = value match {
     case call:EventFilterDefinition =>
       call.asJson.noSpaces
+  }
+
+  override def keysType(keys: Seq[String], value: Any, executionResult: TemplateExecutionResult): Result[VariableType] = keys match {
+    case Seq(key) =>
+      value match {
+        case definition: EventFilterDefinition =>
+          definition
+            .abiOpenlawVariables(executionResult)
+            .map(list => list.find(_.name.name === key).toResult(s"failed to find event field named $key"))
+            .flatten
+            .map(variableType => variableType.expressionType(executionResult))
+        case _ => super.keysType(keys, value, executionResult)
+      }
+    case _ => super.keysType(keys, value, executionResult)
   }
 
   override def defaultFormatter: Formatter = new NoopFormatter

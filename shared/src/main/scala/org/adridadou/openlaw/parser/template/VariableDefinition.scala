@@ -7,6 +7,7 @@ import io.circe.{Decoder, Encoder, KeyDecoder, KeyEncoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
+import org.adridadou.openlaw.result.Implicits.{RichOption, RichResult}
 import play.api.libs.json.{JsString, Reads, Writes}
 
 import scala.reflect.ClassTag
@@ -20,7 +21,15 @@ case class VariableMember(name:VariableName, keys:Seq[String], formatter:Option[
       .validateKeys(name, keys, executionResult)
 
   override def expressionType(executionResult:TemplateExecutionResult): VariableType =
-    name.aliasOrVariable(executionResult).expressionType(executionResult).keysType(keys, executionResult)
+    evaluate(executionResult)
+      .toResult(s"failed to evaluate expression while checking expression type")
+      .flatMap { value =>
+        name
+          .aliasOrVariable(executionResult)
+          .expressionType(executionResult)
+          .keysType(keys, value, executionResult)
+      }
+    .getOrThrow
 
   override def evaluate(executionResult:TemplateExecutionResult): Option[Any] = {
     val expr = name.aliasOrVariable(executionResult)

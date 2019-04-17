@@ -24,10 +24,10 @@ object AddressType extends VariableType(name = "Address") {
 
   override def internalFormat(value: Any): String = VariableType.convert[Address](value).asJson.noSpaces
 
-  override def keysType(keys: Seq[String], executionResult: TemplateExecutionResult): VariableType = keys.toList match {
-    case _::tail if tail.isEmpty => TextType
-    case _::_ => throw new RuntimeException(s"Address has only one level of properties. invalid property access ${keys.mkString(".")}")
-    case _ => AddressType
+  override def keysType(keys: Seq[String], value: Any, executionResult: TemplateExecutionResult): Result[VariableType] = keys.toList match {
+    case _::tail if tail.isEmpty => Success(TextType)
+    case _::_ => Failure(s"Address has only one level of properties. invalid property access ${keys.mkString(".")}")
+    case _ => Success(AddressType)
   }
 
   override def access(value: Any, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Any] = {

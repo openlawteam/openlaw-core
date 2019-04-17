@@ -107,10 +107,10 @@ abstract class VariableType(val name: String) {
   def validateKeys(name:VariableName, keys:Seq[String], executionResult: TemplateExecutionResult): Result[Unit] =
     keys.headOption.map(_ => Failure(s"The variable type $name has no properties")).getOrElse(Success(()))
 
-  def keysType(keys:Seq[String], executionResult: TemplateExecutionResult):VariableType = if(keys.nonEmpty) {
-    throw new RuntimeException(s"the type $name has no properties")
+  def keysType(keys: Seq[String], value: Any, executionResult: TemplateExecutionResult):Result[VariableType] = if(keys.nonEmpty) {
+    Failure(s"the type $name has no properties")
   } else {
-    thisType
+    Success(thisType)
   }
 
   def plus(optLeft: Option[Any], optRight: Option[Any], executionResult: TemplateExecutionResult): Option[Any] =
