@@ -6,6 +6,7 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.parser._
 import io.circe.syntax._
 import org.adridadou.openlaw.parser.template._
+import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
 import org.adridadou.openlaw.result.{Failure, Result, attempt}
 import org.adridadou.openlaw.result.Implicits.RichOption
@@ -22,15 +23,10 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
       call.asJson.noSpaces
   }
 
-  override def keysType(keys: Seq[String], definition: VariableDefinition, executionResult: TemplateExecutionResult): Result[VariableType] =
+  override def keysType(keys: Seq[String], expr: Expression, executionResult: TemplateExecutionResult): Result[VariableType] =
     keys match {
       case Seq(key) =>
-        definition
-          .defaultValue
-          .toResult(s"could not access event filter definition")
-          .flatMap(param => definition.varType(executionResult).construct(param, executionResult).map(_.toResult(s"could not construct definition for event filter")))
-          .flatten
-          .map {
+        expr.evaluate(executionResult).map {
             case eventFilterDefinition: EventFilterDefinition =>
               eventFilterDefinition
                 .abiOpenlawVariables(executionResult)
@@ -38,9 +34,8 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
                 .flatten
                 .map(variableType => variableType.expressionType(executionResult))
             case x => Failure(s"unexpected value provided, expected EventFilterDefinition: $x")
-          }
-          .flatten
-      case _ => super.keysType(keys, definition, executionResult)
+          }.getOrElse(Failure("the ethereum event filter definition could not be found"))
+      case _ => super.keysType(keys, expr, executionResult)
     }
 
   override def access(value: Any, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Any] = super.access(value, keys, executionResult)

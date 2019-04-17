@@ -5,7 +5,7 @@ import java.time.LocalDateTime
 import io.circe.syntax._
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import cats.implicits._
-import io.circe.{Decoder, Encoder}
+import io.circe.{Decoder, Encoder, Json}
 import org.adridadou.openlaw.parser.template.{OpenlawTemplateLanguageParserService, TemplateExecutionResult, VariableDefinition, VariableName}
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.result.{Result, Success}
@@ -15,9 +15,19 @@ import VariableName._
 import LocalDateTimeHelper._
 
 
+object EthereumEventFilterExecution {
+  implicit val ethEventFilterExecutionEnc:Encoder[EthereumEventFilterExecution] = deriveEncoder[EthereumEventFilterExecution]
+  implicit val ethEventFilterExecutionDec:Decoder[EthereumEventFilterExecution] = deriveDecoder[EthereumEventFilterExecution]
+}
 
-case class EthereumEventFilterExecution(executionDate: LocalDateTime, key: Any, executionStatus: OpenlawExecutionStatus = PendingExecution) extends OpenlawExecution {
+case class EthereumEventFilterExecution(executionDate: LocalDateTime, executionStatus: OpenlawExecutionStatus = PendingExecution, event:EthereumEventFilterEvent) extends OpenlawExecution {
   val scheduledDate: LocalDateTime = executionDate
+
+  override def key: Any = event.hash
+
+  override def typeIdentifier: String = className[EthereumEventFilterExecution]
+
+  override def serialize: Json = this.asJson
 }
 
 case class EthereumEventFilterOracle(parser: OpenlawTemplateLanguageParserService) extends OpenlawOracle[EthereumEventFilterEvent] with LazyLogging {
@@ -40,7 +50,7 @@ case class EthereumEventFilterOracle(parser: OpenlawTemplateLanguageParserServic
 
                 val matchFilter = eventFilter.conditionalFilter.evaluate(child)
                 if (matchFilter.exists(VariableType.convert[Boolean])) {
-                 val execution = EthereumEventFilterExecution(event.executionDate, event.hash)
+                 val execution = EthereumEventFilterExecution(event.executionDate, SuccessfulExecution, event)
                   Success(vm.newExecution(event.name, execution))
                 } else {
                   Success(vm)

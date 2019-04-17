@@ -4,6 +4,7 @@ import io.circe.generic.semiauto._
 import io.circe.syntax._
 import io.circe.parser._
 import org.adridadou.openlaw.parser.template._
+import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.Formatter
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 
@@ -24,7 +25,7 @@ object AddressType extends VariableType(name = "Address") {
 
   override def internalFormat(value: Any): String = VariableType.convert[Address](value).asJson.noSpaces
 
-  override def keysType(keys: Seq[String], value: Any, executionResult: TemplateExecutionResult): Result[VariableType] = keys.toList match {
+  override def keysType(keys: Seq[String], expr: Expression, executionResult: TemplateExecutionResult): Result[VariableType] = keys.toList match {
     case _::tail if tail.isEmpty => Success(TextType)
     case _::_ => Failure(s"Address has only one level of properties. invalid property access ${keys.mkString(".")}")
     case _ => Success(AddressType)

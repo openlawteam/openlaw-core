@@ -7,13 +7,16 @@ import org.adridadou.openlaw.parser.template.expressions.{Expression, ValueExpre
 import org.adridadou.openlaw.parser.template.formatters.{DefaultFormatter, Formatter}
 import cats.Eq
 import cats.implicits._
-import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe._
+import io.circe.syntax._
+import io.circe.parser._
+import io.circe.generic.semiauto._
 
 import scala.reflect.ClassTag
 import scala.util.Try
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 import LocalDateTimeHelper._
+import org.adridadou.openlaw.oracles.EthereumEventFilterExecution
 
 trait NoShowInForm
 
@@ -25,11 +28,25 @@ trait ActionType extends NoShowInForm {
   def actionValue(value:Any):ActionValue
 }
 
+object OpenlawExecution {
+  implicit val openlawExecutionEnc:Encoder[OpenlawExecution] = (a: OpenlawExecution) => Json.obj(
+    "type" -> Json.fromString(a.typeIdentifier),
+    "value" -> a.serialize
+  )
+  implicit val openlawExecutionDec:Decoder[OpenlawExecution] = (c: HCursor) => c.downField("type").as[String]
+    .flatMap(convertOpenlawExecution(_, c.downField("value")))
+
+  private def convertOpenlawExecution(str: String, cursor: ACursor):Decoder.Result[OpenlawExecution] = ???
+}
+
 trait OpenlawExecution {
   def scheduledDate:LocalDateTime
   def executionDate:LocalDateTime
   def executionStatus:OpenlawExecutionStatus
   def key:Any
+  def typeIdentifier: String
+  def serialize: Json
+  protected def className[T]()(implicit cls:ClassTag[T]):String = cls.runtimeClass.getName
 }
 
 object EthereumSmartContractExecution {
@@ -45,6 +62,9 @@ case class EthereumSmartContractExecution(scheduledDate:LocalDateTime, execution
   }
 
   def key:EthereumHash = tx
+
+  override def typeIdentifier: String = className[EthereumSmartContractExecution]
+  override def serialize: Json = this.asJson
 }
 
 sealed abstract class OpenlawExecutionStatus(val name:String)
@@ -303,4 +323,7 @@ object LocalDateTimeHelper {
   implicit val clockEncoder: Encoder[LocalDateTime] = (a: LocalDateTime) => Json.fromLong(a.toEpochSecond(ZoneOffset.UTC))
   implicit val eqForLocalDateTime: Eq[LocalDateTime] = Eq.fromUniversalEquals
 
+  implicit val dateKeyEncoder:KeyEncoder[LocalDateTime] = (key: LocalDateTime) => key.toEpochSecond(ZoneOffset.UTC).toString
+
+  implicit val dateKeyDecoder:KeyDecoder[LocalDateTime] = (key: String) => Try(LocalDateTime.ofEpochSecond(key.toLong, 0, ZoneOffset.UTC)).toOption
 }

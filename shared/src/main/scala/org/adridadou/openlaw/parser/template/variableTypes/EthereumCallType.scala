@@ -3,7 +3,7 @@ package org.adridadou.openlaw.parser.template.variableTypes
 import io.circe._
 import io.circe.syntax._
 import io.circe.parser._
-import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
+import io.circe.generic.semiauto._
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}

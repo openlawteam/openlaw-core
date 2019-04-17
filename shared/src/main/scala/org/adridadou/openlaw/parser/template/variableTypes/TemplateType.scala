@@ -9,7 +9,6 @@ import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatte
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
-import org.adridadou.openlaw.result.Implicits.RichOption
 import org.adridadou.openlaw.values._
 
 case class TemplateDefinition(name:TemplateSourceIdentifier, mappingInternal:Map[String, Expression] = Map(), path:Option[TemplatePath] = None) {
@@ -155,13 +154,13 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
           )).getOrElse(Failure(s"properties '${tail.mkString(".")}' could not be resolved in sub template '$head'"))
   }
 
-  override def keysType(keys: Seq[String], definition: VariableDefinition, executionResult: TemplateExecutionResult): Result[VariableType] = {
+  override def keysType(keys: Seq[String], expr: Expression, executionResult: TemplateExecutionResult): Result[VariableType] = {
     keys.toList match {
       case Nil => Success(TemplateType)
       case head::tail =>
         executionResult.subExecutions.get(VariableName(head)).flatMap(subExecution =>
             subExecution.getExpression(VariableName(head))
-              .map(_.expressionType(subExecution).keysType(tail, definition, executionResult))) match {
+              .map(subExpr => subExpr.expressionType(subExecution).keysType(tail, subExpr, executionResult))) match {
               case Some(varType) =>
                 varType
               case None =>
