@@ -77,13 +77,9 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
 
     engine.execute(template, TemplateParameters()) match {
       case Success(executionResult) =>
-        val v = executionResult.getVariable("Contract Creation Event").value
-        val value = executionResult.getVariableValue[EventFilterDefinition](v.name).value
-        val entries = value.abiOpenlawVariables(executionResult) match {
-          case Success(entries) =>
-            entries
-          case Failure(e, message) => throw e
-        }
+        val text = parser.forReview(executionResult.agreements.head)
+        text shouldBe "<p class=\"no-section\"><br />                  [[Employer Ethereum Address]]<br /><br />                </p><p class=\"no-section\"><br /><br />    </p><p class=\"no-section\">[[some address]]<br /><br />    </p><p class=\"no-section\"><br />      </p>"
+
       case Failure(ex, message) =>
         fail(message, ex)
     }

@@ -8,7 +8,7 @@ import io.circe.syntax._
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
-import org.adridadou.openlaw.result.{Failure, Result, attempt}
+import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 import org.adridadou.openlaw.result.Implicits.RichOption
 
 case object EthereumEventFilterType extends VariableType("EthereumEventFilter") with ActionType {
@@ -38,7 +38,23 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
       case _ => super.keysType(keys, expr, executionResult)
     }
 
-  override def access(value: Any, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Any] = super.access(value, keys, executionResult)
+  override def access(value: Any, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Any] = {
+    keys.toList match {
+      case Nil => Success(value)
+      case head::tail if tail.isEmpty =>
+        value match {
+          case eventFilterDefinition: EventFilterDefinition =>
+            eventFilterDefinition
+              .abiOpenlawVariables(executionResult)
+              .map(list => list.find(_.name.name === head).toResult(s"failed to find event field named $head"))
+              .flatten
+              .map(definition => definition.evaluate(executionResult))
+          case x => Failure(s"unexpected value provided, expected EventFilterDefinition: $x")
+        }
+
+      case _ => Failure(s"Ethereum event only support one level of properties. invalid property access ${keys.mkString(".")}")
+    }
+  }
 
   override def defaultFormatter: Formatter = new NoopFormatter
 
