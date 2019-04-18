@@ -49,10 +49,9 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
             executionResult
               .executions
               .get(name)
-              .toResult(s"could not find execution for this variable")
-              .flatMap { executions =>
+              .map { executions =>
                 executions.executionMap.values.headOption match {
-                  case Some(execution:EthereumEventFilterExecution) =>
+                  case Some(execution: EthereumEventFilterExecution) =>
                     generateStructureType(VariableName("none"), eventFilter, executionResult).flatMap { structure =>
                       structure.access(structure.cast(execution.event.values.asJson.noSpaces, executionResult), name, keys, executionResult)
                     }
@@ -61,8 +60,8 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
                   case None =>
                     Success(None)
                 }
-
               }
+              .getOrElse(Success(None))
 
           case x => Failure(s"unexpected value provided, expected EventFilterDefinition: $x")
         }

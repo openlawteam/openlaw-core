@@ -35,7 +35,7 @@ case class VariableMember(name:VariableName, keys:Seq[String], formatter:Option[
     val optValue = expr.evaluate(executionResult)
     optValue.map(exprType.access(_, name, keys, executionResult) match {
       case Right(Some(value)) => value
-      case Right(None) => throw new RuntimeException(s"failed to access variable")
+      case Right(None) => None
       case Left(ex) => throw new RuntimeException(ex.e)
     })
   }
