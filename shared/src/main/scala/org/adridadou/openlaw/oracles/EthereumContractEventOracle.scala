@@ -46,11 +46,7 @@ case class EthereumEventFilterOracle(parser: OpenlawTemplateLanguageParserServic
                 structureType <- generateStructureType(name, eventFilter, executionResult)
                 child <- executionResult.startEphemeralExecution(name, structureType.cast(event.values.asJson.noSpaces, executionResult), structureType)
               } yield {
-                val one = eventFilter.contractAddress.evaluate(child)
-                val two = eventFilter.eventType.evaluate(child)
-                val three = eventFilter.conditionalFilter.evaluate(child)
-
-                (one, two, three) match {
+                (eventFilter.contractAddress.evaluate(child), eventFilter.eventType.evaluate(child), eventFilter.conditionalFilter.evaluate(child)) match {
                   case (Some(address: String), Some(eventType: String), Some(true)) if address === event.smartContractAddress.withLeading0x && eventType === event.eventType =>
                     val execution = EthereumEventFilterExecution(event.executionDate, SuccessfulExecution, event)
                     Success(vm.newExecution(event.name, execution))
