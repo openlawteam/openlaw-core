@@ -18,7 +18,7 @@ case class VariableMember(name:VariableName, keys:Seq[String], formatter:Option[
 
   override def validate(executionResult:TemplateExecutionResult): Result[Unit] =
     name.expressionType(executionResult)
-      .validateKeys(name, keys, executionResult)
+      .validateKeys(name, keys, name, executionResult)
 
   override def expressionType(executionResult:TemplateExecutionResult): VariableType = {
     val expression = name.aliasOrVariable(executionResult)

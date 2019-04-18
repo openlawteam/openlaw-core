@@ -170,7 +170,7 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
         }
   }
 
-  override def validateKeys(name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Unit] = keys.toList match {
+  override def validateKeys(name:VariableName, keys: Seq[String], expr:Expression, executionResult: TemplateExecutionResult): Result[Unit] = keys.toList match {
     case Nil =>
       Success(())
     case head::tail =>

@@ -39,7 +39,7 @@ object AddressType extends VariableType(name = "Address") {
     }
   }
 
-  override def validateKeys(name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Unit] = keys.toList match {
+  override def validateKeys(name:VariableName, keys: Seq[String], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] = keys.toList match {
     case Nil => Success(())
     case head::tail if tail.isEmpty => checkProperty(head)
     case _::_ => Failure(s"invalid property ${keys.mkString(".")}")

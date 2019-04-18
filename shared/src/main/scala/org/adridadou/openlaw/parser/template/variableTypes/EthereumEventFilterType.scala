@@ -9,6 +9,7 @@ import org.adridadou.openlaw.oracles.EthereumEventFilterExecution
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
+import org.adridadou.openlaw.parser.template.variableTypes.AddressType.checkProperty
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 import org.adridadou.openlaw.result.Implicits.RichOption
 
@@ -38,6 +39,20 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
           }.getOrElse(Failure("the ethereum event filter definition could not be found"))
       case _ => super.keysType(keys, expr, executionResult)
     }
+
+  override def validateKeys(name:VariableName, keys: Seq[String], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] = keys match {
+    case Seq(key) =>
+      expression.evaluate(executionResult).map {
+        case eventFilterDefinition: EventFilterDefinition =>
+          eventFilterDefinition
+            .abiOpenlawVariables(executionResult)
+            .map(list => list.find(_.name.name === key).toResult(s"failed to find event field named $key"))
+            .flatten
+            .map(definition => definition.varType(executionResult))
+        case x => Failure(s"unexpected value provided, expected EventFilterDefinition: $x")
+      }.map(_ => Success()).getOrElse(Failure("the ethereum event filter definition could not be found"))
+    case _ => super.validateKeys(name, keys, expression, executionResult)
+  }
 
   override def access(value: Any, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[Any]] = {
     keys.toList match {

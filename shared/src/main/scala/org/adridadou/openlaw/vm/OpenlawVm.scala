@@ -103,6 +103,7 @@ case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
       case Some(Right(result)) =>
         Some(result)
       case Some(Left(ex)) =>
+        ex.e.printStackTrace()
         logger.warn(ex.message, ex.e)
         None
     }

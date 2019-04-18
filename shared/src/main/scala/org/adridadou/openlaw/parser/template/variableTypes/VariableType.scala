@@ -118,11 +118,11 @@ abstract class VariableType(val name: String) {
   def operationWith(rightType: VariableType, operation: ValueOperation): VariableType =
     this
 
-  def access(value: Any, name:VariableName, keys: Seq[String], executionResult:TemplateExecutionResult): Result[Option[Any]] = {
+  def access(value: Any, variableName:VariableName, keys: Seq[String], executionResult:TemplateExecutionResult): Result[Option[Any]] = {
     if(keys.isEmpty) {
       Success(Some(value))
     } else {
-      Failure(s"The variable type $name has no properties")
+      Failure(s"The variable $variableName of type $name has no properties")
     }
   }
 
@@ -131,8 +131,8 @@ abstract class VariableType(val name: String) {
   def checkTypeName(nameToCheck: String): Boolean =
     this.name.equalsIgnoreCase(nameToCheck)
 
-  def validateKeys(name:VariableName, keys:Seq[String], executionResult: TemplateExecutionResult): Result[Unit] =
-    keys.headOption.map(_ => Failure(s"The variable type $name has no properties")).getOrElse(Success(()))
+  def validateKeys(variableName:VariableName, keys:Seq[String], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] =
+    keys.headOption.map(_ => Failure(s"The variable $variableName of type $name has no properties")).getOrElse(Success(()))
 
   def keysType(keys: Seq[String], expression: Expression, executionResult: TemplateExecutionResult):Result[VariableType] = if(keys.nonEmpty) {
     Failure(s"the type $name has no properties")

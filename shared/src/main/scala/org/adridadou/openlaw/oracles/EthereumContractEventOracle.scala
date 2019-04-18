@@ -61,8 +61,14 @@ case class EthereumEventFilterOracle(parser: OpenlawTemplateLanguageParserServic
               result.flatten
             case _ => Success(vm)
           }
+    } match {
+      case Some(newVm) => newVm
+      case None =>
+        println(vm.executionResult.map(_.executedVariables).getOrElse(Seq()))
+        println(s"no event filter found! ${vm
+          .getAllVariables(EthereumEventFilterType).map(_._2.name)}")
+        Success(vm)
     }
-      .getOrElse(Success(vm))
   }
 
   private def generateStructureType(name: VariableName, eventFilter:EventFilterDefinition, executionResult: TemplateExecutionResult): Result[VariableType] = {
@@ -86,8 +92,6 @@ case class EthereumEventFilterOracle(parser: OpenlawTemplateLanguageParserServic
 object EthereumEventFilterEvent {
   implicit val ethereumEventFilterEventEnc: Encoder[EthereumEventFilterEvent] = deriveEncoder[EthereumEventFilterEvent]
   implicit val ethereumEventFilterEventDec: Decoder[EthereumEventFilterEvent] = deriveDecoder[EthereumEventFilterEvent]
-
-
 }
 
 final case class EthereumEventFilterEvent(

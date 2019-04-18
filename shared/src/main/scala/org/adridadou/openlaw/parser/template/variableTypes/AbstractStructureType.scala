@@ -113,7 +113,7 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
     }
   }
 
-  override def validateKeys(name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Unit] = keys.toList match {
+  override def validateKeys(name:VariableName, keys: Seq[String], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] = keys.toList match {
     case Nil =>
       Success(())
     case head::tail =>
@@ -122,7 +122,7 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
         case Some(variableType:NoShowInForm) =>
           Failure(s"invalid type in structure ${variableType.name} only types that should be shown in the input form are allowed (Text, YesNo, Address ...)")
         case Some(variableType) =>
-          variableType.validateKeys(name, tail, executionResult)
+          variableType.validateKeys(name, tail, expression, executionResult)
         case None =>
           Failure(s"property '${tail.mkString(".")}' could not be resolved in structure value '$head'")
       }
