@@ -4,7 +4,7 @@ import java.time.Clock
 
 import cats.implicits._
 import org.adridadou.openlaw.parser.template.variableTypes._
-import org.adridadou.openlaw.result.Success
+import org.adridadou.openlaw.result.{Result, Success}
 
 import scala.annotation.tailrec
 
@@ -226,7 +226,9 @@ case class CompiledAgreement(
           .flatMap { keysType =>
             varType
               .access(value, name, keys, executionResult)
-              .flatMap(keysType.format(formatter, _, executionResult))
+              .flatMap { option =>
+                option.map(value => keysType.format(formatter, value, executionResult)).getOrElse(Success(List()))
+              }
           }
       }
 

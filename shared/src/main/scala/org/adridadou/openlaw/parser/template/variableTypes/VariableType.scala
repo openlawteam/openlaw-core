@@ -117,9 +117,9 @@ abstract class VariableType(val name: String) {
   def operationWith(rightType: VariableType, operation: ValueOperation): VariableType =
     this
 
-  def access(value: Any, name:VariableName, keys: Seq[String], executionResult:TemplateExecutionResult): Result[Any] = {
+  def access(value: Any, name:VariableName, keys: Seq[String], executionResult:TemplateExecutionResult): Result[Option[Any]] = {
     if(keys.isEmpty) {
-      Success(value)
+      Success(Some(value))
     } else {
       Failure(s"The variable type $name has no properties")
     }

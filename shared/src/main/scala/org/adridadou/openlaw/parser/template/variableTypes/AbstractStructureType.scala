@@ -76,10 +76,10 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
 
   override def defaultFormatter: Formatter = new NoopFormatter
 
-  override def access(value: Any, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Any] = {
+  override def access(value: Any, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[Any]] = {
     keys.toList match {
       case Nil =>
-        Success(value)
+        Success(Some(value))
       case head :: tail =>
         val headName = VariableName(head)
         val values = VariableType.convert[Map[VariableName, Any]](value)
@@ -89,7 +89,7 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
         } yield keyType.access(result, name, tail, executionResult) ) match {
           case Some(result) => result
           case None if structure.names.contains(headName) =>
-            Success(structure.typeDefinition(headName).missingValueFormat(headName))
+            Success(Some(structure.typeDefinition(headName).missingValueFormat(headName)))
           case None =>
             Failure(s"properties '${keys.mkString(".")}' could not be resolved for the structured type $typeName. available properties ${structure.names.map(name => s"'${name.name}'").mkString(",")}")
         }

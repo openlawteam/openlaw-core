@@ -143,9 +143,9 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
     }
   }
 
-  override def access(value: Any, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Any] = keys.toList match {
+  override def access(value: Any, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[Any]] = keys.toList match {
     case Nil =>
-      Success(value)
+      Success(Some(value))
     case head::tail =>
       val headName = VariableName(head)
       executionResult.subExecutions.get(VariableName(head)).flatMap(subExecution =>
