@@ -39,11 +39,11 @@ case object IdentityType extends VariableType(name = "Identity") {
     case _ => throw new RuntimeException(s"unknown formatter $name")
   }
 
-  override def access(value: Any, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Any] = {
+  override def access(value: Any, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[Any]] = {
     keys.toList match {
-      case head::tail if tail.isEmpty => accessProperty(Some(VariableType.convert[Identity](value)), head)
-      case _::_ => Success(s"Identity has only one level of properties. invalid property access ${keys.mkString(".")}")
-      case _ => Success(value)
+      case head::tail if tail.isEmpty => accessProperty(Some(VariableType.convert[Identity](value)), head).map(Some(_))
+      case _::_ => Failure(s"Identity has only one level of properties. invalid property access ${keys.mkString(".")}") // TODO: Is this correct?
+      case _ => Success(Some(value))
     }
   }
 

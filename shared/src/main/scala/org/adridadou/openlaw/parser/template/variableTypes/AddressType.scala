@@ -31,11 +31,11 @@ object AddressType extends VariableType(name = "Address") {
     case _ => Success(AddressType)
   }
 
-  override def access(value: Any, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Any] = {
+  override def access(value: Any, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[Any]] = {
     keys.toList match {
-      case head::tail if tail.isEmpty => accessProperty(getAddress(value, executionResult), head)
+      case head::tail if tail.isEmpty => accessProperty(getAddress(value, executionResult), head).map(Some(_))
       case _::_ => Failure(s"Address has only one level of properties. invalid property access ${keys.mkString(".")}")
-      case _ => Success(value)
+      case _ => Success(Some(value))
     }
   }
 

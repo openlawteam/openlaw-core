@@ -39,9 +39,9 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
       case _ => super.keysType(keys, expr, executionResult)
     }
 
-  override def access(value: Any, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Any] = {
+  override def access(value: Any, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[Any]] = {
     keys.toList match {
-      case Nil => Success(value)
+      case Nil => Success(Some(value))
       case _::tail if tail.isEmpty =>
         value match {
           case eventFilter: EventFilterDefinition =>
