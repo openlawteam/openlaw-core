@@ -187,7 +187,8 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
       case FailedExecution =>
         state = state.copy(executions = newExecutions, executionState = ContractStopped)
       case _ =>
-        state = state.copy(executions = newExecutions)
+        val newExecutionResult = state.createNewExecutionResult(state.state, state.templates, state.signatureProofs, newExecutions)
+        state = state.copy(executions = newExecutions, optExecutionResult = newExecutionResult)
     }
 
     this

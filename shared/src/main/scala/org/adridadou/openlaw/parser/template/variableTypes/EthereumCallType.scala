@@ -4,6 +4,7 @@ import io.circe._
 import io.circe.syntax._
 import io.circe.parser._
 import io.circe.generic.semiauto._
+import cats.implicits._
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
@@ -14,14 +15,13 @@ case object EthereumCallType extends VariableType("EthereumCall") with ActionTyp
   implicit val smartContractEnc: Encoder[EthereumSmartContractCall] = deriveEncoder[EthereumSmartContractCall]
   implicit val smartContractDec: Decoder[EthereumSmartContractCall] = deriveDecoder[EthereumSmartContractCall]
 
-  case class EthereumCallPropertyDef(typeDef:VariableType, data:EthereumSmartContractExecution => Option[Any])
+  case class EthereumCallPropertyDef(typeDef:VariableType, data:Seq[EthereumSmartContractExecution] => Option[Any])
 
-  private val propertyDef:Map[String,VariableType] = Map[String, VariableType](
-    "isSuccessful" -> YesNoType,
-    "isFailure" -> YesNoType,
-    "isPending" -> YesNoType,
-    "executionTime" -> DateTimeType,
-    "tx" -> EthTxHashType
+  private val propertyDef:Map[String,EthereumCallPropertyDef] = Map[String, EthereumCallPropertyDef](
+    "isSuccessful" -> EthereumCallPropertyDef(typeDef = YesNoType, _.headOption.map(_.executionStatus === SuccessfulExecution)),
+    "isFailure" -> EthereumCallPropertyDef(typeDef = YesNoType, _.headOption.map(_.executionStatus === FailedExecution)),
+    "executionDate" -> EthereumCallPropertyDef(typeDef = DateTimeType, _.headOption.map(_.executionDate)),
+    "tx" -> EthereumCallPropertyDef(typeDef = EthTxHashType, _.headOption.map(_.tx))
   )
 
   override def cast(value: String, executionResult: TemplateExecutionResult): EthereumSmartContractCall =
@@ -36,7 +36,7 @@ case object EthereumCallType extends VariableType("EthereumCall") with ActionTyp
     keys.toList match {
       case Nil => Success(thisType)
       case prop::Nil => propertyDef.get(prop) match {
-        case Some(typeDef) => Success(typeDef)
+        case Some(propDef) => Success(propDef.typeDef)
         case None => Failure(s"unknown property $prop for EthereumCall type")
       }
       case _ =>
@@ -48,7 +48,12 @@ case object EthereumCallType extends VariableType("EthereumCall") with ActionTyp
     keys.toList match {
       case Nil => Success(Some(value))
       case prop::Nil => propertyDef.get(prop) match {
-        case Some(typeDef) => Success(None)
+        case Some(propDef) =>
+          val executions:Seq[EthereumSmartContractExecution] = executionResult.executions.get(name).map(_.executionMap.values.toSeq)
+            .getOrElse(Seq())
+            .map(VariableType.convert[EthereumSmartContractExecution])
+
+          Success(propDef.data(executions))
         case None => Failure(s"unknown property $prop for EthereumCall type")
       }
       case _ =>

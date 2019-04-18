@@ -2,7 +2,6 @@ package org.adridadou.openlaw.oracles
 
 import java.time.LocalDateTime
 
-import cats.kernel.Eq
 import cats.implicits._
 import io.circe.syntax._
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
