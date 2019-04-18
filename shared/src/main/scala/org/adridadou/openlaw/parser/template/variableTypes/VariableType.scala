@@ -25,6 +25,7 @@ trait ActionValue {
 
 trait ActionType extends NoShowInForm {
   def actionValue(value:Any):ActionValue
+
 }
 
 object OpenlawExecution {
@@ -231,6 +232,7 @@ object VariableType {
     DateType,
     DateTimeType,
     EthAddressType,
+    EthTxHashType,
     EthereumCallType,
     EthereumEventFilterType,
     IdentityType,

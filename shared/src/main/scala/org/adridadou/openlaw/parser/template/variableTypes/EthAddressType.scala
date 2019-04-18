@@ -148,6 +148,8 @@ object EthereumHash {
 
   val empty:EthereumHash = EthereumHash(Array[Byte]())
 
+  def apply(hash:String):EthereumHash = new EthereumHash(EthereumAddress.hex2bytes(hash))
+
 }
 
 @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))

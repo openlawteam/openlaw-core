@@ -14,7 +14,6 @@ import org.adridadou.openlaw.result.{Failure, Result, Success}
 import slogging.LazyLogging
 
 import scala.reflect.ClassTag
-import io.circe._
 import io.circe.generic.semiauto._
 import LocalDateTimeHelper._
 

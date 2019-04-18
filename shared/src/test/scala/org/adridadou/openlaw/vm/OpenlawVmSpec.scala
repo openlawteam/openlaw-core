@@ -237,18 +237,13 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
         |conditional filter: this.value = 2939)]]""".stripMargin
 
     val templateId = TemplateId(TestCryptoService.sha256(template))
-    val email = Email("email@email.com")
-    val identity = Identity(email)
-
     val definition = ContractDefinition(creatorId = UserId("hello@world.com"), mainTemplate = templateId, templates = Map(), parameters = TemplateParameters())
-    val contractId = definition.id(TestCryptoService)
 
     val vm = vmProvider.create(definition, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq())
     vm(LoadTemplate(template))
 
-    val address = EthereumAddress("0x531e0957391dabf46f8a9609d799ffd067bdbbc0")
-    val values = Map(VariableName("value") -> NumberType.internalFormat(BigDecimal(2939)))
-    val event = EthereumEventFilterEvent(VariableName("Signature"), null, address, "OpenlawSignatureEvent", values, LocalDateTime.now)
+    val values = Map(VariableName("owner") -> EthAddressType.internalFormat(EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0")), VariableName("value") -> NumberType.internalFormat(BigDecimal(2939)))
+    val event = EthereumEventFilterEvent(VariableName("Signature"), EthereumHash.empty, EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0"), "OpenlawSignatureEvent", values, LocalDateTime.now)
 
     val ethereumEventFilterOracle = EthereumEventFilterOracle(parser)
     ethereumEventFilterOracle.incoming(vm, event) match {
@@ -273,24 +268,19 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
         //|{{Signature.executed => event value [[Signature.value]] }}""".stripMargin
 
     val templateId = TemplateId(TestCryptoService.sha256(template))
-    val email = Email("email@email.com")
-    val identity = Identity(email)
-
     val definition = ContractDefinition(creatorId = UserId("hello@world.com"), mainTemplate = templateId, templates = Map(), parameters = TemplateParameters())
-    val contractId = definition.id(TestCryptoService)
 
     val vm = vmProvider.create(definition, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq())
     vm(LoadTemplate(template))
 
-    val address = EthereumAddress("0x531e0957391dabf46f8a9609d799ffd067bdbbc0")
-    val values = Map(VariableName("value") -> NumberType.internalFormat(BigDecimal(2939)))
-    val event = EthereumEventFilterEvent(VariableName("Signature"), null, address, "OpenlawSignatureEvent", values, LocalDateTime.now)
+    val values = Map(VariableName("owner") -> EthAddressType.internalFormat(EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0")), VariableName("value") -> NumberType.internalFormat(BigDecimal(2939)))
+    val event = EthereumEventFilterEvent(VariableName("Signature"), EthereumHash.empty, EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0"), "OpenlawSignatureEvent", values, LocalDateTime.now)
 
     val ethereumEventFilterOracle = EthereumEventFilterOracle(parser)
     ethereumEventFilterOracle.incoming(vm, event) match {
-      case Right(vm) =>
-        vm.allExecutions.keys should contain(VariableName("Signature"))
-        val text = parser.forReview(vm.executionResult.value.agreements.head)
+      case Right(newVm) =>
+        newVm.allExecutions.keys should contain(VariableName("Signature"))
+        val text = parser.forReview(newVm.executionResult.value.agreements.head)
         text shouldBe ""
       case Failure(ex, message) =>
         fail(message, ex)
@@ -308,29 +298,18 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
         |conditional filter: this.value = 2939)]]""".stripMargin
 
     val templateId = TemplateId(TestCryptoService.sha256(template))
-    val email = Email("email@email.com")
-    val identity = Identity(email)
-
     val definition = ContractDefinition(creatorId = UserId("hello@world.com"), mainTemplate = templateId, templates = Map(), parameters = TemplateParameters())
-    val contractId = definition.id(TestCryptoService)
 
     val vm = vmProvider.create(definition, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq())
     vm(LoadTemplate(template))
 
-    val address = EthereumAddress("0x531e0957391dabf46f8a9609d799ffd067bdbbc0")
-    val values = Map(VariableName("owner") -> EthAddressType.internalFormat(address), VariableName("value") -> NumberType.internalFormat(BigDecimal(1000)))
-    val event1 = EthereumEventFilterEvent(VariableName("Signature"), null, address, "OpenlawSignatureEvent", values, LocalDateTime.now)
-    val event2 = EthereumEventFilterEvent(VariableName("Signature"), null, address, "OpenlawSignatureEvent", values, LocalDateTime.now)
-    val event3 = EthereumEventFilterEvent(VariableName("Signature"), null, null, "OpenlawSignatureEvent", values, LocalDateTime.now)
-    val event4 = EthereumEventFilterEvent(VariableName("Signature1"), null, address, "OpenlawSignatureEvent", values, LocalDateTime.now)
+    val values = Map(VariableName("owner") -> EthAddressType.internalFormat(EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0")), VariableName("value") -> NumberType.internalFormat(BigDecimal(1000)))
+    val event = EthereumEventFilterEvent(VariableName("Signature"), EthereumHash.empty, EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0"), "OpenlawSignatureEvent", values, LocalDateTime.now)
 
     val ethereumEventFilterOracle = EthereumEventFilterOracle(parser)
     (for {
-      one <- ethereumEventFilterOracle.incoming(vm, event1)
-      two <- ethereumEventFilterOracle.incoming(vm, event2)
-      three <- ethereumEventFilterOracle.incoming(vm, event3)
-      four <- ethereumEventFilterOracle.incoming(vm, event4)
-    } yield four) match {
+      result <- ethereumEventFilterOracle.incoming(vm, event)
+    } yield result) match {
       case Right(vm) =>
         vm.allExecutions.keys shouldNot contain(VariableName("Signature"))
       case Failure(ex, message) =>
