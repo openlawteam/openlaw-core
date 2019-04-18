@@ -265,7 +265,6 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
         |conditional filter: this.value = 2939)]]
         |
         |[[Signature.value]]""".stripMargin
-        //|{{Signature.executed => event value [[Signature.value]] }}""".stripMargin
 
     val templateId = TemplateId(TestCryptoService.sha256(template))
     val definition = ContractDefinition(creatorId = UserId("hello@world.com"), mainTemplate = templateId, templates = Map(), parameters = TemplateParameters())
@@ -284,7 +283,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
       case Right(newVm) =>
         newVm.allExecutions.keys should contain(VariableName("Signature"))
         val text = parser.forReview(newVm.executionResult.value.agreements.head)
-        text shouldBe ""
+        text shouldBe "<p class=\"no-section\"><br /></p><p class=\"no-section\">2,939</p>"
       case Failure(ex, message) =>
         fail(message, ex)
     }

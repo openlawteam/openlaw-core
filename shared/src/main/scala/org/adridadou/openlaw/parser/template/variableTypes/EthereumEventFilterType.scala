@@ -9,7 +9,6 @@ import org.adridadou.openlaw.oracles.EthereumEventFilterExecution
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
-import org.adridadou.openlaw.parser.template.variableTypes.AddressType.checkProperty
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 import org.adridadou.openlaw.result.Implicits.RichOption
 
