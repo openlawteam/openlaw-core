@@ -2,9 +2,10 @@ package org.adridadou.openlaw.oracles
 
 import java.time.LocalDateTime
 
+import cats.kernel.Eq
+import cats.implicits._
 import io.circe.syntax._
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
-import cats.implicits._
 import io.circe.{Decoder, Encoder, Json}
 import org.adridadou.openlaw.parser.template.{OpenlawTemplateLanguageParserService, TemplateExecutionResult, VariableDefinition, VariableName}
 import org.adridadou.openlaw.parser.template.variableTypes._
@@ -13,7 +14,6 @@ import org.adridadou.openlaw.vm.{OpenlawVm, OpenlawVmEvent}
 import slogging.LazyLogging
 import VariableName._
 import LocalDateTimeHelper._
-
 
 object EthereumEventFilterExecution {
   implicit val ethEventFilterExecutionEnc:Encoder[EthereumEventFilterExecution] = deriveEncoder[EthereumEventFilterExecution]
@@ -48,12 +48,12 @@ case class EthereumEventFilterOracle(parser: OpenlawTemplateLanguageParserServic
                 child <- executionResult.startEphemeralExecution(name, structureType.cast(event.values.asJson.noSpaces, executionResult), structureType)
               } yield {
 
-                val matchFilter = eventFilter.conditionalFilter.evaluate(child)
-                if (matchFilter.exists(VariableType.convert[Boolean])) {
-                 val execution = EthereumEventFilterExecution(event.executionDate, SuccessfulExecution, event)
-                  Success(vm.newExecution(event.name, execution))
-                } else {
-                  Success(vm)
+                (eventFilter.contractAddress.evaluate(child), eventFilter.eventType.evaluate(child), eventFilter.conditionalFilter.evaluate(child)) match {
+                  case (Some(address: String), Some(eventType: String), Some(true)) if address === event.smartContractAddress.withLeading0x && eventType === event.eventType =>
+                    val execution = EthereumEventFilterExecution(event.executionDate, SuccessfulExecution, event)
+                    Success(vm.newExecution(event.name, execution))
+                  case _ =>
+                    Success(vm)
                 }
               }
               result.flatten
