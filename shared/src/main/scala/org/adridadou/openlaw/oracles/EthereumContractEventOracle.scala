@@ -64,9 +64,6 @@ case class EthereumEventFilterOracle(parser: OpenlawTemplateLanguageParserServic
     } match {
       case Some(newVm) => newVm
       case None =>
-        println(vm.executionResult.map(_.executedVariables).getOrElse(Seq()))
-        println(s"no event filter found! ${vm
-          .getAllVariables(EthereumEventFilterType).map(_._2.name)}")
         Success(vm)
     }
   }

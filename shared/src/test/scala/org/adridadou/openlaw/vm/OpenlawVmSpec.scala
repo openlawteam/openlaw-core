@@ -276,9 +276,6 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     val event = EthereumEventFilterEvent(VariableName("Signature"), EthereumHash.empty, EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0"), "OpenlawSignatureEvent", values, LocalDateTime.now)
 
     val ethereumEventFilterOracle = EthereumEventFilterOracle(parser)
-
-    println(vm.executionResult.map(_.state))
-
     ethereumEventFilterOracle.incoming(vm, event) match {
       case Right(newVm) =>
         newVm.allExecutions.keys should contain(VariableName("Signature"))
