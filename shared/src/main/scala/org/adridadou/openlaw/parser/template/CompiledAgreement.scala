@@ -105,6 +105,7 @@ case class CompiledAgreement(
       case Text(str) => renderedElements :+ FreeText(Text(str))
       case Em => renderedElements :+ FreeText(Em)
       case Strong => renderedElements :+ FreeText(Strong)
+      case Under => renderedElements :+ FreeText(Under)
       case PageBreak => renderedElements :+ FreeText(PageBreak)
       case Indent => renderedElements :+ FreeText(Indent)
       case Centered => renderedElements :+ FreeText(Centered)

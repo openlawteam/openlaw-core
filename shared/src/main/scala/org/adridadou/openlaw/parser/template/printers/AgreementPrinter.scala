@@ -59,6 +59,7 @@ case class PrinterState(
   headerGenerated:Boolean = false,
   em:Boolean = false,
   strong:Boolean = false,
+  under:Boolean = false,
   sections:Seq[Int] = Seq(),
   overriddenParagraphGenerated:Boolean = false
 )
