@@ -14,7 +14,7 @@ lazy val scalaV = "2.12.8"
 lazy val catsV = "1.6.0"
 lazy val parboiledV = "2.1.5"
 lazy val circeV = "0.11.1"
-lazy val playJsonV = "2.7.2"
+lazy val playJsonV = "2.7.3"
 lazy val scalaTagsV = "0.6.8"
 
 lazy val repositories = Seq(

@@ -10,11 +10,17 @@ import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
-import org.adridadou.openlaw.result.Implicits.RichOption
 
 case object EthereumEventFilterType extends VariableType("EthereumEventFilter") with ActionType {
   implicit val smartContractEnc: Encoder[EventFilterDefinition] = deriveEncoder[EventFilterDefinition]
   implicit val smartContractDec: Decoder[EventFilterDefinition] = deriveDecoder[EventFilterDefinition]
+
+  case class EthereumEventPropertyDef(typeDef:VariableType, data:Seq[EthereumEventFilterExecution] => Result[Option[Any]])
+
+  private val propertyDef:Map[String,EthereumEventPropertyDef] = Map[String, EthereumEventPropertyDef](
+    "executionDate" -> EthereumEventPropertyDef(typeDef = DateTimeType, evts => Success(evts.headOption.map(_.executionDate))),
+    "tx" -> EthereumEventPropertyDef(typeDef = EthTxHashType, evts => Success(evts.headOption.map(_.event.hash)))
+  )
 
   override def cast(value: String, executionResult: TemplateExecutionResult): EventFilterDefinition =
     handleEither(decode[EventFilterDefinition](value))
@@ -24,64 +30,64 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
       call.asJson.noSpaces
   }
 
+  private def propertyDef(key:String, expr:Expression, executionResult:TemplateExecutionResult):Result[EthereumEventPropertyDef] = {
+    expr.evaluate(executionResult).map {
+      case eventFilterDefinition: EventFilterDefinition =>
+        eventFilterDefinition
+          .abiOpenlawVariables(executionResult)
+          .map(list => list.find(_.name.name === key)
+          .map(definition => definition.varType(executionResult))) match {
+          case Success(Some(typeDef)) =>
+
+            Success(EthereumEventPropertyDef(typeDef = typeDef, _.headOption.map(execution => {
+              generateStructureType(VariableName("none"), eventFilterDefinition, executionResult).flatMap { structure =>
+                structure.access(structure.cast(execution.event.values.asJson.noSpaces, executionResult), VariableName("none"), Seq(key), executionResult)
+              }
+            }).getOrElse(Success(None))))
+          case Success(None) =>
+            propertyDef.get(key) match {
+              case Some(pd) =>
+                Success(pd)
+              case None =>
+                Failure(s"unknown key $key for $expr")
+            }
+          case Failure(ex, message) =>
+            Failure(ex, message)
+        }
+
+      case x => Failure(s"unexpected value provided, expected EventFilterDefinition: $x")
+    }.getOrElse(Failure("the Ethereum event filter definition could not be found"))
+  }
+
   override def keysType(keys: Seq[String], expr: Expression, executionResult: TemplateExecutionResult): Result[VariableType] =
     keys match {
       case Seq(key) =>
-        expr.evaluate(executionResult).map {
-            case eventFilterDefinition: EventFilterDefinition =>
-              eventFilterDefinition
-                .abiOpenlawVariables(executionResult)
-                .map(list => list.find(_.name.name === key).toResult(s"failed to find event field named $key"))
-                .flatten
-                .map(definition => definition.varType(executionResult))
-            case x => Failure(s"unexpected value provided, expected EventFilterDefinition: $x")
-          }.getOrElse(Failure("the ethereum event filter definition could not be found"))
+        propertyDef(key, expr, executionResult).map(_.typeDef)
       case _ => super.keysType(keys, expr, executionResult)
     }
 
   override def validateKeys(name:VariableName, keys: Seq[String], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] = keys match {
     case Seq(key) =>
-      expression.evaluate(executionResult).map {
-        case eventFilterDefinition: EventFilterDefinition =>
-          eventFilterDefinition
-            .abiOpenlawVariables(executionResult)
-            .map(list => list.find(_.name.name === key).toResult(s"failed to find event field named $key"))
-            .flatten
-            .map(definition => definition.varType(executionResult))
-        case x => Failure(s"unexpected value provided, expected EventFilterDefinition: $x")
-      }.map(_ => Success()).getOrElse(Failure("the ethereum event filter definition could not be found"))
-    case _ => super.validateKeys(name, keys, expression, executionResult)
+      propertyDef(key, expression, executionResult).map(_ => Unit)
+    case _ =>
+      super.validateKeys(name, keys, expression, executionResult)
   }
 
   override def access(value: Any, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[Any]] = {
     keys.toList match {
       case Nil => Success(Some(value))
-      case _::tail if tail.isEmpty =>
-        value match {
-          case eventFilter: EventFilterDefinition =>
-
-            executionResult
-              .executions
-              .get(name)
-              .map { executions =>
-                executions.executionMap.values.headOption match {
-                  case Some(execution: EthereumEventFilterExecution) =>
-                    generateStructureType(VariableName("none"), eventFilter, executionResult).flatMap { structure =>
-                      structure.access(structure.cast(execution.event.values.asJson.noSpaces, executionResult), name, keys, executionResult)
-                    }
-                  case Some(other) =>
-                    Failure(s"the execution type should be EthereumEventFilterExecution but was ${other.getClass.getSimpleName} instead")
-                  case None =>
-                    Success(None)
-                }
-              }
-              .getOrElse(Success(None))
-
-          case x => Failure(s"unexpected value provided, expected EventFilterDefinition: $x")
-        }
+      case head::tail if tail.isEmpty =>
+        propertyDef(head, name, executionResult)
+          .flatMap(_.data(getExecutions(name, executionResult)))
 
       case _ => Failure(s"Ethereum event only support one level of properties. invalid property access ${keys.mkString(".")}")
     }
+  }
+
+  private def getExecutions(name:VariableName, executionResult: TemplateExecutionResult):Seq[EthereumEventFilterExecution] = {
+    executionResult.executions.get(name)
+      .map(_.executionMap.values.toSeq.map(VariableType.convert[EthereumEventFilterExecution]))
+      .getOrElse(Seq())
   }
 
   override def defaultFormatter: Formatter = new NoopFormatter
