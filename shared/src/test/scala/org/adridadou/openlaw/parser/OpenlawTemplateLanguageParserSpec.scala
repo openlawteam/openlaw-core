@@ -304,7 +304,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
         val call = executionResult.getVariableValues[EthereumSmartContractCall](EthereumCallType).head
         call.address.asInstanceOf[StringConstant].value shouldBe "0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAe"
         call.arguments.map(_.toString) shouldBe List("Var1","Var2","Var3")
-        call.metadata.asInstanceOf[StringConstant].value shouldBe "ipfs:5ihruiherg34893zf"
+        call.abi.asInstanceOf[StringConstant].value shouldBe "ipfs:5ihruiherg34893zf"
       case Left(ex) => fail(ex)
     }
   }

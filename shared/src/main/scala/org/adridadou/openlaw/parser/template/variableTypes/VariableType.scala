@@ -198,10 +198,13 @@ abstract class VariableType(val name: String) {
 
   def thisType:VariableType
 
-  def getExpression(params:Map[String,Parameter], name:String):Expression = params.get(name).map(getExpression) match {
+  def getExpression(params:Map[String,Parameter], names:String*):Expression = getParameter(params, names:_*).map(getExpression) match {
     case Some(expr) => expr
     case None => throw new RuntimeException(s"parameter $name not found. available parameters: ${params.keys.mkString(",")}")
   }
+
+  def getParameter(params:Map[String,Parameter], names:String*):Option[Parameter] =
+    names.flatMap(params.get).headOption
 
   def getExpression(param:Parameter):Expression = param match {
     case OneValueParameter(expr) => expr
