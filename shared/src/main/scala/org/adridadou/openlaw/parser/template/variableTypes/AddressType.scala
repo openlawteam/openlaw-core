@@ -4,6 +4,7 @@ import io.circe.generic.semiauto._
 import io.circe.syntax._
 import io.circe.parser._
 import org.adridadou.openlaw.parser.template._
+import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.Formatter
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 
@@ -24,21 +25,21 @@ object AddressType extends VariableType(name = "Address") {
 
   override def internalFormat(value: Any): String = VariableType.convert[Address](value).asJson.noSpaces
 
-  override def keysType(keys: Seq[String], executionResult: TemplateExecutionResult): VariableType = keys.toList match {
-    case _::tail if tail.isEmpty => TextType
-    case _::_ => throw new RuntimeException(s"Address has only one level of properties. invalid property access ${keys.mkString(".")}")
-    case _ => AddressType
+  override def keysType(keys: Seq[String], expr: Expression, executionResult: TemplateExecutionResult): Result[VariableType] = keys.toList match {
+    case _::tail if tail.isEmpty => Success(TextType)
+    case _::_ => Failure(s"Address has only one level of properties. invalid property access ${keys.mkString(".")}")
+    case _ => Success(AddressType)
   }
 
-  override def access(value: Any, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Any] = {
+  override def access(value: Any, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[Any]] = {
     keys.toList match {
-      case head::tail if tail.isEmpty => accessProperty(getAddress(value, executionResult), head)
+      case head::tail if tail.isEmpty => accessProperty(getAddress(value, executionResult), head).map(Some(_))
       case _::_ => Failure(s"Address has only one level of properties. invalid property access ${keys.mkString(".")}")
-      case _ => Success(value)
+      case _ => Success(Some(value))
     }
   }
 
-  override def validateKeys(name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Unit] = keys.toList match {
+  override def validateKeys(name:VariableName, keys: Seq[String], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] = keys.toList match {
     case Nil => Success(())
     case head::tail if tail.isEmpty => checkProperty(head)
     case _::_ => Failure(s"invalid property ${keys.mkString(".")}")

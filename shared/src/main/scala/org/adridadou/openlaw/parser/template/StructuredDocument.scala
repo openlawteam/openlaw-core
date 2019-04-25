@@ -1,5 +1,6 @@
 package org.adridadou.openlaw.parser.template
 import java.time.{Clock, ZoneId}
+import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
 
 import cats.Eq
@@ -19,6 +20,7 @@ import io.circe.generic.semiauto._
 import io.circe.syntax._
 import org.adridadou.openlaw.oracles.OpenlawSignatureProof
 import org.adridadou.openlaw.result.{Failure, Result, Success}
+import org.adridadou.openlaw.vm.Executions
 
 trait TemplateExecutionResult {
   def id:TemplateExecutionResultId
@@ -39,6 +41,7 @@ trait TemplateExecutionResult {
   def executedVariables:Seq[VariableName]
   def agreements:Seq[StructuredAgreement]
   def variableSectionList:Seq[String]
+  def executions:Map[VariableName, Executions]
 
   def hasSigned(email: Email):Boolean =
     if(signatureProofs.contains(email)) true else parentExecution.exists(_.hasSigned(email))
@@ -261,6 +264,34 @@ trait TemplateExecutionResult {
 
   def getAllExecutionResults:Seq[TemplateExecutionResult] =
     subExecutions.values.flatMap(_.getAllExecutionResults).toSeq ++ Seq(this)
+
+  def startEphemeralExecution(name:VariableName, value:Any, varType:VariableType): Result[TemplateExecutionResult] = {
+    this.getAliasOrVariableType(name) match {
+      case Success(_) =>
+        Failure(s"${name.name} has already been defined!")
+      case Failure(_) =>
+        val result = OpenlawExecutionState(
+          id = TemplateExecutionResultId(UUID.randomUUID().toString),
+          embedded = true,
+          parameters = TemplateParameters(name.name -> varType.internalFormat(value)),
+          sectionLevelStack = mutable.Buffer(),
+          template = CompiledAgreement(header = TemplateHeader()),
+          anonymousVariableCounter = new AtomicInteger(0),
+          clock = clock,
+          parentExecution = Some(this),
+          executions = this.executions,
+          variableRedefinition = VariableRedefinition()
+        )
+
+        result.registerNewType(varType)
+
+        result.variablesInternal.append(VariableDefinition(name, Some(VariableTypeDefinition(name = varType.name, None)) ))
+
+        result.executedVariablesInternal.append(name)
+
+        Success(result)
+    }
+  }
 }
 
 object SerializableTemplateExecutionResult {
@@ -274,7 +305,8 @@ object SerializableTemplateExecutionResult {
 case class SerializableTemplateExecutionResult(id:TemplateExecutionResultId,
                                                templateDefinition: Option[TemplateDefinition] = None,
                                                subExecutionIds:Map[VariableName, TemplateExecutionResultId],
-                                               executions:Map[TemplateExecutionResultId, SerializableTemplateExecutionResult],
+                                               templateExecutions:Map[TemplateExecutionResultId, SerializableTemplateExecutionResult],
+                                               executions:Map[VariableName, Executions],
                                                parentExecutionId:Option[TemplateExecutionResultId],
                                                agreements:Seq[StructuredAgreement],
                                                variableSectionList:Seq[String],
@@ -291,8 +323,8 @@ case class SerializableTemplateExecutionResult(id:TemplateExecutionResultId,
                                                processedSections:Seq[(Section, Int)],
                                                clock:Clock) extends TemplateExecutionResult {
 
-  override def subExecutions: Map[VariableName, TemplateExecutionResult] = subExecutionIds.flatMap({case (name, executionId) => executions.get(executionId).map(name -> _)})
-  override def parentExecution: Option[TemplateExecutionResult] = parentExecutionId.flatMap(executions.get)
+  override def subExecutions: Map[VariableName, TemplateExecutionResult] = subExecutionIds.flatMap({case (name, executionId) => templateExecutions.get(executionId).map(name -> _)})
+  override def parentExecution: Option[TemplateExecutionResult] = parentExecutionId.flatMap(templateExecutions.get)
 }
 
 
@@ -300,6 +332,7 @@ case class OpenlawExecutionState(
                                     id:TemplateExecutionResultId,
                                     parameters:TemplateParameters,
                                     embedded:Boolean,
+                                    executions:Map[VariableName,Executions],
                                     signatureProofs:Map[Email, OpenlawSignatureProof] = Map(),
                                     template:CompiledTemplate,
                                     forEachQueue:mutable.Buffer[Any] = mutable.Buffer(),
@@ -315,7 +348,8 @@ case class OpenlawExecutionState(
                                     finishedEmbeddedExecutions:mutable.Buffer[OpenlawExecutionState] = mutable.Buffer(),
                                     state:TemplateExecutionState = ExecutionReady,
                                     remainingElements:mutable.Buffer[TemplatePart] = mutable.Buffer(),
-                                    parentExecution:Option[OpenlawExecutionState] = None,
+                                    parentExecution:Option[TemplateExecutionResult] = None,
+                                    parentExecutionInternal:Option[OpenlawExecutionState] = None,
                                     compiledAgreement:Option[CompiledAgreement] = None,
                                     variableRedefinition: VariableRedefinition,
                                     templateDefinition: Option[TemplateDefinition] = None,
@@ -342,7 +376,7 @@ case class OpenlawExecutionState(
 
   def addLastSectionByLevel(lvl: Int, sectionValue: String):Unit = {
     if(embedded) {
-      parentExecution match {
+      parentExecutionInternal match {
         case Some(parent) => parent.addLastSectionByLevel(lvl, sectionValue)
         case None => lastSectionByLevel put (lvl , sectionValue)
       }
@@ -355,7 +389,7 @@ case class OpenlawExecutionState(
 
   def getLastSectionByLevel(idx: Int): String = {
     if(embedded) {
-      parentExecution match {
+      parentExecutionInternal match {
         case Some(parent) => parent.getLastSectionByLevel(idx)
         case None => lastSectionByLevel.getOrElse(idx,"")
       }
@@ -364,14 +398,14 @@ case class OpenlawExecutionState(
     }
   }
 
-  def addProcessedSection(section: Section, number: Int):Unit = (embedded, parentExecution) match {
+  def addProcessedSection(section: Section, number: Int):Unit = (embedded, parentExecutionInternal) match {
     case (true, Some(parent)) => parent.addProcessedSection(section, number)
     case _ => processedSectionsInternal append (section -> number)
   }
 
   def addSectionLevelStack(newSectionValues: Seq[Int]):Unit = {
     if(embedded) {
-      parentExecution match {
+      parentExecutionInternal match {
         case Some(parent) => parent.addSectionLevelStack(newSectionValues)
         case None => sectionLevelStack appendAll newSectionValues
       }
@@ -382,7 +416,7 @@ case class OpenlawExecutionState(
 
   def allSectionLevelStack:Seq[Int] = {
     if(embedded) {
-      parentExecution match {
+      parentExecutionInternal match {
         case Some(parent) => parent.allSectionLevelStack ++ sectionLevelStack
         case None => sectionLevelStack
       }
@@ -460,13 +494,14 @@ case class OpenlawExecutionState(
   }
 
   def toSerializable:SerializableTemplateExecutionResult = {
-    val executions = getSubExecutions.map(e => e.id -> e.toSerializable).toMap
+    val templateExecutions = getSubExecutions.map(e => e.id -> e.toSerializable).toMap
     val subExecutionIds = subExecutions.map({ case (name, execution) => name -> execution.id})
 
     SerializableTemplateExecutionResult(
       id = id,
       templateDefinition = templateDefinition,
       subExecutionIds = subExecutionIds,
+      templateExecutions = templateExecutions,
       executions = executions,
       agreements = agreements,
       variableSectionList = variableSectionList,
@@ -493,7 +528,7 @@ case class OpenlawExecutionState(
     case Left(ex) => (Seq(), Seq(ex.message))
   }
 
-  private def executionLevel(parent:Option[OpenlawExecutionState], acc:Int):Int =
+  private def executionLevel(parent:Option[TemplateExecutionResult], acc:Int):Int =
     parent.map(p => executionLevel(p.parentExecution, acc + 1)).getOrElse(acc)
 
   def allMissingInput: Result[Seq[VariableName]] = {
@@ -521,7 +556,7 @@ case class OpenlawExecutionState(
   }
 
   def createAnonymousVariable():VariableName = {
-    this.parentExecution.map(_.createAnonymousVariable()) match {
+    this.parentExecutionInternal.map(_.createAnonymousVariable()) match {
       case Some(name) => name
       case None =>
         val currentCounter = anonymousVariableCounter.incrementAndGet()
@@ -558,10 +593,12 @@ case class OpenlawExecutionState(
           anonymousVariableCounter = new AtomicInteger(anonymousVariableCounter.get()),
           clock = clock,
           parentExecution = Some(this),
+          parentExecutionInternal = Some(this),
           variableRedefinition = template.redefinition,
           templateDefinition = Some(templateDefinition),
           mapping = templateDefinition.mapping,
-          remainingElements = mutable.Buffer(template.block.elems: _*)
+          remainingElements = mutable.Buffer(template.block.elems: _*),
+          executions = this.executions
         )
 
         val execution = template match {
@@ -577,11 +614,11 @@ case class OpenlawExecutionState(
     }).getOrElse(Failure(s"template ${variableName.name} was not resolved! ${variables.map(_.name)}"))
   }
 
-  private def detectCyclicDependency(definition: TemplateDefinition): Result[OpenlawExecutionState] =
+  private def detectCyclicDependency(definition: TemplateDefinition): Result[TemplateExecutionResult] =
     detectCyclicDependency(this, definition)
 
   @tailrec
-  private def detectCyclicDependency(execution:OpenlawExecutionState, definition:TemplateDefinition): Result[OpenlawExecutionState] = {
+  private def detectCyclicDependency(execution:TemplateExecutionResult, definition:TemplateDefinition): Result[TemplateExecutionResult] = {
     if(execution.templateDefinition.exists(_ === definition)) {
       Failure(s"cyclic dependency detected on '${definition.name.name}'")
     } else {
@@ -614,7 +651,7 @@ case class StructuredAgreement(executionResultId:TemplateExecutionResultId, temp
     if(header.shouldShowTitle) {
       templateDefinition.map(template => template.name.name).getOrElse(TemplateTitle(""))
     } else {
-      TemplateTitle("")
+      TemplateTitle()
     }
   }
 

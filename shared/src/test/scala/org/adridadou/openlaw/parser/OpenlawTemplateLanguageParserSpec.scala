@@ -621,7 +621,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
 
     structureAgreement(text) match {
       case Left(ex) =>
-        ex.message shouldEqual "error while processing the new variable var2. The variables \"var3\" are used in the constructor but have not been defined"
+        ex.message shouldEqual "error while processing the new variable var2. The variable \"var3\" is used in the constructor but has not been defined"
       case Right(_) =>
         fail(s"this should fail")
     }

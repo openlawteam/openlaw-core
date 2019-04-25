@@ -143,40 +143,40 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
     }
   }
 
-  override def access(value: Any, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Any] = keys.toList match {
+  override def access(value: Any, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[Any]] = keys.toList match {
     case Nil =>
-      Success(value)
+      Success(Some(value))
     case head::tail =>
+      val headName = VariableName(head)
       executionResult.subExecutions.get(VariableName(head)).flatMap(subExecution =>
         subExecution.getExpression(VariableName(head))
           .flatMap(variable => variable.evaluate(subExecution)
-            .map(subValue => variable.expressionType(subExecution).access(subValue, tail, subExecution))
+            .map(subValue => variable.expressionType(subExecution).access(subValue, VariableName(head), tail, subExecution))
           )).getOrElse(Failure(s"properties '${tail.mkString(".")}' could not be resolved in sub template '$head'"))
   }
 
-  override def keysType(keys: Seq[String], executionResult: TemplateExecutionResult): VariableType = {
+  override def keysType(keys: Seq[String], expr: Expression, executionResult: TemplateExecutionResult): Result[VariableType] = {
     keys.toList match {
-      case Nil =>
-        TemplateType
+      case Nil => Success(TemplateType)
       case head::tail =>
         executionResult.subExecutions.get(VariableName(head)).flatMap(subExecution =>
             subExecution.getExpression(VariableName(head))
-              .map(_.expressionType(subExecution).keysType(tail, subExecution))) match {
+              .map(subExpr => subExpr.expressionType(subExecution).keysType(tail, subExpr, executionResult))) match {
               case Some(varType) =>
                 varType
               case None =>
-                throw new RuntimeException(s"property '${tail.mkString(".")}' could not be resolved in sub template '$head'")
+                Failure(s"property '${tail.mkString(".")}' could not be resolved in sub template '$head'")
             }
         }
   }
 
-  override def validateKeys(name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Unit] = keys.toList match {
+  override def validateKeys(name:VariableName, keys: Seq[String], expr:Expression, executionResult: TemplateExecutionResult): Result[Unit] = keys.toList match {
     case Nil =>
       Success(())
     case head::tail =>
       executionResult.subExecutions.get(name).flatMap(subExecution =>
         subExecution.getExpression(VariableName(head))
-          .map(variable => variable.expressionType(subExecution).keysType(tail,subExecution))) match {
+          .map(variable => variable.expressionType(subExecution).keysType(tail, variable, subExecution))) match {
         case Some(_) =>
           Success(())
         case None =>

@@ -21,16 +21,24 @@ trait VariableExecutionEngine {
           }
 
           addNewVariable(executionResult, currentVariable)
-          currentVariable.defaultValue.map(_.variables(executionResult)).getOrElse(Seq())
-            .filter(newVariable => executionResult.getVariable(newVariable.name).isEmpty).toList match {
+          val missingVariables = currentVariable.defaultValue.map(_.variables(executionResult)).getOrElse(Seq())
+            .filter(newVariable => executionResult.getVariable(newVariable.name).isEmpty).toList
+
+          (if(currentVariable.varType(executionResult) === EthereumEventFilterType) {
+            missingVariables.filter(_.name =!= "this")
+          } else {
+            missingVariables
+          }) match {
             case Nil =>
               variable.verifyConstructor(executionResult).flatMap { _ =>
-                if (executed) {
-                  executeVariable(executionResult, currentVariable)
+              if (executed) {
+                executeVariable(executionResult, currentVariable)
                 } else {
-                  Success(executionResult)
-                }
+                Success(executionResult)
               }
+            }
+            case list if list.length === 1 =>
+              Failure(s"error while processing the new variable ${variable.name}. The variable ${list.map(v => "\"" + v.name + "\"").mkString(",")} is used in the constructor but has not been defined")
             case list =>
               Failure(s"error while processing the new variable ${variable.name}. The variables ${list.map(v => "\"" + v.name + "\"").mkString(",")} are used in the constructor but have not been defined")
           }
@@ -77,13 +85,13 @@ trait VariableExecutionEngine {
     executionResult.executedVariablesInternal append variable.name
     executionResult.getVariable(variable.name).map(_.varType(executionResult)) match {
       case Some(TemplateType) =>
+        executionResult.executedVariablesInternal append variable.name
         startSubExecution(variable, executionResult, willBeUsedForEmbedded = false)
       case Some(ClauseType) =>
         startSubExecution(variable, executionResult, willBeUsedForEmbedded = true)
       case _ =>
         val currentVariable = executionResult.getVariable(variable.name).getOrElse(variable)
-        executionResult.executedVariablesInternal appendAll currentVariable.defaultValue
-          .map(_.variables(executionResult)).getOrElse(Seq())
+        executionResult.executedVariablesInternal appendAll currentVariable.variables(executionResult)
         Success(executionResult)
     }
   }

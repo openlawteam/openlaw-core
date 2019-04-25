@@ -35,6 +35,7 @@ lazy val commonSettings = Seq(
 )
 
 lazy val publishSettings = Seq(
+  publishArtifact in (Test, packageBin) := true,
   homepage := Some(url(s"https://github.com/$username/$repo")),
   licenses += ("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0")),
   bintrayReleaseOnPublish in ThisBuild := true,
@@ -94,12 +95,14 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       "io.circe"                %% "circe-core"          % circeV,
       "io.circe"                %% "circe-generic"       % circeV,
       "io.circe"                %% "circe-parser"        % circeV,
+      "io.circe"                %% "circe-java8"        % circeV,
       "com.typesafe.play"       %% "play-json"           % playJsonV,
       "org.parboiled"           %% "parboiled"           % parboiledV,
       "org.typelevel"           %% "cats-core"           % catsV,
       "org.typelevel"           %% "cats-free"           % catsV,
       "io.github.cquiroz"       %% "scala-java-time"     % "2.0.0-RC1",
       "biz.enef"                %% "slogging-slf4j"      % "0.6.1",
+      "com.beachape"            %% "enumeratum"          % "1.5.13",
       "com.lihaoyi"             %% "scalatags"           % scalaTagsV,
       //Test
       "org.scalacheck"          %% "scalacheck"          % "1.14.0"        % Test,
@@ -117,7 +120,9 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       "io.circe"                %%% "circe-core"           % circeV,
       "io.circe"                %%% "circe-generic"        % circeV,
       "io.circe"                %%% "circe-parser"         % circeV,
+      "io.circe"                %%% "circe-java8"         % circeV,
       "com.typesafe.play"       %%% "play-json"            % playJsonV,
+      "com.beachape"            %%% "enumeratum"           % "1.5.13",
       "com.lihaoyi"             %%% "scalatags"            % scalaTagsV,
       //Test
       "org.scalacheck"          %%% "scalacheck"          % "1.14.0"        % Test,

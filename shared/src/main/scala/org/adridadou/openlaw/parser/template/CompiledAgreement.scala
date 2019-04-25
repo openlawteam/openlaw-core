@@ -4,6 +4,7 @@ import java.time.Clock
 
 import cats.implicits._
 import org.adridadou.openlaw.parser.template.variableTypes._
+import org.adridadou.openlaw.result.{Result, Success}
 
 import scala.annotation.tailrec
 
@@ -216,11 +217,23 @@ case class CompiledAgreement(
 
   private def generateVariable(name: VariableName, keys:Seq[String], formatter:Option[FormatterDefinition], executionResult: TemplateExecutionResult):List[AgreementElement] = {
     executionResult.getAliasOrVariableType(name).flatMap(varType => {
-      val keysVarType:VariableType = varType.keysType(keys, executionResult)
 
-      executionResult.getExpression(name).flatMap(_.evaluate(executionResult))
-        .map(varType.access(_, keys, executionResult).flatMap(keysVarType.format(formatter, _, executionResult)))
-        .getOrElse(Right(varType.missingValueFormat(name)))
+      val option = for {
+        expression <- executionResult.getExpression(name)
+        value <- expression.evaluate(executionResult)
+      } yield {
+        varType
+          .keysType(keys, expression, executionResult)
+          .flatMap { keysType =>
+            varType
+              .access(value, name, keys, executionResult)
+              .flatMap { option =>
+                option.map(value => keysType.format(formatter, value, executionResult)).getOrElse(Success(List()))
+              }
+          }
+      }
+
+      option.getOrElse(Success(varType.missingValueFormat(name)))
     }) match {
       case Right(result) => result.toList
       case Left(ex) => List(FreeText(Text(s"error: $ex")))
