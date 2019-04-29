@@ -26,13 +26,14 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     * Entry point. This is where you start the execution of the main template
     */
   def execute(mainTemplate:CompiledTemplate, parameters:TemplateParameters, templates:Map[TemplateSourceIdentifier, CompiledTemplate]):Result[OpenlawExecutionState] =
-    execute(mainTemplate, parameters, templates, Map())
+    execute(mainTemplate, parameters, templates, Map(), Map())
 
-  def execute(mainTemplate:CompiledTemplate, parameters:TemplateParameters, templates:Map[TemplateSourceIdentifier, CompiledTemplate], signatureProofs:Map[Email, OpenlawSignatureProof]):Result[OpenlawExecutionState] = {
+  def execute(mainTemplate:CompiledTemplate, parameters:TemplateParameters, templates:Map[TemplateSourceIdentifier, CompiledTemplate], signatureProofs:Map[Email, OpenlawSignatureProof], executions:Map[VariableName, Executions]):Result[OpenlawExecutionState] = {
     val executionResult = OpenlawExecutionState(
       parameters = parameters,
       id = TemplateExecutionResultId(s"@@anonymous_main_template_id@@"),
       template = mainTemplate,
+      executions = executions,
       anonymousVariableCounter = new AtomicInteger(0),
       embedded = false,
       variableRedefinition = mainTemplate.redefinition,
@@ -94,7 +95,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
   }
 
   private def finishExecution(executionResult: OpenlawExecutionState, templates:Map[TemplateSourceIdentifier, CompiledTemplate]):Result[OpenlawExecutionState] = {
-    executionResult.parentExecution.map(parent => {
+    executionResult.parentExecutionInternal.map(parent => {
       (for {
         definition <- executionResult.templateDefinition
       } yield {
@@ -278,7 +279,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       }).getOrElse(Success(executionResult))
   }
 
-  private def getRoot(parent:OpenlawExecutionState):OpenlawExecutionState = parent.parentExecution match {
+  private def getRoot(parent:OpenlawExecutionState):OpenlawExecutionState = parent.parentExecutionInternal match {
     case Some(parentExecution) => getRoot(parentExecution)
     case None => parent
   }
@@ -297,7 +298,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       val typeString = variable.variableTypeDefinition.map(_.name).getOrElse("<undefined>")
       Failure(s"Variable definition mismatch. variable ${variable.name} is defined as $typeString in ${currentTemplateDefinition.name.name} but was ${otherType.name} in ${result.templateDefinition.map(_.name.name.title).getOrElse("the main template")}")
     } else {
-      result.parentExecution.map(parent => validateSubExecution(parent, currentTemplateDefinition, variable)).getOrElse(Success(result))
+      result.parentExecutionInternal.map(parent => validateSubExecution(parent, currentTemplateDefinition, variable)).getOrElse(Success(result))
     }
   }
 
@@ -381,7 +382,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
         Success(executionResult)
       case Some(mappingExpression:MappingExpression) =>
         if(executed) {
-          executionResult.parentExecution.map(parent => {
+          executionResult.parentExecutionInternal.map(parent => {
             val initialValue:Result[OpenlawExecutionState] = Success(parent)
             mappingExpression.expression.variables(parent)
               .flatMap(name => parent.getVariable(name))

@@ -7,13 +7,15 @@ import org.adridadou.openlaw.parser.template.expressions.{Expression, ValueExpre
 import org.adridadou.openlaw.parser.template.formatters.{DefaultFormatter, Formatter}
 import cats.Eq
 import cats.implicits._
-import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe._
+import io.circe.syntax._
+import io.circe.generic.semiauto._
 
 import scala.reflect.ClassTag
 import scala.util.Try
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 import LocalDateTimeHelper._
+import org.adridadou.openlaw.oracles.EthereumEventFilterExecution
 
 trait NoShowInForm
 
@@ -23,6 +25,25 @@ trait ActionValue {
 
 trait ActionType extends NoShowInForm {
   def actionValue(value:Any):ActionValue
+
+}
+
+object OpenlawExecution {
+  implicit val openlawExecutionEnc:Encoder[OpenlawExecution] = (a: OpenlawExecution) => Json.obj(
+    "type" -> Json.fromString(a.typeIdentifier),
+    "value" -> a.serialize
+  )
+  implicit val openlawExecutionDec:Decoder[OpenlawExecution] = (c: HCursor) => c.downField("type").as[String]
+    .flatMap(convertOpenlawExecution(_, c.downField("value")))
+
+  protected def className[T]()(implicit cls:ClassTag[T]):String = cls.runtimeClass.getName
+
+  private def convertOpenlawExecution(typeDefinition: String, cursor: ACursor):Decoder.Result[OpenlawExecution] = typeDefinition match {
+    case _ if typeDefinition === className[EthereumEventFilterExecution] =>
+      cursor.as[EthereumEventFilterExecution]
+    case _ if typeDefinition === className[EthereumSmartContractExecution] =>
+      cursor.as[EthereumSmartContractExecution]
+  }
 }
 
 trait OpenlawExecution {
@@ -30,6 +51,9 @@ trait OpenlawExecution {
   def executionDate:LocalDateTime
   def executionStatus:OpenlawExecutionStatus
   def key:Any
+  def typeIdentifier: String
+  def serialize: Json
+  protected def className[T]()(implicit cls:ClassTag[T]):String = cls.runtimeClass.getName
 }
 
 object EthereumSmartContractExecution {
@@ -45,6 +69,9 @@ case class EthereumSmartContractExecution(scheduledDate:LocalDateTime, execution
   }
 
   def key:EthereumHash = tx
+
+  override def typeIdentifier: String = className[EthereumSmartContractExecution]
+  override def serialize: Json = this.asJson
 }
 
 sealed abstract class OpenlawExecutionStatus(val name:String)
@@ -91,11 +118,11 @@ abstract class VariableType(val name: String) {
   def operationWith(rightType: VariableType, operation: ValueOperation): VariableType =
     this
 
-  def access(value: Any, keys: Seq[String], executionResult:TemplateExecutionResult): Result[Any] = {
+  def access(value: Any, variableName:VariableName, keys: Seq[String], executionResult:TemplateExecutionResult): Result[Option[Any]] = {
     if(keys.isEmpty) {
-      Success(value)
+      Success(Some(value))
     } else {
-      Failure(s"The variable type $name has no properties")
+      Failure(s"The variable $variableName of type $name has no properties")
     }
   }
 
@@ -104,13 +131,13 @@ abstract class VariableType(val name: String) {
   def checkTypeName(nameToCheck: String): Boolean =
     this.name.equalsIgnoreCase(nameToCheck)
 
-  def validateKeys(name:VariableName, keys:Seq[String], executionResult: TemplateExecutionResult): Result[Unit] =
-    keys.headOption.map(_ => Failure(s"The variable type $name has no properties")).getOrElse(Success(()))
+  def validateKeys(variableName:VariableName, keys:Seq[String], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] =
+    keys.headOption.map(_ => Failure(s"The variable $variableName of type $name has no properties")).getOrElse(Success(()))
 
-  def keysType(keys:Seq[String], executionResult: TemplateExecutionResult):VariableType = if(keys.nonEmpty) {
-    throw new RuntimeException(s"the type $name has no properties")
+  def keysType(keys: Seq[String], expression: Expression, executionResult: TemplateExecutionResult):Result[VariableType] = if(keys.nonEmpty) {
+    Failure(s"the type $name has no properties")
   } else {
-    thisType
+    Success(thisType)
   }
 
   def plus(optLeft: Option[Any], optRight: Option[Any], executionResult: TemplateExecutionResult): Option[Any] =
@@ -208,7 +235,9 @@ object VariableType {
     DateType,
     DateTimeType,
     EthAddressType,
+    EthTxHashType,
     EthereumCallType,
+    EthereumEventFilterType,
     IdentityType,
     LargeTextType,
     ImageType,
@@ -305,4 +334,7 @@ object LocalDateTimeHelper {
   implicit val clockEncoder: Encoder[LocalDateTime] = (a: LocalDateTime) => Json.fromLong(a.toEpochSecond(ZoneOffset.UTC))
   implicit val eqForLocalDateTime: Eq[LocalDateTime] = Eq.fromUniversalEquals
 
+  implicit val dateKeyEncoder:KeyEncoder[LocalDateTime] = (key: LocalDateTime) => key.toEpochSecond(ZoneOffset.UTC).toString
+
+  implicit val dateKeyDecoder:KeyDecoder[LocalDateTime] = (key: String) => Try(LocalDateTime.ofEpochSecond(key.toLong, 0, ZoneOffset.UTC)).toOption
 }

@@ -4,6 +4,7 @@ import java.time.{Clock, LocalDateTime, ZoneOffset}
 
 import cats.Eq
 import cats.implicits._
+import io.circe.{Decoder, Encoder}
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.variableTypes._
@@ -13,8 +14,15 @@ import org.adridadou.openlaw.result.{Failure, Result, Success}
 import slogging.LazyLogging
 
 import scala.reflect.ClassTag
+import io.circe.generic.semiauto._
+import LocalDateTimeHelper._
 
 case class Signature(userId:UserId, signature:OpenlawSignatureEvent)
+
+object Executions {
+  implicit val executionsEnc:Encoder[Executions] = deriveEncoder[Executions]
+  implicit val executionsDec:Decoder[Executions] = deriveDecoder[Executions]
+}
 
 case class Executions(executionMap:Map[LocalDateTime,OpenlawExecution] = Map()) {
   def update(key:LocalDateTime, value:OpenlawExecution):Executions = {
@@ -45,14 +53,14 @@ case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
 
   def updateParameter(name:VariableName, value:String, event:OpenlawVmEvent) :OpenlawVmState = {
     val newParams = state + (name -> value)
-    update(templates, newParams, createNewExecutionResult(newParams, templates, signatureProofs), event).copy(
+    update(templates, newParams, createNewExecutionResult(newParams, templates, signatureProofs, executions), event).copy(
       state = newParams
     )
   }
 
   def executionResult:Option[OpenlawExecutionState] = optExecutionResult match {
     case Some(result) => Some(result)
-    case None => createNewExecutionResult(state, templates, signatureProofs)
+    case None => createNewExecutionResult(state, templates, signatureProofs, executions)
   }
 
   private def update(templates:Map[TemplateId, CompiledTemplate], parameters:TemplateParameters, optExecution:Option[OpenlawExecutionState], event:OpenlawVmEvent) : OpenlawVmState = {
@@ -60,7 +68,7 @@ case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
       case Some(executionResult) =>
         Some(executionResult)
       case None =>
-        createNewExecutionResult(parameters, templates, signatureProofs)
+        createNewExecutionResult(parameters, templates, signatureProofs, executions)
     }
 
     execution.map(executeContract(templates, _) match {
@@ -86,15 +94,16 @@ case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
   }
 
   def createNewExecutionResult(signatureProofs:Map[Email, OpenlawSignatureProof]):Option[OpenlawExecutionState] =
-    createNewExecutionResult(state, templates, signatureProofs)
+    createNewExecutionResult(state, templates, signatureProofs, executions)
 
-  def createNewExecutionResult(params:TemplateParameters, templates:Map[TemplateId, CompiledTemplate],signatureProofs:Map[Email, OpenlawSignatureProof]):Option[OpenlawExecutionState] = {
+  def createNewExecutionResult(params:TemplateParameters, templates:Map[TemplateId, CompiledTemplate],signatureProofs:Map[Email, OpenlawSignatureProof], executions:Map[VariableName, Executions]):Option[OpenlawExecutionState] = {
     val templateDefinitions = definition.templates.flatMap({case (templateDefinition, id) => templates.get(id).map(templateDefinition -> _)})
-    templates.get(definition.mainTemplate).map(executionEngine.execute(_, params, templateDefinitions, signatureProofs)) match {
+    templates.get(definition.mainTemplate).map(executionEngine.execute(_, params, templateDefinitions, signatureProofs, executions)) match {
       case None => None
       case Some(Right(result)) =>
         Some(result)
       case Some(Left(ex)) =>
+        ex.e.printStackTrace()
         logger.warn(ex.message, ex.e)
         None
     }
@@ -179,7 +188,8 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
       case FailedExecution =>
         state = state.copy(executions = newExecutions, executionState = ContractStopped)
       case _ =>
-        state = state.copy(executions = newExecutions)
+        val newExecutionResult = state.createNewExecutionResult(state.state, state.templates, state.signatureProofs, newExecutions)
+        state = state.copy(executions = newExecutions, optExecutionResult = newExecutionResult)
     }
 
     this

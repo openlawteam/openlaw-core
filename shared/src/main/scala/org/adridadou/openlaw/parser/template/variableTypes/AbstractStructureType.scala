@@ -5,6 +5,7 @@ import org.adridadou.openlaw.parser.template._
 import play.api.libs.json.JsObject
 import io.circe.syntax._
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
+import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 
@@ -15,9 +16,7 @@ object Structure {
 }
 
 
-case class Structure(typeDefinitionInternal: Map[String, VariableType], names:Seq[VariableName]) {
-  def typeDefinition:Map[VariableName, VariableType] = typeDefinitionInternal.map({ case (key, value) => VariableName(key) -> value })
-}
+case class Structure(typeDefinition: Map[VariableName, VariableType], names:Seq[VariableName])
 
 case object AbstractStructureType extends VariableType(name = "Structure") with TypeGenerator[Structure] {
   override def construct(param:Parameter, executionResult: TemplateExecutionResult): Result[Option[Structure]] = param match {
@@ -25,7 +24,7 @@ case object AbstractStructureType extends VariableType(name = "Structure") with 
       VariableType.sequence(values
         .map({case (key,value) => getField(key,value, executionResult)})).map(_.flatten)
         .map(fieldMap => Some(
-            Structure(typeDefinitionInternal = fieldMap.toMap, names = values.map({case (key,_) => VariableName(key)}))
+            Structure(typeDefinition = fieldMap.toMap, names = values.map({case (key,_) => VariableName(key)}))
           ))
     case parameter =>
       Failure(s"structure must have one or more expressions as constructor parameters, instead received ${parameter.getClass}")
@@ -46,11 +45,11 @@ case object AbstractStructureType extends VariableType(name = "Structure") with 
   override def generateType(name: VariableName, structure: Structure): VariableType =
     DefinedStructureType(structure, name.name)
 
-  private def getField(name:String, value:Parameter, executionResult: TemplateExecutionResult): Result[Option[(String, VariableType)]] = value match {
+  private def getField(name:String, value:Parameter, executionResult: TemplateExecutionResult): Result[Option[(VariableName, VariableType)]] = value match {
     case OneValueParameter(VariableName(typeName)) =>
       Success(executionResult
         .findVariableType(VariableTypeDefinition(typeName))
-        .map(name -> _))
+        .map(VariableName(name) -> _))
     case _ =>
       Failure("error in the constructor for Structured Type")
   }
@@ -77,20 +76,20 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
 
   override def defaultFormatter: Formatter = new NoopFormatter
 
-  override def access(value: Any, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Any] = {
+  override def access(value: Any, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[Any]] = {
     keys.toList match {
       case Nil =>
-        Success(value)
+        Success(Some(value))
       case head :: tail =>
-        val name = VariableName(head)
+        val headName = VariableName(head)
         val values = VariableType.convert[Map[VariableName, Any]](value)
         (for {
-          result <- values.get(name)
-          keyType <- structure.typeDefinition.get(name)
-        } yield keyType.access(result, tail, executionResult) ) match {
+          result <- values.get(headName)
+          keyType <- structure.typeDefinition.get(headName)
+        } yield keyType.access(result, name, tail, executionResult) ) match {
           case Some(result) => result
-          case None if structure.names.contains(name) =>
-            Success(structure.typeDefinition(name).missingValueFormat(name))
+          case None if structure.names.contains(headName) =>
+            Success(Some(structure.typeDefinition(headName).missingValueFormat(headName)))
           case None =>
             Failure(s"properties '${keys.mkString(".")}' could not be resolved for the structured type $typeName. available properties ${structure.names.map(name => s"'${name.name}'").mkString(",")}")
         }
@@ -99,22 +98,22 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
 
   override def getTypeClass: Class[Map[VariableName, Any]] = classOf[Map[VariableName, Any]]
 
-  override def keysType(keys: Seq[String], executionResult: TemplateExecutionResult): VariableType = {
+  override def keysType(keys: Seq[String], expression: Expression, executionResult: TemplateExecutionResult): Result[VariableType] = {
     keys.toList match {
       case Nil =>
-        AbstractStructureType
+        Success(AbstractStructureType)
       case head::tail =>
         val name = VariableName(head)
         structure.typeDefinition.get(name) match {
           case Some(varType) =>
-            varType.keysType(tail, executionResult)
+            varType.keysType(keys, expression, executionResult)
           case None =>
             throw new RuntimeException(s"property '${keys.mkString(".")}' could not be resolved in structure value '$head'")
         }
     }
   }
 
-  override def validateKeys(name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Unit] = keys.toList match {
+  override def validateKeys(name:VariableName, keys: Seq[String], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] = keys.toList match {
     case Nil =>
       Success(())
     case head::tail =>
@@ -123,7 +122,7 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
         case Some(variableType:NoShowInForm) =>
           Failure(s"invalid type in structure ${variableType.name} only types that should be shown in the input form are allowed (Text, YesNo, Address ...)")
         case Some(variableType) =>
-          variableType.validateKeys(name, tail, executionResult)
+          variableType.validateKeys(name, tail, expression, executionResult)
         case None =>
           Failure(s"property '${tail.mkString(".")}' could not be resolved in structure value '$head'")
       }

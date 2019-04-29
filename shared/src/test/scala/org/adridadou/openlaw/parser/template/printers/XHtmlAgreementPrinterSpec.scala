@@ -3,7 +3,7 @@ package org.adridadou.openlaw.parser.template.printers
 import java.time.Clock
 
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
-import org.adridadou.openlaw.result.Implicits.{failureCause2Exception, RichEither}
+import org.adridadou.openlaw.result.Implicits.failureCause2Exception
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.values.{TemplateParameters, TemplateTitle}
