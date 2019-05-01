@@ -8,11 +8,9 @@ action "Docker Registry Login" {
   secrets = ["DOCKER_USERNAME", "DOCKER_PASSWORD"]
 }
 
-# Currently adding a gh-* in front of branch name to avoid collisions since
-# running on so many different CIs right now.**
 action "Cached Build" {
   uses = "actions/docker/cli@master"
-  runs = ["sh", "-c", "BRANCH=gh-${GITHUB_REF##*/} ci/build.sh"]
+  runs = ["sh", "-c", "BRANCH=${GITHUB_REF##*/} ID=gh ci/build.sh"]
   needs = ["Docker Registry Login"]
   env = {
     PUSH_CACHE = "0"
@@ -21,7 +19,7 @@ action "Cached Build" {
 
 action "Caching Build" {
   uses = "actions/docker/cli@master"
-  runs = ["sh", "-c", "BRANCH=gh-${GITHUB_REF##*/} ci/build.sh"]
+  runs = ["sh", "-c", "BRANCH=${GITHUB_REF##*/} ID=gh ci/build.sh"]
   needs = ["Docker Registry Login"]
   env = {
     PUSH_CACHE = "1"
