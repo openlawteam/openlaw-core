@@ -17,12 +17,12 @@ executors:
   corerunner:
     resource_class: medium # default & only option while on free plan
     docker:
-      - image: openlaw/core:buildcache-<< parameters.branchname >>
+      - image: openlaw/core:buildcache-circle-<< parameters.branchname >>
     working_directory: /src
     parameters:
       branchname:
         type: string
-        default: circle-${CIRCLE_BRANCH}
+        default: ${CIRCLE_BRANCH}
 
 jobs:
   build:
@@ -34,7 +34,7 @@ jobs:
       - run:
           name: login to Docker Hub
           command: echo "$DOCKER_PASS" | docker login --username "$DOCKER_USER" --password-stdin
-      - run: BRANCH=circle-${CIRCLE_BRANCH} PUSH_CACHE=1 ./ci/build.sh
+      - run: BRANCH=${CIRCLE_BRANCH} ID=circle PUSH_CACHE=1 ./ci/build.sh
   
   test:
     executor: corerunner

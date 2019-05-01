@@ -6,6 +6,7 @@
 # In the (hopefully not-so-distant) future, Docker BuildKit should enable easier
 # storage of a distributed cache system shared amongst serverless workers
 # without this hack.
+set -e
 
 # Allow passing a $REMOTE_IMAGE variable if the remote image tag will be
 # different (e.g. pushing somewhere other than Docker Hub).
@@ -31,8 +32,11 @@ BRANCH=${BRANCH:-$(git rev-parse --abbrev-ref HEAD)}
 # able to fall back to the last master branch build in the situation where
 # this is the first build for a new branch/PR, so we don't start from scratch
 # in that situation.
-MASTER_TAG="${REMOTE_IMAGE}:buildcache-master"
-BRANCH_TAG="${REMOTE_IMAGE}:buildcache-${BRANCH}"
+#
+# Allow for an optional ID tag to isolate caches.
+ID=${ID:-"ol"}
+MASTER_TAG="${REMOTE_IMAGE}:buildcache-${ID}-master"
+BRANCH_TAG="${REMOTE_IMAGE}:buildcache-${ID}-${BRANCH}"
 
 # Pull previous cached image(s) from remote docker registry.
 docker pull "$MASTER_TAG" || true
