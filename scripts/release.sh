@@ -31,7 +31,9 @@ fi
 # Publish to Bintray. Will do nothing by default for safety unless overridden
 # via RELEASE_TRIGGER=true.
 if [ "$RELEASE_TRIGGER" = "true" ]; then
-    sbt release
+    version=$(sbt version)
+    sbt 'project openlawCore openlawCoreJS' 'release release-version ${version} next-version ${version-SNAPSHOT} with-defaults'
+    #sbt release
 else
     echo "Not really releasing, set RELEASE_TRIGGER=true to go live."
 fi
