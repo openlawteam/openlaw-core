@@ -26,6 +26,17 @@ lazy val repositories = Seq(
 
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
 
+git.baseVersion := "0.0.0"
+
+val VersionRegex = "v([0-9]+.[0-9]+.[0-9]+)-?(.*)?".r
+git.gitTagToVersionNumber := {
+  case VersionRegex(v,"") => Some(v)
+  case VersionRegex(v,"SNAPSHOT") => Some(s"$v-SNAPSHOT")
+  case VersionRegex(v,s) => Some(s"$v-$s-SNAPSHOT")
+  case _ => None
+}
+
+
 lazy val commonSettings = Seq(
   organization := "org.openlaw",
   name := "openlaw-core",
@@ -132,7 +143,7 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
 lazy val openlawCoreJvm = openlawCore.jvm
 lazy val openlawCoreJs = openlawCore.js
 
-git.useGitDescribe := true
+//git.useGitDescribe := true
 
 val root = (project in file("."))
   .dependsOn(openlawCoreJvm, openlawCoreJs)
