@@ -53,6 +53,9 @@ object UserId {
   implicit val userIdEnc:Encoder[UserId] = deriveEncoder[UserId]
   implicit val userIdDec:Decoder[UserId] = deriveDecoder[UserId]
 
+  implicit val userIdKeyEnc:KeyEncoder[UserId] = (key: UserId) => key.id
+  implicit val userIdKeyDec:KeyDecoder[UserId] = (key: String) => Some(UserId(key))
+
   val SYSTEM_ID: UserId = UserId("SYSTEM")
 
   def generateNew:UserId = UserId(UUID.randomUUID().toString)

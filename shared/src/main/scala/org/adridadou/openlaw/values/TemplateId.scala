@@ -1,7 +1,7 @@
 package org.adridadou.openlaw.values
 
 import cats.Eq
-import io.circe.{Decoder, Encoder, HCursor, Json}
+import io.circe.{Decoder, Encoder, HCursor, Json, KeyDecoder, KeyEncoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import cats.implicits._
 import org.adridadou.openlaw.parser.template.variableTypes.EthereumAddress
@@ -55,13 +55,7 @@ object TemplateTitle {
     case Left(_) =>
       c.as[String].map(TemplateTitle(_))
   }
-}
 
-
-case class TemplateCommentId(id:Int = -1) extends Comparable[TemplateCommentId] {
-  override def compareTo(o: TemplateCommentId): Int = id.compareTo(o.id)
-}
-
-object TemplateCommentId {
-  implicit val templateCommentIdEq:Eq[TemplateCommentId] = Eq.fromUniversalEquals
+  implicit val templateTitleKeyEnc:KeyEncoder[TemplateTitle] = (key: TemplateTitle) => key.title
+  implicit val templateTitleKeyDec:KeyDecoder[TemplateTitle] = (key: String) => Some(TemplateTitle(key))
 }
