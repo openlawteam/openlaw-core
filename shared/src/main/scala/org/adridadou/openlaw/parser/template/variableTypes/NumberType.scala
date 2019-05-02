@@ -3,6 +3,8 @@ package org.adridadou.openlaw.parser.template.variableTypes
 import VariableType._
 import org.adridadou.openlaw.parser.template.formatters.Formatter
 import cats.implicits._
+import org.adridadou.openlaw
+import org.adridadou.openlaw.{BigDecimalOpenlawValue, OpenlawValue}
 import org.adridadou.openlaw.parser.template.expressions.{Expression, ValueExpression}
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
@@ -25,24 +27,24 @@ case object NumberType extends VariableType("Number") {
       Failure(s"the constructor for $name only handles single values")
   }
 
-  override def plus(optLeft: Option[Any], optRight: Option[Any], executionResult: TemplateExecutionResult): Option[BigDecimal] = for(
+  override def plus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Option[BigDecimalOpenlawValue] = for(
     leftValue <- optLeft;
-    rightValue <- optRight) yield convert[BigDecimal](leftValue) + convert[BigDecimal](rightValue)
+    rightValue <- optRight) yield convert[BigDecimalOpenlawValue](leftValue).get + convert[BigDecimalOpenlawValue](rightValue).get
 
-  override def minus(optLeft: Option[Any], optRight: Option[Any], executionResult: TemplateExecutionResult): Option[BigDecimal] = for(
+  override def minus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Option[BigDecimalOpenlawValue] = for(
     leftValue <- optLeft;
-    rightValue <- optRight) yield convert[BigDecimal](leftValue) - convert[BigDecimal](rightValue)
+    rightValue <- optRight) yield convert[BigDecimalOpenlawValue](leftValue).get - convert[BigDecimalOpenlawValue](rightValue).get
 
-  override def multiply(optLeft: Option[Any], optRight: Option[Any], executionResult: TemplateExecutionResult): Option[BigDecimal] = for(
+  override def multiply(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Option[BigDecimalOpenlawValue] = for(
     leftValue <- optLeft;
-    rightValue <- optRight) yield convert[BigDecimal](leftValue) * convert[BigDecimal](rightValue)
+    rightValue <- optRight) yield convert[BigDecimalOpenlawValue](leftValue).get * convert[BigDecimalOpenlawValue](rightValue).get
 
-  override def divide(optLeft: Option[Any], optRight: Option[Any], executionResult: TemplateExecutionResult): Option[BigDecimal] = for(
+  override def divide(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Option[BigDecimalOpenlawValue] = for(
     leftValue <- optLeft;
-    rightValue <- optRight if convert[BigDecimal](rightValue) =!= BigDecimal(0)) yield convert[BigDecimal](leftValue) / convert[BigDecimal](rightValue)
+    rightValue <- optRight if convert[BigDecimalOpenlawValue](rightValue).get =!= BigDecimal(0)) yield convert[BigDecimalOpenlawValue](leftValue).get / convert[BigDecimalOpenlawValue](rightValue).get
 
-  override def internalFormat(value: Any): String =
-    convert[BigDecimal](value).toString
+  override def internalFormat(value: OpenlawValue): String =
+    convert[BigDecimalOpenlawValue](value).get.toString
 
   override def getFormatter(formatter: FormatterDefinition, executionResult: TemplateExecutionResult):Formatter = formatter.name.toLowerCase match {
     case "notrailingzeros" => NoTrailingZerosFormatter
@@ -62,7 +64,7 @@ case object NumberType extends VariableType("Number") {
   override def validateOperation(expr: ValueExpression, executionResult: TemplateExecutionResult): Option[String] = {
     expr.operation match {
       case Divide =>
-        expr.right.evaluate(executionResult) match {
+        expr.right.evaluate(executionResult).map(_.get) match {
           case Some(value:BigDecimal) if value === BigDecimal(0) => Some(s"error while evaluating the expression '$expr': division by zero!")
           case _ => None
         }
@@ -83,24 +85,24 @@ trait NumberFormatter {
 }
 
 case object NoTrailingZerosFormatter extends Formatter with NumberFormatter {
-  override def format(value: Any, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] =
-    attempt(VariableType.convert[BigDecimal](value).bigDecimal.stripTrailingZeros()) map {
+  override def format(value: openlaw.OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] =
+    attempt(VariableType.convert[BigDecimalOpenlawValue](value).get.bigDecimal.stripTrailingZeros()) map {
       case bd => Seq(FreeText(Text(formatNumber(bd))))
     }
 }
 
 case object RawNumberFormatter extends Formatter with NumberFormatter {
-  override def format(value: Any, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] =
-    attempt(VariableType.convert[BigDecimal](value).bigDecimal.stripTrailingZeros().toPlainString) map {
+  override def format(value: openlaw.OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] =
+    attempt(VariableType.convert[BigDecimalOpenlawValue](value).get.bigDecimal.stripTrailingZeros().toPlainString) map {
       case str => Seq(FreeText(Text(str)))
     }
 }
 
 case class Rounding(expr:Expression) extends Formatter with NumberFormatter {
-  override def format(value: Any, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] = {
+  override def format(value: openlaw.OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] = {
     expr.evaluate(executionResult)
-      .map(VariableType.convert[BigDecimal])
-      .map(_.toInt).map(rounding => attempt(VariableType.convert[BigDecimal](value).setScale(rounding, RoundingMode.HALF_UP))) match {
+      .map(VariableType.convert[BigDecimalOpenlawValue](_).get)
+      .map(_.toInt).map(rounding => attempt(VariableType.convert[BigDecimalOpenlawValue](value).get.setScale(rounding, RoundingMode.HALF_UP))) match {
         case None => Success(Seq(FreeText(Text(value.toString))))
         case Some(Success(result)) => Success(Seq(FreeText(Text(result.toString))))
         case Some(Failure(e, message)) => Failure(e, message)

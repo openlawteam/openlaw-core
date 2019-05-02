@@ -1,5 +1,6 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
+import org.adridadou.openlaw.{CollectionValueOpenlawValue, OpenlawValue}
 import org.adridadou.openlaw.parser.template.TemplateExecutionResult
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
 import play.api.libs.json.{JsObject, JsString, Json}
@@ -7,10 +8,10 @@ import play.api.libs.json.{JsObject, JsString, Json}
 
 case object AbstractCollectionType extends VariableType("Collection") with ParameterTypeProvider {
 
-  override def cast(value: String, executionResult: TemplateExecutionResult): Any =
+  override def cast(value: String, executionResult: TemplateExecutionResult): OpenlawValue =
     throw new RuntimeException("abstract collection! Should use a concrete definition of this type")
 
-  override def internalFormat(value: Any): String =
+  override def internalFormat(value: OpenlawValue): String =
     throw new RuntimeException("abstract collection! Should use a concrete definition of this type")
 
   override def thisType: VariableType =
@@ -22,15 +23,15 @@ case object AbstractCollectionType extends VariableType("Collection") with Param
     CollectionType(typeParameter)
 }
 
-case class CollectionValue(size:Int = 1, values:Map[Int, Any] = Map(), collectionType:CollectionType) {
+case class CollectionValue(size:Int = 1, values:Map[Int, OpenlawValue] = Map(), collectionType:CollectionType) {
   def castValue(value:String, executionResult: TemplateExecutionResult):Any = collectionType.typeParameter.cast(value, executionResult)
-  def valueInternalFormat(value:Any):String = collectionType.typeParameter.internalFormat(value)
-  def list:Seq[Any] = values.values.toSeq
+  def valueInternalFormat(value:OpenlawValue):String = collectionType.typeParameter.internalFormat(value)
+  def list:Seq[OpenlawValue] = values.values.toSeq
 }
 
 case class CollectionType(typeParameter:VariableType) extends VariableType("Collection") with ParameterType {
 
-  override def cast(value: String, executionResult: TemplateExecutionResult): CollectionValue = {
+  override def cast(value: String, executionResult: TemplateExecutionResult): OpenlawValue = {
     val obj = Json.parse(value).as[JsObject]
       val values = obj("values").as[Map[String, String]]
         .map({case (key, v) => key.toInt -> typeParameter.cast(v, executionResult)})
@@ -41,8 +42,8 @@ case class CollectionType(typeParameter:VariableType) extends VariableType("Coll
 
   override def defaultFormatter: Formatter = new NoopFormatter
 
-  override def internalFormat(value: Any): String = {
-    val collection = VariableType.convert[CollectionValue](value)
+  override def internalFormat(value: OpenlawValue): String = {
+    val collection = VariableType.convert[CollectionValueOpenlawValue](value).get
     Json.obj(
       "values" -> JsObject(collection.values.map({case (key,v) => key.toString -> JsString(typeParameter.internalFormat(v))})),
       "size" -> collection.size

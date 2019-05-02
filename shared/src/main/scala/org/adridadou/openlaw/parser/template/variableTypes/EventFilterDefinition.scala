@@ -3,12 +3,15 @@ package org.adridadou.openlaw.parser.template.variableTypes
 import cats.implicits._
 import java.time.LocalDateTime
 
+import org.adridadou.openlaw.StringOpenlawValue
 import org.adridadou.openlaw.parser.abi.AbiParser.AbiType
 import org.adridadou.openlaw.parser.abi.{AbiEntry, AbiParam, AbiParser}
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.result.{Failure, Result, attempt}
 import org.adridadou.openlaw.result.Implicits.RichOption
+
+import scala.collection.immutable.StringOps
 
 case class EventFilterDefinition(
   contractAddress: Expression,
@@ -18,7 +21,7 @@ case class EventFilterDefinition(
 
   def abiEntries(executionResult: TemplateExecutionResult): Result[List[AbiEntry]] = for {
     interfaceAny <- attempt(interface.evaluate(executionResult)).flatMap(_.toResult(s"expression '$interface' failed to evaluate"))
-    interfaceString <- attempt(VariableType.convert[String](interfaceAny))
+    interfaceString <- attempt(VariableType.convert[StringOpenlawValue](interfaceAny).get)
     entries <- AbiParser.parse(interfaceString)
   } yield entries
 
@@ -26,7 +29,7 @@ case class EventFilterDefinition(
     for {
       entries <- abiEntries(executionResult)
       eventTypeAny <- eventType.evaluate(executionResult).toResult("could not evaluate eventType")
-      eventTypeString <- attempt(VariableType.convert[String](eventTypeAny))
+      eventTypeString <- attempt(VariableType.convert[StringOpenlawValue](eventTypeAny).get)
       entry <- findNameEntry(eventTypeString, entries)
       variables <- convertVariablesScalaTypes(entry)
     } yield variables
@@ -36,7 +39,7 @@ case class EventFilterDefinition(
     for {
       entries <- abiEntries(executionResult)
       eventTypeAny <- eventType.evaluate(executionResult).toResult("could not evaluate eventType")
-      eventTypeString <- attempt(VariableType.convert[String](eventTypeAny))
+      eventTypeString <- attempt(VariableType.convert[StringOpenlawValue](eventTypeAny).get)
       entry <- findNameEntry(eventTypeString, entries)
       variables <- convertVariablesOpenlawType(entry)
     } yield variables
@@ -45,7 +48,7 @@ case class EventFilterDefinition(
     for {
       entries <- abiEntries(executionResult)
       eventTypeAny <- eventType.evaluate(executionResult).toResult("could not evaluate eventType")
-      eventTypeString <- attempt(VariableType.convert[String](eventTypeAny))
+      eventTypeString <- attempt(VariableType.convert[StringOpenlawValue](eventTypeAny).get)
       entry <- findNameEntry(eventTypeString, entries)
       variables <- convertVariablesScalaTypes(entry)
     } yield variables

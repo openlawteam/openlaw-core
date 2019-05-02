@@ -31,7 +31,8 @@ lazy val commonSettings = Seq(
   organization := "org.openlaw",
   name := "openlaw-core",
   scalaVersion := scalaV,
-  wartremoverErrors ++= rules
+  wartremoverErrors ++= rules,
+  addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
 )
 
 lazy val publishSettings = Seq(
@@ -104,6 +105,7 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       "biz.enef"                %% "slogging-slf4j"      % "0.6.1",
       "com.beachape"            %% "enumeratum"          % "1.5.13",
       "com.lihaoyi"             %% "scalatags"           % scalaTagsV,
+      "com.github.mpilquist"    %% "simulacrum"          % "0.16.0",
       //Test
       "org.scalacheck"          %% "scalacheck"          % "1.14.0"        % Test,
       "org.scalatest"           %% "scalatest"           % "3.2.0-SNAP10"  % Test,
@@ -124,6 +126,7 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       "com.typesafe.play"       %%% "play-json"            % playJsonV,
       "com.beachape"            %%% "enumeratum"           % "1.5.13",
       "com.lihaoyi"             %%% "scalatags"            % scalaTagsV,
+      "com.github.mpilquist"    %%% "simulacrum"          % "0.16.0",
       //Test
       "org.scalacheck"          %%% "scalacheck"          % "1.14.0"        % Test,
       "org.scalatest"           %%% "scalatest"           % "3.2.0-SNAP10"  % Test

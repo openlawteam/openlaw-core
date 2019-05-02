@@ -9,6 +9,7 @@ import org.adridadou.openlaw.result.{Failure, Result, Success}
 import org.adridadou.openlaw.values.TemplateParameters
 import io.circe.generic.semiauto._
 import io.circe.syntax._
+import org.adridadou.openlaw.StringOpenlawValue
 
 /**
   * Created by davidroon on 06.06.17.
@@ -144,7 +145,7 @@ case class Section(uuid:String, definition:Option[SectionDefinition], lvl:Int) e
       parameter <- parameters.parameterMap.toMap.get("symbol")
       expr <- getSingleExpression(parameter)
       name <- expr.evaluate(executionResult)
-      result <- SectionSymbol.withNameOption(VariableType.convert[String](name))
+      result <- SectionSymbol.withNameOption(VariableType.convert[StringOpenlawValue](name).get)
     } yield result
 
   private def localOverrideFormat(executionResult: TemplateExecutionResult): Option[SectionFormat] =
@@ -154,7 +155,7 @@ case class Section(uuid:String, definition:Option[SectionDefinition], lvl:Int) e
       parameter <- parameters.parameterMap.toMap.get("format")
       expr <- getSingleExpression(parameter)
       name <- expr.evaluate(executionResult)
-      result <- SectionFormat.withNameOption(VariableType.convert[String](name))
+      result <- SectionFormat.withNameOption(VariableType.convert[StringOpenlawValue](name).get)
     } yield result
 }
 

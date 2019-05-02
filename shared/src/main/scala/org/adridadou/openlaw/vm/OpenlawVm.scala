@@ -16,6 +16,7 @@ import slogging.LazyLogging
 import scala.reflect.ClassTag
 import io.circe.generic.semiauto._
 import LocalDateTimeHelper._
+import org.adridadou.openlaw.{CollectionValueOpenlawValue, IdentityOpenlawValue, MapOpenlawValue, OpenlawValue}
 
 case class Signature(userId:UserId, signature:OpenlawSignatureEvent)
 
@@ -136,14 +137,14 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
         .flatMap({case (result, name) => result.getVariable(name).map(variable => (result, variable))}).flatMap({ case (result, variable) =>
         variable.varType(result) match {
           case IdentityType =>
-            variable.evaluate(result).map(VariableType.convert[Identity]).toSeq
+            variable.evaluate(result).map(VariableType.convert[IdentityOpenlawValue]).map(_.get).toSeq
           case collectionType:CollectionType if collectionType.typeParameter === IdentityType =>
             variable.evaluate(result)
-              .map(VariableType.convert[CollectionValue])
+              .map(VariableType.convert[CollectionValueOpenlawValue](_).get)
               .map(_.list).getOrElse(Seq())
-              .map(VariableType.convert[Identity])
+              .map(VariableType.convert[IdentityOpenlawValue](_).get)
           case structureType:DefinedStructureType if structureType.structure.typeDefinition.values.exists(_ === IdentityType) =>
-            val values = variable.evaluate(result).map(VariableType.convert[Map[VariableName, Any]]).getOrElse(Map())
+            val values = variable.evaluate(result).map(VariableType.convert[MapOpenlawValue[VariableName, Any]](_).get).getOrElse(Map())
 
             structureType.structure.typeDefinition
               .flatMap({
@@ -242,7 +243,7 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
   def getAllVariables(varType: VariableType):Seq[(TemplateExecutionResult, VariableDefinition)] =
     state.executionResult.map(_.getVariables(varType)).getOrElse(Seq())
 
-  def getAllVariableValues[T](varType: VariableType)(implicit classTag:ClassTag[T]):Seq[T] =
+  def getAllVariableValues[T <: OpenlawValue](varType: VariableType)(implicit classTag:ClassTag[T]):Seq[T] =
     getAllVariables(varType).flatMap({case (executionResult, variable) =>
       variable.evaluate(executionResult).map(VariableType.convert[T])
     })

@@ -5,30 +5,31 @@ import java.time.LocalDateTime
 import org.parboiled2._
 import VariableType._
 import cats.implicits._
+import org.adridadou.openlaw.{OpenlawValue, PeriodOpenlawValue}
 import org.adridadou.openlaw.parser.template._
 
 case object PeriodType extends VariableType("Period") {
 
-  override def plus(optLeft: Option[Any], optRight: Option[Any], executionResult:TemplateExecutionResult): Option[Any] = for {
+  override def plus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult:TemplateExecutionResult): Option[OpenlawValue] = for {
     left <- optLeft
     right <-optRight
   } yield {
-    right match {
-      case period:Period => plus(convert[Period](left), period)
-      case date:LocalDateTime => DateTimeType.plus(date, convert[Period](left))
+    right.get match {
+      case period:Period => plus(convert[PeriodOpenlawValue](left).get, period)
+      case date:LocalDateTime => DateTimeType.plus(date, convert[PeriodOpenlawValue](left).get)
     }
   }
 
   private def plus(left:Period, right:Period):Period = left.plus(right)
 
-  override def minus(optLeft: Option[Any], optRight: Option[Any], executionResult:TemplateExecutionResult): Option[Period] = for(
+  override def minus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult:TemplateExecutionResult): Option[PeriodOpenlawValue] = for(
     left <- optLeft;
     right <-optRight
-  ) yield minus(convert[Period](left), convert[Period](right))
+  ) yield minus(convert[PeriodOpenlawValue](left).get, convert[PeriodOpenlawValue](right).get)
 
   private def minus(left:Period, right:Period):Period = left.minus(right)
 
-  override def cast(value: String, executionResult:TemplateExecutionResult): Period =
+  override def cast(value: String, executionResult:TemplateExecutionResult): PeriodOpenlawValue =
     cast(value)
 
   def cast(value: String): Period = {
@@ -48,8 +49,8 @@ case object PeriodType extends VariableType("Period") {
     case _ => false
   }
 
-  override def internalFormat(value: Any): String = {
-    val period = convert[Period](value)
+  override def internalFormat(value: OpenlawValue): String = {
+    val period = convert[PeriodOpenlawValue](value).get
     val result = ( if( period.years > 0 ) s"${period.years}" + " years " else "") +
       ( if( period.months > 0 ) s"${period.months}" + " months " else "") +
       ( if( period.weeks > 0 ) s"${period.weeks}" + " weeks " else "") +

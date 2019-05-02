@@ -7,6 +7,7 @@ import org.adridadou.openlaw.parser.template.expressions.Expression
 import io.circe.syntax._
 import io.circe.parser._
 import cats.implicits._
+import org.adridadou.openlaw.{BooleanOpenlawValue, OpenlawValue, StringOpenlawValue, ValidationOpenlawValue}
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 
@@ -15,12 +16,12 @@ case object ValidationType extends VariableType(name = "Validation") with NoShow
   implicit val validationEnc: Encoder[Validation] = deriveEncoder[Validation]
   implicit val validationDec: Decoder[Validation] = deriveDecoder[Validation]
 
-  override def cast(value: String, executionResult: TemplateExecutionResult): Validation = decode[Validation](value) match {
+  override def cast(value: String, executionResult: TemplateExecutionResult): ValidationOpenlawValue = decode[Validation](value) match {
     case Right(result) => result
     case Left(ex) => throw new RuntimeException(ex.getMessage)
   }
 
-  override def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Result[Option[Any]] = constructorParams match {
+  override def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = constructorParams match {
     case Parameters(v) =>
       val values = v.toMap
       validate(Validation(
@@ -30,7 +31,7 @@ case object ValidationType extends VariableType(name = "Validation") with NoShow
 
     case _ => Failure("Validation need to get 'condition' and 'errorMessage' as constructor parameter")
   }
-  override def internalFormat(value: Any): String = VariableType.convert[Validation](value).asJson.noSpaces
+  override def internalFormat(value: OpenlawValue): String = VariableType.convert[ValidationOpenlawValue](value).get.asJson.noSpaces
 
   override def getTypeClass: Class[_ <: Validation ] = classOf[Validation]
 
@@ -53,10 +54,10 @@ case object ValidationType extends VariableType(name = "Validation") with NoShow
 
 case class Validation(condition:Expression, errorMessage:Expression) {
   def validate(executionResult: TemplateExecutionResult):Result[Unit] = {
-    condition.evaluate(executionResult).map(e => VariableType.convert[Boolean](e))
+    condition.evaluate(executionResult).map(e => VariableType.convert[BooleanOpenlawValue](e).get)
       .filter(_ === false)
       .map(_ => errorMessage
-        .evaluate(executionResult).map(VariableType.convert[String])
+        .evaluate(executionResult).map(VariableType.convert[StringOpenlawValue](_).get)
         .getOrElse(s"validation error (error message could not be resolved)")
       ) .map(Failure(_)).getOrElse(Success())
   }

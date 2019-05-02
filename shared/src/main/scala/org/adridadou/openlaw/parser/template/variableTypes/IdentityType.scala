@@ -8,6 +8,7 @@ import io.circe.parser._
 import io.circe.generic.semiauto._
 import Identity._
 import cats.Eq
+import org.adridadou.openlaw.{IdentityOpenlawValue, OpenlawValue, StringOpenlawValue}
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter, SignatureFormatter}
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
@@ -15,7 +16,7 @@ import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 case object IdentityType extends VariableType(name = "Identity") {
 
-  override def cast(value: String, executionResult: TemplateExecutionResult): Identity =
+  override def cast(value: String, executionResult: TemplateExecutionResult): IdentityOpenlawValue =
     decode[Identity](value) match {
       case Right(identity) => identity
       case Left(_) =>
@@ -28,21 +29,21 @@ case object IdentityType extends VariableType(name = "Identity") {
 
   override def getTypeClass: Class[_ <: Identity] = classOf[Identity]
 
-  override def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Result[Option[Any]] =
+  override def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] =
     Failure("Identity type does not support constructor")
 
   override def missingValueFormat(name: VariableName): Seq[AgreementElement] = Seq(FreeText(Text("")))
 
-  override def internalFormat(value: Any): String = VariableType.convert[Identity](value).asJson.noSpaces
+  override def internalFormat(value: OpenlawValue): String = VariableType.convert[IdentityOpenlawValue](value).get.asJson.noSpaces
 
   override def getFormatter(formatterDefinition: FormatterDefinition, executionResult: TemplateExecutionResult):Formatter = formatterDefinition.name.trim().toLowerCase() match {
     case "signature" => new SignatureFormatter
     case _ => throw new RuntimeException(s"unknown formatter $name")
   }
 
-  override def access(value: Any, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[Any]] = {
+  override def access(value: OpenlawValue, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = {
     keys.toList match {
-      case head::tail if tail.isEmpty => accessProperty(Some(VariableType.convert[Identity](value)), head).map(Some(_))
+      case head::tail if tail.isEmpty => accessProperty(Some(VariableType.convert[IdentityOpenlawValue](value).get), head).map(Some(_))
       case _::_ => Failure(s"Identity has only one level of properties. invalid property access ${keys.mkString(".")}") // TODO: Is this correct?
       case _ => Success(Some(value))
     }

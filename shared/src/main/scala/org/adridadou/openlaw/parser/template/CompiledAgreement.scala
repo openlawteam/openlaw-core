@@ -3,6 +3,7 @@ package org.adridadou.openlaw.parser.template
 import java.time.Clock
 
 import cats.implicits._
+import org.adridadou.openlaw.{BigDecimalOpenlawValue, BooleanOpenlawValue, CollectionValueOpenlawValue, SectionInfoOpenlawValue}
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.result.{Result, Success}
 
@@ -135,13 +136,13 @@ case class CompiledAgreement(
 
       case ConditionalBlockSet(blocks) =>
         blocks.find({
-          case ConditionalBlock(_,_, conditionalExpression) => conditionalExpression.evaluate(executionResult).exists(VariableType.convert[Boolean])
+          case ConditionalBlock(_,_, conditionalExpression) => conditionalExpression.evaluate(executionResult).exists(VariableType.convert[BooleanOpenlawValue](_).get)
         }) match {
           case Some(conditionalBlock) =>
             getAgreementElementsFromElement(renderedElements, conditionalBlock, executionResult)
           case None => renderedElements
         }
-      case ConditionalBlock(subBlock, _, conditionalExpression) if conditionalExpression.evaluate(executionResult).exists(VariableType.convert[Boolean]) =>
+      case ConditionalBlock(subBlock, _, conditionalExpression) if conditionalExpression.evaluate(executionResult).exists(VariableType.convert[BooleanOpenlawValue](_).get) =>
         val dependencies = conditionalExpression.variables(executionResult).map(_.name)
         getAgreementElements(renderedElements ++ List(ConditionalStart(dependencies = dependencies)), subBlock.elems.toList, executionResult) ++ List(ConditionalEnd(dependencies))
 
@@ -154,7 +155,7 @@ case class CompiledAgreement(
       case ForEachBlock(_, expression, subBlock) =>
         val collection = expression.
           evaluate(executionResult)
-          .map(value => VariableType.convert[CollectionValue](value).list)
+          .map(value => VariableType.convert[CollectionValueOpenlawValue](value).get.list)
           .getOrElse(Seq())
 
         collection.foldLeft(renderedElements)((subElements, _) => {
@@ -167,7 +168,7 @@ case class CompiledAgreement(
           .flatMap(_.parameters)
           .flatMap(_.parameterMap.toMap.get("numbering"))
           .flatMap({
-            case OneValueParameter(expr) => expr.evaluate(executionResult).map(VariableType.convert[BigDecimal]).map(_.toInt)
+            case OneValueParameter(expr) => expr.evaluate(executionResult).map(VariableType.convert[BigDecimalOpenlawValue](_).get).map(_.toInt)
             case _ => None
           })
 
@@ -189,7 +190,7 @@ case class CompiledAgreement(
             executionResult.getVariable(name)
               .flatMap(_.evaluate(executionResult)) match {
               case Some(value) =>
-                val info = VariableType.convert[SectionInfo](value)
+                val info = VariableType.convert[SectionInfoOpenlawValue](value).get
                 renderedElements.:+(SectionElement(info.numbering, lvl, number, resetNumbering, overrideSymbol, overrideFormat))
               case None =>
                 throw new RuntimeException("Section referenced before it has been rendered. The executor can't guess the section number before rendering it yet.")

@@ -18,6 +18,7 @@ import io.circe._
 import io.circe.generic.auto._
 import io.circe.generic.semiauto._
 import io.circe.syntax._
+import org.adridadou.openlaw.{CollectionValueOpenlawValue, IdentityOpenlawValue, MapOpenlawValue, OpenlawValue, TemplateDefinitionOpenlawValue, ValidationOpenlawValue}
 import org.adridadou.openlaw.oracles.OpenlawSignatureProof
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 import org.adridadou.openlaw.vm.Executions
@@ -121,14 +122,14 @@ trait TemplateExecutionResult {
           case variableType => variableType === varType
         }}).map((this, _)) ++ subExecutions.values.flatMap(_.getVariables(varType))
 
-  def getVariableValues[T](varType: VariableType)(implicit classTag:ClassTag[T]):Seq[T] = getVariables(varType)
+  def getVariableValues[T <: OpenlawValue](varType: VariableType)(implicit classTag:ClassTag[T]):Seq[T] = getVariables(varType)
     .flatMap({case (execution, variable) => variable.evaluate(execution).map(getVariableValue[T](_, variable.varType(this)))})
 
-  def getVariableValue[T](name: VariableName)(implicit classTag:ClassTag[T]):Option[T] =
+  def getVariableValue[T <: OpenlawValue](name: VariableName)(implicit classTag:ClassTag[T]):Option[T] =
     getVariable(name)
       .flatMap(variable => variable.evaluate(this).map(getVariableValue[T](_, variable.varType(this))))
 
-  private def getVariableValue[T](value:Any, variableType:VariableType)(implicit classTag: ClassTag[T]):T = VariableType.convert[T](value)
+  private def getVariableValue[T <: OpenlawValue](value:OpenlawValue, variableType:VariableType)(implicit classTag: ClassTag[T]):T = VariableType.convert[T](value)
 
   def getParameter(name: String):Option[String] = getParameter(VariableName(name))
 
@@ -146,16 +147,16 @@ trait TemplateExecutionResult {
     .flatMap({ case (result, variable) =>
       variable.varType(result) match {
         case IdentityType =>
-          variable.evaluate(result).map(VariableType.convert[Identity]).toSeq
+          variable.evaluate(result).map(VariableType.convert[IdentityOpenlawValue](_).get).toSeq
         case collectionType:CollectionType if collectionType.typeParameter === IdentityType =>
           variable.evaluate(result)
-            .map(col => VariableType.convert[CollectionValue](col).list.map(VariableType.convert[Identity])).getOrElse(Seq())
+            .map(col => VariableType.convert[CollectionValueOpenlawValue](col).get.list.map(VariableType.convert[IdentityOpenlawValue](_).get)).getOrElse(Seq())
         case structureType:DefinedStructureType if structureType.structure.typeDefinition.values.exists(_ === IdentityType) =>
-          val values = variable.evaluate(result).map(VariableType.convert[Map[VariableName, Any]]).getOrElse(Map())
+          val values = variable.evaluate(result).map(VariableType.convert[MapOpenlawValue[VariableName, OpenlawValue]](_).get).getOrElse(Map())
 
           structureType.structure.names
             .filter(name => structureType.structure.typeDefinition(name) === IdentityType)
-            .map(name => VariableType.convert[Identity](values(name)))
+            .map(name => VariableType.convert[IdentityOpenlawValue](values(name)).get)
 
         case _ =>
           Seq()
@@ -252,8 +253,8 @@ trait TemplateExecutionResult {
       getVariable(name)
   }
 
-  def validate(): Seq[String] = getVariableValues[Validation](ValidationType)
-    .flatMap(_.validate(this).left.toOption.map(_.message))
+  def validate(): Seq[String] = getVariableValues[ValidationOpenlawValue](ValidationType)
+    .flatMap(_.get.validate(this).left.toOption.map(_.message))
 
   def getExecutedVariables:Seq[VariableName] = {
     val variableNames = getAllVariableNames
@@ -265,7 +266,7 @@ trait TemplateExecutionResult {
   def getAllExecutionResults:Seq[TemplateExecutionResult] =
     subExecutions.values.flatMap(_.getAllExecutionResults).toSeq ++ Seq(this)
 
-  def startEphemeralExecution(name:VariableName, value:Any, varType:VariableType): Result[TemplateExecutionResult] = {
+  def startEphemeralExecution(name:VariableName, value: OpenlawValue, varType:VariableType): Result[TemplateExecutionResult] = {
     this.getAliasOrVariableType(name) match {
       case Success(_) =>
         Failure(s"${name.name} has already been defined!")
@@ -449,7 +450,7 @@ case class OpenlawExecutionState(
         case IdentityType =>
           resultFromMissingInput(variable.missingInput(result))
         case collectionType:CollectionType if collectionType.typeParameter === IdentityType =>
-          result.getVariableValue[CollectionValue](variable.name) match {
+          result.getVariableValue[CollectionValueOpenlawValue](variable.name).map(_.get) match {
             case Some(value) if value.size =!= value.values.size =>
               (Seq(variable.name), Seq())
             case Some(_) =>
@@ -459,7 +460,7 @@ case class OpenlawExecutionState(
           }
 
         case structureType:DefinedStructureType if structureType.structure.typeDefinition.values.exists(_ === IdentityType) =>
-          val values = result.getVariableValue[Map[VariableName, Any]](variable.name)
+          val values = result.getVariableValue[MapOpenlawValue[VariableName, Any]](variable.name).map(_.get)
           val identityProperties = structureType.structure.typeDefinition
             .filter({case (_,propertyType) => propertyType === IdentityType})
             .map({case (propertyName,_) => propertyName}).toSeq
@@ -573,7 +574,7 @@ case class OpenlawExecutionState(
   def getCompiledTemplate(templates: Map[TemplateSourceIdentifier, CompiledTemplate]):Option[CompiledTemplate] =
     getTemplateIdentifier flatMap templates.get
 
-  def startForEachExecution(variableName:VariableName, template:CompiledTemplate, name:VariableName, value:Any, varType:VariableType): Result[OpenlawExecutionState] = {
+  def startForEachExecution(variableName:VariableName, template:CompiledTemplate, name:VariableName, value:OpenlawValue, varType:VariableType): Result[OpenlawExecutionState] = {
     startSubExecution(variableName, template, embedded = true).map(result => {
       val newResult = result.copy(parameters = parameters + (name -> varType.internalFormat(value)))
       this.forEachExecutions append newResult
@@ -582,7 +583,7 @@ case class OpenlawExecutionState(
   }
 
   def startSubExecution(variableName:VariableName, template:CompiledTemplate, embedded:Boolean): Result[OpenlawExecutionState] = {
-    getVariableValue[TemplateDefinition](variableName).map(templateDefinition => {
+    getVariableValue[TemplateDefinitionOpenlawValue](variableName).map(_.get).map(templateDefinition => {
       detectCyclicDependency(templateDefinition).map(_ => {
         val newExecution = OpenlawExecutionState(
           id = TemplateExecutionResultId(createAnonymousVariable().name),

@@ -7,6 +7,7 @@ import io.circe.parser._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template._
 import cats.implicits._
+import org.adridadou.openlaw.{ChoicesOpenlawValue, OpenlawValue, StringOpenlawValue}
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
 import org.adridadou.openlaw.result.{Failure, Result, attempt}
 
@@ -21,7 +22,7 @@ object Choices {
 
 case object ChoiceType extends VariableType("Choice") with TypeGenerator[Choices] {
 
-  override def construct(param:Parameter, executionResult: TemplateExecutionResult): Result[Option[Choices]] = param match {
+  override def construct(param:Parameter, executionResult: TemplateExecutionResult): Result[Option[ChoicesOpenlawValue]] = param match {
     case OneValueParameter(value) =>
       attempt(Some(Choices(generateValues(Seq(value), executionResult))))
     case ListParameter(values) =>
@@ -30,16 +31,16 @@ case object ChoiceType extends VariableType("Choice") with TypeGenerator[Choices
   }
 
   private def generateValues(exprs:Seq[Expression], executionResult: TemplateExecutionResult):Seq[String] = {
-    exprs.flatMap(_.evaluate(executionResult)).map(VariableType.convert[String])
+    exprs.flatMap(_.evaluate(executionResult)).map(VariableType.convert[StringOpenlawValue](_).get)
   }
 
   override def defaultFormatter: Formatter = new NoopFormatter
 
-  override def cast(value: String, executionResult: TemplateExecutionResult): Choices = handleEither(decode[Choices](value))
+  override def cast(value: String, executionResult: TemplateExecutionResult): ChoicesOpenlawValue = handleEither(decode[Choices](value))
 
-  override def internalFormat(value: Any): String = value match {
-    case call:Choices =>
-      call.asJson.noSpaces
+  override def internalFormat(value: OpenlawValue): String = value match {
+    case call:ChoicesOpenlawValue =>
+      call.get.asJson.noSpaces
   }
 
   override def checkTypeName(nameToCheck: String): Boolean = Seq("Choice").exists(_.equalsIgnoreCase(nameToCheck))
@@ -81,7 +82,7 @@ case class DefinedChoiceType(choices:Choices, typeName:String) extends VariableT
       }
   }
 
-  override def internalFormat(value: Any): String = VariableType.convert[String](value)
+  override def internalFormat(value: OpenlawValue): String = VariableType.convert[StringOpenlawValue](value).get
 
   override def thisType: VariableType = this
 

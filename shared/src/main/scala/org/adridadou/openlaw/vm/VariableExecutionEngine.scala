@@ -1,6 +1,7 @@
 package org.adridadou.openlaw.vm
 
 import cats.implicits._
+import org.adridadou.openlaw.StructureOpenlawValue
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.result.{Failure, Result, Success}
@@ -155,9 +156,9 @@ trait VariableExecutionEngine {
             Failure(s"the new type ${variable.name.name} could not be executed properly")
         }
       case AbstractStructureType =>
-        variable.constructT[Structure](executionResult).flatMap {
+        variable.constructT[StructureOpenlawValue](executionResult).flatMap {
           case Some(structure) =>
-            executionResult.registerNewType(AbstractStructureType.generateType(variable.name, structure)).map(_ => true)
+            executionResult.registerNewType(AbstractStructureType.generateType(variable.name, structure.get)).map(_ => true)
           case None =>
             Failure(s"the new type ${variable.name.name} could not be executed properly")
         }

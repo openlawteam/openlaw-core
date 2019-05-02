@@ -6,6 +6,7 @@ import cats.Eq
 import cats.implicits._
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.{Decoder, Encoder}
+import org.adridadou.openlaw.{EthereumAddressOpenlawValue, OpenlawValue}
 import org.adridadou.openlaw.oracles.UserId
 import org.adridadou.openlaw.parser.template.variableTypes.EthereumAddress.hex2bytes
 import org.adridadou.openlaw.parser.template.{Parameter, TemplateExecutionResult}
@@ -13,14 +14,14 @@ import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 import org.adridadou.openlaw.values.ContractId
 
 case object EthAddressType extends VariableType("EthAddress") {
-  override def cast(value: String, executionResult:TemplateExecutionResult): EthereumAddress = EthereumAddress(value)
+  override def cast(value: String, executionResult:TemplateExecutionResult): EthereumAddressOpenlawValue = EthereumAddress(value)
 
-  override def internalFormat(value: Any): String = VariableType.convert[EthereumAddress](value).withLeading0x
+  override def internalFormat(value: OpenlawValue): String = VariableType.convert[EthereumAddressOpenlawValue](value).get.withLeading0x
 
-  override def construct(constructorParams: Parameter, executionResult:TemplateExecutionResult): Result[Option[EthereumAddress]] = {
-    getSingleParameter(constructorParams).evaluate(executionResult).map({
-      case value:String => attempt(Some(EthereumAddress(value)))
-      case value:EthereumAddress => Success(Some(value))
+  override def construct(constructorParams: Parameter, executionResult:TemplateExecutionResult): Result[Option[EthereumAddressOpenlawValue]] = {
+    getSingleParameter(constructorParams).evaluate(executionResult).map(_.get).map({
+      case value:String => attempt(Some(EthereumAddressOpenlawValue(EthereumAddress(value))))
+      case value:EthereumAddress => Success(Some(EthereumAddressOpenlawValue(value)))
       case value => Failure("wrong type " + value.getClass.getSimpleName + ". expecting String")
     }).getOrElse(Success(None))
   }

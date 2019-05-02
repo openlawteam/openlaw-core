@@ -1,6 +1,7 @@
 package org.adridadou.openlaw.parser.template.expressions
 
 import io.circe._
+import org.adridadou.openlaw.OpenlawValue
 import org.adridadou.openlaw.parser.template.variableTypes.VariableType
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.result.Result
@@ -18,8 +19,8 @@ trait Expression {
   def divide(right: Expression, executionResult: TemplateExecutionResult): Option[Any] = expressionType(executionResult).divide(evaluate(executionResult), right.evaluate(executionResult), executionResult)
 
   def expressionType(executionResult: TemplateExecutionResult):VariableType
-  def evaluate(executionResult: TemplateExecutionResult):Option[Any]
-  def evaluateT[T](executionResult: TemplateExecutionResult)(implicit classTag:ClassTag[T]):Option[T] =
+  def evaluate(executionResult: TemplateExecutionResult):Option[OpenlawValue]
+  def evaluateT[T <: OpenlawValue](executionResult: TemplateExecutionResult)(implicit classTag:ClassTag[T]):Option[T] =
     evaluate(executionResult).map(VariableType.convert[T])
 
   def variables(executionResult: TemplateExecutionResult):Seq[VariableName]

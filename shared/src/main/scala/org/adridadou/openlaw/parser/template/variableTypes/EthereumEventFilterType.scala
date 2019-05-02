@@ -5,6 +5,8 @@ import io.circe._
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.parser._
 import io.circe.syntax._
+import org.adridadou.openlaw
+import org.adridadou.openlaw.{EthereumEventFilterExecutionOpenlawValue, EventFilterDefinitionOpenlawValue, OpenlawValue}
 import org.adridadou.openlaw.oracles.EthereumEventFilterExecution
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
@@ -22,12 +24,12 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
     "tx" -> EthereumEventPropertyDef(typeDef = EthTxHashType, evts => Success(evts.headOption.map(_.event.hash)))
   )
 
-  override def cast(value: String, executionResult: TemplateExecutionResult): EventFilterDefinition =
+  override def cast(value: String, executionResult: TemplateExecutionResult): EventFilterDefinitionOpenlawValue =
     handleEither(decode[EventFilterDefinition](value))
 
-  override def internalFormat(value: Any): String = value match {
-    case call:EventFilterDefinition =>
-      call.asJson.noSpaces
+  override def internalFormat(value: OpenlawValue): String = value match {
+    case call:EventFilterDefinitionOpenlawValue =>
+      call.get.asJson.noSpaces
   }
 
   private def propertyDef(key:String, expr:Expression, executionResult:TemplateExecutionResult):Result[EthereumEventPropertyDef] = {
@@ -86,13 +88,13 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
 
   private def getExecutions(name:VariableName, executionResult: TemplateExecutionResult):Seq[EthereumEventFilterExecution] = {
     executionResult.executions.get(name)
-      .map(_.executionMap.values.toSeq.map(VariableType.convert[EthereumEventFilterExecution]))
+      .map(_.executionMap.values.toSeq.map(VariableType.convert[EthereumEventFilterExecutionOpenlawValue](_).get))
       .getOrElse(Seq())
   }
 
   override def defaultFormatter: Formatter = new NoopFormatter
 
-  override def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Result[Option[EventFilterDefinition]] = {
+  override def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Result[Option[EventFilterDefinitionOpenlawValue]] = {
     constructorParams match {
       case Parameters(v) =>
         val values = v.toMap
@@ -125,5 +127,5 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
 
   def thisType: VariableType = EthereumEventFilterType
 
-  override def actionValue(value: Any): EventFilterDefinition = VariableType.convert[EventFilterDefinition](value)
+  override def actionValue(value: OpenlawValue): EventFilterDefinition = VariableType.convert[EventFilterDefinitionOpenlawValue](value).get
 }

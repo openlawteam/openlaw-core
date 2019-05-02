@@ -8,6 +8,7 @@ import VariableType._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import LocalDateTimeHelper._
 import cats.implicits._
+import org.adridadou.openlaw.{EthereumSmartContractExecutionOpenlawValue, LocalDateTimeOpenlawValue, StringOpenlawValue}
 
 case class EthereumSmartContractCall(
     address: Expression,
@@ -31,7 +32,7 @@ case class EthereumSmartContractCall(
     getEthereumAddress(address, executionResult)
   def getEthereumNetwork(executionResult: TemplateExecutionResult):Option[String] =
     network.evaluate(executionResult)
-      .map(VariableType.convert[String])
+      .map(VariableType.convert[StringOpenlawValue](_).get)
 
   def getInterfaceProtocol(executionResult: TemplateExecutionResult): String =
     getMetadata(abi, executionResult).protocol
@@ -39,9 +40,9 @@ case class EthereumSmartContractCall(
     getMetadata(abi, executionResult).address
 
   override def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions:Seq[OpenlawExecution]): Option[LocalDateTime] = {
-    val executions = pastExecutions.map(VariableType.convert[EthereumSmartContractExecution])
+    val executions = pastExecutions.map(VariableType.convert[EthereumSmartContractExecutionOpenlawValue](_).get)
     val callToReRun = executions
-      .map(VariableType.convert[EthereumSmartContractExecution])
+      .map(VariableType.convert[EthereumSmartContractExecutionOpenlawValue](_).get)
       .find(execution => execution.executionStatus match {
         case FailedExecution =>
           execution.executionDate
@@ -59,7 +60,7 @@ case class EthereumSmartContractCall(
           getEvery(executionResult).flatMap(schedulePeriod => {
             DateTimeType
               .plus(Some(lastDate), Some(schedulePeriod), executionResult)
-              .map(VariableType.convert[LocalDateTime])
+              .map(VariableType.convert[LocalDateTimeOpenlawValue](_).get)
               .filter(nextDate => getEndDate(executionResult).forall(date => nextDate.isBefore(date) || nextDate === date))
           })
       }
