@@ -32,6 +32,7 @@ fi
 # via RELEASE_TRIGGER=true.
 if [ "$RELEASE_TRIGGER" = "true" ]; then
     version=$(sbt version)
+    # release Scala & then ScalaJS to avoid issue where release-with-defaults only releases Scala lib
     sbt ';project openlawCore ;release release-version ${version} next-version ${version-SNAPSHOT} with-defaults'
     sbt ';project openlawCoreJS ;release release-version ${version} next-version ${version-SNAPSHOT} with-defaults'
     #sbt release
