@@ -32,7 +32,8 @@ fi
 # via RELEASE_TRIGGER=true.
 if [ "$RELEASE_TRIGGER" = "true" ]; then
     version=$(sbt version)
-    sbt 'project openlawCore openlawCoreJS release release-version ${version} next-version ${version-SNAPSHOT} with-defaults'
+    sbt ';project openlawCore ;release release-version ${version} next-version ${version-SNAPSHOT} with-defaults'
+    sbt ';project openlawCoreJS ;release release-version ${version} next-version ${version-SNAPSHOT} with-defaults'
     #sbt release
 else
     echo "Not really releasing, set RELEASE_TRIGGER=true to go live."
