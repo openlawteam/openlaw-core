@@ -29,16 +29,12 @@ case class VariableMember(name:VariableName, keys:Seq[String], formatter:Option[
       .getOrThrow()
   }
 
-  override def evaluate(executionResult:TemplateExecutionResult): Option[Any] = {
+  override def evaluate(executionResult:TemplateExecutionResult): Option[OpenlawValue] = {
     val expr = name.aliasOrVariable(executionResult)
     val exprType = expr.expressionType(executionResult)
 
     val optValue = expr.evaluate(executionResult)
-    optValue.map(exprType.access(_, name, keys, executionResult) match {
-      case Right(Some(value)) => value
-      case Right(None) => None
-      case Left(ex) => throw new RuntimeException(ex.e)
-    })
+    optValue.flatMap(exprType.access(_, name, keys, executionResult).getOrThrow())
   }
 
   override def variables(executionResult:TemplateExecutionResult): Seq[VariableName] =
@@ -61,7 +57,7 @@ case class VariableName(name:String) extends Expression {
     }
   }
 
-  override def evaluate(executionResult:TemplateExecutionResult):Option[Any] = {
+  override def evaluate(executionResult:TemplateExecutionResult):Option[OpenlawValue] = {
     executionResult.getVariable(name) match {
       case Some(variable) =>
         variable.evaluate(executionResult)

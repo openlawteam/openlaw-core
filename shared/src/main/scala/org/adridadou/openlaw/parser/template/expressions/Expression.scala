@@ -13,10 +13,10 @@ trait Expression {
 
   def validate(executionResult: TemplateExecutionResult): Result[Unit]
 
-  def minus(right: Expression, executionResult: TemplateExecutionResult): Option[Any] = expressionType(executionResult).minus(evaluate(executionResult), right.evaluate(executionResult), executionResult)
-  def plus(right: Expression, executionResult: TemplateExecutionResult): Option[Any] = expressionType(executionResult).plus(evaluate(executionResult), right.evaluate(executionResult), executionResult)
-  def multiply(right: Expression, executionResult: TemplateExecutionResult): Option[Any] = expressionType(executionResult).multiply(evaluate(executionResult), right.evaluate(executionResult), executionResult)
-  def divide(right: Expression, executionResult: TemplateExecutionResult): Option[Any] = expressionType(executionResult).divide(evaluate(executionResult), right.evaluate(executionResult), executionResult)
+  def minus(right: Expression, executionResult: TemplateExecutionResult): Option[OpenlawValue] = expressionType(executionResult).minus(evaluate(executionResult), right.evaluate(executionResult), executionResult)
+  def plus(right: Expression, executionResult: TemplateExecutionResult): Option[OpenlawValue] = expressionType(executionResult).plus(evaluate(executionResult), right.evaluate(executionResult), executionResult)
+  def multiply(right: Expression, executionResult: TemplateExecutionResult): Option[OpenlawValue] = expressionType(executionResult).multiply(evaluate(executionResult), right.evaluate(executionResult), executionResult)
+  def divide(right: Expression, executionResult: TemplateExecutionResult): Option[OpenlawValue] = expressionType(executionResult).divide(evaluate(executionResult), right.evaluate(executionResult), executionResult)
 
   def expressionType(executionResult: TemplateExecutionResult):VariableType
   def evaluate(executionResult: TemplateExecutionResult):Option[OpenlawValue]
@@ -36,7 +36,7 @@ case class ParensExpression(expr:Expression) extends Expression {
   override def expressionType(executionResult: TemplateExecutionResult): VariableType =
     expr.expressionType(executionResult)
 
-  override def evaluate(executionResult: TemplateExecutionResult): Option[Any] =
+  override def evaluate(executionResult: TemplateExecutionResult): Option[OpenlawValue] =
     expr.evaluate(executionResult)
 
   override def variables(executionResult: TemplateExecutionResult): Seq[VariableName] =

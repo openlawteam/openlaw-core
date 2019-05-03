@@ -9,7 +9,7 @@ import org.adridadou.openlaw.result.{Failure, Result, Success}
 import org.adridadou.openlaw.values.TemplateParameters
 import io.circe.generic.semiauto._
 import io.circe.syntax._
-import org.adridadou.openlaw.StringOpenlawValue
+import org.adridadou.openlaw.{OpenlawValue, StringOpenlawValue}
 
 /**
   * Created by davidroon on 06.06.17.
@@ -36,18 +36,18 @@ trait ConstantExpression extends Expression {
 
 case class NoopConstant(varType:VariableType) extends ConstantExpression {
   override def typeFunction: TemplateExecutionResult => VariableType = _ => varType
-  override def evaluate(executionResult: TemplateExecutionResult): Option[Any] = None
+  override def evaluate(executionResult: TemplateExecutionResult): Option[OpenlawValue] = None
 }
 
 case class StringConstant(value:String, typeFunction: TemplateExecutionResult => VariableType = _ => TextType) extends ConstantExpression {
-  override def evaluate(executionResult: TemplateExecutionResult): Option[Any] =
+  override def evaluate(executionResult: TemplateExecutionResult): Option[OpenlawValue] =
     Some(typeFunction(executionResult).cast(value, executionResult))
 
   override def toString: String = "\"" + value + "\""
 }
 
 case class JsonConstant(value:String, typeFunction: TemplateExecutionResult => VariableType = _ => TextType) extends ConstantExpression {
-  override def evaluate(executionResult: TemplateExecutionResult): Option[Any] =
+  override def evaluate(executionResult: TemplateExecutionResult): Option[OpenlawValue] =
     Some(typeFunction(executionResult).cast(value, executionResult))
 
 
@@ -55,7 +55,7 @@ case class JsonConstant(value:String, typeFunction: TemplateExecutionResult => V
 }
 
 case class NumberConstant(value:BigDecimal, typeFunction: TemplateExecutionResult => VariableType = _ => NumberType) extends ConstantExpression {
-  override def evaluate(executionResult: TemplateExecutionResult): Option[Any] =
+  override def evaluate(executionResult: TemplateExecutionResult): Option[OpenlawValue] =
     Some(typeFunction(executionResult).cast(value.toString(), executionResult))
 
 

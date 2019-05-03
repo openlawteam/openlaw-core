@@ -23,7 +23,7 @@ case class TemplatePath(path:Seq[String] = Seq()) {
 }
 
 case object TemplatePathType extends VariableType("TemplateType") with NoShowInForm {
-  override def cast(value: String, executionResult: TemplateExecutionResult): TemplatePath =
+  override def cast(value: String, executionResult: TemplateExecutionResult): TemplatePathOpenlawValue =
     decode[TemplatePath](value) match {
       case Right(result) =>
         result
@@ -126,7 +126,7 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
     })
   }
 
-  override def construct(constructorParams:Parameter, executionResult: TemplateExecutionResult):Result[Option[TemplateDefinition]] = {
+  override def construct(constructorParams:Parameter, executionResult: TemplateExecutionResult):Result[Option[TemplateDefinitionOpenlawValue]] = {
     constructorParams match {
       case mappingParameter:Parameters =>
         for {
@@ -144,7 +144,7 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
     }
   }
 
-  override def access(value: Any, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[Any]] = keys.toList match {
+  override def access(value: OpenlawValue, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = keys.toList match {
     case Nil =>
       Success(Some(value))
     case head::tail =>

@@ -72,7 +72,7 @@ case class DefinedChoiceType(choices:Choices, typeName:String) extends VariableT
       "values" -> Json.arr(choices.values.map(v => Json.fromString(v)):_*))
   }
 
-  override def cast(value: String, executionResult: TemplateExecutionResult): Any = {
+  override def cast(value: String, executionResult: TemplateExecutionResult): OpenlawValue = {
     choices.values
       .find(_ === value) match {
         case Some(result) =>

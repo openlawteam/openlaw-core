@@ -12,7 +12,7 @@ import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 object AddressType extends VariableType(name = "Address") {
 
-  override def cast(value: String, executionResult: TemplateExecutionResult): Address =
+  override def cast(value: String, executionResult: TemplateExecutionResult): AddressOpenlawValue =
     cast(value)
 
   def cast(value: String): Address = decode[Address](value) match {
@@ -35,7 +35,7 @@ object AddressType extends VariableType(name = "Address") {
 
   override def access(value: OpenlawValue, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = {
     keys.toList match {
-      case head::tail if tail.isEmpty => accessProperty(getAddress(value, executionResult), head).map(Some(_))
+      case head::tail if tail.isEmpty => accessProperty(getAddress(value, executionResult).get, head).map(Some(_))
       case _::_ => Failure(s"Address has only one level of properties. invalid property access ${keys.mkString(".")}")
       case _ => Success(Some(value))
     }
@@ -51,7 +51,7 @@ object AddressType extends VariableType(name = "Address") {
 
   def thisType: VariableType = AddressType
 
-  private def getAddress(value:Any, executionResult: TemplateExecutionResult):Address = value match {
+  private def getAddress(value:Any, executionResult: TemplateExecutionResult):AddressOpenlawValue = value match {
     case json: String => cast(json, executionResult)
     case address:Address => address
     case _ => throw new RuntimeException(s"invalid type ${value.getClass.getSimpleName} for Address")

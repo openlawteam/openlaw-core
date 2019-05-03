@@ -460,7 +460,7 @@ case class OpenlawExecutionState(
           }
 
         case structureType:DefinedStructureType if structureType.structure.typeDefinition.values.exists(_ === IdentityType) =>
-          val values = result.getVariableValue[MapOpenlawValue[VariableName, Any]](variable.name).map(_.get)
+          val values = result.getVariableValue[MapOpenlawValue[VariableName, OpenlawValue]](variable.name).map(_.get)
           val identityProperties = structureType.structure.typeDefinition
             .filter({case (_,propertyType) => propertyType === IdentityType})
             .map({case (propertyName,_) => propertyName}).toSeq

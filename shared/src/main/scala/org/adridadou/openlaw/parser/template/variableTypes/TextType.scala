@@ -6,9 +6,9 @@ import org.adridadou.openlaw.parser.template.formatters.{Formatter, UppercaseFor
 
 
 case object TextType extends VariableType("Text") {
-  override def cast(value: String, executionResult: TemplateExecutionResult): String = value
+  override def cast(value: String, executionResult: TemplateExecutionResult): StringOpenlawValue = value
 
-  override def plus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Option[String] = for(
+  override def plus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Option[StringOpenlawValue] = for(
     leftValue <- optLeft;
     rightValue <- optRight
   ) yield VariableType.convert[StringOpenlawValue](leftValue).get + VariableType.convert[StringOpenlawValue](rightValue).get
