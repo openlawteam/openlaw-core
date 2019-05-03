@@ -35,8 +35,8 @@ if [ "$RELEASE_TRIGGER" = "true" ]; then
     # release Scala & then ScalaJS to avoid issue where release-with-defaults only releases Scala lib
     # the next-version flag is to silence SBT's interactive release shell prompt - it doesn't actually alter the version
     # confirmed via running `sbt version` after release.
-    sbt release openlawCore
-    sbt release openlawCoreJS
+    sbt releaseCore
+    sbt releaseCoreJS
     # sbt ';project openlawCore ;release release-version ${version} next-version ${version-SNAPSHOT} with-defaults'
     # sbt ';project openlawCoreJS ;release release-version ${version} next-version ${version-SNAPSHOT} with-defaults'
 else

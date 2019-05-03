@@ -133,8 +133,8 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
 
 lazy val version = "sbt version"!
 
-addCommandAlias("release core", ";project openlawCore ;release release-version ${version} next-version ${version-SNAPSHOT} with-defaults")
-addCommandAlias("release coreJS", ";project openlawCoreJS ;release release-version ${version} next-version ${version-SNAPSHOT} with-defaults")
+addCommandAlias("releaseCore", ";project openlawCore ;release release-version ${version} next-version ${version-SNAPSHOT} with-defaults")
+addCommandAlias("releaseCoreJS", ";project openlawCoreJS ;release release-version ${version} next-version ${version-SNAPSHOT} with-defaults")
 
 lazy val openlawCoreJvm = openlawCore.jvm
 lazy val openlawCoreJs = openlawCore.js
