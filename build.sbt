@@ -1,5 +1,6 @@
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
 import ReleaseTransformations._
+import scala.sys.process._
 import sbt.Keys.name
 
 import scala.language.postfixOps
