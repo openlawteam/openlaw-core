@@ -137,7 +137,7 @@ lazy val version = git.gitDescribedVersion
 // confirmed via running `sbt version` after release.
 addCommandAlias("releaseCore", ";project openlawCore ;release release-version ${version} next-version ${version-SNAPSHOT} with-defaults")
 addCommandAlias("releaseCoreJS", ";project openlawCoreJS ;release release-version ${version} next-version ${version-SNAPSHOT} with-defaults")
-addCommandAlias("releaseBoth", "releaseCore releaseCoreJS")
+addCommandAlias("releaseBoth", ";releaseCore ;releaseCoreJS")
 
 lazy val openlawCoreJvm = openlawCore.jvm
 lazy val openlawCoreJs = openlawCore.js
