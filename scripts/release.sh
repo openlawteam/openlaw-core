@@ -31,12 +31,14 @@ fi
 # Publish to Bintray. Will do nothing by default for safety unless overridden
 # via RELEASE_TRIGGER=true.
 if [ "$RELEASE_TRIGGER" = "true" ]; then
-    version=$(sbt version)
+    # version=$(sbt version)
     # release Scala & then ScalaJS to avoid issue where release-with-defaults only releases Scala lib
     # the next-version flag is to silence SBT's interactive release shell prompt - it doesn't actually alter the version
     # confirmed via running `sbt version` after release.
-    sbt ';project openlawCore ;release release-version ${version} next-version ${version-SNAPSHOT} with-defaults'
-    sbt ';project openlawCoreJS ;release release-version ${version} next-version ${version-SNAPSHOT} with-defaults'
+    sbt release openlawCore
+    sbt release openlawCoreJS
+    # sbt ';project openlawCore ;release release-version ${version} next-version ${version-SNAPSHOT} with-defaults'
+    # sbt ';project openlawCoreJS ;release release-version ${version} next-version ${version-SNAPSHOT} with-defaults'
 else
     echo "Not really releasing, set RELEASE_TRIGGER=true to go live."
 fi
