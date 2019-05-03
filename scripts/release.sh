@@ -31,11 +31,7 @@ fi
 # Publish to Bintray. Will do nothing by default for safety unless overridden
 # via RELEASE_TRIGGER=true.
 if [ "$RELEASE_TRIGGER" = "true" ]; then
-    # release Scala & then ScalaJS to avoid issue where release-with-defaults only releases Scala lib
-    # the next-version flag is to silence SBT's interactive release shell prompt - it doesn't actually alter the version
-    # confirmed via running `sbt version` after release.
-    sbt releaseCore
-    sbt releaseCoreJS
+    sbt release
 else
     echo "Not really releasing, set RELEASE_TRIGGER=true to go live."
 fi

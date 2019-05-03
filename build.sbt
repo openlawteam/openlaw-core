@@ -1,6 +1,5 @@
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
 import ReleaseTransformations._
-import scala.sys.process._
 import sbt.Keys.name
 
 import scala.language.postfixOps
@@ -130,11 +129,15 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
   .settings(releaseSettings: _*)
   .enablePlugins(WartRemover)
 
+lazy val version = git.gitDescribedVersion
 
-lazy val version = "sbt version"!
+// need commands for releasing both Scala & ScalaJS to avoid issue where release-with-defaults only releases Scala lib
 
+// the next-version flag is to silence SBT's interactive release shell prompt - it doesn't actually alter the version
+// confirmed via running `sbt version` after release.
 addCommandAlias("releaseCore", ";project openlawCore ;release release-version ${version} next-version ${version-SNAPSHOT} with-defaults")
 addCommandAlias("releaseCoreJS", ";project openlawCoreJS ;release release-version ${version} next-version ${version-SNAPSHOT} with-defaults")
+addCommandAlias("release", "releaseCore releaseCoreJS")
 
 lazy val openlawCoreJvm = openlawCore.jvm
 lazy val openlawCoreJs = openlawCore.js
