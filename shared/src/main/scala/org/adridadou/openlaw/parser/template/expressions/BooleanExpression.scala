@@ -14,7 +14,7 @@ case class BooleanExpression(left:Expression, right:Expression, op:BooleanOperat
 
     case Or => for{leftValue <- left.evaluate(executionResult)
                    rightValue <- right.evaluate(executionResult)
-                } yield VariableType.convert[Boolean](leftValue) || VariableType.convert[Boolean](rightValue)
+                } yield VariableType.convert[BooleanOpenlawValue](leftValue).get || VariableType.convert[BooleanOpenlawValue](rightValue).get
   }
 
   override def expressionType(executionResult: TemplateExecutionResult):VariableType = YesNoType

@@ -9,7 +9,16 @@ import simulacrum._
 
 package object openlaw {
 
-  trait OpenlawValue {
+  /*
+  trait OpenlawValue extends Comparable[OpenlawValue] {
+    type T <: Comparable[T]
+    def get: T
+
+    override def compareTo(t: OpenlawValue): Int = get.compareTo(t)
+  }
+  */
+
+  trait OpenlawValue  {
     type T
     def get: T
   }

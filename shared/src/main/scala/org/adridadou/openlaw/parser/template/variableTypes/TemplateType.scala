@@ -200,7 +200,8 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
 
   override def getTypeClass: Class[_ <: TemplateDefinition ] = classOf[TemplateDefinition]
 
-  override def cast(value: String, executionResult: TemplateExecutionResult): TemplateDefinitionOpenlawValue = handleEither(decode[TemplateDefinition](value))
+  override def cast(value: String, executionResult: TemplateExecutionResult): TemplateDefinitionOpenlawValue =
+    handleEither(decode[TemplateDefinition](value).map(TemplateDefinitionOpenlawValue(_)))
   override def internalFormat(value: OpenlawValue): String = VariableType.convert[TemplateDefinitionOpenlawValue](value).get.asJson.noSpaces
   override def defaultFormatter: Formatter = new NoopFormatter
 

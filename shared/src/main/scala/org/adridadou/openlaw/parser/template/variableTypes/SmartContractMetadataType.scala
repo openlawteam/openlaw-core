@@ -29,7 +29,7 @@ case object SmartContractMetadataType extends VariableType("SmartContractMetadat
           for {
             protocol <- optProtocol
             address <- optAddress
-          } yield SmartContractMetadata(VariableType.convert[String](protocol), VariableType.convert[String](address))
+          } yield SmartContractMetadata(VariableType.convert[StringOpenlawValue](protocol).get, VariableType.convert[StringOpenlawValue](address).get)
         }
       case _ =>
         Failure("Smart contract metadata can be constructed with a string only")

@@ -30,7 +30,7 @@ case object EthereumCallType extends VariableType("EthereumCall") with ActionTyp
   )
 
   override def cast(value: String, executionResult: TemplateExecutionResult): EthereumSmartContractCallOpenlawValue =
-    handleEither(decode[EthereumSmartContractCall](value))
+    handleEither(decode[EthereumSmartContractCall](value).map(EthereumSmartContractCallOpenlawValue(_)))
 
   override def internalFormat(value: OpenlawValue): String = value match {
     case call:EthereumSmartContractCallOpenlawValue =>

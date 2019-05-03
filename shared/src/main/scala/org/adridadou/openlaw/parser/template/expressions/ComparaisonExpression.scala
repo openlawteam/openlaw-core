@@ -3,10 +3,11 @@ package org.adridadou.openlaw.parser.template.expressions
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes.{VariableType, YesNoType}
 import cats.implicits._
+import org.adridadou.openlaw.BooleanOpenlawValue
 
 case class ComparaisonExpression(left:Expression, right:Expression, op:Operation) extends BinaryExpression {
 
-  override def evaluate(executionResult: TemplateExecutionResult): Option[Boolean] = {
+  override def evaluate(executionResult: TemplateExecutionResult): Option[BooleanOpenlawValue] = {
     (for {leftValue <- left.evaluate(executionResult)
          rightValue <- right.evaluate(executionResult)
     } yield VariableType.convert[Comparable[Any]](leftValue).compareTo(rightValue)).map(comparaisonResult => {

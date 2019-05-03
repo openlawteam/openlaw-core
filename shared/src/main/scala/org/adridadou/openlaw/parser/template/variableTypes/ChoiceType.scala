@@ -36,7 +36,7 @@ case object ChoiceType extends VariableType("Choice") with TypeGenerator[Choices
 
   override def defaultFormatter: Formatter = new NoopFormatter
 
-  override def cast(value: String, executionResult: TemplateExecutionResult): ChoicesOpenlawValue = handleEither(decode[Choices](value))
+  override def cast(value: String, executionResult: TemplateExecutionResult): ChoicesOpenlawValue = handleEither(decode[Choices](value).map(ChoicesOpenlawValue(_)))
 
   override def internalFormat(value: OpenlawValue): String = value match {
     case call:ChoicesOpenlawValue =>

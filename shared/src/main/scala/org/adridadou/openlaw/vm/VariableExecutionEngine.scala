@@ -150,7 +150,7 @@ trait VariableExecutionEngine {
       case ChoiceType =>
         variable.defaultValue.map(param => ChoiceType.construct(param, executionResult)) match {
           case Some(Right(Some(choices))) =>
-            executionResult.registerNewType(ChoiceType.generateType(variable.name, choices)).map(_ => true)
+            executionResult.registerNewType(ChoiceType.generateType(variable.name, choices.get)).map(_ => true)
           case Some(Left(ex)) => Failure(ex)
           case _ =>
             Failure(s"the new type ${variable.name.name} could not be executed properly")

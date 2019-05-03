@@ -15,7 +15,7 @@ case object SectionType extends VariableType(name = "Section") with NoShowInForm
   private implicit val enc: Encoder[SectionInfo] = deriveEncoder[SectionInfo]
   private implicit val dec: Decoder[SectionInfo] = deriveDecoder[SectionInfo]
 
-  override def cast(value: String, executionResult: TemplateExecutionResult): SectionInfoOpenlawValue = handleEither(decode[SectionInfo](value))
+  override def cast(value: String, executionResult: TemplateExecutionResult): SectionInfoOpenlawValue = handleEither(decode[SectionInfo](value).map(SectionInfoOpenlawValue(_)))
 
   override def internalFormat(value: OpenlawValue): String = VariableType.convert[StringOpenlawValue](value).get
 

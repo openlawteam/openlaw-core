@@ -267,7 +267,7 @@ object VariableType {
   def getMetadata(v: Expression, executionResult: TemplateExecutionResult): SmartContractMetadata =
     get(v,executionResult,SmartContractMetadataType.cast).get
   def getString(v: Expression, executionResult: TemplateExecutionResult): String =
-    get(v,executionResult, (str,_) => str).get
+    get[StringOpenlawValue](v,executionResult, (str,_) => str).get
 
   def get[T <: OpenlawValue](v: Expression, executionResult: TemplateExecutionResult, cast: (String,TemplateExecutionResult) => T)(implicit classTag: ClassTag[T]): T =
     v.evaluate(executionResult).map(_.get).map({

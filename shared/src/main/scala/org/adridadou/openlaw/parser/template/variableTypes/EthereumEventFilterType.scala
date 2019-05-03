@@ -25,7 +25,7 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
   )
 
   override def cast(value: String, executionResult: TemplateExecutionResult): EventFilterDefinitionOpenlawValue =
-    handleEither(decode[EventFilterDefinition](value))
+    handleEither(decode[EventFilterDefinition](value).map(EventFilterDefinitionOpenlawValue(_)))
 
   override def internalFormat(value: OpenlawValue): String = value match {
     case call:EventFilterDefinitionOpenlawValue =>
