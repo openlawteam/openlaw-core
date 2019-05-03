@@ -31,7 +31,7 @@ fi
 # Publish to Bintray. Will do nothing by default for safety unless overridden
 # via RELEASE_TRIGGER=true.
 if [ "$RELEASE_TRIGGER" = "true" ]; then
-    sbt release
+    sbt releaseBoth
 else
     echo "Not really releasing, set RELEASE_TRIGGER=true to go live."
 fi
