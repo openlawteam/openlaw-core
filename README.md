@@ -1,4 +1,4 @@
-# Shared Scala libraries for the OpenLaw project.
+# Shared Scala libraries for the OpenLaw project
 
 [![CircleCI](https://circleci.com/gh/openlawteam/openlaw-core.svg?style=svg)](https://circleci.com/gh/openlawteam/openlaw-core)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/4fe8f703ef3546738530fdcc585ccd2d)](https://www.codacy.com?utm_source=github.com&utm_medium=referral&utm_content=openlawteam/openlaw-core&utm_campaign=Badge_Grade)
@@ -9,16 +9,15 @@ If you want to learn more about this library, please read our [OpenLaw core over
 
 If you want to use OpenLaw core in your Scala project, here is how to add it to your sbt project:
 
-```
+```scala
 // First add our repository
 resolvers += "Openlaw core" at "https://dl.bintray.com/openlawos/openlaw-core"
 
 //add the dependency
 libraryDependencies += "org.openlaw" %% "openlaw-core" % "<last version>"
-
 ```
 
-## Contributing 
+## Contributing
 
 See information about contributing [here](docs/CONTRIBUTING.md).
 
