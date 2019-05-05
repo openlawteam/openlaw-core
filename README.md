@@ -19,7 +19,17 @@ libraryDependencies += "org.openlaw" %% "openlaw-core" % "<last version>"
 
 ## Contributing
 
-See information about contributing [here](docs/CONTRIBUTING.md).
+Want to get involved? See detailed information about contributing [here](docs/CONTRIBUTING.md)!
+
+### Versioning
+
+Project versioning is automatically maintained from SemVer tags via `sbt-git`.
+
+<small>If the most recent release was versioned `v1.2.3`, you may notice your local version is something like `1.2.3-7-a1b2c3d`. This means you are `7` commits past release `1.2.3`, and the latest commit was SHA `a1b2c3d`.</small>
+
+### Release Process
+
+For project maintainers, our current release process is documented [here](docs/ReleaseProcess.md).
 
 ## License
 
