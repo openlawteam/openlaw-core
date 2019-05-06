@@ -4,7 +4,7 @@ import java.time.{Clock, LocalDateTime, ZoneOffset}
 
 import cats.Eq
 import cats.implicits._
-import io.circe.{Decoder, Encoder}
+import io.circe.{Decoder, Encoder, HCursor, Json}
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.variableTypes._
@@ -379,6 +379,9 @@ object ContractExecutionState {
     case ContractStopped.state => ContractStopped
     case ContractResumed.state => ContractResumed
   }
+
+  implicit val contractExecutionStateEnc:Encoder[ContractExecutionState] = (a: ContractExecutionState) => Json.fromString(a.state)
+  implicit val contractExecutionStateDec:Decoder[ContractExecutionState] = (c: HCursor) => c.as[String].map(state => ContractExecutionState(state))
 
   implicit val eqForExecutionState: Eq[ContractExecutionState] = Eq.fromUniversalEquals
 }
