@@ -7,6 +7,7 @@ resolvers += Resolver.url("sbt-plugins", url("https://dl.bintray.com/ssidorenko/
 addSbtPlugin("org.lyranthe.sbt" % "partial-unification" % "1.1.0")
 addSbtPlugin("org.wartremover" % "sbt-wartremover" % "2.4.1")
 
+/* TODO: potentially move this to global install instead of project-specific */
 addSbtPlugin("com.timushev.sbt" % "sbt-updates" % "0.3.4")
 
 /* ScalaJS related */
