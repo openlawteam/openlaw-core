@@ -10,7 +10,7 @@ RUN sbt update #( installing deps... )
 
 # build core and tests
 COPY shared ./shared
-RUN SBT_OPTS="-Xmx=4GB" sbt compile test:compile fastOptJS
+RUN SBT_OPTS="-Xss2M" sbt compile test:compile fastOptJS
 # TODO(mroth): ^^ I'd like to get those SBT_OBTS out of this if they are not
 # specific to this project. I suspect that may be something we want to roll
 # into the JVM_OPTS of scala-builder itself or the environment? LMK!
