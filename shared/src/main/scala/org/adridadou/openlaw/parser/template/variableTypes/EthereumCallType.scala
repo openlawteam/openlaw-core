@@ -72,6 +72,7 @@ case object EthereumCallType extends VariableType("EthereumCall") with ActionTyp
           address = getExpression(values, "contract", "to"),
           abi = getExpression(values, "interface", "abi"),
           network = optNetwork,
+          method = getParameter(values, "method").map(getExpression),
           functionName = getExpression(values, "function"),
           arguments = getParameter(values, "arguments", "parameters", "params").map(getExpressionList).getOrElse(Seq()),
           startDate = values.get("startDate").map(name => getExpression(name)),

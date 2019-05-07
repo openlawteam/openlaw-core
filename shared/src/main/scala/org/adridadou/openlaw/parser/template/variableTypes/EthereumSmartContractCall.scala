@@ -13,6 +13,7 @@ case class EthereumSmartContractCall(
     address: Expression,
     abi: Expression,
     network: Expression,
+    method: Option[Expression],
     functionName: Expression,
     arguments: Seq[Expression],
     startDate: Option[Expression],
