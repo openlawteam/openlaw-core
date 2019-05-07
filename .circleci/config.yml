@@ -1,4 +1,7 @@
 version: 2.1
+# we define executors in advance using parameters, to make it easier to
+# reference in subsequent phases the branch-tagged corerunner images that get
+# built, and avoid boilerplate in each step.
 # https://circleci.com/docs/2.0/reusing-config/#authoring-reusable-executors
 executors:
   dockerbuilder:
@@ -88,5 +91,7 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
-          # sadly circle-ci only ORs, need to handle logic in release script itself?
+          # sadly circle-ci only supports boolean ORs for multiple filters,
+          # leading to this complex logic and preventing us from being to check
+          # to verify only on `master` branch.
           # https://discuss.circleci.com/t/how-to-deploy-only-on-tagged-and-master-commits/25581
