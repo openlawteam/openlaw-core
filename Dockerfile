@@ -4,7 +4,7 @@ FROM openlaw/scala-builder:node
 COPY project ./project
 # copy .sbtopts for project-specific JVM settings (we may want to use these across
 # projects, or get rid of entirely - TBD
-COPY .jvmopts .
+COPY .sbtopts .
 RUN sbt update #( installing plugins... )
 
 # install deps

@@ -1,4 +1,4 @@
--Xss2M
+-J-Xss2M
 # Adding this flag temporarily to handle stack overflow
 # which occurs on running `sbt fastOptJS`
 # with default stack settings. This error did not occur
