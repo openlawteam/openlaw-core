@@ -137,23 +137,33 @@ object VariableName {
 
 case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[VariableTypeDefinition] = None, description:Option[String] = None, formatter:Option[FormatterDefinition] = None, isHidden:Boolean = false, defaultValue:Option[Parameter] = None) extends TextElement("VariableDefinition") with TemplatePart with Expression {
 
-  def constructT[T <: OpenlawValue](executionResult: TemplateExecutionResult)(implicit ct:ClassTag[T], ctt: ClassTag[T#T]): Result[Option[OpenlawValue]] =
+  def constructT[T <: OpenlawValue](executionResult: TemplateExecutionResult)(implicit ct:ClassTag[T], ctt: ClassTag[T#T]): Result[Option[T#T]] =
     defaultValue match {
       case Some(parameter) =>
         val vType = varType(executionResult)
         vType.construct(parameter, executionResult).flatMap {
+          case Some(value) if ctt.runtimeClass.isAssignableFrom(value.getClass) =>
+            //attempt(Some(vType.tToWrapper(VariableType.convert[vType.T](vType.tToWrapper(value)(vType.ct)))))
+            //attempt(Some(vType.tToWrapper(VariableType.convert[vType.T](vType.tToWrapper(value)(vType.ct)))))
+            Success(Some(value.asInstanceOf[T#T]))
           case Some(value) =>
-            attempt(Some(vType.tToWrapper(VariableType.convert[vType.T](vType.tToWrapper(value)(vType.ct)))))
-          case None => Success(None)
+            Failure(s"could not convert value ${value.getClass} to requested type ${ctt.runtimeClass}")
+          case None =>
+            Success(None)
         }
       case None => Right(None)
     }
-
-  def construct(executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = defaultValue match {
-    case Some(parameter) =>
+      /*
       val vType = varType(executionResult)
-      //vType.construct(parameter, executionResult).map(_.map(y => vType.tToWrapper(y)))
-      vType.construct(parameter, executionResult))
+      construct(parameter,)
+      vType.construct(parameter, executionResult).map(_.map(y => vType.tToWrapper(y)))
+      vType.construct(parameter, executionResult)
+      */
+
+  def construct(executionResult: TemplateExecutionResult): Result[Option[Any]] = defaultValue match {
+    case Some(parameter) =>
+      varType(executionResult).construct(parameter, executionResult)
+
     case None => Right(None)
   }
 
@@ -208,7 +218,7 @@ case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[
     }
   }
 
-  private def constructVariable(optVariable:Option[VariableDefinition], executionResult: TemplateExecutionResult):Option[OpenlawValue] = {
+  private def constructVariable(optVariable:Option[VariableDefinition], executionResult: TemplateExecutionResult):Option[Any] = {
     optVariable
       .map(variable => variable.construct(executionResult)) match {
       case Some(Right(value)) => value
