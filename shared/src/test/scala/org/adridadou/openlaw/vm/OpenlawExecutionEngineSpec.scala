@@ -11,6 +11,7 @@ import org.adridadou.openlaw.values.{TemplateParameters, TemplateTitle}
 import org.scalatest.{FlatSpec, Matchers, OptionValues}
 import play.api.libs.json.Json
 import io.circe.parser._
+import org.adridadou.openlaw.MapOpenlawValue
 
 class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValues {
 
@@ -510,7 +511,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
       case Right(result) =>
         result.state shouldBe ExecutionFinished
         result.getAllExecutedVariables.map({case (_, variable) => variable.name}).toSet should contain theSameElementsAs Set("Someone")
-        result.getVariableValue[Map[VariableName, Any]](VariableName("Someone")) shouldBe Some(Map(VariableName("name") -> "David", VariableName("number") -> 23))
+        result.getVariableValue[MapOpenlawValue[VariableName, Any]](VariableName("Someone")) shouldBe Some(Map(VariableName("name") -> "David", VariableName("number") -> 23))
       case Left(ex) =>
         fail(ex)
     }
