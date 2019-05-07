@@ -5,7 +5,7 @@ import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.syntax._
 import io.circe.parser._
-import org.adridadou.openlaw.{OpenlawValue, StringOpenlawValue, TemplateDefinitionOpenlawValue, TemplatePathOpenlawValue}
+import org.adridadou.openlaw.{BooleanOpenlawValue, OpenlawValue, StringOpenlawValue, TemplateDefinitionOpenlawValue, TemplatePathOpenlawValue}
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
@@ -23,6 +23,8 @@ case class TemplatePath(path:Seq[String] = Seq()) {
 }
 
 case object TemplatePathType extends VariableType("TemplateType") with NoShowInForm {
+  override type T = TemplatePathOpenlawValue
+
   override def cast(value: String, executionResult: TemplateExecutionResult): TemplatePathOpenlawValue =
     decode[TemplatePath](value) match {
       case Right(result) =>
@@ -66,6 +68,8 @@ object TemplatePath {
 }
 
 case object TemplateType extends VariableType("Template") with NoShowInForm {
+  override type T = TemplateDefinitionOpenlawValue
+
   private val availableParameters = Seq("parameters", "name", "path")
   implicit val eqForTemplateCategoryType: Eq[TemplateKind] = Eq.fromUniversalEquals[TemplateKind]
 

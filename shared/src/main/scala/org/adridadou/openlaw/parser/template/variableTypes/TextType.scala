@@ -1,11 +1,13 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
-import org.adridadou.openlaw.{OpenlawValue, StringOpenlawValue}
+import org.adridadou.openlaw.{BooleanOpenlawValue, OpenlawValue, StringOpenlawValue}
 import org.adridadou.openlaw.parser.template.{Divide, FormatterDefinition, TemplateExecutionResult, ValueOperation}
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, UppercaseFormatter}
 
 
 case object TextType extends VariableType("Text") {
+  override type T = StringOpenlawValue
+
   override def cast(value: String, executionResult: TemplateExecutionResult): StringOpenlawValue = value
 
   override def plus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Option[StringOpenlawValue] = for(

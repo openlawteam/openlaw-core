@@ -20,6 +20,8 @@ object Structure {
 case class Structure(typeDefinition: Map[VariableName, VariableType], names:Seq[VariableName])
 
 case object AbstractStructureType extends VariableType(name = "Structure") with TypeGenerator[Structure] {
+  override type T = StructureOpenlawValue
+
   override def construct(param:Parameter, executionResult: TemplateExecutionResult): Result[Option[StructureOpenlawValue]] = param match {
     case Parameters(values) =>
       VariableType.sequence(values
@@ -33,7 +35,7 @@ case object AbstractStructureType extends VariableType(name = "Structure") with 
 
   override def defaultFormatter: Formatter = new NoopFormatter
 
-  override def cast(value: String, executionResult: TemplateExecutionResult): StructureOpenlawValue = throw new RuntimeException("structured type definition cannot be casted")
+  override def cast(value: String, executionResult: TemplateExecutionResult): Structure = throw new RuntimeException("structured type definition cannot be casted")
 
   override def internalFormat(value: OpenlawValue): String = throw new RuntimeException("no internal format for structured type definition")
 
@@ -83,7 +85,7 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
         Success(Some(value))
       case head :: tail =>
         val headName = VariableName(head)
-        val values = VariableType.convert[MapOpenlawValue[VariableName, OpenlawValue]](value).get
+        val values = VariableType.convert[MapOpenlawValue[VariableName, OpenlawValue]](value)
         (for {
           result <- values.get(headName)
           keyType <- structure.typeDefinition.get(headName)
@@ -138,7 +140,7 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
   }
 
   override def internalFormat(value: OpenlawValue): String = {
-    val values = VariableType.convert[MapOpenlawValue[VariableName, OpenlawValue]](value).get
+    val values = VariableType.convert[MapOpenlawValue[VariableName, OpenlawValue]](value)
     structure.typeDefinition
       .flatMap({case (fieldName,fieldType) => values.get(fieldName).map(value => fieldName.name -> fieldType.internalFormat(value))})
       .asJson.noSpaces

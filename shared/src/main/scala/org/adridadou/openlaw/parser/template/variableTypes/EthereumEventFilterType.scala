@@ -6,7 +6,7 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.parser._
 import io.circe.syntax._
 import org.adridadou.openlaw
-import org.adridadou.openlaw.{EthereumEventFilterExecutionOpenlawValue, EventFilterDefinitionOpenlawValue, OpenlawValue}
+import org.adridadou.openlaw.{BooleanOpenlawValue, EthereumEventFilterExecutionOpenlawValue, EventFilterDefinitionOpenlawValue, OpenlawValue}
 import org.adridadou.openlaw.oracles.EthereumEventFilterExecution
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
@@ -14,6 +14,8 @@ import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatte
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 
 case object EthereumEventFilterType extends VariableType("EthereumEventFilter") with ActionType {
+  override type T = EventFilterDefinitionOpenlawValue
+
   implicit val smartContractEnc: Encoder[EventFilterDefinition] = deriveEncoder[EventFilterDefinition]
   implicit val smartContractDec: Decoder[EventFilterDefinition] = deriveDecoder[EventFilterDefinition]
 

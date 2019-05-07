@@ -20,8 +20,13 @@ trait Expression {
 
   def expressionType(executionResult: TemplateExecutionResult):VariableType
   def evaluate(executionResult: TemplateExecutionResult):Option[OpenlawValue]
-  def evaluateT[T <: OpenlawValue](executionResult: TemplateExecutionResult)(implicit classTag:ClassTag[T]):Option[T] =
-    evaluate(executionResult).map(VariableType.convert[T])
+  def evaluateT[T <: OpenlawValue](executionResult: TemplateExecutionResult)(implicit ct:ClassTag[T]):Option[T] =
+    evaluate(executionResult).map { value =>
+      value match {
+        case t: T => t
+        case x => throw new RuntimeException(s"expected type ${ct.runtimeClass} but got: ${x.getClass}")
+      }
+    }
 
   def variables(executionResult: TemplateExecutionResult):Seq[VariableName]
 }

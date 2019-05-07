@@ -137,16 +137,23 @@ object VariableName {
 
 case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[VariableTypeDefinition] = None, description:Option[String] = None, formatter:Option[FormatterDefinition] = None, isHidden:Boolean = false, defaultValue:Option[Parameter] = None) extends TextElement("VariableDefinition") with TemplatePart with Expression {
 
-  def constructT[T <: OpenlawValue](executionResult: TemplateExecutionResult)(implicit classTag:ClassTag[T]): Result[Option[T]] = {
-    construct(executionResult).flatMap({
-      case Some(value) => attempt(Some(VariableType.convert[T](value)))
-      case None => Success(None)
-    })
-  }
+  def constructT[T <: OpenlawValue](executionResult: TemplateExecutionResult)(implicit ct:ClassTag[T], ctt: ClassTag[T#T]): Result[Option[OpenlawValue]] =
+    defaultValue match {
+      case Some(parameter) =>
+        val vType = varType(executionResult)
+        vType.construct(parameter, executionResult).flatMap {
+          case Some(value) =>
+            attempt(Some(vType.tToWrapper(VariableType.convert[vType.T](vType.tToWrapper(value)(vType.ct)))))
+          case None => Success(None)
+        }
+      case None => Right(None)
+    }
 
   def construct(executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = defaultValue match {
     case Some(parameter) =>
-      varType(executionResult).construct(parameter, executionResult)
+      val vType = varType(executionResult)
+      //vType.construct(parameter, executionResult).map(_.map(y => vType.tToWrapper(y)))
+      vType.construct(parameter, executionResult))
     case None => Right(None)
   }
 
@@ -155,23 +162,23 @@ case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[
   def varType(executionResult: TemplateExecutionResult):VariableType = variableTypeDefinition
     .flatMap(typeDefinition => executionResult.findVariableType(typeDefinition)).getOrElse(TextType)
 
-  def verifyConstructor(executionResult: TemplateExecutionResult): Result[Option[Any]] = {
+  def verifyConstructor(executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = {
     implicit val eqCls:Eq[Class[_]] = Eq.fromUniversalEquals
     defaultValue match {
       case Some(parameter) =>
         val variableType = varType(executionResult)
 
-        variableType.construct(parameter, executionResult).flatMap({
+        variableType.construct(parameter, executionResult).flatMap {
           case Some(result) =>
             val expectedType = this.varType(executionResult).getTypeClass
             val resultType = result.getClass
             if(expectedType == resultType) {
-              Success(Some(result))
+              Success(Some(variableType.tToWrapper(result)))
             } else {
             Failure(s"type mismatch while building the default value for type ${variableType.name}. the constructor result type should be ${expectedType.getSimpleName} but instead is ${result.getClass.getSimpleName}")
           }
           case None => Success(None)
-        })
+        }
       case None => Right(None)
     }
   }

@@ -12,12 +12,13 @@ import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatte
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 case object ValidationType extends VariableType(name = "Validation") with NoShowInForm {
+  override type T = ValidationOpenlawValue
 
   implicit val validationEnc: Encoder[Validation] = deriveEncoder[Validation]
   implicit val validationDec: Decoder[Validation] = deriveDecoder[Validation]
 
   override def cast(value: String, executionResult: TemplateExecutionResult): ValidationOpenlawValue = decode[Validation](value) match {
-    case Right(result) => result
+    case Right(result) => tToWrapper(result)
     case Left(ex) => throw new RuntimeException(ex.getMessage)
   }
 
@@ -31,7 +32,7 @@ case object ValidationType extends VariableType(name = "Validation") with NoShow
 
     case _ => Failure("Validation need to get 'condition' and 'errorMessage' as constructor parameter")
   }
-  override def internalFormat(value: OpenlawValue): String = VariableType.convert[ValidationOpenlawValue](value).get.asJson.noSpaces
+  override def internalFormat(value: OpenlawValue): String = VariableType.convert[ValidationOpenlawValue](value).asJson.noSpaces
 
   override def getTypeClass: Class[_ <: Validation ] = classOf[Validation]
 

@@ -122,14 +122,14 @@ trait TemplateExecutionResult {
           case variableType => variableType === varType
         }}).map((this, _)) ++ subExecutions.values.flatMap(_.getVariables(varType))
 
-  def getVariableValues[T <: OpenlawValue](varType: VariableType)(implicit classTag:ClassTag[T]):Seq[T] = getVariables(varType)
+  def getVariableValues[T <: OpenlawValue](varType: VariableType)(implicit ct:ClassTag[T], ctt: ClassTag[T#T]):Seq[T#T] = getVariables(varType)
     .flatMap({case (execution, variable) => variable.evaluate(execution).map(getVariableValue[T](_, variable.varType(this)))})
 
-  def getVariableValue[T <: OpenlawValue](name: VariableName)(implicit classTag:ClassTag[T]):Option[T] =
+  def getVariableValue[T <: OpenlawValue](name: VariableName)(implicit ct:ClassTag[T], ctt: ClassTag[T#T]):Option[T#T] =
     getVariable(name)
       .flatMap(variable => variable.evaluate(this).map(getVariableValue[T](_, variable.varType(this))))
 
-  private def getVariableValue[T <: OpenlawValue](value:OpenlawValue, variableType:VariableType)(implicit classTag: ClassTag[T]):T = VariableType.convert[T](value)
+  private def getVariableValue[T <: OpenlawValue](value:OpenlawValue, variableType:VariableType)(implicit ct: ClassTag[T], ctt: ClassTag[T#T]):T#T = VariableType.convert[T](value)
 
   def getParameter(name: String):Option[String] = getParameter(VariableName(name))
 
@@ -152,7 +152,7 @@ trait TemplateExecutionResult {
           variable.evaluate(result)
             .map(col => VariableType.convert[CollectionValueOpenlawValue](col).get.list.map(VariableType.convert[IdentityOpenlawValue](_).get)).getOrElse(Seq())
         case structureType:DefinedStructureType if structureType.structure.typeDefinition.values.exists(_ === IdentityType) =>
-          val values = variable.evaluate(result).map(VariableType.convert[MapOpenlawValue[VariableName, OpenlawValue]](_).get).getOrElse(Map())
+          val values = variable.evaluate(result).map(VariableType.convert[MapOpenlawValue[VariableName, OpenlawValue]](_)).getOrElse(Map())
 
           structureType.structure.names
             .filter(name => structureType.structure.typeDefinition(name) === IdentityType)
@@ -460,7 +460,7 @@ case class OpenlawExecutionState(
           }
 
         case structureType:DefinedStructureType if structureType.structure.typeDefinition.values.exists(_ === IdentityType) =>
-          val values = result.getVariableValue[MapOpenlawValue[VariableName, OpenlawValue]](variable.name).map(_.get)
+          val values = result.getVariableValue[MapOpenlawValue[VariableName, OpenlawValue]](variable.name)
           val identityProperties = structureType.structure.typeDefinition
             .filter({case (_,propertyType) => propertyType === IdentityType})
             .map({case (propertyName,_) => propertyName}).toSeq

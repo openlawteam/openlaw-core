@@ -1,6 +1,8 @@
 package org.adridadou.openlaw.parser
 
 import java.time.{Clock, LocalDateTime, ZoneOffset}
+
+import org.adridadou.openlaw.{EthereumSmartContractCallOpenlawValue, StringOpenlawValue}
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes._
@@ -272,7 +274,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
       case Right(executionResult) =>
         executionResult.getVariables(ImageType).size shouldBe 1
 
-        val image = executionResult.getVariableValues[String](ImageType).head
+        val image = executionResult.getVariableValues[StringOpenlawValue](ImageType).head
         image should be ("https://openlaw.io/static/img/pizza-dog-optimized.svg")
 
         resultShouldBe(forPreview(text), "<div class=\"openlaw-paragraph paragraph-1\"><p class=\"no-section\"><span class=\"markdown-variable markdown-variable-Image1\"><img class=\"markdown-embedded-image\" src=\"https://openlaw.io/static/img/pizza-dog-optimized.svg\" /></span></p></div>")
@@ -301,7 +303,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
         val allActions = executionResult.allActions()
         allActions.size shouldBe 1
 
-        val call = executionResult.getVariableValues[EthereumSmartContractCall](EthereumCallType).head
+        val call = executionResult.getVariableValues[EthereumSmartContractCallOpenlawValue](EthereumCallType).map(_.get).head
         call.address.asInstanceOf[StringConstant].value shouldBe "0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAe"
         call.arguments.map(_.toString) shouldBe List("Var1","Var2","Var3")
         call.abi.asInstanceOf[StringConstant].value shouldBe "ipfs:5ihruiherg34893zf"
@@ -1257,7 +1259,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
 
     executeTemplate(text, Map("option" -> "two")) match {
       case Right(executionResult) =>
-        executionResult.getVariableValue[String](VariableName("option")) shouldBe Some("two")
+        executionResult.getVariableValue[StringOpenlawValue](VariableName("option")).map(_.get) shouldBe Some("two")
       case Left(ex) =>
         fail(ex)
     }

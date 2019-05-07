@@ -16,7 +16,7 @@ class DefaultFormatter extends Formatter {
     Success(
       Seq(
         FreeText(
-          Text(Option(value).map(_.toString).getOrElse(""))
+          Text(Option(value.get).map(_.toString).getOrElse(""))
         )
       )
     )

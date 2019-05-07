@@ -20,7 +20,7 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => L
 
   def internalFormat(value: OpenlawValue): String = {
     val offset = OffsetDateTime.now().getOffset
-    (VariableType.convert[LocalDateTimeOpenlawValue](value).get.toEpochSecond(offset) * 1000).toString
+    (VariableType.convert[LocalDateTimeOpenlawValue](value).toEpochSecond(offset) * 1000).toString
   }
 
   override def construct(constructorParams:Parameter, executionResult:TemplateExecutionResult): Result[Option[LocalDateTimeOpenlawValue]] = constructorParams match {
@@ -35,10 +35,10 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => L
     right <- optRight
   } yield {
     right match {
-      case period:Period => plus(VariableType.convert[LocalDateTimeOpenlawValue](left).get, period)
+      case period:Period => plus(VariableType.convert[LocalDateTimeOpenlawValue](left), period)
       case str:StringOpenlawValue =>
         attempt(PeriodType.cast(str.get, executionResult)) match {
-          case Success(period) => plus(VariableType.convert[LocalDateTimeOpenlawValue](left).get, period.get)
+          case Success(period) => plus(VariableType.convert[LocalDateTimeOpenlawValue](left), period.get)
           case Failure(_) => throw new RuntimeException(s"you can only make an addition between a date and a period. You are making an addition between a ${left.getClass.getSimpleName} and ${right.getClass.getSimpleName}")
         }
       case _ => throw new RuntimeException(s"you can only make an addition between a date and a period. You are making an addition between a ${left.getClass.getSimpleName} and ${right.getClass.getSimpleName}")
@@ -59,10 +59,10 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => L
     right <- optRight
   } yield {
     right.get match {
-      case period:Period => minus(VariableType.convert[LocalDateTimeOpenlawValue](left).get, period)
+      case period:Period => minus(VariableType.convert[LocalDateTimeOpenlawValue](left), period)
       case str:String =>
         attempt(PeriodType.cast(str, executionResult)) match {
-          case Success(period) => minus(VariableType.convert[LocalDateTimeOpenlawValue](left).get, period.get)
+          case Success(period) => minus(VariableType.convert[LocalDateTimeOpenlawValue](left), period.get)
           case Failure(_) => throw new RuntimeException(s"you can only make a substraction between a date and a period. You are making an addition between a ${left.getClass.getSimpleName} and ${right.getClass.getSimpleName}")
         }
       case _ => throw new RuntimeException(s"you can only make a substraction between a date and a period. You are making an addition between a ${left.getClass.getSimpleName} and ${right.getClass.getSimpleName}")
@@ -198,7 +198,7 @@ object DateHelper {
     zonedDate
   }
 
-  def convertToDate(value:OpenlawValue, clock: Clock): Result[LocalDateTime] = attempt(VariableType.convert[LocalDateTimeOpenlawValue](value).get) map {
+  def convertToDate(value:OpenlawValue, clock: Clock): Result[LocalDateTime] = attempt(VariableType.convert[LocalDateTimeOpenlawValue](value)) map {
     case date => DateHelper.prepareDate(date, clock)
   }
 }

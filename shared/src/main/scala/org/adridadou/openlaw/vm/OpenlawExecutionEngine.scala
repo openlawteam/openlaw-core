@@ -350,7 +350,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
         }
     })
 
-    blocks.find(_.conditionalExpression.evaluate(executionResult).exists(VariableType.convert[BooleanOpenlawValue](_).get)) match {
+    blocks.find(_.conditionalExpression.evaluate(executionResult).exists(VariableType.convert[BooleanOpenlawValue](_))) match {
       case Some(subBlock) =>
         executionResult.remainingElements.prependAll(subBlock.block.elems)
       case None =>
@@ -365,7 +365,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
         processVariable(executionResult, variable, executed = false)
       case _ =>
     }
-    if(expression.evaluate(executionResult).exists(VariableType.convert[BooleanOpenlawValue](_).get)) {
+    if(expression.evaluate(executionResult).exists(VariableType.convert[BooleanOpenlawValue](_))) {
       val initialValue:Result[OpenlawExecutionState] = Success(executionResult)
       val initialValue2 = block.elems.foldLeft(initialValue)((exec, elem) => exec.flatMap(processCodeElement(_, templates, elem)))
       elseBlock.map(_.elems.foldLeft(initialValue2)((exec, elem) => exec.flatMap(processCodeElement(_, templates, elem)))).getOrElse(initialValue2)
@@ -415,7 +415,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       }
 
       if (exprType === YesNoType) {
-        if(expr.evaluate(executionResult).exists(VariableType.convert[BooleanOpenlawValue](_).get)) {
+        if(expr.evaluate(executionResult).exists(VariableType.convert[BooleanOpenlawValue](_))) {
           executionResult.remainingElements.prependAll(subBlock.elems)
           Success(executionResult)
         } else {

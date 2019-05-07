@@ -11,6 +11,7 @@ import org.adridadou.openlaw.values.{TemplateParameters, TemplateTitle}
 import org.scalatest.{FlatSpec, Matchers, OptionValues}
 import play.api.libs.json.Json
 import io.circe.parser._
+import org.adridadou.openlaw.{MapOpenlawValue, OpenlawValue}
 
 class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValues {
 
@@ -510,7 +511,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
       case Right(result) =>
         result.state shouldBe ExecutionFinished
         result.getAllExecutedVariables.map({case (_, variable) => variable.name}).toSet should contain theSameElementsAs Set("Someone")
-        result.getVariableValue[Map[VariableName, Any]](VariableName("Someone")) shouldBe Some(Map(VariableName("name") -> "David", VariableName("number") -> 23))
+        result.getVariableValue[MapOpenlawValue[VariableName, OpenlawValue]](VariableName("Someone")) shouldBe Some(Map(VariableName("name") -> "David", VariableName("number") -> 23))
       case Left(ex) =>
         fail(ex)
     }
@@ -797,7 +798,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
         val Some(variable) = result.getVariable("var")
         variable.varType(result).getTypeClass shouldBe classOf[String]
 
-        variable.evaluate(result) shouldBe Some("hello")
+        variable.evaluate(result).value shouldBe Some("hello")
 
       case Left(ex) =>
         fail(ex)
@@ -961,7 +962,9 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
         result.state shouldBe ExecutionFinished
         val text = parser.forReview(result.agreements.head,ParagraphEdits())
         text shouldBe """<p class="no-section"><br /></p><ul class="list-lvl-1"><li><p>1.  bla bla bla</p><p>1</p><p>2</p></li><li><p>2.  bla bla bla<br />      </p></li></ul>"""
-      case Left(ex) => fail(ex)
+      case Left(ex) =>
+        ex.printStackTrace()
+        fail(ex)
     }
   }
 
@@ -1290,7 +1293,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
       case Right(_) =>
         fail("should fail")
       case Left(ex) =>
-        ex.message shouldBe "type mismatch while building the default value for type Text. the constructor result type should be String but instead is BigDecimal"
+        ex.message shouldBe "type mismatch while building the default value for type Text. the constructor result type should be String but instead is BigDecimalOpenlawValue"
     }
   }
 

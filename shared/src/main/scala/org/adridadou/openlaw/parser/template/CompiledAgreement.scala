@@ -181,7 +181,7 @@ case class CompiledAgreement(
 
         definition
           .flatMap(definition => executionResult.getVariable(definition.name))
-          .flatMap(_.evaluate(executionResult)) match {
+          .flatMap(_.evaluate(executionResult)).map(_.get) match {
           case Some(value:SectionInfo) =>
             renderedElements.:+(SectionElement(value.numbering, lvl, number, resetNumbering, overrideSymbol, overrideFormat))
 

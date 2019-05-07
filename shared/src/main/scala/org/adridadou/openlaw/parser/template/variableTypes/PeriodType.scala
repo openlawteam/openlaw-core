@@ -5,10 +5,11 @@ import java.time.LocalDateTime
 import org.parboiled2._
 import VariableType._
 import cats.implicits._
-import org.adridadou.openlaw.{OpenlawValue, PeriodOpenlawValue}
+import org.adridadou.openlaw.{BooleanOpenlawValue, OpenlawValue, PeriodOpenlawValue}
 import org.adridadou.openlaw.parser.template._
 
 case object PeriodType extends VariableType("Period") {
+  override type T = PeriodOpenlawValue
 
   override def plus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult:TemplateExecutionResult): Option[OpenlawValue] = for {
     left <- optLeft
@@ -32,7 +33,7 @@ case object PeriodType extends VariableType("Period") {
   override def cast(value: String, executionResult:TemplateExecutionResult): PeriodOpenlawValue =
     cast(value)
 
-  def cast(value: String): Period = {
+  def cast(value: String): PeriodOpenlawValue = {
     val parser = new PeriodTypeParser(value)
     parser.root.run().toEither match {
       case Right(res) => res

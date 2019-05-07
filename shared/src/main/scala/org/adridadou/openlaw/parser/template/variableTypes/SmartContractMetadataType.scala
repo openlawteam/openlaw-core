@@ -7,6 +7,7 @@ import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatte
 import org.adridadou.openlaw.result.{Failure, Result, attempt}
 
 case object SmartContractMetadataType extends VariableType("SmartContractMetadata") {
+  override type T = SmartContractMetadataOpenlawValue
 
   override def cast(value: String, executionResult:TemplateExecutionResult): SmartContractMetadataOpenlawValue = {
     val firstIndex = value.indexOf(":")

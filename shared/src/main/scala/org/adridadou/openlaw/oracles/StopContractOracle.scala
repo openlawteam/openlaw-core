@@ -6,13 +6,14 @@ import io.circe.{Decoder, Encoder}
 import org.adridadou.openlaw.parser.template.VariableName
 import io.circe.syntax._
 import io.circe.generic.semiauto._
+import org.adridadou.openlaw.IdentityOpenlawValue
 import org.adridadou.openlaw.result.{Failure, Result}
 
 case class StopContractOracle(crypto:CryptoService) extends OpenlawOracle[StopExecutionEvent] {
 
   override def incoming(vm:OpenlawVm, event: StopExecutionEvent): Result[OpenlawVm] = {
     vm.getAllVariables(IdentityType)
-      .map({case (id,variable) => (variable.name, vm.evaluate[Identity](id, variable.name))})
+      .map({case (id,variable) => (variable.name, vm.evaluate[IdentityOpenlawValue](id, variable.name))})
       .find({
         case (_, Right(identity)) =>
           vm.isSignatureValid(vm.contractDefinition.id(crypto).stopContract(crypto), OpenlawSignatureEvent(vm.contractId, identity.email, "", event.signature, EthereumHash.empty))

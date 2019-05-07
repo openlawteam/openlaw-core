@@ -13,15 +13,17 @@ import scala.math.BigDecimal
 import scala.math.BigDecimal.RoundingMode
 
 case object NumberType extends VariableType("Number") {
+  override type T = BigDecimalOpenlawValue
+
   override def cast(value: String, executionResult: TemplateExecutionResult): BigDecimalOpenlawValue = BigDecimal(value)
 
-  override def construct(constructorParams: Parameter,executionResult: TemplateExecutionResult): Result[Option[BigDecimalOpenlawValue]] = constructorParams match {
+  override def construct(constructorParams: Parameter,executionResult: TemplateExecutionResult): Result[Option[BigDecimal]] = constructorParams match {
     case OneValueParameter(expr) =>
       val constructorType = expr.expressionType(executionResult)
       if(constructorType =!= this) {
         Failure(s"the constructor type should be $name but is ${constructorType.name}")
       } else {
-        attempt(expr.evaluateT[BigDecimalOpenlawValue](executionResult))
+        attempt(expr.evaluateT[BigDecimalOpenlawValue](executionResult).map(_.get))
       }
     case _ =>
       Failure(s"the constructor for $name only handles single values")
@@ -37,7 +39,7 @@ case object NumberType extends VariableType("Number") {
 
   override def multiply(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Option[BigDecimalOpenlawValue] = for(
     leftValue <- optLeft;
-    rightValue <- optRight) yield convert[BigDecimalOpenlawValue](leftValue).get * convert[BigDecimalOpenlawValue](rightValue).get
+    rightValue <- optRight) yield convert[BigDecimalOpenlawValue](leftValue) * convert[BigDecimalOpenlawValue](rightValue)
 
   override def divide(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Option[BigDecimalOpenlawValue] = for(
     leftValue <- optLeft;
@@ -103,8 +105,8 @@ case class Rounding(expr:Expression) extends Formatter with NumberFormatter {
     expr.evaluate(executionResult)
       .map(VariableType.convert[BigDecimalOpenlawValue](_).get)
       .map(_.toInt).map(rounding => attempt(VariableType.convert[BigDecimalOpenlawValue](value).get.setScale(rounding, RoundingMode.HALF_UP))) match {
-        case None => Success(Seq(FreeText(Text(value.toString))))
-        case Some(Success(result)) => Success(Seq(FreeText(Text(result.toString))))
+        case None => Success(Seq(FreeText(Text(value.get.toString))))
+        case Some(Success(result)) => Success(Seq(FreeText(Text(result.get.toString))))
         case Some(Failure(e, message)) => Failure(e, message)
       }
   }

@@ -144,7 +144,7 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
               .map(_.list).getOrElse(Seq())
               .map(VariableType.convert[IdentityOpenlawValue](_).get)
           case structureType:DefinedStructureType if structureType.structure.typeDefinition.values.exists(_ === IdentityType) =>
-            val values = variable.evaluate(result).map(VariableType.convert[MapOpenlawValue[VariableName, OpenlawValue]](_).get).getOrElse(Map())
+            val values = variable.evaluate(result).map(VariableType.convert[MapOpenlawValue[VariableName, OpenlawValue]](_)).getOrElse(Map())
 
             structureType.structure.typeDefinition
               .flatMap({
@@ -243,17 +243,17 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
   def getAllVariables(varType: VariableType):Seq[(TemplateExecutionResult, VariableDefinition)] =
     state.executionResult.map(_.getVariables(varType)).getOrElse(Seq())
 
-  def getAllVariableValues[T <: OpenlawValue](varType: VariableType)(implicit classTag:ClassTag[T]):Seq[T] =
+  def getAllVariableValues[T <: OpenlawValue](varType: VariableType)(implicit ct:ClassTag[T], ctt: ClassTag[T#T]):Seq[T#T] =
     getAllVariables(varType).flatMap({case (executionResult, variable) =>
       variable.evaluate(executionResult).map(VariableType.convert[T])
     })
 
   def parseExpression(expr:String): Result[Expression] = expressionParser.parseExpression(expr)
 
-  def evaluate[T](variable:VariableName)(implicit classTag:ClassTag[T]): Result[T] =
+  def evaluate[T <: OpenlawValue](variable:VariableName)(implicit ct:ClassTag[T], ctt: ClassTag[T#T]): Result[T#T] =
     evaluate(variable.name)
 
-  def evaluate[T](expr:String)(implicit classTag:ClassTag[T]): Result[T] = {
+  def evaluate[T <: OpenlawValue](expr:String)(implicit ct:ClassTag[T], ctt: ClassTag[T#T]): Result[T#T] = {
     executionResult match {
       case Some(result) =>
         parseExpression(expr).flatMap(evaluate(result, _))
@@ -262,7 +262,7 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
     }
   }
 
-  def evaluate[T](expr:Expression)(implicit classTag:ClassTag[T]): Result[T] = {
+  def evaluate[T <: OpenlawValue](expr:Expression)(implicit ct:ClassTag[T], ctt: ClassTag[T#T]): Result[T#T] = {
     executionResult match {
       case Some(result) =>
         evaluate(result, expr)
@@ -271,12 +271,12 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
     }
   }
 
-  def evaluate[T](executionResult: TemplateExecutionResult, expr:String)(implicit classTag:ClassTag[T]): Result[T] = parseExpression(expr)
+  def evaluate[T <: OpenlawValue](executionResult: TemplateExecutionResult, expr:String)(implicit classTag:ClassTag[T], ctt: ClassTag[T#T]): Result[T#T] = parseExpression(expr)
     .flatMap(evaluate[T](executionResult,_))
 
-  def evaluate[T](executionResult: TemplateExecutionResult, expr:Expression)(implicit classTag:ClassTag[T]): Result[T] = expr.evaluate(executionResult) match {
-    case Some(value:T) => Success(value)
-    case Some(value) => Failure(s"conversion error. Was expecting ${classTag.runtimeClass.getName} but got ${value.getClass.getName}")
+  def evaluate[T <: OpenlawValue](executionResult: TemplateExecutionResult, expr:Expression)(implicit ct:ClassTag[T], ctt: ClassTag[T#T]): Result[T#T] = expr.evaluate(executionResult) match {
+    case Some(value:T#T) => Success(value)
+    case Some(value) => Failure(s"conversion error. Was expecting ${ct.runtimeClass.getName} but got ${value.getClass.getName}")
     case None => Failure(s"could not resolve ${expr.toString}")
   }
 
@@ -303,7 +303,7 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
 
   private def processSignature(event:OpenlawSignatureEvent): Result[OpenlawVm] = {
     getAllVariables(IdentityType)
-      .map({case (executionResult,variable) => (variable.name, evaluate[Identity](executionResult, variable.name))})
+      .map({case (executionResult,variable) => (variable.name, evaluate[IdentityOpenlawValue](executionResult, variable.name))})
       .filter({
         case (_, Right(identity)) => event.email === identity.email
         case _ => false

@@ -108,6 +108,10 @@ trait ParameterTypeProvider {
 }
 
 abstract class VariableType(val name: String) {
+  type T <: OpenlawValue
+  implicit val ct: ClassTag[T]
+  implicit val ctt: ClassTag[T#T]
+  def tToWrapper(t: T#T): T
 
   def serialize: Json = Json.obj("name" -> io.circe.Json.fromString(name))
 
@@ -153,15 +157,15 @@ abstract class VariableType(val name: String) {
   def isCompatibleType(otherType: VariableType, operation: ValueOperation): Boolean =
     otherType === this
 
-  def cast(value: String, executionResult:TemplateExecutionResult): OpenlawValue
+  def cast(value: String, executionResult:TemplateExecutionResult): T
 
   def missingValueFormat(name: VariableName): Seq[AgreementElement] = Seq(FreeText(Text(s"[[${name.name}]]")))
 
   def internalFormat(value: OpenlawValue): String
 
-  def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = constructorParams match {
+  def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Result[Option[T#T]] = constructorParams match {
       case OneValueParameter(expr) =>
-        attempt(expr.evaluate(executionResult))
+        attempt(expr.evaluateT[T](executionResult).map(_.get))
       case Parameters(parameterMap) =>
         parameterMap.toMap.get("value") match {
           case Some(parameter) =>
@@ -280,17 +284,31 @@ object VariableType {
     }
 
   //def convert[T <: OpenlawValue](value:OpenlawValue)(implicit classTag: ClassTag[T], ev: =:=[OpenlawValue, T#T]): T = value.get match {
-  def convert[T <: OpenlawValue](value:OpenlawValue)(implicit classTag: ClassTag[T]): T = value.get match {
-    case convertedValue: T =>
+  def convert[T <: OpenlawValue](value: OpenlawValue)(implicit ct: ClassTag[T], ctt: ClassTag[T#T]): T#T = value.get match {
+    case convertedValue: T#T =>
       convertedValue
     case other =>
       val msg = "invalid type " +
         other.getClass.getSimpleName +
         " expecting " +
-        classTag.runtimeClass.getSimpleName +
+        ct.runtimeClass.getSimpleName +
         s".value:$other"
       throw new RuntimeException(msg)
   }
+
+  /*
+  def convert[U, V](value: V)(implicit ctU: ClassTag[U], ctV: ClassTag[V]): U = value match {
+    case convertedValue: V if ctU.runtimeClass.isAssignableFrom(ctV.runtimeClass) =>
+      convertedValue.asInstanceOf[U]
+    case other =>
+      val msg = "invalid type " +
+        other.getClass.getSimpleName +
+        " expecting " +
+        ctU.runtimeClass.getSimpleName +
+        s".value:$other"
+      throw new RuntimeException(msg)
+  }
+  */
 
   def sequence[L,R](seq:Seq[Either[L,R]]):Either[L, Seq[R]] = seq.partition(_.isLeft) match {
     case (Nil,  values) => Right(for(Right(i) <- values.view) yield i)

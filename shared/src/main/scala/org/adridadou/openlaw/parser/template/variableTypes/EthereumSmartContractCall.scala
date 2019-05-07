@@ -60,7 +60,7 @@ case class EthereumSmartContractCall(
           getEvery(executionResult).flatMap(schedulePeriod => {
             DateTimeType
               .plus(Some(lastDate), Some(schedulePeriod), executionResult)
-              .map(VariableType.convert[LocalDateTimeOpenlawValue](_).get)
+              .map(VariableType.convert[LocalDateTimeOpenlawValue](_))
               .filter(nextDate => getEndDate(executionResult).forall(date => nextDate.isBefore(date) || nextDate === date))
           })
       }
