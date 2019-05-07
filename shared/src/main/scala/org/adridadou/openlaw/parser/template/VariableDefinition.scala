@@ -164,7 +164,7 @@ case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[
         variableType.construct(parameter, executionResult).flatMap({
           case Some(result) =>
             val expectedType = this.varType(executionResult).getTypeClass
-            val resultType = result.getClass
+            val resultType = result.get.getClass
             if(expectedType == resultType) {
               Success(Some(result))
             } else {

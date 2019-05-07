@@ -280,7 +280,7 @@ object VariableType {
     }
 
   //def convert[T <: OpenlawValue](value:OpenlawValue)(implicit classTag: ClassTag[T], ev: =:=[OpenlawValue, T#T]): T = value.get match {
-  def convert[T <: OpenlawValue](value:OpenlawValue)(implicit classTag: ClassTag[T]): T = value.get match {
+  def convert[T <: OpenlawValue](value:OpenlawValue)(implicit classTag: ClassTag[T]): T = value match {
     case convertedValue: T =>
       convertedValue
     case other =>
