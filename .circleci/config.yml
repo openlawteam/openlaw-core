@@ -1,51 +1,97 @@
-# Scala CircleCI 2.0 configuration file
-#
-# Check https://circleci.com/docs/2.0/sample-config/ for more details
-#
-version: 2
-jobs:
-  build:
+version: 2.1
+# we define executors in advance using parameters, to make it easier to
+# reference in subsequent phases the branch-tagged corerunner images that get
+# built, and avoid boilerplate in each step.
+# https://circleci.com/docs/2.0/reusing-config/#authoring-reusable-executors
+executors:
+  dockerbuilder:
     docker:
-      # specify the version you desire here
-      - image: circleci/openjdk:11-node-browsers
-
-      # Specify service dependencies here if necessary
-      # CircleCI maintains a library of pre-built images
-      # documented at https://circleci.com/docs/2.0/circleci-images/
-      # - image: circleci/postgres:9.4
-
-    working_directory: ~/repo
-
+      - image: docker:stable
+    resource_class: medium # default & only option while on free plan
     environment:
       # Customize the JVM maximum heap limit
+      # default environment size without paying on circle-ci is 4gb:
+      # https://circleci.com/docs/2.0/configuration-reference/#resource_class
       JVM_OPTS: -Xmx3200m
-      TERM: dumb
+      # Enable BuildKit so we can pretend it's the future!
+      # Unfortunately this wrecks havoc with layer cache export method for now
+      # DOCKER_BUILDKIT: 1
+  
+  corerunner:
+    resource_class: medium # default & only option while on free plan
+    docker:
+      - image: openlaw/core:buildcache-circle-<< parameters.branchname >>
+    working_directory: /src
+    parameters:
+      branchname:
+        type: string
+        default: ${CIRCLE_BRANCH}
 
+jobs:
+  build:
+    executor: dockerbuilder
     steps:
       - checkout
+      - setup_remote_docker:
+          version: 18.09.3
+      - run:
+          name: login to Docker Hub
+          command: echo "$DOCKER_PASS" | docker login --username "$DOCKER_USER" --password-stdin
+      - run: BRANCH=${CIRCLE_BRANCH} ID=circle PUSH_CACHE=1 ./ci/build.sh
+  
+  test:
+    executor: corerunner
+    steps:
+      - run: ./scripts/test.sh
 
-      # Download and cache dependencies
-      - restore_cache:
-          keys:
-            - v1-dependencies-{{ checksum "build.sbt" }}
-            # fallback to using the latest cache if no exact match is found
-            - v1-dependencies-
+  coverage:
+    executor: corerunner
+    environment:
+      - UPLOAD_RESULTS: "0"
+    steps:
+      - run: ./scripts/coverage_report.sh
 
-      - run: cat /dev/null | sbt test:compile
+  release:
+    executor: corerunner
+    environment:
+      - RELEASE_TRIGGER: "false"
+    steps:
+      # for release step, need .git directory, so do a local checkout
+      - checkout
+      - run: ./scripts/release.sh
 
-      - save_cache:
-          paths:
-            - ~/.m2
-          key: v1-dependencies--{{ checksum "build.sbt" }}
-
-      # run tests!
-      - run: cat /dev/null | sbt clean coverage test
-
-      # test coverage
-      - run: cat /dev/null | sbt coverageReport
-
-      # test coverage
-      - run: cat /dev/null | sbt coverageAggregate
-
-      # upload result to codacy
-      - run: cat /dev/null | sbt codacyCoverage
+workflows:
+  version: 2.1
+  build-test-release:
+    jobs:
+      - build:
+          context: DockerHubCredentials
+          filters:  # required since `test` has tag filters AND requires `build`
+            tags:
+              only: /.*/
+      - test:
+          requires:
+            - build
+          filters:  # required since `deploy` has tag filters AND requires `test`
+            tags:
+              only: /.*/
+      - coverage:
+          context: CodacyCredentials
+          requires:
+            - build
+          filters:  # required since ???
+            tags:
+              only: /.*/
+      - release:
+          context: BintrayCredentials
+          requires:
+            - test
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+          # sadly circle-ci only supports boolean ORs for multiple filters,
+          # leading to this complex logic and preventing us from being to check
+          # to verify only on `master` branch.
+          # https://discuss.circleci.com/t/how-to-deploy-only-on-tagged-and-master-commits/25581
