@@ -34,6 +34,13 @@ case class EthereumSmartContractCall(
     network.evaluate(executionResult)
       .map(VariableType.convert[String])
 
+  def getFrom(executionResult: TemplateExecutionResult):Option[EthereumAddress] = {
+    from.flatMap(_.evaluate(executionResult)).map({
+      case strAddr:String => EthereumAddress(strAddr)
+      case addr:EthereumAddress => addr
+    })
+  }
+
   def getInterfaceProtocol(executionResult: TemplateExecutionResult): String =
     getMetadata(abi, executionResult).protocol
   def getInterfaceAddress(executionResult: TemplateExecutionResult): String =

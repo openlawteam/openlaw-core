@@ -28,6 +28,12 @@ case object EthAddressType extends VariableType("EthAddress") {
   override def getTypeClass: Class[EthereumAddress] = classOf[EthereumAddress]
 
   def thisType: VariableType = EthAddressType
+
+  def convert(value:Any): EthereumAddress = value match {
+    case strAddr:String => EthereumAddress(strAddr)
+    case addr:EthereumAddress => addr
+    case _ => VariableType.convert[EthereumAddress](value)
+  }
 }
 
 @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))

@@ -24,10 +24,12 @@ object Executions {
   implicit val executionsDec:Decoder[Executions] = deriveDecoder[Executions]
 }
 
-case class Executions(executionMap:Map[LocalDateTime,OpenlawExecution] = Map()) {
-  def update(key:LocalDateTime, value:OpenlawExecution):Executions = {
+case class Executions(executionMap:Map[LocalDateTime,OpenlawExecution] = Map(), executionInit:Option[OpenlawExecutionInit] = None) {
+  def update(key:LocalDateTime, value:OpenlawExecution):Executions =
     this.copy(executionMap = executionMap + (key -> value))
-  }
+
+  def update(executionInit: OpenlawExecutionInit):Executions =
+    this.copy(executionInit = Some(executionInit))
 }
 
 case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
@@ -178,6 +180,14 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
       signatureProofs = signatureProofs,
       optExecutionResult = newExecutionResult
     )
+    this
+  }
+
+  def initExecution(name:VariableName, executionInit: OpenlawExecutionInit):OpenlawVm = {
+    val executions = state.executions.getOrElse(name, Executions())
+    val newExecutions = state.executions + (name  -> executions.update(executionInit))
+    state = state.copy(executions = newExecutions)
+
     this
   }
 

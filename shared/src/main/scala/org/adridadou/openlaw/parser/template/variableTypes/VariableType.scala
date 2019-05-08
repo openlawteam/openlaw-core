@@ -15,7 +15,7 @@ import scala.reflect.ClassTag
 import scala.util.Try
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 import LocalDateTimeHelper._
-import org.adridadou.openlaw.oracles.EthereumEventFilterExecution
+import org.adridadou.openlaw.oracles.{EthereumEventFilterExecution, PreparedERC712SmartContractCallExecution}
 
 trait NoShowInForm
 
@@ -44,6 +44,29 @@ object OpenlawExecution {
     case _ if typeDefinition === className[EthereumSmartContractExecution] =>
       cursor.as[EthereumSmartContractExecution]
   }
+}
+
+object OpenlawExecutionInit {
+  implicit val openlawExecutionInitEnc:Encoder[OpenlawExecutionInit] = (a: OpenlawExecutionInit) => Json.obj(
+    "type" -> Json.fromString(a.typeIdentifier),
+    "value" -> Json.fromString(a.serialize)
+  )
+  implicit val openlawExecutionDec:Decoder[OpenlawExecutionInit] = (c: HCursor) => c.downField("type").as[String]
+    .flatMap(convertOpenlawExecutionInit(_, c.downField("value")))
+
+  protected def className[T]()(implicit cls:ClassTag[T]):String = cls.runtimeClass.getName
+
+  private def convertOpenlawExecutionInit(typeDefinition: String, cursor: ACursor):Decoder.Result[OpenlawExecutionInit] = typeDefinition match {
+    case _ if typeDefinition === className[PreparedERC712SmartContractCallExecution] =>
+      cursor.as[PreparedERC712SmartContractCallExecution]
+  }
+}
+
+trait OpenlawExecutionInit {
+  protected def className[T]()(implicit cls:ClassTag[T]):String = cls.runtimeClass.getName
+
+  def typeIdentifier: String
+  def serialize: String
 }
 
 trait OpenlawExecution {
