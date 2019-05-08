@@ -1,0 +1,33 @@
+version: v1.0
+name: Bintray Release
+agent:
+  machine:
+    type: e1-standard-2
+    os_image: ubuntu1804
+
+blocks:
+  - name: "Release"
+    task:
+      secrets:
+      - name: AWS
+      - name: bintray-credentials
+      env_vars:
+        - name: AWS_DEFAULT_REGION
+          value: eu-central-1
+        - name: ECR_IMAGE
+          value: 889468772737.dkr.ecr.eu-central-1.amazonaws.com/openlawteam/openlaw-core
+        - name: RELEASE_TRIGGER
+          value: "false"
+      jobs:
+      - name: Release to BinTray
+        commands:
+          - checkout
+          - aws ecr get-login --no-include-email | bash
+          - docker pull ${ECR_IMAGE}:buildcache-ol-${SEMAPHORE_GIT_BRANCH}
+          - |
+            docker run --rm -it \
+              -v ${PWD}/.git:/src/.git \
+              --env BINTRAY_USER=${BINTRAY_USER} \
+              --env BINTRAY_PASS=${BINTRAY_PASS} \
+              --env RELEASE_TRIGGER=${RELEASE_TRIGGER} \
+              ${ECR_IMAGE}:buildcache-ol-${SEMAPHORE_GIT_BRANCH} ./scripts/release.sh

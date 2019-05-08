@@ -69,7 +69,7 @@ lazy val publishSettings = Seq(
 
 lazy val releaseSettings = releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,              // : ReleaseStep
-  inquireVersions,                        // : ReleaseStep
+  //inquireVersions,                        // : ReleaseStep
   //setReleaseVersion,                      // : ReleaseStep
   //commitReleaseVersion,                   // : ReleaseStep, performs the initial git checks
   //tagRelease,                             // : ReleaseStep
@@ -135,9 +135,25 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
   .settings(releaseSettings: _*)
   .enablePlugins(WartRemover)
 
+lazy val version = git.gitDescribedVersion
+
+// need commands for releasing both Scala & ScalaJS to avoid issue where release-with-defaults only releases Scala lib
+
+// the next-version flag is to silence SBT's interactive release shell prompt - it doesn't actually alter the version
+// confirmed via running `sbt version` after release.
+addCommandAlias("releaseCore", ";project openlawCore ;release release-version ${version} next-version ${version-SNAPSHOT} with-defaults")
+addCommandAlias("releaseCoreJS", ";project openlawCoreJS ;release release-version ${version} next-version ${version-SNAPSHOT} with-defaults")
+addCommandAlias("releaseBoth", ";releaseCore ;releaseCoreJS")
+
 lazy val openlawCoreJvm = openlawCore.jvm
 lazy val openlawCoreJs = openlawCore.js
+
+git.useGitDescribe := true
+
+
+
 
 val root = (project in file("."))
   .dependsOn(openlawCoreJvm, openlawCoreJs)
   .aggregate(openlawCoreJvm, openlawCoreJs)
+  .enablePlugins(GitVersioning)
