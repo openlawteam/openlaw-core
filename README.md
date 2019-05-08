@@ -1,6 +1,6 @@
 # Shared Scala libraries for the OpenLaw project
 
-[![CircleCI](https://circleci.com/gh/openlawteam/openlaw-core.svg?style=svg)](https://circleci.com/gh/openlawteam/openlaw-core)
+[![CircleCI](https://circleci.com/gh/openlawteam/openlaw-core/tree/master.svg?style=svg)](https://circleci.com/gh/openlawteam/openlaw-core/tree/master)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/4fe8f703ef3546738530fdcc585ccd2d)](https://www.codacy.com)
 
 ## Getting started
