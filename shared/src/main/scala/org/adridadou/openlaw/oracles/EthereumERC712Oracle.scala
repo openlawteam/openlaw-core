@@ -47,7 +47,7 @@ object PreparedERC712SmartContractCallExecution{
 
 final case class PreparedERC712SmartContractCallEvent(
                                                        name:VariableName,
-                                                       signedCall:EthereumData,
+                                                       signedCall:EthereumSignature,
                                                        receiveAddress:EthereumAddress) extends OpenlawVmEvent {
   override def typeIdentifier: String = className[PreparedERC712SmartContractCallEvent]
   override def serialize: String = this.asJson.noSpaces
@@ -55,7 +55,7 @@ final case class PreparedERC712SmartContractCallEvent(
 
 final case class PreparedERC712SmartContractCallExecution(
                                                            name:VariableName,
-                                                           signedCall:EthereumData) extends OpenlawExecutionInit {
+                                                           signedCall:EthereumSignature) extends OpenlawExecutionInit {
   override def typeIdentifier: String = className[PreparedERC712SmartContractCallExecution]
   override def serialize: String = this.asJson.noSpaces
 }
