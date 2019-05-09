@@ -23,7 +23,7 @@ Want to get involved? See detailed information about contributing [here](docs/CO
 
 ### Versioning
 
-Project versioning is automatically maintained from SemVer tags via `sbt-git`.
+Project versioning is automatically maintained from [Semantic Versioning](https://semver.org/spec/v2.0.0.html) formatted tags via `sbt-git`.
 
 <small>If the most recent release was versioned `v1.2.3`, you may notice your local version is something like `1.2.3-7-a1b2c3d`. This means you are `7` commits past release `1.2.3`, and the latest commit was SHA `a1b2c3d`.</small>
 

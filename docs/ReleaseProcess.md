@@ -8,7 +8,7 @@ New code changes should always be introduced via a Pull Request branch:
 
 1. Pull latest `master` branch then create new branch off from `master` and make the changes there.
 
-2. If added any new sbt tests, make sure they are all passing.
+2. If added any new tests, make sure they are all passing by running `sbt test`.
 
 3. Submit PR for merging that new branch into `master`. GitHub Actions will automatically attempt a build and run tests, which you can see here: https://github.com/openlawteam/openlaw-core/actions.
 
@@ -20,7 +20,7 @@ The `master` branch represents the current stable set of the code, and should be
 
 New _releases_ are cut from the `master` branch, and managed via GitHub Releases with [Semantic Versioning](https://semver.org/spec/v2.0.0.html) formatted tags. <!-- As a developer, this process is largely automated for you. -->
 
-To make a release of the current status of master, follow these steps:
+To make a release of the current status of `master`, follow these steps:
 
 ### Drafting the release
 
@@ -78,7 +78,7 @@ Steps for open-law client below. Preserving in comments here since hopefully we 
 
 In the very near future, the following steps will be automated and done in CI, but for _right now_ we're doing them manually while we test:
 
-1. Switch to `master` and pull the latest. You may wish to also run `git fetch` to ensure you have the latest tags.
+1. Switch to `master` and pull the latest. You should then also run `git fetch` to ensure you have the latest tags.
 
 2. Run `sbt version` and verify the version matches what you expect. If the release you just published was tagged `v1.2.3`, you should see `1.2.3`.
 
