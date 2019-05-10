@@ -15,7 +15,9 @@ object SignatureRSVParameter {
   implicit val signatureRSVParameterDec: Decoder[SignatureRSVParameter] = deriveDecoder[SignatureRSVParameter]
 }
 
-case class SignatureRSVParameterNames(r:String, s:String, v:String)
+case class SignatureRSVParameterNames(r:String, s:String, v:String) {
+  def toSeq:Seq[String] = Seq(r,s,v)
+}
 
 case class SignatureRSVParameter(rExpr:Expression, sExpr:Expression, vExpr:Expression) {
   def getRsv(executionResult: TemplateExecutionResult):Option[SignatureRSVParameterNames] = for {

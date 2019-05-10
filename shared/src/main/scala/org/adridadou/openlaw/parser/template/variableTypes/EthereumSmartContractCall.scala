@@ -93,8 +93,3 @@ case class EthereumSmartContractCall(
 }
 
 case class SmartContractMetadata(protocol: String, address: String)
-case class SmartContractCallDetails(
-                                     name:VariableName,
-                                     call:EthereumSmartContractCall,
-                                     executionResult: TemplateExecutionResult,
-                                     description:String)

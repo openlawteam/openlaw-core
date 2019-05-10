@@ -112,6 +112,12 @@ object EthereumSignature {
     val combined = address + id
     EthereumSignature(hex2bytes(combined)).signature
   }
+
+  def convert(arg:Any):EthereumSignature = arg match {
+    case s:String => EthereumSignature(s)
+    case s:EthereumSignature => s
+    case _ => throw new RuntimeException(s"cannot convert type ${arg.getClass.getSimpleName} to EthereumSignature")
+  }
 }
 
 object EthereumData {

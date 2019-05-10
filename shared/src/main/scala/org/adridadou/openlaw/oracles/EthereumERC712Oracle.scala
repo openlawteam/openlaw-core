@@ -1,7 +1,5 @@
 package org.adridadou.openlaw.oracles
 
-import java.time.LocalDateTime
-
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import org.adridadou.openlaw.parser.template.{ActionInfo, VariableName}
@@ -18,16 +16,10 @@ case class EthereumERC712Oracle() extends OpenlawOracle[PreparedERC712SmartContr
   override def incoming(vm: OpenlawVm, event: PreparedERC712SmartContractCallEvent): Result[OpenlawVm] = {
     vm.allActions.find(info => info.name === event.name).flatMap {
       case ActionInfo(_:EthereumSmartContractCall, name, _) =>
-        Some(Success(vm.initExecution(name, PreparedERC712SmartContractCallExecution(name, event.signedCall))))
+        Some(Success(vm.setInitExecution(name, PreparedERC712SmartContractCallExecution(name, event.signedCall))))
       case _ => None
     }.getOrElse(Failure(s"action not found for ${event.name.name}. available ${vm.allNextActions.map(_.name.name).mkString(",")}"))
   }
-
-  private def createNewExecution(vm:OpenlawVm, executionStatus:OpenlawExecutionStatus, event:EthereumSmartContractCallEvent, scheduledDate:LocalDateTime):EthereumSmartContractExecution = EthereumSmartContractExecution(
-    scheduledDate = scheduledDate,
-    executionDate = event.executionDate,
-    executionStatus = executionStatus,
-    tx = event.hash)
 
   override def shouldExecute(event: OpenlawVmEvent): Boolean = event match {
     case _:PreparedERC712SmartContractCallEvent => true

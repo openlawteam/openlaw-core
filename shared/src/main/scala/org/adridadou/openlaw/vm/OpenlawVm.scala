@@ -183,13 +183,18 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
     this
   }
 
-  def initExecution(name:VariableName, executionInit: OpenlawExecutionInit):OpenlawVm = {
+  def setInitExecution(name:VariableName, executionInit: OpenlawExecutionInit):OpenlawVm = {
     val executions = state.executions.getOrElse(name, Executions())
     val newExecutions = state.executions + (name  -> executions.update(executionInit))
     state = state.copy(executions = newExecutions)
 
     this
   }
+
+  def initExecution[T <: OpenlawExecutionInit](name:VariableName)(implicit classTag:ClassTag[T]):Option[T] = state.executions
+    .get(name)
+    .flatMap(_.executionInit)
+    .map(VariableType.convert[T])
 
   def newExecution(name:VariableName, execution: OpenlawExecution):OpenlawVm = {
     val executions = state.executions.getOrElse(name, Executions())
