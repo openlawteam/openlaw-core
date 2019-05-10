@@ -16,7 +16,7 @@ executors:
       # Enable BuildKit so we can pretend it's the future!
       # Unfortunately this wrecks havoc with layer cache export method for now
       # DOCKER_BUILDKIT: 1
-
+  
   corerunner:
     resource_class: medium # default & only option while on free plan
     docker:
@@ -38,7 +38,7 @@ jobs:
           name: login to Docker Hub
           command: echo "$DOCKER_PASS" | docker login --username "$DOCKER_USER" --password-stdin
       - run: BRANCH=${CIRCLE_BRANCH} ID=circle PUSH_CACHE=1 ./ci/build.sh
-
+  
   test:
     executor: corerunner
     steps:

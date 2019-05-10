@@ -23,7 +23,7 @@ blocks:
           - checkout
           - aws ecr get-login --no-include-email | bash
           - REMOTE_IMAGE=$ECR_IMAGE BRANCH=$SEMAPHORE_GIT_BRANCH ./ci/build.sh
-
+  
   - name: "Test"
     task:
       secrets:

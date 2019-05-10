@@ -28,7 +28,7 @@ PUSH_CACHE=${PUSH_CACHE:-0}
 # sure this is passed in CI based on the particular host's methodology.
 BRANCH=${BRANCH:-$(git rev-parse --abbrev-ref HEAD)}
 
-# Define full tags for both current branch and master branch. We want to be
+# Define full tags for both current branch and master branch. We want to be 
 # able to fall back to the last master branch build in the situation where
 # this is the first build for a new branch/PR, so we don't start from scratch
 # in that situation.
