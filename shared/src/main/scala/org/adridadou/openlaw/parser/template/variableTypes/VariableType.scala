@@ -252,6 +252,7 @@ object VariableType {
 
   def allTypes():Seq[VariableType] = Seq(
     AbstractCollectionType,
+    OLOwnType,
     AddressType,
     ChoiceType,
     ClauseType,

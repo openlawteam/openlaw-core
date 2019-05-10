@@ -43,6 +43,7 @@ case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
                            events:List[OpenlawVmEvent] = List(),
                            executionEngine: OpenlawExecutionEngine,
                            executionState:ContractExecutionState,
+                           crypto:CryptoService,
                            clock:Clock) extends LazyLogging {
 
   def updateTemplate(id: TemplateId, compiledTemplate: CompiledTemplate, event:LoadTemplate): OpenlawVmState =
@@ -100,7 +101,7 @@ case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
 
   def createNewExecutionResult(params:TemplateParameters, templates:Map[TemplateId, CompiledTemplate],signatureProofs:Map[Email, OpenlawSignatureProof], executions:Map[VariableName, Executions]):Option[OpenlawExecutionState] = {
     val templateDefinitions = definition.templates.flatMap({case (templateDefinition, id) => templates.get(id).map(templateDefinition -> _)})
-    templates.get(definition.mainTemplate).map(executionEngine.execute(_, params, templateDefinitions, signatureProofs, executions)) match {
+    templates.get(definition.mainTemplate).map(executionEngine.execute(_, params, templateDefinitions, signatureProofs, executions, Some(definition.id(crypto)))) match {
       case None => None
       case Some(Right(result)) =>
         Some(result)
@@ -125,7 +126,8 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
     signatures = Map(),
     optExecutionResult = None,
     executionState = ContractCreated,
-    clock = parser.internalClock
+    clock = parser.internalClock,
+    crypto = cryptoService
   )
 
   def isSignatureValid(data:EthereumData, event:OpenlawSignatureEvent):Boolean = {
