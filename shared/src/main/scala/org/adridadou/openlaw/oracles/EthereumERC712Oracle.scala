@@ -11,7 +11,7 @@ import cats.implicits._
 import LocalDateTimeHelper._
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 
-case class EthereumERC712Oracle() extends OpenlawOracle[PreparedERC712SmartContractCallEvent] with LazyLogging {
+case class EthereumERC712Oracle(crypto:CryptoService) extends OpenlawOracle[PreparedERC712SmartContractCallEvent] with LazyLogging {
 
   override def incoming(vm: OpenlawVm, event: PreparedERC712SmartContractCallEvent): Result[OpenlawVm] = {
     vm.getAllVariables(EthereumCallType)
@@ -21,6 +21,7 @@ case class EthereumERC712Oracle() extends OpenlawOracle[PreparedERC712SmartContr
         from <- call.getFrom(executionResult) if from === event.signee
         to <- Some(call.getContractAddress(executionResult)) if to === event.receiveAddress
       } yield name})
+      .filter(_ === event.name)
       .map { name => Success(vm.setInitExecution(name, PreparedERC712SmartContractCallExecution(name, event.signedCall))) }
       .getOrElse(Failure(s"action not found for ${event.name.name}. available ${vm.allNextActions.map(_.name.name).mkString(",")}"))
   }

@@ -10,6 +10,7 @@ import LocalDateTimeHelper._
 import cats.implicits._
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
+import org.adridadou.openlaw.oracles.CryptoService
 
 object EthereumSmartContractCall {
   implicit val smartContractEnc: Encoder[EthereumSmartContractCall] = deriveEncoder[EthereumSmartContractCall]
@@ -28,6 +29,21 @@ case class EthereumSmartContractCall(
     endDate: Option[Expression],
     from: Option[Expression],
     every: Option[Expression]) extends ActionValue {
+
+  def callKey(executionResult: TemplateExecutionResult, crypto:CryptoService):Option[EthereumData] = for {
+    from <- from.flatMap(_.evaluate(executionResult)).map(EthAddressType.convert)
+    to <- address.evaluate(executionResult).map(EthAddressType.convert)
+
+  } yield {
+    val args = arguments.flatMap(expr => {
+      val varType = expr.expressionType(executionResult)
+      expr.evaluate(executionResult).map(varType.internalFormat)
+    })
+    val argHash = EthereumData(crypto.sha256(args.map(arg => EthereumData(crypto.sha256(arg)).withLeading0x).mkString("")))
+
+    EthereumData(crypto.sha256(from.withLeading0x + to.withLeading0x + argHash.withLeading0x))
+  }
+
   def getEvery(executionResult: TemplateExecutionResult): Option[Period] =
     every.map(getPeriod(_ , executionResult))
   def getStartDate(executionResult: TemplateExecutionResult): Option[LocalDateTime] =
