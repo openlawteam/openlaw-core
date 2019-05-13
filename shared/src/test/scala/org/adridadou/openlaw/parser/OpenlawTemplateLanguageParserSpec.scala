@@ -1288,7 +1288,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
       case Right(executionResult) =>
         val structureType = executionResult.findVariableType(VariableTypeDefinition("Name")).getOrElse(NumberType)
         structureType === NumberType shouldBe false
-        val Right(newExecutionResult) = executeTemplate(text, Map("name1" -> structureType.internalFormat(Map(VariableName("first") -> "John", VariableName("last") -> "Doe"))))
+        val Right(newExecutionResult) = executeTemplate(text, Map("name1" -> structureType.internalFormat(OpenlawMap(VariableName("first") -> "John", VariableName("last") -> "Doe"))))
 
         service.parseExpression("name1.first").map(_.evaluate(newExecutionResult)) shouldBe Right(Some("John"))
       case Left(ex) =>

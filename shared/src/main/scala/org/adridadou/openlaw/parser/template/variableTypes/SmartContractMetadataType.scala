@@ -1,5 +1,6 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
+import org.adridadou.openlaw._
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
 import org.adridadou.openlaw.result.{Failure, Result, attempt}
@@ -13,7 +14,7 @@ case object SmartContractMetadataType extends VariableType("SmartContractMetadat
     SmartContractMetadata(protocol, address)
   }
 
-  override def internalFormat(value: Any): String = VariableType.convert[SmartContractMetadata](value).protocol + ":" + VariableType.convert[SmartContractMetadata](value).address
+  override def internalFormat(value: OpenlawValue): String = VariableType.convert[SmartContractMetadata](value).protocol + ":" + VariableType.convert[SmartContractMetadata](value).address
 
   override def construct(constructorParams:Parameter, executionResult:TemplateExecutionResult): Result[Option[SmartContractMetadata]] = constructorParams match {
       case OneValueParameter(expr) =>
@@ -27,7 +28,7 @@ case object SmartContractMetadataType extends VariableType("SmartContractMetadat
           for {
             protocol <- optProtocol
             address <- optAddress
-          } yield SmartContractMetadata(VariableType.convert[String](protocol), VariableType.convert[String](address))
+          } yield SmartContractMetadata(VariableType.convert[OpenlawString](protocol), VariableType.convert[OpenlawString](address))
         }
       case _ =>
         Failure("Smart contract metadata can be constructed with a string only")

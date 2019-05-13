@@ -8,6 +8,7 @@ import io.circe.parser._
 import io.circe.generic.semiauto._
 import Identity._
 import cats.Eq
+import org.adridadou.openlaw.OpenlawValue
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter, SignatureFormatter}
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
@@ -28,19 +29,19 @@ case object IdentityType extends VariableType(name = "Identity") {
 
   override def getTypeClass: Class[_ <: Identity] = classOf[Identity]
 
-  override def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Result[Option[Any]] =
+  override def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] =
     Failure("Identity type does not support constructor")
 
   override def missingValueFormat(name: VariableName): Seq[AgreementElement] = Seq(FreeText(Text("")))
 
-  override def internalFormat(value: Any): String = VariableType.convert[Identity](value).asJson.noSpaces
+  override def internalFormat(value: OpenlawValue): String = VariableType.convert[Identity](value).asJson.noSpaces
 
   override def getFormatter(formatterDefinition: FormatterDefinition, executionResult: TemplateExecutionResult):Formatter = formatterDefinition.name.trim().toLowerCase() match {
     case "signature" => new SignatureFormatter
     case _ => throw new RuntimeException(s"unknown formatter $name")
   }
 
-  override def access(value: Any, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[Any]] = {
+  override def access(value: OpenlawValue, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = {
     keys.toList match {
       case head::tail if tail.isEmpty => accessProperty(Some(VariableType.convert[Identity](value)), head).map(Some(_))
       case _::_ => Failure(s"Identity has only one level of properties. invalid property access ${keys.mkString(".")}") // TODO: Is this correct?
@@ -69,7 +70,7 @@ case object IdentityType extends VariableType(name = "Identity") {
   private def getOrNa(optStr:Option[String]):String = optStr.getOrElse("[n/a]")
 }
 
-case class Identity(email:Email) {
+case class Identity(email:Email) extends OpenlawValue {
   def getJsonString: String = this.asJson.noSpaces
 }
 

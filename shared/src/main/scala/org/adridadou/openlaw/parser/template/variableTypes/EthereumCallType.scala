@@ -5,6 +5,7 @@ import io.circe.syntax._
 import io.circe.parser._
 import io.circe.generic.semiauto._
 import cats.implicits._
+import org.adridadou.openlaw.OpenlawValue
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
@@ -15,7 +16,7 @@ case object EthereumCallType extends VariableType("EthereumCall") with ActionTyp
   implicit val smartContractEnc: Encoder[EthereumSmartContractCall] = deriveEncoder[EthereumSmartContractCall]
   implicit val smartContractDec: Decoder[EthereumSmartContractCall] = deriveDecoder[EthereumSmartContractCall]
 
-  case class EthereumCallPropertyDef(typeDef:VariableType, data:Seq[EthereumSmartContractExecution] => Option[Any])
+  case class EthereumCallPropertyDef(typeDef:VariableType, data:Seq[EthereumSmartContractExecution] => Option[OpenlawValue])
 
   private val propertyDef:Map[String,EthereumCallPropertyDef] = Map[String, EthereumCallPropertyDef](
     "isSuccessful" -> EthereumCallPropertyDef(typeDef = YesNoType, _.headOption.map(_.executionStatus === SuccessfulExecution)),
@@ -27,7 +28,7 @@ case object EthereumCallType extends VariableType("EthereumCall") with ActionTyp
   override def cast(value: String, executionResult: TemplateExecutionResult): EthereumSmartContractCall =
     handleEither(decode[EthereumSmartContractCall](value))
 
-  override def internalFormat(value: Any): String = value match {
+  override def internalFormat(value: OpenlawValue): String = value match {
     case call:EthereumSmartContractCall =>
       call.asJson.noSpaces
   }
@@ -44,7 +45,7 @@ case object EthereumCallType extends VariableType("EthereumCall") with ActionTyp
     }
   }
 
-  override def access(value: Any, name: VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[Any]] = {
+  override def access(value: OpenlawValue, name: VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = {
     keys.toList match {
       case Nil => Success(Some(value))
       case prop::Nil => propertyDef.get(prop) match {
@@ -94,5 +95,5 @@ case object EthereumCallType extends VariableType("EthereumCall") with ActionTyp
     case _ => throw new RuntimeException("invalid parameter type " + param.getClass.getSimpleName + " expecting list of expressions")
   }
 
-  override def actionValue(value: Any): EthereumSmartContractCall = VariableType.convert[EthereumSmartContractCall](value)
+  override def actionValue(value: OpenlawValue): EthereumSmartContractCall = VariableType.convert[EthereumSmartContractCall](value)
 }

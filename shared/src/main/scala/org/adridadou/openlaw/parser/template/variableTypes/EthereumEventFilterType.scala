@@ -5,6 +5,7 @@ import io.circe._
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.parser._
 import io.circe.syntax._
+import org.adridadou.openlaw.OpenlawValue
 import org.adridadou.openlaw.oracles.EthereumEventFilterExecution
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
@@ -15,7 +16,7 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
   implicit val smartContractEnc: Encoder[EventFilterDefinition] = deriveEncoder[EventFilterDefinition]
   implicit val smartContractDec: Decoder[EventFilterDefinition] = deriveDecoder[EventFilterDefinition]
 
-  case class EthereumEventPropertyDef(typeDef:VariableType, data:Seq[EthereumEventFilterExecution] => Result[Option[Any]])
+  case class EthereumEventPropertyDef(typeDef:VariableType, data:Seq[EthereumEventFilterExecution] => Result[Option[OpenlawValue]])
 
   private val propertyDef:Map[String,EthereumEventPropertyDef] = Map[String, EthereumEventPropertyDef](
     "executionDate" -> EthereumEventPropertyDef(typeDef = DateTimeType, evts => Success(evts.headOption.map(_.executionDate))),
@@ -25,7 +26,7 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
   override def cast(value: String, executionResult: TemplateExecutionResult): EventFilterDefinition =
     handleEither(decode[EventFilterDefinition](value))
 
-  override def internalFormat(value: Any): String = value match {
+  override def internalFormat(value: OpenlawValue): String = value match {
     case call:EventFilterDefinition =>
       call.asJson.noSpaces
   }
@@ -73,7 +74,7 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
       super.validateKeys(name, keys, expression, executionResult)
   }
 
-  override def access(value: Any, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[Any]] = {
+  override def access(value: OpenlawValue, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = {
     keys.toList match {
       case Nil => Success(Some(value))
       case head::tail if tail.isEmpty =>
@@ -125,5 +126,5 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
 
   def thisType: VariableType = EthereumEventFilterType
 
-  override def actionValue(value: Any): EventFilterDefinition = VariableType.convert[EventFilterDefinition](value)
+  override def actionValue(value: OpenlawValue): EventFilterDefinition = VariableType.convert[EventFilterDefinition](value)
 }

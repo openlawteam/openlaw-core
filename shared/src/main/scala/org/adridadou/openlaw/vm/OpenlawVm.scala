@@ -16,6 +16,7 @@ import slogging.LazyLogging
 import scala.reflect.ClassTag
 import io.circe.generic.semiauto._
 import LocalDateTimeHelper._
+import org.adridadou.openlaw._
 
 case class Signature(userId:UserId, signature:OpenlawSignatureEvent)
 
@@ -143,7 +144,7 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
               .map(_.list).getOrElse(Seq())
               .map(VariableType.convert[Identity])
           case structureType:DefinedStructureType if structureType.structure.typeDefinition.values.exists(_ === IdentityType) =>
-            val values = variable.evaluate(result).map(VariableType.convert[Map[VariableName, Any]]).getOrElse(Map())
+            val values = variable.evaluate(result).map(VariableType.convert[OpenlawMap[VariableName, OpenlawValue]](_).map).getOrElse(Map())
 
             structureType.structure.typeDefinition
               .flatMap({
@@ -242,7 +243,7 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
   def getAllVariables(varType: VariableType):Seq[(TemplateExecutionResult, VariableDefinition)] =
     state.executionResult.map(_.getVariables(varType)).getOrElse(Seq())
 
-  def getAllVariableValues[T](varType: VariableType)(implicit classTag:ClassTag[T]):Seq[T] =
+  def getAllVariableValues[T <: OpenlawValue](varType: VariableType)(implicit classTag:ClassTag[T]):Seq[T] =
     getAllVariables(varType).flatMap({case (executionResult, variable) =>
       variable.evaluate(executionResult).map(VariableType.convert[T])
     })

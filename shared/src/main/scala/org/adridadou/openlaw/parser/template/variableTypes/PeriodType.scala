@@ -5,23 +5,24 @@ import java.time.LocalDateTime
 import org.parboiled2._
 import VariableType._
 import cats.implicits._
+import org.adridadou.openlaw.{OpenlawDateTime, OpenlawValue}
 import org.adridadou.openlaw.parser.template._
 
 case object PeriodType extends VariableType("Period") {
 
-  override def plus(optLeft: Option[Any], optRight: Option[Any], executionResult:TemplateExecutionResult): Option[Any] = for {
+  override def plus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult:TemplateExecutionResult): Option[OpenlawValue] = for {
     left <- optLeft
     right <-optRight
   } yield {
     right match {
       case period:Period => plus(convert[Period](left), period)
-      case date:LocalDateTime => DateTimeType.plus(date, convert[Period](left))
+      case date:OpenlawDateTime => DateTimeType.plus(date, convert[Period](left))
     }
   }
 
   private def plus(left:Period, right:Period):Period = left.plus(right)
 
-  override def minus(optLeft: Option[Any], optRight: Option[Any], executionResult:TemplateExecutionResult): Option[Period] = for(
+  override def minus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult:TemplateExecutionResult): Option[Period] = for(
     left <- optLeft;
     right <-optRight
   ) yield minus(convert[Period](left), convert[Period](right))
@@ -48,7 +49,7 @@ case object PeriodType extends VariableType("Period") {
     case _ => false
   }
 
-  override def internalFormat(value: Any): String = {
+  override def internalFormat(value: OpenlawValue): String = {
     val period = convert[Period](value)
     val result = ( if( period.years > 0 ) s"${period.years}" + " years " else "") +
       ( if( period.months > 0 ) s"${period.months}" + " months " else "") +
@@ -103,7 +104,7 @@ class PeriodTypeParser(val input: ParserInput) extends Parser {
           case "second" => Period(seconds = digit)
           case "seconds" => Period(seconds = digit)
 
-          case other:Any => throw new RuntimeException(other + " is not a valid period type")
+          case other => throw new RuntimeException(other + " is not a valid period type")
         }
       }).reduce((left, right) => left.plus(right)))
   }
@@ -116,7 +117,7 @@ class PeriodTypeParser(val input: ParserInput) extends Parser {
 case class ParameterNotFound(value:String) extends RuntimeException
 case class ParsingError(msg:String) extends RuntimeException
 
-case class Period(seconds:Int = 0, minutes:Int = 0, hours:Int = 0, days:Int = 0, weeks:Int = 0, months:Int = 0, years:Int = 0) {
+case class Period(seconds:Int = 0, minutes:Int = 0, hours:Int = 0, days:Int = 0, weeks:Int = 0, months:Int = 0, years:Int = 0) extends OpenlawValue {
   def minus(right:Period):Period = Period(seconds - right.seconds, minutes - right.minutes, hours - right.hours, days - right.days, weeks - right.weeks, months - right.months, years - right.years)
   def plus(right:Period):Period = Period(seconds + right.seconds, minutes + right.minutes, hours + right.hours, days + right.days, weeks + right.weeks, months + right.months, years + right.years)
   override def toString:String = (if( years > 0 ) s"${years}" + " years " else "") +
