@@ -124,5 +124,5 @@ case class Period(seconds:Int = 0, minutes:Int = 0, hours:Int = 0, days:Int = 0,
       ( if( weeks > 0 ) s"$weeks weeks " else "") +
       ( if( days > 0 ) s"$days days " else "") +
       ( if( minutes > 0 ) s"$minutes minutes " else "") +
-      ( if( seconds > 0 ) s"$seconds seconds " else "")
+      ( if( seconds > 0 ) s"$seconds seconds" else "")
 }

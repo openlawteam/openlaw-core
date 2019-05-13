@@ -1,11 +1,12 @@
 package org.adridadou.openlaw.parser
 
 import java.time.{Clock, LocalDateTime, ZoneOffset}
+
 import org.adridadou.openlaw._
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes._
-import org.adridadou.openlaw.result.{Failure, Result}
+import org.adridadou.openlaw.result.{Failure, Result, Success}
 import org.adridadou.openlaw.result.Implicits.failureCause2Exception
 import org.adridadou.openlaw.values.TemplateParameters
 import org.adridadou.openlaw.vm.OpenlawExecutionEngine
@@ -456,9 +457,14 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
   it should "be able to define a default value" in {
     val clauseText = "This is my clause. [[contractor:Text(\"Hello my friend\")]]"
 
-    executeTemplate(clauseText).toOption.flatMap(_.getVariable("contractor").flatMap(_.defaultValue)) match {
-      case Some(OneValueParameter(StringConstant(str,_))) => str shouldBe "Hello my friend"
-      case result => fail(result.toString)
+    executeTemplate(clauseText) match {
+      case Success(r) =>
+        r.getVariable("contractor").flatMap(_.defaultValue) match {
+          case Some(OneValueParameter(StringConstant(str,_))) => str shouldBe "Hello my friend"
+          case result => fail(result.toString)
+        }
+      case Failure(ex, message) =>
+        fail(message, ex)
     }
   }
 
