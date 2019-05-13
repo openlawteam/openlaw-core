@@ -37,7 +37,7 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => O
       case OpenlawString(str) =>
         attempt(PeriodType.cast(str, executionResult)) match {
           case Success(period) => plus(VariableType.convert[OpenlawDateTime](left), period)
-          case Failure(_) => throw new RuntimeException(s"you can only make an addition between a date and a period. You are making an addition between a ${left.getClass.getSimpleName} and ${right.getClass.getSimpleName}")
+          case Failure(_,_) => throw new RuntimeException(s"you can only make an addition between a date and a period. You are making an addition between a ${left.getClass.getSimpleName} and ${right.getClass.getSimpleName}")
         }
       case _ => throw new RuntimeException(s"you can only make an addition between a date and a period. You are making an addition between a ${left.getClass.getSimpleName} and ${right.getClass.getSimpleName}")
     }
@@ -62,7 +62,7 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => O
       case OpenlawString(str) =>
         attempt(PeriodType.cast(str, executionResult)) match {
           case Success(period) => minus(VariableType.convert[OpenlawDateTime](left), period)
-          case Failure(_) => throw new RuntimeException(s"you can only make a substraction between a date and a period. You are making an addition between a ${left.getClass.getSimpleName} and ${right.getClass.getSimpleName}")
+          case Failure(_,_) => throw new RuntimeException(s"you can only make a substraction between a date and a period. You are making an addition between a ${left.getClass.getSimpleName} and ${right.getClass.getSimpleName}")
         }
       case _ => throw new RuntimeException(s"you can only make a substraction between a date and a period. You are making an addition between a ${left.getClass.getSimpleName} and ${right.getClass.getSimpleName}")
     }
@@ -184,9 +184,9 @@ class SimpleDateFormatter extends Formatter {
 
 class SimpleDateTimeFormatter extends Formatter{
   override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] = DateHelper.convertToDate(value, executionResult.clock).map(zonedDate => {
-    val hour = String.format("%02d", new Integer(VariableType.convert[OpenlawInt](zonedDate.localDateTime.getHour).int))
-    val minute = String.format("%02d", new Integer(VariableType.convert[OpenlawInt](zonedDate.localDateTime.getMinute).int))
-    val second = String.format("%02d", new Integer(VariableType.convert[OpenlawInt](zonedDate.localDateTime.getSecond).int))
+    val hour = String.format("%02d", Integer.valueOf(VariableType.convert[OpenlawInt](zonedDate.localDateTime.getHour).int))
+    val minute = String.format("%02d", Integer.valueOf(VariableType.convert[OpenlawInt](zonedDate.localDateTime.getMinute).int))
+    val second = String.format("%02d", Integer.valueOf(VariableType.convert[OpenlawInt](zonedDate.localDateTime.getSecond).int))
     val month = zonedDate.localDateTime.getMonth.getDisplayName(TextStyle.FULL, Locale.ENGLISH)
     Seq(FreeText(Text(s"$month ${zonedDate.localDateTime.getDayOfMonth}, ${zonedDate.localDateTime.getYear} $hour:$minute:$second")))
   })

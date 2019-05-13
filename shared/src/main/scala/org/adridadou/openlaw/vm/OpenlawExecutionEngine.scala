@@ -81,7 +81,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
             // has to be in a matcher for tail call optimization
             attempt(executionResult.startSubExecution(variableName, template, willBeUsedForEmbedded)).flatten match {
               case Success(result) => resumeExecution(result, templates)
-              case f@Failure(_) => f
+              case f@Failure(_,_) => f
             }
           case None => Success(executionResult)
         }

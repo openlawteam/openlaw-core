@@ -4,6 +4,8 @@ import java.time.LocalDateTime
 
 import org.adridadou.openlaw.parser.template.AgreementElement
 
+import scala.language.implicitConversions
+
 package object openlaw {
 
   trait OpenlawValue
