@@ -7,7 +7,7 @@ import java.util.Locale
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.formatters.Formatter
 import cats.implicits._
-import org.adridadou.openlaw.{OpenlawDateTime, OpenlawInteger, OpenlawString, OpenlawValue}
+import org.adridadou.openlaw.{OpenlawDateTime, OpenlawInt, OpenlawString, OpenlawValue}
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 
 abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => OpenlawDateTime, formatter:Formatter) extends VariableType(varTypeName) {
@@ -184,9 +184,9 @@ class SimpleDateFormatter extends Formatter {
 
 class SimpleDateTimeFormatter extends Formatter{
   override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] = DateHelper.convertToDate(value, executionResult.clock).map(zonedDate => {
-    val hour = String.format("%02d", VariableType.convert[OpenlawInteger](zonedDate.localDateTime.getHour).int)
-    val minute = String.format("%02d", VariableType.convert[OpenlawInteger](zonedDate.localDateTime.getMinute).int)
-    val second = String.format("%02d", VariableType.convert[OpenlawInteger](zonedDate.localDateTime.getSecond).int)
+    val hour = String.format("%02d", new Integer(VariableType.convert[OpenlawInt](zonedDate.localDateTime.getHour).int))
+    val minute = String.format("%02d", new Integer(VariableType.convert[OpenlawInt](zonedDate.localDateTime.getMinute).int))
+    val second = String.format("%02d", new Integer(VariableType.convert[OpenlawInt](zonedDate.localDateTime.getSecond).int))
     val month = zonedDate.localDateTime.getMonth.getDisplayName(TextStyle.FULL, Locale.ENGLISH)
     Seq(FreeText(Text(s"$month ${zonedDate.localDateTime.getDayOfMonth}, ${zonedDate.localDateTime.getYear} $hour:$minute:$second")))
   })

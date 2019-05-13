@@ -14,7 +14,7 @@ case class ComparaisonExpression(left:Expression, right:Expression, op:Operation
     } yield (leftValue, rightValue) match {
       case (one: Comparable[Any] @unchecked, two: Comparable[Any] @unchecked) => one.compareTo(two)
       case _ =>
-        println(s"NON COMPARABLE ARGUMENTS: $leftValue; $rightValue")
+        println(s"NON COMPARABLE ARGUMENTS: ${leftValue.getClass}; ${rightValue.getClass}")
         -1
     }
 

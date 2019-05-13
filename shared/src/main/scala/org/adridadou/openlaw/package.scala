@@ -25,10 +25,15 @@ package object openlaw {
   implicit def unwrap(int: OpenlawInt): Int = int.int
 
   implicit class OpenlawBoolean(val boolean: Boolean) extends OpenlawValue
-  implicit class OpenlawString(val string: String) extends OpenlawValue
+  implicit class OpenlawString(val string: String) extends Comparable[OpenlawString] with OpenlawValue {
+    override def toString: String = string
+    override def compareTo(t: OpenlawString): Int = string.compareTo(t.string)
+  }
   implicit class OpenlawInt(val int: Int) extends OpenlawValue
-  implicit class OpenlawInteger(val int: Integer) extends OpenlawValue
-  implicit class OpenlawBigDecimal(val bigDecimal: BigDecimal) extends OpenlawValue
+  //implicit class OpenlawInteger(val int: Integer) extends OpenlawValue
+  implicit class OpenlawBigDecimal(val bigDecimal: BigDecimal) extends Comparable[OpenlawBigDecimal] with OpenlawValue {
+    override def compareTo(t: OpenlawBigDecimal): Int = bigDecimal.compareTo(t.bigDecimal)
+  }
   implicit class OpenlawDateTime(val localDateTime: LocalDateTime) extends OpenlawValue
   implicit class OpenlawMap[T, Y <: OpenlawValue](val map: Map[T, Y]) extends OpenlawValue
   implicit class OpenlawElements(val seq: Seq[AgreementElement]) extends OpenlawValue

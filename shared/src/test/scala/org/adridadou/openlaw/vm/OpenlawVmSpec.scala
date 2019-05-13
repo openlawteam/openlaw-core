@@ -2,7 +2,7 @@ package org.adridadou.openlaw.vm
 
 import java.time.{Clock, LocalDateTime}
 
-import org.adridadou.openlaw.oracles
+import org.adridadou.openlaw.{OpenlawString, oracles}
 import org.adridadou.openlaw.oracles._
 import org.adridadou.openlaw.parser.template.{ExecutionFinished, OpenlawTemplateLanguageParserService, VariableName}
 import org.adridadou.openlaw.parser.template.variableTypes._
@@ -10,6 +10,7 @@ import org.adridadou.openlaw.result.Failure
 import org.adridadou.openlaw.values.{ContractDefinition, ContractId, TemplateId, TemplateParameters}
 import org.scalatest.{FlatSpec, Matchers}
 import org.scalatest.OptionValues._
+import org.scalatest.EitherValues._
 
 class OpenlawVmSpec extends FlatSpec with Matchers {
   val parser:OpenlawTemplateLanguageParserService = new OpenlawTemplateLanguageParserService(Clock.systemUTC())
@@ -44,8 +45,8 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
 
     vm(LoadTemplate(template))
 
-    vm.evaluate[String]("Hello") shouldBe Right("World")
-    vm.evaluate[String]("Hello + ' World'") shouldBe Right("World World")
+    vm.evaluate[OpenlawString]("Hello").right.value.string shouldBe ("World")
+    vm.evaluate[OpenlawString]("Hello + ' World'").right.value.string shouldBe ("World World")
   }
 
   it should "be possible to register signature as incoming events and distinguish failed signatures" in {
