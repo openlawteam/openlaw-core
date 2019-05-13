@@ -4,7 +4,7 @@ import java.time.Clock
 
 import cats.implicits._
 import org.adridadou.openlaw.parser.template.variableTypes._
-import org.adridadou.openlaw.result.{Result, Success}
+import org.adridadou.openlaw.result.Success
 
 import scala.annotation.tailrec
 
