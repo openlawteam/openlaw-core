@@ -303,6 +303,8 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
           processSignature(signature)
         case e:LoadTemplate =>
           templateOracle.incoming(this, e)
+        case e:OpenlawVmInitEvent =>
+          executeEvent(e)
         case _ =>
           Failure("the virtual machine is in creation state. The only events allowed are signature events")
       }
