@@ -42,7 +42,7 @@ trait TemplateExecutionResult {
   def agreements:Seq[StructuredAgreement]
   def variableSectionList:Seq[String]
   def executions:Map[VariableName, Executions]
-
+  def info:OLInformation
   def hasSigned(email: Email):Boolean =
     if(signatureProofs.contains(email)) true else parentExecution.exists(_.hasSigned(email))
 
@@ -272,6 +272,7 @@ trait TemplateExecutionResult {
       case Failure(_) =>
         val result = OpenlawExecutionState(
           id = TemplateExecutionResultId(UUID.randomUUID().toString),
+          info = info,
           embedded = true,
           parameters = TemplateParameters(name.name -> varType.internalFormat(value)),
           sectionLevelStack = mutable.Buffer(),
@@ -303,6 +304,7 @@ object SerializableTemplateExecutionResult {
 }
 
 case class SerializableTemplateExecutionResult(id:TemplateExecutionResultId,
+                                               info:OLInformation,
                                                templateDefinition: Option[TemplateDefinition] = None,
                                                subExecutionIds:Map[VariableName, TemplateExecutionResultId],
                                                templateExecutions:Map[TemplateExecutionResultId, SerializableTemplateExecutionResult],
@@ -332,6 +334,7 @@ case class OpenlawExecutionState(
                                     id:TemplateExecutionResultId,
                                     parameters:TemplateParameters,
                                     embedded:Boolean,
+                                    info:OLInformation,
                                     executions:Map[VariableName,Executions],
                                     signatureProofs:Map[Email, OpenlawSignatureProof] = Map(),
                                     template:CompiledTemplate,
@@ -499,6 +502,7 @@ case class OpenlawExecutionState(
 
     SerializableTemplateExecutionResult(
       id = id,
+      info = info,
       templateDefinition = templateDefinition,
       subExecutionIds = subExecutionIds,
       templateExecutions = templateExecutions,
@@ -586,6 +590,7 @@ case class OpenlawExecutionState(
       detectCyclicDependency(templateDefinition).map(_ => {
         val newExecution = OpenlawExecutionState(
           id = TemplateExecutionResultId(createAnonymousVariable().name),
+          info = info,
           parameters = parameters,
           embedded = embedded,
           sectionLevelStack = if (embedded) this.sectionLevelStack else mutable.Buffer(),

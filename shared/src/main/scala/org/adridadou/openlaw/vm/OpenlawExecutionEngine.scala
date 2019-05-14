@@ -5,7 +5,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import org.adridadou.openlaw.result._
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes._
-import org.adridadou.openlaw.values.TemplateParameters
+import org.adridadou.openlaw.values.{ContractId, TemplateParameters}
 import cats.implicits._
 import org.adridadou.openlaw.oracles.OpenlawSignatureProof
 import org.adridadou.openlaw.parser.template.expressions.Expression
@@ -26,12 +26,13 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     * Entry point. This is where you start the execution of the main template
     */
   def execute(mainTemplate:CompiledTemplate, parameters:TemplateParameters, templates:Map[TemplateSourceIdentifier, CompiledTemplate]):Result[OpenlawExecutionState] =
-    execute(mainTemplate, parameters, templates, Map(), Map())
+    execute(mainTemplate, parameters, templates, Map(), Map(), None)
 
-  def execute(mainTemplate:CompiledTemplate, parameters:TemplateParameters, templates:Map[TemplateSourceIdentifier, CompiledTemplate], signatureProofs:Map[Email, OpenlawSignatureProof], executions:Map[VariableName, Executions]):Result[OpenlawExecutionState] = {
+  def execute(mainTemplate:CompiledTemplate, parameters:TemplateParameters, templates:Map[TemplateSourceIdentifier, CompiledTemplate], signatureProofs:Map[Email, OpenlawSignatureProof], executions:Map[VariableName, Executions], id:Option[ContractId]):Result[OpenlawExecutionState] = {
     val executionResult = OpenlawExecutionState(
       parameters = parameters,
       id = TemplateExecutionResultId(s"@@anonymous_main_template_id@@"),
+      info = OLInformation(id = id),
       template = mainTemplate,
       executions = executions,
       anonymousVariableCounter = new AtomicInteger(0),

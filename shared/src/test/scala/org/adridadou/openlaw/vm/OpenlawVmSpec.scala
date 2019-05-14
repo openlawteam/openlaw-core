@@ -4,7 +4,7 @@ import java.time.{Clock, LocalDateTime}
 
 import org.adridadou.openlaw.oracles
 import org.adridadou.openlaw.oracles._
-import org.adridadou.openlaw.parser.template.{ExecutionFinished, OpenlawTemplateLanguageParserService, VariableName}
+import org.adridadou.openlaw.parser.template.{ExecutionFinished, ExpressionParserService, OpenlawTemplateLanguageParserService, VariableName}
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.result.Failure
 import org.adridadou.openlaw.values.{ContractDefinition, ContractId, TemplateId, TemplateParameters}
@@ -13,6 +13,7 @@ import org.scalatest.OptionValues._
 
 class OpenlawVmSpec extends FlatSpec with Matchers {
   val parser:OpenlawTemplateLanguageParserService = new OpenlawTemplateLanguageParserService(Clock.systemUTC())
+  val exprParser = new ExpressionParserService()
   val vmProvider:OpenlawVmProvider = new OpenlawVmProvider(TestCryptoService, parser)
   val clock: Clock = Clock.systemUTC()
   val serverAccount:TestAccount = TestAccount.newRandom
@@ -283,6 +284,27 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
         text shouldBe "<p class=\"no-section\"><br /></p><p class=\"no-section\">2,939</p>"
       case Failure(ex, message) =>
         fail(message, ex)
+    }
+  }
+
+  it should "make general info about the contract available" in {
+    val template =
+      """
+        |[[info:OLInfo]]
+        |
+        |hello [[info.id]]
+      """.stripMargin
+
+    val templateId = TemplateId(TestCryptoService.sha256(template))
+    val definition = ContractDefinition(creatorId = UserId("hello@world.com"), mainTemplate = templateId, templates = Map(), parameters = TemplateParameters())
+
+    val vm = vmProvider.create(definition, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq())
+    vm(LoadTemplate(template))
+
+    vm.executionResult match {
+      case Some(executionResult) =>
+        parser.forReview(executionResult.agreements.head) shouldBe s"""<p class="no-section"><br /></p><p class="no-section">hello ${definition.id(TestCryptoService)}<br />      </p>"""
+      case None => fail("no execution result found!")
     }
   }
 

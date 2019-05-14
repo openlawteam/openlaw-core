@@ -147,7 +147,6 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
     case Nil =>
       Success(Some(value))
     case head::tail =>
-      val headName = VariableName(head)
       executionResult.subExecutions.get(VariableName(head)).flatMap(subExecution =>
         subExecution.getExpression(VariableName(head))
           .flatMap(variable => variable.evaluate(subExecution)

@@ -8,17 +8,42 @@ import VariableType._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import LocalDateTimeHelper._
 import cats.implicits._
+import io.circe.{Decoder, Encoder}
+import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
+import org.adridadou.openlaw.oracles.CryptoService
+
+object EthereumSmartContractCall {
+  implicit val smartContractEnc: Encoder[EthereumSmartContractCall] = deriveEncoder[EthereumSmartContractCall]
+  implicit val smartContractDec: Decoder[EthereumSmartContractCall] = deriveDecoder[EthereumSmartContractCall]
+}
 
 case class EthereumSmartContractCall(
     address: Expression,
     abi: Expression,
     network: Expression,
+    signatureParameter: Option[Expression],
+    signatureRSVParameter: Option[SignatureRSVParameter],
     functionName: Expression,
     arguments: Seq[Expression],
     startDate: Option[Expression],
     endDate: Option[Expression],
     from: Option[Expression],
     every: Option[Expression]) extends ActionValue {
+
+  def callKey(executionResult: TemplateExecutionResult, crypto:CryptoService):Option[EthereumData] = for {
+    from <- from.flatMap(_.evaluate(executionResult)).map(EthAddressType.convert)
+    to <- address.evaluate(executionResult).map(EthAddressType.convert)
+
+  } yield {
+    val args = arguments.flatMap(expr => {
+      val varType = expr.expressionType(executionResult)
+      expr.evaluate(executionResult).map(varType.internalFormat)
+    })
+    val argHash = EthereumData(crypto.sha256(args.map(arg => EthereumData(crypto.sha256(arg)).withLeading0x).mkString("")))
+
+    EthereumData(crypto.sha256(from.withLeading0x + to.withLeading0x + argHash.withLeading0x))
+  }
+
   def getEvery(executionResult: TemplateExecutionResult): Option[Period] =
     every.map(getPeriod(_ , executionResult))
   def getStartDate(executionResult: TemplateExecutionResult): Option[LocalDateTime] =
@@ -33,10 +58,26 @@ case class EthereumSmartContractCall(
     network.evaluate(executionResult)
       .map(VariableType.convert[String])
 
+  def getFrom(executionResult: TemplateExecutionResult):Option[EthereumAddress] = {
+    from.flatMap(_.evaluate(executionResult)).map({
+      case strAddr:String => EthereumAddress(strAddr)
+      case addr:EthereumAddress => addr
+    })
+  }
+
   def getInterfaceProtocol(executionResult: TemplateExecutionResult): String =
     getMetadata(abi, executionResult).protocol
   def getInterfaceAddress(executionResult: TemplateExecutionResult): String =
     getMetadata(abi, executionResult).address
+
+  def parameterToIgnore(executionResult: TemplateExecutionResult):Seq[String] = {
+    signatureParameter.flatMap(_.evaluate(executionResult)) match {
+      case Some(value) =>
+        Seq(VariableType.convert[String](value))
+      case None =>
+        signatureRSVParameter.flatMap(_.getRsv(executionResult)).map(rsv => Seq(rsv.r, rsv.s, rsv.v)).getOrElse(Seq())
+    }
+  }
 
   override def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions:Seq[OpenlawExecution]): Option[LocalDateTime] = {
     val executions = pastExecutions.map(VariableType.convert[EthereumSmartContractExecution])
@@ -68,8 +109,3 @@ case class EthereumSmartContractCall(
 }
 
 case class SmartContractMetadata(protocol: String, address: String)
-case class SmartContractCallDetails(
-                                     name:VariableName,
-                                     call:EthereumSmartContractCall,
-                                     executionResult: TemplateExecutionResult,
-                                     description:String)

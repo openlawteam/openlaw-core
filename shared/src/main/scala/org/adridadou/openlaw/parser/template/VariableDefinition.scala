@@ -29,10 +29,11 @@ case class VariableMember(name:VariableName, keys:Seq[String], formatter:Option[
   }
 
   override def evaluate(executionResult:TemplateExecutionResult): Option[Any] = {
+
     val expr = name.aliasOrVariable(executionResult)
     val exprType = expr.expressionType(executionResult)
-
     val optValue = expr.evaluate(executionResult)
+
     optValue.map(exprType.access(_, name, keys, executionResult) match {
       case Right(Some(value)) => value
       case Right(None) => None
@@ -150,7 +151,8 @@ case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[
   def construct(executionResult: TemplateExecutionResult): Result[Option[Any]] = defaultValue match {
     case Some(parameter) =>
       varType(executionResult).construct(parameter, executionResult)
-    case None => Right(None)
+    case None if varType(executionResult) === OLOwnType => Success(Some(executionResult.info))
+    case None => Success(None)
   }
 
   def isAnonymous: Boolean = name.isAnonymous
@@ -204,13 +206,11 @@ case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[
     }
   }
 
-  private def constructVariable(optVariable:Option[VariableDefinition], executionResult: TemplateExecutionResult):Option[Any] = {
-    optVariable
+  private def constructVariable(optVariable:Option[VariableDefinition], executionResult: TemplateExecutionResult):Option[Any] = optVariable
       .map(variable => variable.construct(executionResult)) match {
       case Some(Right(value)) => value
       case Some(Left(ex)) => throw ex.e
       case None => None
-    }
   }
 
   override def expressionType(executionResult: TemplateExecutionResult): VariableType = executionResult.getAlias(name)

@@ -10,11 +10,24 @@ import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 
+object SignatureRSVParameter {
+  implicit val signatureRSVParameterEnc: Encoder[SignatureRSVParameter] = deriveEncoder[SignatureRSVParameter]
+  implicit val signatureRSVParameterDec: Decoder[SignatureRSVParameter] = deriveDecoder[SignatureRSVParameter]
+}
+
+case class SignatureRSVParameterNames(r:String, s:String, v:String) {
+  def toSeq:Seq[String] = Seq(r,s,v)
+}
+
+case class SignatureRSVParameter(rExpr:Expression, sExpr:Expression, vExpr:Expression) {
+  def getRsv(executionResult: TemplateExecutionResult):Option[SignatureRSVParameterNames] = for {
+    r <- rExpr.evaluate(executionResult)
+    s <- sExpr.evaluate(executionResult)
+    v <- vExpr.evaluate(executionResult)
+  } yield SignatureRSVParameterNames(VariableType.convert[String](r),VariableType.convert[String](s),VariableType.convert[String](v))
+}
 
 case object EthereumCallType extends VariableType("EthereumCall") with ActionType {
-  implicit val smartContractEnc: Encoder[EthereumSmartContractCall] = deriveEncoder[EthereumSmartContractCall]
-  implicit val smartContractDec: Decoder[EthereumSmartContractCall] = deriveDecoder[EthereumSmartContractCall]
-
   case class EthereumCallPropertyDef(typeDef:VariableType, data:Seq[EthereumSmartContractExecution] => Option[Any])
 
   private val propertyDef:Map[String,EthereumCallPropertyDef] = Map[String, EthereumCallPropertyDef](
@@ -72,6 +85,8 @@ case object EthereumCallType extends VariableType("EthereumCall") with ActionTyp
           address = getExpression(values, "contract", "to"),
           abi = getExpression(values, "interface", "abi"),
           network = optNetwork,
+          signatureParameter = getParameter(values, "Signature parameter").map(getExpression),
+          signatureRSVParameter = getParameter(values, "Signature RSV parameter").map(getSignatureRSVParameter),
           functionName = getExpression(values, "function"),
           arguments = getParameter(values, "arguments", "parameters", "params").map(getExpressionList).getOrElse(Seq()),
           startDate = values.get("startDate").map(name => getExpression(name)),
@@ -82,6 +97,17 @@ case object EthereumCallType extends VariableType("EthereumCall") with ActionTyp
       case _ =>
         Failure("Ethereum Calls need to get 'contract', 'interface', 'network', 'function' as constructor parameter")
     }
+  }
+
+  private def getSignatureRSVParameter(param:Parameter):SignatureRSVParameter = param match {
+    case Parameters(parameterMap) =>
+      val map = parameterMap.toMap
+      SignatureRSVParameter(
+        rExpr = getExpression(map, "r"),
+        sExpr = getExpression(map, "s"),
+        vExpr = getExpression(map, "v")
+      )
+    case _ => throw new RuntimeException("invalid parameter type " + param.getClass.getSimpleName + " expecting single expression")
   }
 
   override def getTypeClass: Class[_ <: EthereumSmartContractCall] = classOf[EthereumSmartContractCall]
