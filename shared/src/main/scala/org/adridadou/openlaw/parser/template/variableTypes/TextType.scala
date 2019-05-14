@@ -40,7 +40,7 @@ case object TextType extends VariableType("Text") {
 
   def thisType: VariableType = TextType
 
-  override def getTypeClass: Class[String] = classOf[String]
+  override def getTypeClass: Class[OpenlawString] = classOf[OpenlawString]
 
   override def isCompatibleType(otherType: VariableType, operation: ValueOperation): Boolean = otherType match {
     case TextType => true

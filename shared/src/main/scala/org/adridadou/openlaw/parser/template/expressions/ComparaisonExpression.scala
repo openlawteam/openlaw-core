@@ -13,9 +13,6 @@ case class ComparaisonExpression(left:Expression, right:Expression, op:Operation
       rightValue <- right.evaluate(executionResult)
     } yield (leftValue, rightValue) match {
       case (one: Comparable[Any] @unchecked, two: Comparable[Any] @unchecked) => one.compareTo(two)
-      case _ =>
-        println(s"NON COMPARABLE ARGUMENTS: ${leftValue.getClass}; ${rightValue.getClass}")
-        -1
     }
 
     x.map(comparaisonResult => {

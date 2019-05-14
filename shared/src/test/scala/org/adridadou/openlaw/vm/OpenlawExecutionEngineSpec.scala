@@ -1294,7 +1294,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
       case Right(_) =>
         fail("should fail")
       case Left(ex) =>
-        ex.message shouldBe "type mismatch while building the default value for type Text. the constructor result type should be String but instead is OpenlawBigDecimal"
+        ex.message shouldBe "type mismatch while building the default value for type Text. the constructor result type should be OpenlawString but instead is OpenlawBigDecimal"
     }
   }
 

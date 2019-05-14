@@ -32,5 +32,5 @@ case object ImageType extends VariableType("Image") {
     case _ => otherType.isCompatibleType(this, operation)
   }
 
-  override def getTypeClass = classOf[OpenlawString]
+  override def getTypeClass: Class[OpenlawString] = classOf[OpenlawString]
 }

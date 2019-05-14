@@ -97,7 +97,7 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
     }
   }
 
-  override def getTypeClass: Class[Map[VariableName, OpenlawValue]] = classOf[Map[VariableName, OpenlawValue]]
+  override def getTypeClass: Class[OpenlawMap[VariableName, OpenlawValue]] = classOf[OpenlawMap[VariableName, OpenlawValue]]
 
   override def keysType(keys: Seq[String], expression: Expression, executionResult: TemplateExecutionResult): Result[VariableType] = {
     keys.toList match {

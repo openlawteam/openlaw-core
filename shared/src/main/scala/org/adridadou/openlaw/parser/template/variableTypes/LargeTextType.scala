@@ -31,7 +31,7 @@ case object LargeTextType extends VariableType("LargeText") {
 
   override def internalFormat(value: OpenlawValue): String = VariableType.convert[OpenlawString](value)
 
-  override def getTypeClass = classOf[String]
+  override def getTypeClass: Class[OpenlawString] = classOf[OpenlawString]
 
   override def checkTypeName(nameToCheck: String): Boolean =
     Seq("LargeText", "String").exists(_.equalsIgnoreCase(nameToCheck))
