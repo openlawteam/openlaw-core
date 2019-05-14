@@ -13,6 +13,7 @@ case class ComparaisonExpression(left:Expression, right:Expression, op:Operation
       rightValue <- right.evaluate(executionResult)
     } yield (leftValue, rightValue) match {
       case (one: Comparable[Any] @unchecked, two: Comparable[Any] @unchecked) => one.compareTo(two)
+      case _ => throw new RuntimeException(s"can not compare ${leftValue.getClass} and ${rightValue.getClass}")
     }
 
     x.map(comparaisonResult => {

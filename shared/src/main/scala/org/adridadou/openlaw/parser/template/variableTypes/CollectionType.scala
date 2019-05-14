@@ -17,7 +17,7 @@ case object AbstractCollectionType extends VariableType("Collection") with Param
   override def thisType: VariableType =
     this
 
-  override def getTypeClass: Class[_ <: AbstractCollectionType.type ] = this.getClass
+  override def getTypeClass: Class[OpenlawValue] = classOf[OpenlawValue]
 
   override def createParameterInstance(typeParameter: VariableType): CollectionType =
     CollectionType(typeParameter)

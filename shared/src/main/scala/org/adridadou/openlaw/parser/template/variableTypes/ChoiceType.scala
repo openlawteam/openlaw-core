@@ -45,7 +45,7 @@ case object ChoiceType extends VariableType("Choice") with TypeGenerator[Choices
 
   override def checkTypeName(nameToCheck: String): Boolean = Seq("Choice").exists(_.equalsIgnoreCase(nameToCheck))
 
-  override def getTypeClass: Class[_ <: ChoiceType.type ] = this.getClass
+  override def getTypeClass: Class[Choices] = classOf[Choices]
 
   def thisType: VariableType = ChoiceType
 
@@ -86,7 +86,7 @@ case class DefinedChoiceType(choices:Choices, typeName:String) extends VariableT
 
   override def thisType: VariableType = this
 
-  override def getTypeClass: Class[_ <: String] = classOf[String]
+  override def getTypeClass: Class[OpenlawString] = classOf[OpenlawString]
 
   override def isCompatibleType(otherType: VariableType, operation: ValueOperation): Boolean = otherType match {
     case TextType => true

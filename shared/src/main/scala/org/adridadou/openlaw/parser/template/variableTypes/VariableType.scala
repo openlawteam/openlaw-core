@@ -127,7 +127,7 @@ abstract class VariableType(val name: String) {
     }
   }
 
-  def getTypeClass: Class[_]
+  def getTypeClass: Class[_ <: OpenlawValue]
 
   def checkTypeName(nameToCheck: String): Boolean =
     this.name.equalsIgnoreCase(nameToCheck)
@@ -267,9 +267,9 @@ object VariableType {
   def getMetadata(v: Expression, executionResult: TemplateExecutionResult): SmartContractMetadata =
     get(v,executionResult,SmartContractMetadataType.cast)
   def getString(v: Expression, executionResult: TemplateExecutionResult): String =
-    get(v,executionResult, (str,_) => str)
+    get[OpenlawString](v,executionResult, (str,_) => str).string
 
-  def get[T](v: Expression, executionResult: TemplateExecutionResult, cast: (String,TemplateExecutionResult) => T)(implicit classTag: ClassTag[T]): T =
+  def get[T <: OpenlawValue](v: Expression, executionResult: TemplateExecutionResult, cast: (String,TemplateExecutionResult) => T)(implicit classTag: ClassTag[T]): T =
     v.evaluate(executionResult).map({
       case value:T => value
       case value:OpenlawString => cast(value, executionResult)

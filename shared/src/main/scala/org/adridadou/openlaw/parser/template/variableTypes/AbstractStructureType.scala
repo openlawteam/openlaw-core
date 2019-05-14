@@ -37,7 +37,7 @@ case object AbstractStructureType extends VariableType(name = "Structure") with 
 
   override def internalFormat(value: OpenlawValue): String = throw new RuntimeException("no internal format for structured type definition")
 
-  override def getTypeClass: Class[_ <: AbstractStructureType.type] = this.getClass
+  override def getTypeClass: Class[_ <: Structure] = classOf[Structure]
 
   override def checkTypeName(nameToCheck: String): Boolean = Seq("Structure").exists(_.equalsIgnoreCase(nameToCheck))
 

@@ -37,7 +37,7 @@ case object SmartContractMetadataType extends VariableType("SmartContractMetadat
 
   override def defaultFormatter: Formatter = new NoopFormatter
 
-  override def getTypeClass: Class[_ <: SmartContractMetadataType.type ] = this.getClass
+  override def getTypeClass: Class[SmartContractMetadata] = classOf[SmartContractMetadata]
 
   def thisType: VariableType = SmartContractMetadataType
 }

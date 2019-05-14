@@ -799,7 +799,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
       case Right(result) =>
         result.state shouldBe ExecutionFinished
         val Some(variable) = result.getVariable("var")
-        variable.varType(result).getTypeClass shouldBe classOf[String]
+        variable.varType(result).getTypeClass shouldBe classOf[OpenlawString]
 
         variable.evaluate(result).value.toString shouldBe ("hello")
 

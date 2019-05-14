@@ -9,7 +9,7 @@ case object YesNoType extends VariableType("YesNo") {
 
   override def checkTypeName(nameToCheck: String): Boolean = Seq("YesNo","Boolean", "Bool").exists(_.equalsIgnoreCase(nameToCheck))
 
-  override def getTypeClass: Class[_ <: YesNoType.type ] = this.getClass
+  override def getTypeClass: Class[OpenlawBoolean] = classOf[OpenlawBoolean]
 
   def thisType: VariableType = YesNoType
 }
