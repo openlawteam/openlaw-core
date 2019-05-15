@@ -1,19 +1,21 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
-import io.circe.{Decoder, Encoder, HCursor, Json}
+import cats.kernel.Eq
 import org.adridadou.openlaw.parser.template._
 import play.api.libs.json.JsObject
+import io.circe._
+import io.circe.generic.semiauto._
 import io.circe.syntax._
-import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import org.adridadou.openlaw._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 
-
 object Structure {
   implicit val structureEnc:Encoder[Structure] = deriveEncoder[Structure]
   implicit val structureDec:Decoder[Structure] = deriveDecoder[Structure]
+
+  implicit val structureDecEq:Eq[Structure] = Eq.fromUniversalEquals
 }
 
 
@@ -46,7 +48,7 @@ case object AbstractStructureType extends VariableType(name = "Structure") with 
 
   def thisType: VariableType = AbstractStructureType
 
-  override def generateType(name: VariableName, structure: Structure): VariableType =
+  override def generateType(name: VariableName, structure: Structure): DefinedStructureType =
     DefinedStructureType(structure, name.name)
 
   private def getField(name:String, value:Parameter, executionResult: TemplateExecutionResult): Result[VariableDefinition] = value match {
@@ -55,7 +57,6 @@ case object AbstractStructureType extends VariableType(name = "Structure") with 
     case OneValueParameter(definition:VariableDefinition) =>
       Success(definition.copy(name = VariableName(name)))
     case param =>
-      println(param)
       Failure("error in the constructor for Structured Type")
   }
 }

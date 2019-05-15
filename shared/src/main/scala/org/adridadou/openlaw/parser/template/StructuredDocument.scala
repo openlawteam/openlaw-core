@@ -44,6 +44,7 @@ trait TemplateExecutionResult {
   def variableSectionList:Seq[String]
   def executions:Map[ActionIdentifier, Executions]
   def info:OLInformation
+  def externalCallStructures: Map[ServiceName, IntegratedServiceDefinition]
   def hasSigned(email: Email):Boolean =
     if(signatureProofs.contains(email)) true else parentExecution.exists(_.hasSigned(email))
 
@@ -292,14 +293,17 @@ trait TemplateExecutionResult {
         Success(result)
     }
   }
+
 }
 
 object SerializableTemplateExecutionResult {
   implicit val serializableTemplateExecutionResultEnc:Encoder[SerializableTemplateExecutionResult] = deriveEncoder[SerializableTemplateExecutionResult]
   implicit val serializableTemplateExecutionResultDec:Decoder[SerializableTemplateExecutionResult] = deriveDecoder[SerializableTemplateExecutionResult]
+  implicit val serializableTemplateExecutionResultEq:Eq[SerializableTemplateExecutionResult] = Eq.fromUniversalEquals
 
   implicit val clockEnc:Encoder[Clock] = (a: Clock) => Json.fromString(a.getZone.getId)
   implicit val clockDec:Decoder[Clock] = (c: HCursor) => c.as[String].map(id => Clock.system(ZoneId.of(id)))
+  implicit val clockDecEq:Eq[Clock] = Eq.fromUniversalEquals
 }
 
 case class SerializableTemplateExecutionResult(id:TemplateExecutionResultId,
@@ -322,6 +326,7 @@ case class SerializableTemplateExecutionResult(id:TemplateExecutionResultId,
                                                parameters:TemplateParameters,
                                                embedded:Boolean,
                                                processedSections:Seq[(Section, Int)],
+                                               externalCallStructures:Map[ServiceName, IntegratedServiceDefinition],
                                                clock:Clock) extends TemplateExecutionResult {
 
   override def subExecutions: Map[VariableName, TemplateExecutionResult] = subExecutionIds.flatMap({case (identifier, executionId) => templateExecutions.get(executionId).map(identifier -> _)})
@@ -362,6 +367,7 @@ case class OpenlawExecutionState(
                                     sectionNameMappingInverseInternal: mutable.Map[VariableName, String] = mutable.Map(),
                                     processedSectionsInternal: mutable.Buffer[(Section, Int)] = mutable.Buffer(),
                                     lastSectionByLevel:mutable.Map[Int, String] = mutable.Map(),
+                                    externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] = Map(),
                                     clock:Clock) extends TemplateExecutionResult {
 
   def variables:Seq[VariableDefinition] = variablesInternal
@@ -520,6 +526,7 @@ case class OpenlawExecutionState(
       parameters = parameters,
       embedded = embedded,
       processedSections = processedSections,
+      externalCallStructures = externalCallStructures,
       clock = clock
     )
   }

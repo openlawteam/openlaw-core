@@ -12,8 +12,8 @@ import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 import org.adridadou.openlaw.values._
 
-case class TemplateDefinition(name:TemplateSourceIdentifier, mappingInternal:Map[String, Expression] = Map(), path:Option[TemplatePath] = None) extends OpenlawNativeValue {
-  lazy val mapping: Map[VariableName, Expression] = mappingInternal.map({case (key,value) => VariableName(key) -> value})
+case class TemplateDefinition(name:TemplateSourceIdentifier, mappingInternal:Map[VariableName, Expression] = Map(), path:Option[TemplatePath] = None) extends OpenlawNativeValue {
+  lazy val mapping: Map[VariableName, Expression] = mappingInternal.map({case (key,value) => key -> value})
 }
 
 case class TemplateSourceIdentifier(name:TemplateTitle)
@@ -120,7 +120,7 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
   def prepareTemplateSource(mappingParameter: Parameters, executionResult: TemplateExecutionResult, parameters: Map[VariableName, Expression], path: Option[TemplatePath]):Result[TemplateDefinition] = {
     prepareTemplateName(mappingParameter, executionResult).flatMap({
       case Some(source) =>
-        Success(TemplateDefinition(name = source, path = path, mappingInternal = parameters.map({ case (key, value) => key.name -> value })))
+        Success(TemplateDefinition(name = source, path = path, mappingInternal = parameters))
       case None =>
         Failure("name cannot be resolved yet!")
     })

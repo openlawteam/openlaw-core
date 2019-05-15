@@ -10,19 +10,22 @@ import cats.implicits._
 import io.circe._
 import io.circe.syntax._
 import io.circe.generic.semiauto._
+import LocalDateTimeHelper._
 
 import scala.reflect.ClassTag
 import scala.util.Try
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 import LocalDateTimeHelper._
-import org.adridadou.openlaw.oracles.{EthereumEventFilterExecution, PreparedERC712SmartContractCallExecution}
 import org.adridadou.openlaw._
+import org.adridadou.openlaw.oracles.{EthereumEventFilterExecution, PreparedERC712SmartContractCallExecution}
+import org.adridadou.openlaw.vm.Executions
 
 trait NoShowInForm
 
 trait ActionValue {
   def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions:Seq[OpenlawExecution]):Option[LocalDateTime]
   def identifier(executionResult:TemplateExecutionResult):ActionIdentifier
+  def executions(executionResult: TemplateExecutionResult):Option[Executions] = executionResult.executions.get(identifier(executionResult))
 }
 
 trait ActionType extends NoShowInForm {
@@ -45,6 +48,12 @@ object OpenlawExecution {
       cursor.as[EthereumEventFilterExecution]
     case _ if typeDefinition === className[EthereumSmartContractExecution] =>
       cursor.as[EthereumSmartContractExecution]
+    case _ if typeDefinition === className[SuccessfulExternalCallExecution] =>
+      cursor.as[SuccessfulExternalCallExecution]
+    case _ if typeDefinition === className[FailedExternalCallExecution] =>
+      cursor.as[FailedExternalCallExecution]
+    case _ if typeDefinition === className[PendingExternalCallExecution] =>
+      cursor.as[PendingExternalCallExecution]
   }
 }
 
@@ -82,8 +91,8 @@ trait OpenlawExecution extends OpenlawNativeValue {
 }
 
 object EthereumSmartContractExecution {
-  implicit val smartContractExecutionEnc: Encoder[EthereumSmartContractExecution] = deriveEncoder[EthereumSmartContractExecution]
-  implicit val smartContractExecutionDec: Decoder[EthereumSmartContractExecution] = deriveDecoder[EthereumSmartContractExecution]
+  implicit val smartContractExecutionEnc: Encoder[EthereumSmartContractExecution] = deriveEncoder
+  implicit val smartContractExecutionDec: Decoder[EthereumSmartContractExecution] = deriveDecoder
 }
 
 case class EthereumSmartContractExecution(scheduledDate:LocalDateTime, executionDate:LocalDateTime, executionStatus: OpenlawExecutionStatus = PendingExecution, tx:EthereumHash) extends OpenlawExecution {
@@ -97,6 +106,58 @@ case class EthereumSmartContractExecution(scheduledDate:LocalDateTime, execution
 
   override def typeIdentifier: String = className[EthereumSmartContractExecution]
   override def serialize: Json = this.asJson
+}
+
+case object RequestIdentifier {
+  implicit val requestIdentifierEnc: Encoder[RequestIdentifier] = (a: RequestIdentifier) => Json.fromString(a.identifier)
+  implicit val requestIdentifierDec: Decoder[RequestIdentifier] = (c: HCursor) => c.as[String].map(RequestIdentifier(_))
+
+  implicit val requestIdentifierEq:Eq[RequestIdentifier] = Eq.fromUniversalEquals
+}
+
+case class RequestIdentifier(identifier:String)
+
+object SuccessfulExternalCallExecution {
+  implicit val successfulExternalCallExecutionEnc:Encoder[SuccessfulExternalCallExecution] = deriveEncoder
+  implicit val successfulExternalCallExecutionDec:Decoder[SuccessfulExternalCallExecution] = deriveDecoder
+}
+
+final case class SuccessfulExternalCallExecution(scheduledDate:LocalDateTime, executionDate:LocalDateTime, result: String, requestIdentifier: RequestIdentifier) extends ExternalCallExecution {
+  def message: String = "the request has been added to the integrator queue and successfully executed"
+
+  override def typeIdentifier: String = className[SuccessfulExternalCallExecution]
+  override def serialize: Json = this.asJson
+  override def executionStatus: OpenlawExecutionStatus = SuccessfulExecution
+}
+
+object PendingExternalCallExecution {
+  implicit val pendingExternalCallExecutionEnc:Encoder[PendingExternalCallExecution] = deriveEncoder[PendingExternalCallExecution]
+  implicit val pendingExternalCallExecutionDec:Decoder[PendingExternalCallExecution] = deriveDecoder[PendingExternalCallExecution]
+}
+
+final case class PendingExternalCallExecution(scheduledDate:LocalDateTime, executionDate:LocalDateTime, requestIdentifier: RequestIdentifier) extends ExternalCallExecution {
+  def message: String = "the request has been submitted, waiting for the request to be executed"
+  override def typeIdentifier: String = className[PendingExternalCallExecution]
+  override def serialize: Json = this.asJson
+  override def executionStatus: OpenlawExecutionStatus = PendingExecution
+}
+
+object FailedExternalCallExecution {
+  implicit val failedExternalCallExecutionEnc:Encoder[FailedExternalCallExecution] = deriveEncoder[FailedExternalCallExecution]
+  implicit val failedExternalCallExecutionDec:Decoder[FailedExternalCallExecution] = deriveDecoder[FailedExternalCallExecution]
+}
+
+final case class FailedExternalCallExecution(scheduledDate:LocalDateTime, executionDate:LocalDateTime, errorMessage: String, requestIdentifier: RequestIdentifier) extends ExternalCallExecution {
+  def message: String = s"the request execution has failed. $errorMessage"
+  override def typeIdentifier: String = className[FailedExternalCallExecution]
+  override def serialize: Json = this.asJson
+  override def executionStatus: OpenlawExecutionStatus = FailedExecution
+}
+
+sealed trait ExternalCallExecution extends OpenlawExecution {
+  val requestIdentifier:RequestIdentifier
+
+  def key:String = requestIdentifier.identifier
 }
 
 sealed abstract class OpenlawExecutionStatus(val name:String)
@@ -113,11 +174,10 @@ object OpenlawExecutionStatus {
     case _ => PendingExecution
   }
 
-  implicit val executionStatusDecoder: Decoder[OpenlawExecutionStatus] = (c: HCursor) => {
-    for {
+  implicit val executionStatusDecoder: Decoder[OpenlawExecutionStatus] = (c: HCursor) => for {
       name <- c.as[String]
     } yield OpenlawExecutionStatus(name)
-  }
+
   implicit val executionStatusEncoder: Encoder[OpenlawExecutionStatus] = (a: OpenlawExecutionStatus) => Json.fromString(a.name)
 
   implicit val eqForExecutionStatus: Eq[OpenlawExecutionStatus] = Eq.fromUniversalEquals
@@ -264,6 +324,7 @@ object VariableType {
     EthTxHashType,
     EthereumCallType,
     EthereumEventFilterType,
+    ExternalCallType,
     IdentityType,
     LargeTextType,
     ImageType,

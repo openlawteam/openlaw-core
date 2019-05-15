@@ -1291,6 +1291,59 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
     }
   }
 
+  it should "allow specifying an external call" in {
+
+    val text =
+      """
+        |[[param1:Text]]
+        |[[param2:Text]]
+        |[[externalCall:ExternalCall(
+        |serviceName: "SomeIntegratedService";
+        |parameters:
+        | param1 -> param1,
+        | param2 -> param2;
+        |startDate: '2018-12-12 00:00:00';
+        |endDate: '2048-12-12 00:00:00';
+        |repeatEvery: '1 hour 30 minute')]]
+        |[[externalCall]]
+      """.stripMargin
+
+    val template = compile(text)
+
+    val Success(integratedService) = IntegratedServiceDefinition(
+      """
+        |[[Input:Structure(
+        |param1:Text;
+        |param2:Text
+        |)]]
+        |[[Output:Structure(
+        |computationResult:Text
+        |)]]
+      """.stripMargin)
+
+    engine.execute(template,
+      TemplateParameters("param1" -> "test1", "param2" -> "test2"),
+      Map(),
+      Map(ServiceName("SomeIntegratedService") -> integratedService)) match {
+      case Right(executionResult) =>
+        executionResult.getExecutedVariables.map(_.name).toSet shouldBe Set("param1", "param2", "externalCall")
+        val Some(externalCall) = executionResult.getVariable("externalCall")
+        val externalCallVarType = externalCall.varType(executionResult)
+        externalCallVarType.getTypeClass shouldBe classOf[ExternalCall]
+        val Some(externalCallValue) = executionResult.getVariableValue[ExternalCall](VariableName("externalCall"))
+        externalCallValue.getServiceName(executionResult) shouldBe "SomeIntegratedService"
+        val arguments = externalCallValue.getParameters(executionResult)
+        arguments.size shouldBe 2
+        arguments(VariableName("param1")).underlying shouldBe "test1"
+        arguments(VariableName("param2")).underlying shouldBe "test2"
+        externalCallValue.getStartDate(executionResult) shouldBe Some(LocalDateTime.parse("2018-12-12T00:00:00"))
+        externalCallValue.getEndDate(executionResult) shouldBe Some(LocalDateTime.parse("2048-12-12T00:00:00"))
+        externalCallValue.getEvery(executionResult) shouldBe Some(PeriodType.cast("1 hour 30 minute"))
+      case Left(ex) =>
+        fail(ex.message, ex)
+    }
+  }
+
   it should "be able to define options for Period type" in {
     val text="""[[test:Period(options: "1 day", "1 week", "2 months")]]"""
 
@@ -1352,8 +1405,6 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
 
     val Right(result) = engine.execute(template, TemplateParameters("conditional" -> "true"))
 
-    println(parser.forReview(result.agreements.head))
-
     parser.forReview(result.agreements.head) shouldBe "<p class=\"no-section\"><br /><table class=\"markdown-table\"><tr class=\"markdown-table-row\"><th class=\"markdown-table-header\">Optionee</th><th class=\"markdown-table-header\">Title</th><th class=\"markdown-table-header\">Address</th><th class=\"markdown-table-header\">Ethereum Address</th><th class=\"markdown-table-header\">Option Type</th><th class=\"markdown-table-header\">Number of Shares</th><th class=\"markdown-table-header\">Exercise Price</th><th class=\"markdown-table-header\">Vesting Commencement Date</th><th class=\"markdown-table-header\">Vesting Method</th><th class=\"markdown-table-header\">State of Residence</th></tr><tr class=\"markdown-table-row\"><td class=\"markdown-table-data\">[[Optionee 1 Name]]</td><td class=\"markdown-table-data\">[[Optionee 1 Title]]</td><td class=\"markdown-table-data\">[[Optionee 1 Address]]</td><td class=\"markdown-table-data\">[[Optionee 1 Ethereum Address]]</td><td class=\"markdown-table-data\">[[Optionee 1 Option Type]]</td><td class=\"markdown-table-data\">[[Optionee 1 Shares]]</td><td class=\"markdown-table-data\">[[Option Exercise Price]]</td><td class=\"markdown-table-data\">[[Optionee 1 Vesting Commencement Date]]</td><td class=\"markdown-table-data\">[[Optionee 1 Vesting Method]]</td><td class=\"markdown-table-data\">[[Optionee 1 State]]</td></tr></table><br />      </p>"
   }
 
@@ -1383,14 +1434,12 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
 
     engine.execute(template, TemplateParameters("my number" -> "0.000000042")) match {
       case Success(executionResult) =>
-        println(parser.forReview(executionResult.agreements.head))
         parser.forReview(executionResult.agreements.head) shouldBe "<p class=\"no-section\"><br />        0.000000042<br />      </p>"
       case Failure(ex, message) => fail(message ,ex)
     }
 
     engine.execute(template, TemplateParameters("my number" -> "4200000000")) match {
       case Success(executionResult) =>
-        println(parser.forReview(executionResult.agreements.head))
         parser.forReview(executionResult.agreements.head) shouldBe "<p class=\"no-section\"><br />        4,200,000,000<br />      </p>"
       case Failure(ex, message) => fail(message ,ex)
     }

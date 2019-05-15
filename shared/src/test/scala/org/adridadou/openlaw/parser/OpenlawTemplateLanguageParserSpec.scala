@@ -22,18 +22,18 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
   private val service = new OpenlawTemplateLanguageParserService(clock)
   private val engine = new OpenlawExecutionEngine
 
-  private def structureAgreement(text:String, p:Map[String, String] = Map(), templates:Map[TemplateSourceIdentifier, CompiledTemplate] = Map()):Result[StructuredAgreement] = compiledTemplate(text).flatMap({
+  private def structureAgreement(text:String, p:Map[String, String] = Map(), templates:Map[TemplateSourceIdentifier, CompiledTemplate] = Map(), externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] = Map()):Result[StructuredAgreement] = compiledTemplate(text).flatMap({
     case agreement:CompiledAgreement =>
       val params = p.map({case (k,v) => VariableName(k) -> v})
-      engine.execute(agreement, TemplateParameters(params), templates).map(agreement.structuredMainTemplate)
+      engine.execute(agreement, TemplateParameters(params), templates, externalCallStructures).map(agreement.structuredMainTemplate)
     case _ =>
       Failure("was expecting agreement")
   })
 
-  private def executeTemplate(text:String, p:Map[String, String] = Map(), templates:Map[TemplateSourceIdentifier, CompiledTemplate] = Map()):Result[OpenlawExecutionState] = compiledTemplate(text).flatMap({
+  private def executeTemplate(text:String, p:Map[String, String] = Map(), templates:Map[TemplateSourceIdentifier, CompiledTemplate] = Map(), externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] = Map()):Result[OpenlawExecutionState] = compiledTemplate(text).flatMap({
     case agreement:CompiledAgreement =>
       val params = p.map({case (k,v) => VariableName(k) -> v})
-      engine.execute(agreement, TemplateParameters(params), templates)
+      engine.execute(agreement, TemplateParameters(params), templates, externalCallStructures = externalCallStructures)
     case _ =>
       Failure("was expecting agreement")
   })
@@ -1528,5 +1528,86 @@ here""".stripMargin
 
     val actualHeader = template.header
     actualHeader.shouldShowTitle shouldBe false
+  }
+
+  it should "allow specifying an external call" in {
+    val inputStructureText =
+      """
+         |[[FakeServiceInput:Structure(
+         |param1: Text;
+         |param2: Text)]]
+         |[[input:FakeServiceInput]]
+      """.stripMargin
+
+    val inputStructureType = executeTemplate(inputStructureText) match {
+      case Right(executionResult) =>
+        executionResult.findVariableType(VariableTypeDefinition("FakeServiceInput")) match {
+          case Some(structureType: DefinedStructureType) => structureType.structure
+          case Some(variableType) => fail(s"invalid variable type ${variableType.thisType}")
+          case None => fail("structure type is not the right type")
+        }
+      case Left(ex) =>
+        fail(ex)
+    }
+
+    val outputStructureText =
+      """
+        |[[FakeServiceOutput:Structure(
+        |result: Text)]]
+        |[[output:FakeServiceOutput]]
+      """.stripMargin
+
+    val outputStructureType = executeTemplate(outputStructureText) match {
+      case Right(executionResult) =>
+        executionResult.findVariableType(VariableTypeDefinition("FakeServiceOutput")) match {
+          case Some(structureType:DefinedStructureType) => structureType.structure
+          case Some(variableType) => fail(s"invalid variable type ${variableType.thisType}")
+          case None => fail("structure type is not the right type")
+        }
+      case Left(ex) =>
+        fail(ex)
+    }
+
+    val input =
+      """
+         |[[var1:Text]]
+         |[[var2:Text]]
+         |[[myExternalCall:ExternalCall(
+         |serviceName: "FakeServiceInput";
+         |parameters:
+         | param1 -> var1,
+         | param2 -> var2;
+         |startDate: '2018-12-12 00:00:00';
+         |endDate: '2048-12-12 00:00:00';
+         |repeatEvery: '1 hour 30 minutes')]]
+         |[[myExternalCall]]
+      """.stripMargin
+
+    executeTemplate(input) match {
+      case Right(executionResult) =>
+        val externalCallType = executionResult.findVariableType(VariableTypeDefinition("ExternalCall")) match {
+            case Some(variableType) => variableType
+            case None => fail("structure type is not the right type")
+        }
+        externalCallType shouldBe ExternalCallType
+
+        val Right(newExecutionResult) = executeTemplate(input,
+          Map("param1" -> "5", "param2" -> "5"),
+          Map(),
+          Map(ServiceName("FakeServiceInput") -> IntegratedServiceDefinition(inputStructureType, outputStructureType)))
+
+        newExecutionResult.getVariables(ExternalCallType).size shouldBe 1
+        val allActions = executionResult.allActions
+        allActions.size shouldBe 1
+
+        val call = executionResult.getVariableValues[ExternalCall](ExternalCallType).head
+        call.serviceName.asInstanceOf[StringConstant].value shouldBe "FakeServiceInput"
+        call.parameters.map(_.toString) shouldBe List("(param1,var1)", "(param2,var2)")
+        call.startDate.map(_.toString) shouldBe Some("\"2018-12-12 00:00:00\"")
+        call.endDate.map(_.toString) shouldBe Some("\"2048-12-12 00:00:00\"")
+        call.every.map(_.toString) shouldBe Some("\"1 hour 30 minutes\"")
+      case Left(ex) =>
+        fail(ex)
+    }
   }
 }

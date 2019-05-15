@@ -2,9 +2,9 @@ package org.adridadou.openlaw.vm
 
 import java.time.{Clock, LocalDateTime}
 
-import org.adridadou.openlaw.{OpenlawString, oracles}
+import org.adridadou.openlaw.{OpenlawMap, OpenlawString, oracles}
 import org.adridadou.openlaw.oracles._
-import org.adridadou.openlaw.parser.template.{ExecutionFinished, ExpressionParserService, OpenlawTemplateLanguageParserService, VariableName}
+import org.adridadou.openlaw.parser.template.{ActionIdentifier, ExecutionFinished, ExpressionParserService, OpenlawTemplateLanguageParserService, VariableName, variableTypes}
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.result.{Failure, Success}
 import org.adridadou.openlaw.values.{ContractDefinition, ContractId, TemplateId, TemplateParameters}
@@ -384,6 +384,85 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
         vm.allExecutions.keys shouldNot contain(VariableName("Signature"))
       case Failure(ex, message) =>
         fail(message, ex)
+    }
+  }
+
+  it should "execute an external call and display the result" in {
+    val templateContent =
+      """<%
+        |[[param1:Text]]
+        |[[param2:Text]]
+        |[[externalCall:ExternalCall(
+        |serviceName: "SomeIntegratedService";
+        |parameters:
+        | param1 -> param1,
+        | param2 -> param2;
+        |startDate: '2018-12-12 00:00:00';
+        |endDate: '2048-12-12 00:00:00';
+        |repeatEvery: '1 hour 30 minute')]]
+        |%>
+        |
+        |[[identity:Identity]]
+        |
+        |[[externalCall.result.computationResult]]
+      """.stripMargin
+
+    val templateId = TemplateId(TestCryptoService.sha256(templateContent))
+    val email = Email("email@email.com")
+    val identity = Identity(email)
+    val definition = ContractDefinition(
+      creatorId = UserId("hello@world.com"),
+      mainTemplate = templateId,
+      templates = Map(),
+      parameters = TemplateParameters(
+        "identity" -> IdentityType.internalFormat(identity),
+        "param1" -> TextType.internalFormat("test value 1"),
+        "param2" -> TextType.internalFormat("test value 2")
+      )
+    )
+
+    val contractId = definition.id(TestCryptoService)
+    val Success(abi) = variableTypes.IntegratedServiceDefinition(
+      """[[Input:Structure(
+        |param1: Text;
+        |param2: Text
+        |)]]
+        |
+        |[[Output:Structure(
+        |computationResult:Text
+        |)]]
+        |""".stripMargin
+      )
+
+    val vm = vmProvider.create(definition, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq(), Map(ServiceName("SomeIntegratedService") -> abi))
+    vm(LoadTemplate(templateContent))
+    vm.executionResultState shouldBe ExecutionFinished
+    vm.executionState shouldBe ContractCreated
+
+    val signature = EthereumSignature(sign(identity, contractId).signature)
+    val signatureEvent = oracles.OpenlawSignatureEvent(contractId, email, "", signature, EthereumHash.empty)
+    vm(signatureEvent)
+
+    val identifier = ActionIdentifier("SomeIntegratedService#param1->test value 1#param2->test value 2")
+    val requestIdentifier = RequestIdentifier("test exec hash")
+
+    val pendingExternalCallEvent = oracles.PendingExternalCallEvent(identifier, requestIdentifier, LocalDateTime.now)
+    vm(pendingExternalCallEvent)
+
+    val externalResult = abi.definedOutput.internalFormat(OpenlawMap(Map(VariableName("computationResult") -> OpenlawString("Hello World"))))
+    val successfulExternalCallEvent = oracles.SuccessfulExternalCallEvent(identifier, requestIdentifier, LocalDateTime.now, externalResult)
+    vm(successfulExternalCallEvent)
+
+    vm.getAllExecutedVariables(ExternalCallType).size shouldBe 1
+
+    val execution = variableTypes.SuccessfulExternalCallExecution(LocalDateTime.now, LocalDateTime.now, externalResult, requestIdentifier)
+    vm.newExecution(identifier, execution)
+
+    vm.evaluate[OpenlawString]("externalCall.result.computationResult") match {
+      case Success(result) =>
+        result.underlying shouldBe "Hello World"
+      case Failure(err, msg) =>
+        fail(msg, err)
     }
   }
 

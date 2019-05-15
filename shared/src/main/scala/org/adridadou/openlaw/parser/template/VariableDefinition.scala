@@ -3,7 +3,7 @@ package org.adridadou.openlaw.parser.template
 import cats.Eq
 import org.adridadou.openlaw.parser.template.variableTypes._
 import cats.implicits._
-import io.circe.{Decoder, Encoder, KeyDecoder, KeyEncoder}
+import io.circe.{Decoder, Encoder, HCursor, Json, KeyDecoder, KeyEncoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import org.adridadou.openlaw.OpenlawValue
 import org.adridadou.openlaw.parser.template.expressions.Expression
@@ -121,13 +121,16 @@ object VariableDefinition {
   def apply(name:VariableName):VariableDefinition =
     new VariableDefinition(name = name)
 
+  def apply(name:String, varType:VariableType):VariableDefinition =
+    VariableDefinition(name = VariableName(name), Some(VariableTypeDefinition(varType.name)))
+
   implicit val variableDefinitionEnc: Encoder[VariableDefinition] = deriveEncoder[VariableDefinition]
   implicit val variableDefinitionDec: Decoder[VariableDefinition] = deriveDecoder[VariableDefinition]
 }
 
 object VariableName {
-  implicit val variableNameEnc: Encoder[VariableName] = deriveEncoder[VariableName]
-  implicit val variableNameDec: Decoder[VariableName] = deriveDecoder[VariableName]
+  implicit val variableNameEnc: Encoder[VariableName] = (a: VariableName) => Json.fromString(a.name)
+  implicit val variableNameDec: Decoder[VariableName] = (c: HCursor) => c.as[String].map(n => VariableName(n))
   implicit val variableNameKeyEnc: KeyEncoder[VariableName] = (key: VariableName) => key.name
   implicit val variableNameKeyDec: KeyDecoder[VariableName] = (key: String) => Some(VariableName(key))
   implicit val variableNameEq:Eq[VariableName] = Eq.fromUniversalEquals

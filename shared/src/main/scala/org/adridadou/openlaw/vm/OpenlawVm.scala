@@ -46,6 +46,7 @@ case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
                            executionEngine: OpenlawExecutionEngine,
                            executionState:ContractExecutionState,
                            crypto:CryptoService,
+                           externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] = Map(),
                            clock:Clock) extends LazyLogging {
 
   def updateTemplate(id: TemplateId, compiledTemplate: CompiledTemplate, event:LoadTemplate): OpenlawVmState =
@@ -58,14 +59,14 @@ case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
 
   def updateParameter(name:VariableName, value:String, event:OpenlawVmEvent) :OpenlawVmState = {
     val newParams = state + (name -> value)
-    update(templates, newParams, createNewExecutionResult(newParams, templates, signatureProofs, executions), event).copy(
+    update(templates, newParams, createNewExecutionResult(newParams, templates, signatureProofs, executions, externalCallStructures), event).copy(
       state = newParams
     )
   }
 
   def executionResult:Option[OpenlawExecutionState] = optExecutionResult match {
     case Some(result) => Some(result)
-    case None => createNewExecutionResult(state, templates, signatureProofs, executions)
+    case None => createNewExecutionResult(state, templates, signatureProofs, executions, externalCallStructures)
   }
 
   private def update(templates:Map[TemplateId, CompiledTemplate], parameters:TemplateParameters, optExecution:Option[OpenlawExecutionState], event:OpenlawVmEvent) : OpenlawVmState = {
@@ -73,7 +74,7 @@ case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
       case Some(executionResult) =>
         Some(executionResult)
       case None =>
-        createNewExecutionResult(parameters, templates, signatureProofs, executions)
+        createNewExecutionResult(parameters, templates, signatureProofs, executions, externalCallStructures)
     }
 
     execution.map(executeContract(templates, _) match {
@@ -99,12 +100,12 @@ case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
       executionEngine.resumeExecution(execution, templates)
   }
 
-  def createNewExecutionResult(signatureProofs:Map[Email, OpenlawSignatureProof]):Option[OpenlawExecutionState] =
-    createNewExecutionResult(state, templates, signatureProofs, executions)
+  def createNewExecutionResult(signatureProofs:Map[Email, OpenlawSignatureProof], externalCallStructures: Map[ServiceName, IntegratedServiceDefinition]):Option[OpenlawExecutionState] =
+    createNewExecutionResult(state, templates, signatureProofs, executions, externalCallStructures)
 
-  def createNewExecutionResult(params:TemplateParameters, templates:Map[TemplateId, CompiledTemplate],signatureProofs:Map[Email, OpenlawSignatureProof], executions:Map[ActionIdentifier, Executions]):Option[OpenlawExecutionState] = {
+  def createNewExecutionResult(params:TemplateParameters, templates:Map[TemplateId, CompiledTemplate],signatureProofs:Map[Email, OpenlawSignatureProof], executions:Map[ActionIdentifier, Executions], externalCallStructures: Map[ServiceName, IntegratedServiceDefinition]):Option[OpenlawExecutionState] = {
     val templateDefinitions = definition.templates.flatMap({case (templateDefinition, id) => templates.get(id).map(templateDefinition -> _)})
-    templates.get(definition.mainTemplate).map(executionEngine.execute(_, params, templateDefinitions, signatureProofs, executions, Some(definition.id(crypto)), profileAddress)) match {
+    templates.get(definition.mainTemplate).map(executionEngine.execute(_, params, templateDefinitions, signatureProofs, executions, externalCallStructures, Some(definition.id(crypto)), profileAddress)) match {
       case None => None
       case Some(Right(result)) =>
         Some(result)
@@ -116,7 +117,7 @@ case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
   }
 }
 
-case class OpenlawVm(contractDefinition: ContractDefinition, profileAddress:Option[EthereumAddress], crypto: CryptoService, parser:OpenlawTemplateLanguageParserService, identityOracle:OpenlawSignatureOracle, oracles:Seq[OpenlawOracle[_]]) extends LazyLogging {
+case class OpenlawVm(contractDefinition: ContractDefinition, profileAddress:Option[EthereumAddress], crypto: CryptoService, parser:OpenlawTemplateLanguageParserService, identityOracle:OpenlawSignatureOracle, oracles:Seq[OpenlawOracle[_]], externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] = Map()) extends LazyLogging {
   private val templateOracle = TemplateLoadOracle(crypto)
   val contractId:ContractId = contractDefinition.id(crypto)
   private val expressionParser = new ExpressionParserService
@@ -131,7 +132,8 @@ case class OpenlawVm(contractDefinition: ContractDefinition, profileAddress:Opti
     optExecutionResult = None,
     executionState = ContractCreated,
     clock = parser.internalClock,
-    crypto = crypto
+    crypto = crypto,
+    externalCallStructures = externalCallStructures,
   )
 
   def isSignatureValid(data:EthereumData, event:OpenlawSignatureEvent):Boolean = {
@@ -180,7 +182,7 @@ case class OpenlawVm(contractDefinition: ContractDefinition, profileAddress:Opti
   def newSignature(identity:Identity, fullName:String, signature:OpenlawSignatureEvent):OpenlawVm = {
     val email = identity.email
     val signatureProofs = state.signatureProofs + (email -> signature.proof)
-    val newExecutionResult = state.createNewExecutionResult(signatureProofs)
+    val newExecutionResult = state.createNewExecutionResult(signatureProofs, state.externalCallStructures)
     state = state.copy(
       signatures = state.signatures + (email -> signature),
       signatureProofs = signatureProofs,
@@ -211,7 +213,7 @@ case class OpenlawVm(contractDefinition: ContractDefinition, profileAddress:Opti
       case FailedExecution =>
         state = state.copy(executions = newExecutions, executionState = ContractStopped)
       case _ =>
-        val newExecutionResult = state.createNewExecutionResult(state.state, state.templates, state.signatureProofs, newExecutions)
+        val newExecutionResult = state.createNewExecutionResult(state.state, state.templates, state.signatureProofs, newExecutions, state.externalCallStructures)
         state = state.copy(executions = newExecutions, optExecutionResult = newExecutionResult)
     }
 
