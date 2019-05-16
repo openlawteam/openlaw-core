@@ -26,7 +26,21 @@ PUSH_CACHE=${PUSH_CACHE:-0}
 # fall back to trying to parse git locally. The latter may not work in many CI
 # Docker containers (since they don't contain git) so you likely want to make
 # sure this is passed in CI based on the particular host's methodology.
-BRANCH=${BRANCH:-$(git rev-parse --abbrev-ref HEAD)}
+#
+# As some systems will pass along tags as the branch, or even the full ref, we
+# strip anything passed in $BRANCH such that:
+#
+#   master                  -> [master]
+#   feature1                -> [feature1]
+#   refs/heads/feature1     -> [feature1]
+#   refs/tags/v1.0.3        -> [v1.0.3]
+#   refs/tags/v1.0.3-rc.1   -> [v1.0.3-rc.1]
+#
+if [ -n "$BRANCH" ]; then
+    BRANCH=${BRANCH##*/}
+else
+    BRANCH=$(git rev-parse --abbrev-ref HEAD)
+fi
 
 # Define full tags for both current branch and master branch. We want to be 
 # able to fall back to the last master branch build in the situation where
