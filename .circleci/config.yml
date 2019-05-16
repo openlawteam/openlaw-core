@@ -25,7 +25,7 @@ executors:
     parameters:
       branchname:
         type: string
-        default: ${CIRCLE_BRANCH}
+        default: ${CIRCLE_BRANCH:-$CIRCLE_TAG}
 
 jobs:
   build:
