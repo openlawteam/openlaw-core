@@ -5,6 +5,7 @@ import org.adridadou.openlaw.parser.template.variableTypes._
 import cats.implicits._
 import io.circe.{Decoder, Encoder, KeyDecoder, KeyEncoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
+import org.adridadou.openlaw.{OpenlawString, OpenlawValue}
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 import org.adridadou.openlaw.result.Implicits.RichResult
@@ -28,14 +29,13 @@ case class VariableMember(name:VariableName, keys:Seq[String], formatter:Option[
       .getOrThrow()
   }
 
-  override def evaluate(executionResult:TemplateExecutionResult): Option[Any] = {
-
+  override def evaluate(executionResult:TemplateExecutionResult): Option[OpenlawValue] = {
     val expr = name.aliasOrVariable(executionResult)
     val exprType = expr.expressionType(executionResult)
     val optValue = expr.evaluate(executionResult)
 
-    optValue.map(exprType.access(_, name, keys, executionResult) match {
-      case Right(Some(value)) => value
+    optValue.flatMap(exprType.access(_, name, keys, executionResult) match {
+      case Right(Some(value)) => Some(value)
       case Right(None) => None
       case Left(ex) => throw new RuntimeException(ex.e)
     })
@@ -61,7 +61,7 @@ case class VariableName(name:String) extends Expression {
     }
   }
 
-  override def evaluate(executionResult:TemplateExecutionResult):Option[Any] = {
+  override def evaluate(executionResult:TemplateExecutionResult):Option[OpenlawValue] = {
     executionResult.getVariable(name) match {
       case Some(variable) =>
         variable.evaluate(executionResult)
@@ -135,20 +135,19 @@ object VariableName {
   implicit val variableNameJsonWriter:Writes[VariableName] = Writes {name => JsString(name.name)}
   implicit val variableNameJsonReader:Reads[VariableName] = Reads {value => value.validate[String].map(VariableName.apply)}
 
-
   def apply(name:String):VariableName = new VariableName(name.trim)
 }
 
 case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[VariableTypeDefinition] = None, description:Option[String] = None, formatter:Option[FormatterDefinition] = None, isHidden:Boolean = false, defaultValue:Option[Parameter] = None) extends TextElement("VariableDefinition") with TemplatePart with Expression {
 
-  def constructT[T](executionResult: TemplateExecutionResult)(implicit classTag:ClassTag[T]): Result[Option[T]] = {
+  def constructT[T <: OpenlawValue](executionResult: TemplateExecutionResult)(implicit classTag:ClassTag[T]): Result[Option[T]] = {
     construct(executionResult).flatMap({
       case Some(value) => attempt(Some(VariableType.convert[T](value)))
       case None => Success(None)
     })
   }
 
-  def construct(executionResult: TemplateExecutionResult): Result[Option[Any]] = defaultValue match {
+  def construct(executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = defaultValue match {
     case Some(parameter) =>
       varType(executionResult).construct(parameter, executionResult)
     case None if varType(executionResult) === OLOwnType => Success(Some(executionResult.info))
@@ -181,12 +180,12 @@ case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[
     }
   }
 
-  def cast(value: String, executionResult:TemplateExecutionResult): Any =
+  def cast(value: String, executionResult:TemplateExecutionResult): OpenlawValue =
     varType(executionResult).cast(value, executionResult)
 
   def nameOnly:Boolean = variableTypeDefinition === None
 
-  override def evaluate(executionResult: TemplateExecutionResult): Option[Any] = {
+  override def evaluate(executionResult: TemplateExecutionResult): Option[OpenlawValue] = {
     executionResult.getAlias(this.name) match {
       case Some(alias) =>
         alias.evaluate(executionResult)
@@ -206,11 +205,13 @@ case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[
     }
   }
 
-  private def constructVariable(optVariable:Option[VariableDefinition], executionResult: TemplateExecutionResult):Option[Any] = optVariable
+  private def constructVariable(optVariable:Option[VariableDefinition], executionResult: TemplateExecutionResult):Option[OpenlawValue] = {
+    optVariable
       .map(variable => variable.construct(executionResult)) match {
       case Some(Right(value)) => value
       case Some(Left(ex)) => throw ex.e
       case None => None
+    }
   }
 
   override def expressionType(executionResult: TemplateExecutionResult): VariableType = executionResult.getAlias(name)
@@ -251,7 +252,7 @@ case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[
 
   private def validateOption(expr:Expression, choices:Choices, typeName:String, executionResult: TemplateExecutionResult): Result[Unit] = {
     expr.evaluate(executionResult).map {
-      case str: String =>
+      case OpenlawString(str) =>
         choices.values.find(_ === str) match {
           case Some(_) =>
             Success(())

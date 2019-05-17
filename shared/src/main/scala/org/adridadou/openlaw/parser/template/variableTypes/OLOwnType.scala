@@ -5,6 +5,7 @@ import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.syntax._
 import io.circe.parser._
+import org.adridadou.openlaw.OpenlawValue
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 
@@ -12,10 +13,10 @@ case object OLOwnType extends VariableType("OLInfo") with NoShowInForm {
 
   override def cast(value: String, executionResult: TemplateExecutionResult): OLInformation = handleEither(decode[OLInformation](value))
 
-  override def internalFormat(value: Any): String = VariableType.convert[OLInformation](value).asJson.noSpaces
+  override def internalFormat(value: OpenlawValue): String = VariableType.convert[OLInformation](value).asJson.noSpaces
 
   override def thisType: VariableType = OLOwnType
-  override def getTypeClass: Class[_] = classOf[OLInformation]
+  override def getTypeClass = classOf[OLInformation]
 
   override def keysType(keys: Seq[String], expr: Expression, executionResult: TemplateExecutionResult): Result[VariableType] = keys.toList match {
     case Nil => Success(OLOwnType)
@@ -23,7 +24,7 @@ case object OLOwnType extends VariableType("OLInfo") with NoShowInForm {
     case _ => Failure(s"Openlaw contract info has only one level of properties. invalid property access ${keys.mkString(".")}")
   }
 
-  override def access(value: Any, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[Any]] = {
+  override def access(value: OpenlawValue, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = {
     keys.toList match {
       case Nil => Success(Some(executionResult.info))
       case head::Nil => accessProperty(executionResult.info, head).map(Some(_))
@@ -55,4 +56,4 @@ object OLInformation {
   implicit val olInformationDec:Decoder[OLInformation] = deriveDecoder[OLInformation]
 }
 
-case class OLInformation(id:Option[ContractId])
+case class OLInformation(id:Option[ContractId]) extends OpenlawValue

@@ -16,6 +16,7 @@ import scala.util.Try
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 import LocalDateTimeHelper._
 import org.adridadou.openlaw.oracles.{EthereumEventFilterExecution, PreparedERC712SmartContractCallExecution}
+import org.adridadou.openlaw._
 
 trait NoShowInForm
 
@@ -24,7 +25,7 @@ trait ActionValue {
 }
 
 trait ActionType extends NoShowInForm {
-  def actionValue(value:Any):ActionValue
+  def actionValue(value:OpenlawValue):ActionValue
 
 }
 
@@ -62,14 +63,14 @@ object OpenlawExecutionInit {
   }
 }
 
-trait OpenlawExecutionInit {
+trait OpenlawExecutionInit extends OpenlawValue {
   protected def className[T]()(implicit cls:ClassTag[T]):String = cls.runtimeClass.getName
 
   def typeIdentifier: String
   def serialize: String
 }
 
-trait OpenlawExecution {
+trait OpenlawExecution extends OpenlawValue {
   def scheduledDate:LocalDateTime
   def executionDate:LocalDateTime
   def executionStatus:OpenlawExecutionStatus
@@ -141,7 +142,7 @@ abstract class VariableType(val name: String) {
   def operationWith(rightType: VariableType, operation: ValueOperation): VariableType =
     this
 
-  def access(value: Any, variableName:VariableName, keys: Seq[String], executionResult:TemplateExecutionResult): Result[Option[Any]] = {
+  def access(value: OpenlawValue, variableName:VariableName, keys: Seq[String], executionResult:TemplateExecutionResult): Result[Option[OpenlawValue]] = {
     if(keys.isEmpty) {
       Success(Some(value))
     } else {
@@ -149,7 +150,7 @@ abstract class VariableType(val name: String) {
     }
   }
 
-  def getTypeClass: Class[_]
+  def getTypeClass: Class[_ <: OpenlawValue]
 
   def checkTypeName(nameToCheck: String): Boolean =
     this.name.equalsIgnoreCase(nameToCheck)
@@ -163,25 +164,25 @@ abstract class VariableType(val name: String) {
     Success(thisType)
   }
 
-  def plus(optLeft: Option[Any], optRight: Option[Any], executionResult: TemplateExecutionResult): Option[Any] =
+  def plus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Option[OpenlawValue] =
     throw new UnsupportedOperationException(s"$name type does not support addition")
-  def minus(optLeft: Option[Any], optRight: Option[Any], executionResult: TemplateExecutionResult): Option[Any] =
+  def minus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Option[OpenlawValue] =
     throw new UnsupportedOperationException(s"$name type does not support substraction")
-  def multiply(optLeft: Option[Any], optRight: Option[Any], executionResult: TemplateExecutionResult): Option[Any] =
+  def multiply(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Option[OpenlawValue] =
     throw new UnsupportedOperationException(s"$name type does not support multiplication")
-  def divide(optLeft: Option[Any], optRight: Option[Any], executionResult: TemplateExecutionResult): Option[Any] =
+  def divide(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Option[OpenlawValue] =
     throw new UnsupportedOperationException(s"$name type does not support division")
 
   def isCompatibleType(otherType: VariableType, operation: ValueOperation): Boolean =
     otherType === this
 
-  def cast(value: String, executionResult:TemplateExecutionResult): Any
+  def cast(value: String, executionResult:TemplateExecutionResult): OpenlawValue
 
   def missingValueFormat(name: VariableName): Seq[AgreementElement] = Seq(FreeText(Text(s"[[${name.name}]]")))
 
-  def internalFormat(value: Any): String
+  def internalFormat(value: OpenlawValue): String
 
-  def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Result[Option[Any]] = constructorParams match {
+  def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = constructorParams match {
       case OneValueParameter(expr) =>
         attempt(expr.evaluate(executionResult))
       case Parameters(parameterMap) =>
@@ -234,7 +235,7 @@ abstract class VariableType(val name: String) {
     case _ => throw new RuntimeException("invalid parameter type " + param.getClass.getSimpleName + " expecting single expression")
   }
 
-  def format(formatter:Option[FormatterDefinition], value:Any, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] =
+  def format(formatter:Option[FormatterDefinition], value:OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] =
     formatter
       .map(getFormatter(_, executionResult))
       .getOrElse(defaultFormatter)
@@ -285,24 +286,26 @@ object VariableType {
     get(v,executionResult, PeriodType.cast)
   def getEthereumAddress(v: Expression, executionResult: TemplateExecutionResult): EthereumAddress =
     get(v,executionResult,EthAddressType.cast)
-  def getDate(v: Expression, executionResult: TemplateExecutionResult): LocalDateTime =
+  def getDate(v: Expression, executionResult: TemplateExecutionResult): OpenlawDateTime =
     get(v,executionResult, DateTimeType.cast)
   def getMetadata(v: Expression, executionResult: TemplateExecutionResult): SmartContractMetadata =
     get(v,executionResult,SmartContractMetadataType.cast)
   def getString(v: Expression, executionResult: TemplateExecutionResult): String =
-    get(v,executionResult, (str,_) => str)
+    get[OpenlawString](v,executionResult, (str,_) => str).string
 
-  def get[T](v: Expression, executionResult: TemplateExecutionResult, cast: (String,TemplateExecutionResult) => T)(implicit classTag: ClassTag[T]): T =
+  def get[T <: OpenlawValue](v: Expression, executionResult: TemplateExecutionResult, cast: (String,TemplateExecutionResult) => T)(implicit classTag: ClassTag[T]): T =
     v.evaluate(executionResult).map({
       case value:T => value
-      case value:String => cast(value, executionResult)
+      case value:OpenlawString => cast(value, executionResult)
       case value => throw new RuntimeException("cannot get value of type " + value.getClass.getSimpleName + ". expecting " + classTag.runtimeClass.getSimpleName)
     }) match {
       case Some(value) => value
       case None => throw new RuntimeException("could not get the value. Missing data")
     }
 
-  def convert[T](value:Any)(implicit classTag: ClassTag[T]): T = value match {
+  //def convert[T](value:OpenlawValue)(implicit ev: T => OpenlawValue): OpenlawValue = convert[T](value)
+
+  def convert[T <: OpenlawValue](value:OpenlawValue)(implicit classTag: ClassTag[T]): T = value match {
     case convertedValue: T =>
       convertedValue
     case other =>

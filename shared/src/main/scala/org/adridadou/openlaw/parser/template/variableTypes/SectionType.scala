@@ -3,11 +3,12 @@ package org.adridadou.openlaw.parser.template.variableTypes
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.parser.decode
+import org.adridadou.openlaw.{OpenlawString, OpenlawValue}
 import org.adridadou.openlaw.parser.template.formatters.Formatter
 import org.adridadou.openlaw.parser.template._
-import org.adridadou.openlaw.result.{attempt, Failure, Result, Success}
+import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 
-case class SectionInfo(name: Option[String], numbering: String, value:String)
+case class SectionInfo(name: Option[String], numbering: String, value:String) extends OpenlawValue
 
 case object SectionType extends VariableType(name = "Section") with NoShowInForm {
 
@@ -16,11 +17,11 @@ case object SectionType extends VariableType(name = "Section") with NoShowInForm
 
   override def cast(value: String, executionResult: TemplateExecutionResult): SectionInfo = handleEither(decode[SectionInfo](value))
 
-  override def internalFormat(value: Any): String = VariableType.convert[String](value)
+  override def internalFormat(value: OpenlawValue): String = VariableType.convert[OpenlawString](value)
 
   override def defaultFormatter: Formatter = new SectionFormatter
 
-  override def getTypeClass: Class[_ <: SectionInfo] = classOf[SectionInfo]
+  override def getTypeClass: Class[SectionInfo] = classOf[SectionInfo]
 
   // TODO: SectionType is a special type and we should handle it differently. i.e. it shouldn't be possible to use it in the code directly.
   override def checkTypeName(nameToCheck: String): Boolean = Seq("Section").exists(_.equalsIgnoreCase(nameToCheck))
@@ -49,7 +50,7 @@ case object SectionType extends VariableType(name = "Section") with NoShowInForm
 }
 
 class SectionFormatter extends Formatter {
-  override def format(value: Any, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] =
+  override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] =
     attempt(VariableType.convert[SectionInfo](value)) map {
       case SectionInfo(_, _, referenceValue) => Seq(FreeText(Text(referenceValue)))
     }

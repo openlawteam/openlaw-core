@@ -9,6 +9,7 @@ import org.adridadou.openlaw.result.{Failure, Result, Success}
 import org.adridadou.openlaw.values.TemplateParameters
 import io.circe.generic.semiauto._
 import io.circe.syntax._
+import org.adridadou.openlaw.{OpenlawString, OpenlawValue}
 
 /**
   * Created by davidroon on 06.06.17.
@@ -35,18 +36,18 @@ trait ConstantExpression extends Expression {
 
 case class NoopConstant(varType:VariableType) extends ConstantExpression {
   override def typeFunction: TemplateExecutionResult => VariableType = _ => varType
-  override def evaluate(executionResult: TemplateExecutionResult): Option[Any] = None
+  override def evaluate(executionResult: TemplateExecutionResult): Option[OpenlawValue] = None
 }
 
 case class StringConstant(value:String, typeFunction: TemplateExecutionResult => VariableType = _ => TextType) extends ConstantExpression {
-  override def evaluate(executionResult: TemplateExecutionResult): Option[Any] =
+  override def evaluate(executionResult: TemplateExecutionResult): Option[OpenlawValue] =
     Some(typeFunction(executionResult).cast(value, executionResult))
 
   override def toString: String = "\"" + value + "\""
 }
 
 case class JsonConstant(value:String, typeFunction: TemplateExecutionResult => VariableType = _ => TextType) extends ConstantExpression {
-  override def evaluate(executionResult: TemplateExecutionResult): Option[Any] =
+  override def evaluate(executionResult: TemplateExecutionResult): Option[OpenlawValue] =
     Some(typeFunction(executionResult).cast(value, executionResult))
 
 
@@ -54,7 +55,7 @@ case class JsonConstant(value:String, typeFunction: TemplateExecutionResult => V
 }
 
 case class NumberConstant(value:BigDecimal, typeFunction: TemplateExecutionResult => VariableType = _ => NumberType) extends ConstantExpression {
-  override def evaluate(executionResult: TemplateExecutionResult): Option[Any] =
+  override def evaluate(executionResult: TemplateExecutionResult): Option[OpenlawValue] =
     Some(typeFunction(executionResult).cast(value.toString(), executionResult))
 
 
@@ -144,7 +145,7 @@ case class Section(uuid:String, definition:Option[SectionDefinition], lvl:Int) e
       parameter <- parameters.parameterMap.toMap.get("symbol")
       expr <- getSingleExpression(parameter)
       name <- expr.evaluate(executionResult)
-      result <- SectionSymbol.withNameOption(VariableType.convert[String](name))
+      result <- SectionSymbol.withNameOption(VariableType.convert[OpenlawString](name))
     } yield result
 
   private def localOverrideFormat(executionResult: TemplateExecutionResult): Option[SectionFormat] =
@@ -154,7 +155,7 @@ case class Section(uuid:String, definition:Option[SectionDefinition], lvl:Int) e
       parameter <- parameters.parameterMap.toMap.get("format")
       expr <- getSingleExpression(parameter)
       name <- expr.evaluate(executionResult)
-      result <- SectionFormat.withNameOption(VariableType.convert[String](name))
+      result <- SectionFormat.withNameOption(VariableType.convert[OpenlawString](name))
     } yield result
 }
 

@@ -1,6 +1,7 @@
 package org.adridadou.openlaw.parser.template.expressions
 
 import io.circe._
+import org.adridadou.openlaw.OpenlawValue
 import org.adridadou.openlaw.parser.template.variableTypes.VariableType
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.result.Result
@@ -12,14 +13,14 @@ trait Expression {
 
   def validate(executionResult: TemplateExecutionResult): Result[Unit]
 
-  def minus(right: Expression, executionResult: TemplateExecutionResult): Option[Any] = expressionType(executionResult).minus(evaluate(executionResult), right.evaluate(executionResult), executionResult)
-  def plus(right: Expression, executionResult: TemplateExecutionResult): Option[Any] = expressionType(executionResult).plus(evaluate(executionResult), right.evaluate(executionResult), executionResult)
-  def multiply(right: Expression, executionResult: TemplateExecutionResult): Option[Any] = expressionType(executionResult).multiply(evaluate(executionResult), right.evaluate(executionResult), executionResult)
-  def divide(right: Expression, executionResult: TemplateExecutionResult): Option[Any] = expressionType(executionResult).divide(evaluate(executionResult), right.evaluate(executionResult), executionResult)
+  def minus(right: Expression, executionResult: TemplateExecutionResult): Option[OpenlawValue] = expressionType(executionResult).minus(evaluate(executionResult), right.evaluate(executionResult), executionResult)
+  def plus(right: Expression, executionResult: TemplateExecutionResult): Option[OpenlawValue] = expressionType(executionResult).plus(evaluate(executionResult), right.evaluate(executionResult), executionResult)
+  def multiply(right: Expression, executionResult: TemplateExecutionResult): Option[OpenlawValue] = expressionType(executionResult).multiply(evaluate(executionResult), right.evaluate(executionResult), executionResult)
+  def divide(right: Expression, executionResult: TemplateExecutionResult): Option[OpenlawValue] = expressionType(executionResult).divide(evaluate(executionResult), right.evaluate(executionResult), executionResult)
 
   def expressionType(executionResult: TemplateExecutionResult):VariableType
-  def evaluate(executionResult: TemplateExecutionResult):Option[Any]
-  def evaluateT[T](executionResult: TemplateExecutionResult)(implicit classTag:ClassTag[T]):Option[T] =
+  def evaluate(executionResult: TemplateExecutionResult):Option[OpenlawValue]
+  def evaluateT[T <: OpenlawValue](executionResult: TemplateExecutionResult)(implicit classTag:ClassTag[T]):Option[T] =
     evaluate(executionResult).map(VariableType.convert[T])
 
   def variables(executionResult: TemplateExecutionResult):Seq[VariableName]
@@ -35,7 +36,7 @@ case class ParensExpression(expr:Expression) extends Expression {
   override def expressionType(executionResult: TemplateExecutionResult): VariableType =
     expr.expressionType(executionResult)
 
-  override def evaluate(executionResult: TemplateExecutionResult): Option[Any] =
+  override def evaluate(executionResult: TemplateExecutionResult): Option[OpenlawValue] =
     expr.evaluate(executionResult)
 
   override def variables(executionResult: TemplateExecutionResult): Seq[VariableName] =

@@ -1,14 +1,17 @@
 package org.adridadou.openlaw.parser
 
 import java.time.{Clock, LocalDateTime, ZoneOffset}
+
+import org.adridadou.openlaw._
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes._
-import org.adridadou.openlaw.result.{Failure, Result}
+import org.adridadou.openlaw.result.{Failure, Result, Success}
 import org.adridadou.openlaw.result.Implicits.failureCause2Exception
 import org.adridadou.openlaw.values.TemplateParameters
 import org.adridadou.openlaw.vm.OpenlawExecutionEngine
 import org.scalatest._
+import org.scalatest.OptionValues._
 
 /**
   * Created by davidroon on 05.05.17.
@@ -272,7 +275,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
       case Right(executionResult) =>
         executionResult.getVariables(ImageType).size shouldBe 1
 
-        val image = executionResult.getVariableValues[String](ImageType).head
+        val image = executionResult.getVariableValues[OpenlawString](ImageType).head.string
         image should be ("https://openlaw.io/static/img/pizza-dog-optimized.svg")
 
         resultShouldBe(forPreview(text), "<div class=\"openlaw-paragraph paragraph-1\"><p class=\"no-section\"><span class=\"markdown-variable markdown-variable-Image1\"><img class=\"markdown-embedded-image\" src=\"https://openlaw.io/static/img/pizza-dog-optimized.svg\" /></span></p></div>")
@@ -454,9 +457,14 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
   it should "be able to define a default value" in {
     val clauseText = "This is my clause. [[contractor:Text(\"Hello my friend\")]]"
 
-    executeTemplate(clauseText).toOption.flatMap(_.getVariable("contractor").flatMap(_.defaultValue)) match {
-      case Some(OneValueParameter(StringConstant(str,_))) => str shouldBe "Hello my friend"
-      case result => fail(result.toString)
+    executeTemplate(clauseText) match {
+      case Success(r) =>
+        r.getVariable("contractor").flatMap(_.defaultValue) match {
+          case Some(OneValueParameter(StringConstant(str,_))) => str shouldBe "Hello my friend"
+          case result => fail(result.toString)
+        }
+      case Failure(ex, message) =>
+        fail(message, ex)
     }
   }
 
@@ -517,7 +525,9 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
         case Some(OneValueParameter(StringConstant(text,_))) => text shouldBe "2017-06-24 13:45:00"
         case something => fail("default value is not correct:" + something)
       }
-      case Left(ex) => fail(ex)
+      case Left(ex) =>
+        ex.e.printStackTrace()
+        fail(ex)
     }
   }
 
@@ -1257,7 +1267,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
 
     executeTemplate(text, Map("option" -> "two")) match {
       case Right(executionResult) =>
-        executionResult.getVariableValue[String](VariableName("option")) shouldBe Some("two")
+        executionResult.getVariableValue[OpenlawString](VariableName("option")).value.string shouldBe ("two")
       case Left(ex) =>
         fail(ex)
     }
@@ -1288,9 +1298,9 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
       case Right(executionResult) =>
         val structureType = executionResult.findVariableType(VariableTypeDefinition("Name")).getOrElse(NumberType)
         structureType === NumberType shouldBe false
-        val Right(newExecutionResult) = executeTemplate(text, Map("name1" -> structureType.internalFormat(Map(VariableName("first") -> "John", VariableName("last") -> "Doe"))))
+        val Right(newExecutionResult) = executeTemplate(text, Map("name1" -> structureType.internalFormat(OpenlawMap(Map(VariableName("first") -> OpenlawString("John"), VariableName("last") -> OpenlawString("Doe"))))))
 
-        service.parseExpression("name1.first").map(_.evaluate(newExecutionResult)) shouldBe Right(Some("John"))
+        service.parseExpression("name1.first").map(_.evaluate(newExecutionResult)).right.value.value.toString shouldBe ("John")
       case Left(ex) =>
         fail(ex)
     }
@@ -1317,7 +1327,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
       case Right(executionResult) =>
         val result = executionResult.getAlias("My Id").flatMap(_.evaluate(executionResult))
 
-        result shouldBe Some("placeId")
+        result.value.toString shouldBe ("placeId")
       case Left(ex) => fail(ex)
     }
   }

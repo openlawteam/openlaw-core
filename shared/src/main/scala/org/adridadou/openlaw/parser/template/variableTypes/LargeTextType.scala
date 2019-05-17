@@ -1,22 +1,24 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
+import org.adridadou.openlaw.{OpenlawString, OpenlawValue}
 import org.adridadou.openlaw.parser.template.{Divide, FormatterDefinition, TemplateExecutionResult, ValueOperation}
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, UppercaseFormatter}
 
 
 case object LargeTextType extends VariableType("LargeText") {
-  override def cast(value: String, executionResult: TemplateExecutionResult): String = value
 
-  override def plus(optLeft: Option[Any], optRight: Option[Any], executionResult: TemplateExecutionResult): Option[String] = for(
+  override def cast(value: String, executionResult: TemplateExecutionResult): OpenlawString = value
+
+  override def plus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Option[OpenlawValue] = for(
     leftValue <- optLeft;
     rightValue <- optRight
-  ) yield VariableType.convert[String](leftValue) + VariableType.convert[String](rightValue)
+  ) yield VariableType.convert[OpenlawString](leftValue).string + VariableType.convert[OpenlawString](rightValue).string
 
 
-  override def divide(optLeft: Option[Any], optRight: Option[Any], executionResult: TemplateExecutionResult): Option[Any] = {
+  override def divide(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Option[OpenlawValue] = {
     for {
-      left <- optLeft.map(VariableType.convert[String])
-      right <- optRight.map(VariableType.convert[String])
+      left <- optLeft.map(VariableType.convert[OpenlawString])
+      right <- optRight.map(VariableType.convert[OpenlawString])
     } yield TemplatePath(Seq(left, right))
   }
 
@@ -27,9 +29,9 @@ case object LargeTextType extends VariableType("LargeText") {
       TextType
   }
 
-  override def internalFormat(value: Any): String = VariableType.convert[String](value)
+  override def internalFormat(value: OpenlawValue): String = VariableType.convert[OpenlawString](value)
 
-  override def getTypeClass: Class[String] = classOf[String]
+  override def getTypeClass: Class[OpenlawString] = classOf[OpenlawString]
 
   override def checkTypeName(nameToCheck: String): Boolean =
     Seq("LargeText", "String").exists(_.equalsIgnoreCase(nameToCheck))

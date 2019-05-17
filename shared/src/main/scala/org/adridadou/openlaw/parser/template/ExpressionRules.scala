@@ -6,6 +6,7 @@ import io.circe._
 import io.circe.generic.auto._
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.syntax._
+import org.adridadou.openlaw.OpenlawValue
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.parboiled2.Rule1
 import org.adridadou.openlaw.parser.template.expressions._
@@ -242,7 +243,7 @@ object Parameter {
   }
 }
 
-sealed trait Parameter {
+sealed trait Parameter extends OpenlawValue {
   def serialize:Json
   def variables(executionResult: TemplateExecutionResult):Seq[VariableName]
 }
