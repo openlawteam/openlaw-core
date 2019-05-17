@@ -51,14 +51,20 @@ jobs:
     steps:
       - run: ./scripts/coverage_report.sh
 
+  # for release step, we need a .git directory, so do a local checkout.
+  # circleci prevents us from doing a checkout in a non-empty directory,
+  # so we need to override the WORKDIR of the container such that their
+  # built-in checkout will function, and then manually copy our files
+  # to where we need em.
   release:
     executor: corerunner
     environment:
       - RELEASE_TRIGGER: "false"
+    working_directory: /tmp/git-clone
     steps:
-      # for release step, need .git directory, so do a local checkout
       - checkout
-      - run: ./scripts/release.sh
+      - run: cp -r .git /src/.git
+      - run: cd /src && ./scripts/release.sh
 
 workflows:
   version: 2.1
