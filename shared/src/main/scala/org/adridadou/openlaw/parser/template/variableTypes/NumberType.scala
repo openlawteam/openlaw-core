@@ -20,7 +20,7 @@ case object NumberType extends VariableType("Number") {
       if(constructorType =!= this) {
         Failure(s"the constructor type should be $name but is ${constructorType.name}")
       } else {
-        attempt(expr.evaluateT[OpenlawBigDecimal](executionResult))
+        attempt(expr.evaluateT[OpenlawBigDecimal](executionResult).map(OpenlawBigDecimal(_)))
       }
     case _ =>
       Failure(s"the constructor for $name only handles single values")
@@ -28,19 +28,19 @@ case object NumberType extends VariableType("Number") {
 
   override def plus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Option[OpenlawBigDecimal] = for(
     leftValue <- optLeft;
-    rightValue <- optRight) yield convert[OpenlawBigDecimal](leftValue).underlying + convert[OpenlawBigDecimal](rightValue).underlying
+    rightValue <- optRight) yield convert[OpenlawBigDecimal](leftValue) + convert[OpenlawBigDecimal](rightValue)
 
   override def minus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Option[OpenlawBigDecimal] = for(
     leftValue <- optLeft;
-    rightValue <- optRight) yield convert[OpenlawBigDecimal](leftValue).underlying - convert[OpenlawBigDecimal](rightValue).underlying
+    rightValue <- optRight) yield convert[OpenlawBigDecimal](leftValue) - convert[OpenlawBigDecimal](rightValue)
 
   override def multiply(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Option[OpenlawBigDecimal] = for(
     leftValue <- optLeft;
-    rightValue <- optRight) yield convert[OpenlawBigDecimal](leftValue).underlying * convert[OpenlawBigDecimal](rightValue).underlying
+    rightValue <- optRight) yield convert[OpenlawBigDecimal](leftValue) * convert[OpenlawBigDecimal](rightValue)
 
   override def divide(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Option[OpenlawBigDecimal] = for(
     leftValue <- optLeft;
-    rightValue <- optRight if convert[OpenlawBigDecimal](rightValue).underlying =!= BigDecimal(0)) yield convert[OpenlawBigDecimal](leftValue).underlying / convert[OpenlawBigDecimal](rightValue).underlying
+    rightValue <- optRight if convert[OpenlawBigDecimal](rightValue) =!= BigDecimal(0)) yield convert[OpenlawBigDecimal](leftValue) / convert[OpenlawBigDecimal](rightValue)
 
   override def internalFormat(value: OpenlawValue): String =
     convert[OpenlawBigDecimal](value).underlying.toString
@@ -85,14 +85,14 @@ trait NumberFormatter {
 
 case object NoTrailingZerosFormatter extends Formatter with NumberFormatter {
   override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] =
-    attempt(VariableType.convert[OpenlawBigDecimal](value).underlying.bigDecimal.stripTrailingZeros()) map {
+    attempt(VariableType.convert[OpenlawBigDecimal](value).bigDecimal.stripTrailingZeros()) map {
       case bd => Seq(FreeText(Text(formatNumber(bd))))
     }
 }
 
 case object RawNumberFormatter extends Formatter with NumberFormatter {
   override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] =
-    attempt(VariableType.convert[OpenlawBigDecimal](value).underlying.bigDecimal.stripTrailingZeros().toPlainString) map {
+    attempt(VariableType.convert[OpenlawBigDecimal](value).bigDecimal.stripTrailingZeros().toPlainString) map {
       case str => Seq(FreeText(Text(str)))
     }
 }
@@ -101,7 +101,7 @@ case class Rounding(expr:Expression) extends Formatter with NumberFormatter {
   override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] = {
     expr.evaluate(executionResult)
       .map(VariableType.convert[OpenlawBigDecimal])
-      .map(_.underlying.toInt).map(rounding => attempt(VariableType.convert[OpenlawBigDecimal](value).setScale(rounding, RoundingMode.HALF_UP))) match {
+      .map(_.toInt).map(rounding => attempt(VariableType.convert[OpenlawBigDecimal](value).setScale(rounding, RoundingMode.HALF_UP))) match {
         case None => Success(Seq(FreeText(Text(value.toString))))
         case Some(Success(result)) => Success(Seq(FreeText(Text(result.toString))))
         case Some(Failure(e, message)) => Failure(e, message)

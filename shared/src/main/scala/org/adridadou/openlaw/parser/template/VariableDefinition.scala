@@ -140,9 +140,9 @@ object VariableName {
 
 case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[VariableTypeDefinition] = None, description:Option[String] = None, formatter:Option[FormatterDefinition] = None, isHidden:Boolean = false, defaultValue:Option[Parameter] = None) extends TextElement("VariableDefinition") with TemplatePart with Expression {
 
-  def constructT[T <: OpenlawValue](executionResult: TemplateExecutionResult)(implicit classTag:ClassTag[T]): Result[Option[T]] = {
+  def constructT[U <: OpenlawValue](executionResult: TemplateExecutionResult)(implicit classTag:ClassTag[U]): Result[Option[U#T]] = {
     construct(executionResult).flatMap({
-      case Some(value) => attempt(Some(VariableType.convert[T](value)))
+      case Some(value) => attempt(Some(VariableType.convert[U](value)))
       case None => Success(None)
     })
   }

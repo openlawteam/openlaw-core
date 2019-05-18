@@ -260,9 +260,9 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
   def getAllVariables(varType: VariableType):Seq[(TemplateExecutionResult, VariableDefinition)] =
     state.executionResult.map(_.getVariables(varType)).getOrElse(Seq())
 
-  def getAllVariableValues[T <: OpenlawValue](varType: VariableType)(implicit classTag:ClassTag[T]):Seq[T] =
+  def getAllVariableValues[U <: OpenlawValue](varType: VariableType)(implicit classTag:ClassTag[U]):Seq[U#T] =
     getAllVariables(varType).flatMap({case (executionResult, variable) =>
-      variable.evaluate(executionResult).map(VariableType.convert[T])
+      variable.evaluate(executionResult).map(VariableType.convert[U])
     })
 
   def parseExpression(expr:String): Result[Expression] = expressionParser.parseExpression(expr)

@@ -20,8 +20,8 @@ trait Expression {
 
   def expressionType(executionResult: TemplateExecutionResult):VariableType
   def evaluate(executionResult: TemplateExecutionResult):Option[OpenlawValue]
-  def evaluateT[T <: OpenlawValue](executionResult: TemplateExecutionResult)(implicit classTag:ClassTag[T]):Option[T] =
-    evaluate(executionResult).map(VariableType.convert[T])
+  def evaluateT[U <: OpenlawValue](executionResult: TemplateExecutionResult)(implicit classTag:ClassTag[U]):Option[U#T] =
+    evaluate(executionResult).map(VariableType.convert[U])
 
   def variables(executionResult: TemplateExecutionResult):Seq[VariableName]
 }

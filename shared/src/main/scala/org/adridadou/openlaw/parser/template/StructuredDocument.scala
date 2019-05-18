@@ -122,14 +122,14 @@ trait TemplateExecutionResult {
           case variableType => variableType === varType
         }}).map((this, _)) ++ subExecutions.values.flatMap(_.getVariables(varType))
 
-  def getVariableValues[T <: OpenlawValue](varType: VariableType)(implicit classTag:ClassTag[T]):Seq[T] = getVariables(varType)
-    .flatMap({case (execution, variable) => variable.evaluate(execution).map(getVariableValue[T](_, variable.varType(this)))})
+  def getVariableValues[U <: OpenlawValue](varType: VariableType)(implicit classTag:ClassTag[U]):Seq[U#T] = getVariables(varType)
+    .flatMap({case (execution, variable) => variable.evaluate(execution).map(getVariableValue[U](_, variable.varType(this)))})
 
-  def getVariableValue[T <: OpenlawValue](name: VariableName)(implicit classTag:ClassTag[T]):Option[T] =
+  def getVariableValue[U <: OpenlawValue](name: VariableName)(implicit classTag:ClassTag[U]):Option[U#T] =
     getVariable(name)
-      .flatMap(variable => variable.evaluate(this).map(getVariableValue[T](_, variable.varType(this))))
+      .flatMap(variable => variable.evaluate(this).map(getVariableValue[U](_, variable.varType(this))))
 
-  def getVariableValue[T <: OpenlawValue](value:OpenlawValue, variableType:VariableType)(implicit classTag: ClassTag[T]):T = VariableType.convert[T](value)
+  def getVariableValue[U <: OpenlawValue](value:OpenlawValue, variableType:VariableType)(implicit classTag: ClassTag[U]): U#T = VariableType.convert[U](value)
 
   def getParameter(name: String):Option[String] = getParameter(VariableName(name))
 

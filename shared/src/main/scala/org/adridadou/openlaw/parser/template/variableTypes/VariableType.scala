@@ -305,9 +305,9 @@ object VariableType {
 
   //def convert[T](value:OpenlawValue)(implicit ev: T => OpenlawValue): OpenlawValue = convert[T](value)
 
-  def convert[T <: OpenlawValue](value:OpenlawValue)(implicit classTag: ClassTag[T]): T = value match {
-    case convertedValue: T =>
-      convertedValue
+  def convert[U <: OpenlawValue](value:OpenlawValue)(implicit classTag: ClassTag[U]): U#T = value match {
+    case convertedValue: U =>
+      convertedValue.underlying
     case other =>
       val msg = "invalid type " +
         other.getClass.getSimpleName +
