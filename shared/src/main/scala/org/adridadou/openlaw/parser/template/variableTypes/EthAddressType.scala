@@ -6,7 +6,7 @@ import cats.Eq
 import cats.implicits._
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.{Decoder, Encoder}
-import org.adridadou.openlaw.{OpenlawString, OpenlawValue}
+import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawString, OpenlawValue}
 import org.adridadou.openlaw.oracles.UserId
 import org.adridadou.openlaw.parser.template.variableTypes.EthereumAddress.hex2bytes
 import org.adridadou.openlaw.parser.template.{Parameter, TemplateExecutionResult}
@@ -38,7 +38,7 @@ case object EthAddressType extends VariableType("EthAddress") {
 }
 
 @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
-case class EthereumAddress(address: Array[Byte]) extends OpenlawValue {
+case class EthereumAddress(address: Array[Byte]) extends OpenlawNativeValue {
 
   if (address.length > EthereumAddress.maxAddressSize) throw new RuntimeException("byte array of the address cannot be bigger than 20.value:" + EthereumAddress.bytes2hex(address))
 
@@ -166,7 +166,7 @@ object EthereumHash {
 }
 
 @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
-case class EthereumHash(data: Array[Byte]) extends OpenlawValue {
+case class EthereumHash(data: Array[Byte]) extends OpenlawNativeValue {
   def withLeading0x: String = "0x" + this.toString
   override def toString: String = EthereumAddress.bytes2hex(data)
 

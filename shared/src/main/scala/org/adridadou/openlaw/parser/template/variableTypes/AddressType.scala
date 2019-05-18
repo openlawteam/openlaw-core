@@ -3,7 +3,7 @@ import io.circe._
 import io.circe.generic.semiauto._
 import io.circe.syntax._
 import io.circe.parser._
-import org.adridadou.openlaw.OpenlawValue
+import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawValue}
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.Formatter
@@ -78,7 +78,7 @@ object AddressType extends VariableType(name = "Address") {
   }
 }
 
-case class Address(placeId:String = "", streetName:String = "", streetNumber:String = "", city:String = "", state:String = "", country:String = "", zipCode:String = "", formattedAddress:String = "") extends OpenlawValue
+case class Address(placeId:String = "", streetName:String = "", streetNumber:String = "", city:String = "", state:String = "", country:String = "", zipCode:String = "", formattedAddress:String = "") extends OpenlawNativeValue
 
 object Address{
   implicit val addressEnc: Encoder[Address] = deriveEncoder[Address]

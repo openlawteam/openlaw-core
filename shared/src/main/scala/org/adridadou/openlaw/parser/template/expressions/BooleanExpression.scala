@@ -10,11 +10,11 @@ case class BooleanExpression(left:Expression, right:Expression, op:BooleanOperat
   override def evaluate(executionResult: TemplateExecutionResult): Option[OpenlawBoolean] = op match {
     case And => for{leftValue <- left.evaluate(executionResult)
                     rightValue <- right.evaluate(executionResult)
-                } yield VariableType.convert[OpenlawBoolean](leftValue).boolean && VariableType.convert[OpenlawBoolean](rightValue).boolean
+                } yield VariableType.convert[OpenlawBoolean](leftValue).underlying && VariableType.convert[OpenlawBoolean](rightValue).underlying
 
     case Or => for{leftValue <- left.evaluate(executionResult)
                    rightValue <- right.evaluate(executionResult)
-                } yield VariableType.convert[OpenlawBoolean](leftValue).boolean || VariableType.convert[OpenlawBoolean](rightValue).boolean
+                } yield VariableType.convert[OpenlawBoolean](leftValue).underlying || VariableType.convert[OpenlawBoolean](rightValue).underlying
   }
 
   override def expressionType(executionResult: TemplateExecutionResult):VariableType = YesNoType

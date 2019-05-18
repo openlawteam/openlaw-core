@@ -17,7 +17,7 @@ object Structure {
 }
 
 
-case class Structure(typeDefinition: Map[VariableName, VariableType], names:Seq[VariableName]) extends OpenlawValue
+case class Structure(typeDefinition: Map[VariableName, VariableType], names:Seq[VariableName]) extends OpenlawNativeValue
 
 case object AbstractStructureType extends VariableType(name = "Structure") with TypeGenerator[Structure] {
   override def construct(param:Parameter, executionResult: TemplateExecutionResult): Result[Option[Structure]] = param match {
@@ -83,7 +83,7 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
         Success(Some(value))
       case head :: tail =>
         val headName = VariableName(head)
-        val values = VariableType.convert[OpenlawMap[VariableName, OpenlawValue]](value).map
+        val values = VariableType.convert[OpenlawMap[VariableName, OpenlawValue]](value).underlying
         (for {
           result <- values.get(headName)
           keyType <- structure.typeDefinition.get(headName)
@@ -138,7 +138,7 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
   }
 
   override def internalFormat(value: OpenlawValue): String = {
-    val values = VariableType.convert[OpenlawMap[VariableName, OpenlawValue]](value).map
+    val values = VariableType.convert[OpenlawMap[VariableName, OpenlawValue]](value).underlying
     structure.typeDefinition
       .flatMap({case (fieldName,fieldType) => values.get(fieldName).map(value => fieldName.name -> fieldType.internalFormat(value))})
       .asJson.noSpaces

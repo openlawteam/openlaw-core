@@ -12,7 +12,7 @@ case object LargeTextType extends VariableType("LargeText") {
   override def plus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Option[OpenlawValue] = for(
     leftValue <- optLeft;
     rightValue <- optRight
-  ) yield VariableType.convert[OpenlawString](leftValue).string + VariableType.convert[OpenlawString](rightValue).string
+  ) yield VariableType.convert[OpenlawString](leftValue).underlying + VariableType.convert[OpenlawString](rightValue).underlying
 
 
   override def divide(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Option[OpenlawValue] = {

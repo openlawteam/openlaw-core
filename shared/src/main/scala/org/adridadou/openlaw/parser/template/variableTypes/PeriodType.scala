@@ -3,8 +3,9 @@ package org.adridadou.openlaw.parser.template.variableTypes
 import org.parboiled2._
 import VariableType._
 import cats.implicits._
-import org.adridadou.openlaw.{OpenlawDateTime, OpenlawValue}
+import org.adridadou.openlaw.{OpenlawDateTime, OpenlawNativeValue, OpenlawValue}
 import org.adridadou.openlaw.parser.template._
+
 import scala.language.implicitConversions
 
 case object PeriodType extends VariableType("Period") {
@@ -116,7 +117,7 @@ class PeriodTypeParser(val input: ParserInput) extends Parser {
 case class ParameterNotFound(value:String) extends RuntimeException
 case class ParsingError(msg:String) extends RuntimeException
 
-case class Period(seconds:Int = 0, minutes:Int = 0, hours:Int = 0, days:Int = 0, weeks:Int = 0, months:Int = 0, years:Int = 0) extends OpenlawValue {
+case class Period(seconds:Int = 0, minutes:Int = 0, hours:Int = 0, days:Int = 0, weeks:Int = 0, months:Int = 0, years:Int = 0) extends OpenlawNativeValue {
   def minus(right:Period):Period = Period(seconds - right.seconds, minutes - right.minutes, hours - right.hours, days - right.days, weeks - right.weeks, months - right.months, years - right.years)
   def plus(right:Period):Period = Period(seconds + right.seconds, minutes + right.minutes, hours + right.hours, days + right.days, weeks + right.weeks, months + right.months, years + right.years)
   override def toString:String = (if( years > 0 ) s"$years years " else "") +

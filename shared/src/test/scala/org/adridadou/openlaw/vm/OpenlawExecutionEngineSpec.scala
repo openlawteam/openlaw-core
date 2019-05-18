@@ -512,7 +512,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
         result.state shouldBe ExecutionFinished
         result.getAllExecutedVariables.map({case (_, variable) => variable.name}).toSet should contain theSameElementsAs Set("Someone")
 
-        val map = result.getVariableValue[OpenlawMap[VariableName, OpenlawValue]](VariableName("Someone")).value.map
+        val map = result.getVariableValue[OpenlawMap[VariableName, OpenlawValue]](VariableName("Someone")).value.underlying
         map.get(VariableName("name")).value.toString shouldBe ("David")
         map.get(VariableName("number")).map { case OpenlawBigDecimal(value) => value }.value shouldBe (BigDecimal(23))
       case Left(ex) =>

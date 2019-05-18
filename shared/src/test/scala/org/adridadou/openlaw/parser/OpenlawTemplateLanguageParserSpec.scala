@@ -275,7 +275,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
       case Right(executionResult) =>
         executionResult.getVariables(ImageType).size shouldBe 1
 
-        val image = executionResult.getVariableValues[OpenlawString](ImageType).head.string
+        val image = executionResult.getVariableValues[OpenlawString](ImageType).head.underlying
         image should be ("https://openlaw.io/static/img/pizza-dog-optimized.svg")
 
         resultShouldBe(forPreview(text), "<div class=\"openlaw-paragraph paragraph-1\"><p class=\"no-section\"><span class=\"markdown-variable markdown-variable-Image1\"><img class=\"markdown-embedded-image\" src=\"https://openlaw.io/static/img/pizza-dog-optimized.svg\" /></span></p></div>")
@@ -1267,7 +1267,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
 
     executeTemplate(text, Map("option" -> "two")) match {
       case Right(executionResult) =>
-        executionResult.getVariableValue[OpenlawString](VariableName("option")).value.string shouldBe ("two")
+        executionResult.getVariableValue[OpenlawString](VariableName("option")).value.underlying shouldBe ("two")
       case Left(ex) =>
         fail(ex)
     }

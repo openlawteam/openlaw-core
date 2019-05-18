@@ -274,7 +274,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
         }
     })
 
-    blocks.find(_.conditionalExpression.evaluate(executionResult).exists(VariableType.convert[OpenlawBoolean](_).boolean))
+    blocks.find(_.conditionalExpression.evaluate(executionResult).exists(VariableType.convert[OpenlawBoolean](_).underlying))
       .map(subBlock => {
         executionResult.remainingElements.prependAll(subBlock.block.elems)
         Success(executionResult)

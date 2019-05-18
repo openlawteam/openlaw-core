@@ -148,7 +148,7 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
               .map(_.list).getOrElse(Seq())
               .map(VariableType.convert[Identity])
           case structureType:DefinedStructureType if structureType.structure.typeDefinition.values.exists(_ === IdentityType) =>
-            val values = variable.evaluate(result).map(VariableType.convert[OpenlawMap[VariableName, OpenlawValue]](_).map).getOrElse(Map())
+            val values = variable.evaluate(result).map(VariableType.convert[OpenlawMap[VariableName, OpenlawValue]](_).underlying).getOrElse(Map())
 
             structureType.structure.typeDefinition
               .flatMap({

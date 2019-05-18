@@ -8,7 +8,7 @@ import io.circe.parser._
 import io.circe.generic.semiauto._
 import Identity._
 import cats.Eq
-import org.adridadou.openlaw.OpenlawValue
+import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawValue}
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter, SignatureFormatter}
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
@@ -70,7 +70,7 @@ case object IdentityType extends VariableType(name = "Identity") {
   private def getOrNa(optStr:Option[String]):String = optStr.getOrElse("[n/a]")
 }
 
-case class Identity(email:Email) extends OpenlawValue {
+case class Identity(email:Email) extends OpenlawNativeValue {
   def getJsonString: String = this.asJson.noSpaces
 }
 

@@ -5,20 +5,20 @@ import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.syntax._
 import io.circe.parser._
-import org.adridadou.openlaw.{OpenlawString, OpenlawValue}
+import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawString, OpenlawValue}
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 import org.adridadou.openlaw.values._
 
-case class TemplateDefinition(name:TemplateSourceIdentifier, mappingInternal:Map[String, Expression] = Map(), path:Option[TemplatePath] = None) extends OpenlawValue {
+case class TemplateDefinition(name:TemplateSourceIdentifier, mappingInternal:Map[String, Expression] = Map(), path:Option[TemplatePath] = None) extends OpenlawNativeValue {
   lazy val mapping: Map[VariableName, Expression] = mappingInternal.map({case (key,value) => VariableName(key) -> value})
 }
 
 case class TemplateSourceIdentifier(name:TemplateTitle)
 
-case class TemplatePath(path:Seq[String] = Seq()) extends OpenlawValue {
+case class TemplatePath(path:Seq[String] = Seq()) extends OpenlawNativeValue {
   def innerFile(name:String):TemplatePath = TemplatePath(path ++ Seq(name))
 }
 
@@ -43,7 +43,7 @@ case object TemplatePathType extends VariableType("TemplateType") with NoShowInF
     for {
       left <- optLeft.map(VariableType.convert[TemplatePath])
       right <- optRight.map(VariableType.convert[OpenlawString])
-    } yield TemplatePath(left.path ++ Seq(right.string))
+    } yield TemplatePath(left.path ++ Seq(right.underlying))
   }
 }
 
@@ -100,7 +100,7 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
         case p: TemplatePath =>
           Success(Some(p))
         case p: OpenlawString =>
-          Success(Some(TemplatePath(Seq(p.string))))
+          Success(Some(TemplatePath(Seq(p.underlying))))
         case other =>
           Failure(s"parameter 'path' should be a path but instead was ${other.getClass.getSimpleName}")
       }).getOrElse(Right(None))

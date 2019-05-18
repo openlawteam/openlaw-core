@@ -3,7 +3,7 @@ package org.adridadou.openlaw.parser.template.variableTypes
 import cats.implicits._
 import java.time.LocalDateTime
 
-import org.adridadou.openlaw.{OpenlawString, OpenlawValue}
+import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawString, OpenlawValue}
 import org.adridadou.openlaw.parser.abi.AbiParser.AbiType
 import org.adridadou.openlaw.parser.abi.{AbiEntry, AbiParam, AbiParser}
 import org.adridadou.openlaw.parser.template._
@@ -15,7 +15,7 @@ case class EventFilterDefinition(
   contractAddress: Expression,
   interface: Expression,
   eventType: Expression,
-  conditionalFilter: Expression) extends ActionValue with OpenlawValue {
+  conditionalFilter: Expression) extends ActionValue with OpenlawNativeValue {
 
   def abiEntries(executionResult: TemplateExecutionResult): Result[List[AbiEntry]] = for {
     interfaceAny <- attempt(interface.evaluate(executionResult)).flatMap(_.toResult(s"expression '$interface' failed to evaluate"))

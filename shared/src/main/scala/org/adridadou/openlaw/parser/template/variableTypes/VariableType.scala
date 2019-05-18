@@ -63,14 +63,14 @@ object OpenlawExecutionInit {
   }
 }
 
-trait OpenlawExecutionInit extends OpenlawValue {
+trait OpenlawExecutionInit extends OpenlawNativeValue {
   protected def className[T]()(implicit cls:ClassTag[T]):String = cls.runtimeClass.getName
 
   def typeIdentifier: String
   def serialize: String
 }
 
-trait OpenlawExecution extends OpenlawValue {
+trait OpenlawExecution extends OpenlawNativeValue {
   def scheduledDate:LocalDateTime
   def executionDate:LocalDateTime
   def executionStatus:OpenlawExecutionStatus
@@ -291,7 +291,7 @@ object VariableType {
   def getMetadata(v: Expression, executionResult: TemplateExecutionResult): SmartContractMetadata =
     get(v,executionResult,SmartContractMetadataType.cast)
   def getString(v: Expression, executionResult: TemplateExecutionResult): String =
-    get[OpenlawString](v,executionResult, (str,_) => str).string
+    get[OpenlawString](v,executionResult, (str,_) => str).underlying
 
   def get[T <: OpenlawValue](v: Expression, executionResult: TemplateExecutionResult, cast: (String,TemplateExecutionResult) => T)(implicit classTag: ClassTag[T]): T =
     v.evaluate(executionResult).map({

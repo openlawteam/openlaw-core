@@ -3,12 +3,12 @@ package org.adridadou.openlaw.parser.template.variableTypes
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.parser.decode
-import org.adridadou.openlaw.{OpenlawString, OpenlawValue}
+import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawString, OpenlawValue}
 import org.adridadou.openlaw.parser.template.formatters.Formatter
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 
-case class SectionInfo(name: Option[String], numbering: String, value:String) extends OpenlawValue
+case class SectionInfo(name: Option[String], numbering: String, value:String) extends OpenlawNativeValue
 
 case object SectionType extends VariableType(name = "Section") with NoShowInForm {
 

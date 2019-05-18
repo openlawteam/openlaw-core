@@ -52,14 +52,14 @@ case object ValidationType extends VariableType(name = "Validation") with NoShow
   def thisType: VariableType = ValidationType
 }
 
-case class Validation(condition:Expression, errorMessage:Expression) extends OpenlawValue {
+case class Validation(condition:Expression, errorMessage:Expression) extends OpenlawNativeValue {
   def validate(executionResult: TemplateExecutionResult):Result[Unit] = {
     condition
       .evaluate(executionResult)
-      .map(e => VariableType.convert[OpenlawBoolean](e).boolean)
+      .map(e => VariableType.convert[OpenlawBoolean](e).underlying)
       .filter(_ === false)
       .map(_ => errorMessage
-        .evaluate(executionResult).map(VariableType.convert[OpenlawString](_).string)
+        .evaluate(executionResult).map(VariableType.convert[OpenlawString](_).underlying)
         .getOrElse(s"validation error (error message could not be resolved)")
       ) .map(Failure(_)).getOrElse(Success(Unit))
   }

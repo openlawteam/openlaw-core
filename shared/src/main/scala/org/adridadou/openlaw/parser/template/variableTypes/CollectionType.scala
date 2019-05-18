@@ -1,6 +1,6 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
-import org.adridadou.openlaw.OpenlawValue
+import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawValue}
 import org.adridadou.openlaw.parser.template.TemplateExecutionResult
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
 import play.api.libs.json.{JsObject, JsString, Json}
@@ -23,7 +23,7 @@ case object AbstractCollectionType extends VariableType("Collection") with Param
     CollectionType(typeParameter)
 }
 
-case class CollectionValue(size:Int = 1, values:Map[Int, OpenlawValue] = Map(), collectionType:CollectionType) extends OpenlawValue {
+case class CollectionValue(size:Int = 1, values:Map[Int, OpenlawValue] = Map(), collectionType:CollectionType) extends OpenlawNativeValue {
   def castValue(value:String, executionResult: TemplateExecutionResult):Any = collectionType.typeParameter.cast(value, executionResult)
   def valueInternalFormat(value:OpenlawValue):String = collectionType.typeParameter.internalFormat(value)
   def list:Seq[OpenlawValue] = values.values.toSeq

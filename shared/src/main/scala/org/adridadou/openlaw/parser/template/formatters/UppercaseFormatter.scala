@@ -9,7 +9,7 @@ import org.adridadou.openlaw.result.{Failure, Result, attempt}
   * Created by davidroon on 12.06.17.
   */
 class UppercaseFormatter extends Formatter {
-  override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] = attempt(VariableType.convert[OpenlawString](value).string) map {
+  override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] = attempt(VariableType.convert[OpenlawString](value).underlying) map {
     case str => Seq(FreeText(Text(str.toUpperCase)))
   }
 }

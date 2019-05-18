@@ -168,7 +168,7 @@ case class CompiledAgreement(
           .flatMap(_.parameters)
           .flatMap(_.parameterMap.toMap.get("numbering"))
           .flatMap({
-            case OneValueParameter(expr) => expr.evaluate(executionResult).map(VariableType.convert[OpenlawBigDecimal]).map(_.bigDecimal.toInt)
+            case OneValueParameter(expr) => expr.evaluate(executionResult).map(VariableType.convert[OpenlawBigDecimal]).map(_.underlying.toInt)
             case _ => None
           })
 

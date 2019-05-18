@@ -152,7 +152,7 @@ trait TemplateExecutionResult {
           variable.evaluate(result)
             .map(col => VariableType.convert[CollectionValue](col).list.map(VariableType.convert[Identity])).getOrElse(Seq())
         case structureType:DefinedStructureType if structureType.structure.typeDefinition.values.exists(_ === IdentityType) =>
-          val values = variable.evaluate(result).map(VariableType.convert[OpenlawMap[VariableName, OpenlawValue]](_).map).getOrElse(Map())
+          val values = variable.evaluate(result).map(VariableType.convert[OpenlawMap[VariableName, OpenlawValue]](_).underlying).getOrElse(Map())
 
           structureType.structure.names
             .filter(name => structureType.structure.typeDefinition(name) === IdentityType)
@@ -463,7 +463,7 @@ case class OpenlawExecutionState(
           }
 
         case structureType:DefinedStructureType if structureType.structure.typeDefinition.values.exists(_ === IdentityType) =>
-          val values = result.getVariableValue[OpenlawMap[VariableName, OpenlawValue]](variable.name).map(_.map)
+          val values = result.getVariableValue[OpenlawMap[VariableName, OpenlawValue]](variable.name).map(_.underlying)
           val identityProperties = structureType.structure.typeDefinition
             .filter({case (_,propertyType) => propertyType === IdentityType})
             .map({case (propertyName,_) => propertyName}).toSeq

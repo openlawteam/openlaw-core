@@ -7,11 +7,11 @@ import io.circe.parser._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template._
 import cats.implicits._
-import org.adridadou.openlaw.{OpenlawString, OpenlawValue}
+import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawString, OpenlawValue}
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
 import org.adridadou.openlaw.result.{Failure, Result, attempt}
 
-case class Choices(values: Seq[String]) extends OpenlawValue
+case class Choices(values: Seq[String]) extends OpenlawNativeValue
 
 object Choices {
   def apply(value: String): Choices = Choices(Seq(value))
@@ -31,7 +31,7 @@ case object ChoiceType extends VariableType("Choice") with TypeGenerator[Choices
   }
 
   private def generateValues(exprs:Seq[Expression], executionResult: TemplateExecutionResult):Seq[String] = {
-    exprs.flatMap(_.evaluate(executionResult)).map(VariableType.convert[OpenlawString](_).string)
+    exprs.flatMap(_.evaluate(executionResult)).map(VariableType.convert[OpenlawString](_).underlying)
   }
 
   override def defaultFormatter: Formatter = new NoopFormatter

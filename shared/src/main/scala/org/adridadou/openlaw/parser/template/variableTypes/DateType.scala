@@ -18,7 +18,7 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => O
   def cast(value: String, executionResult:TemplateExecutionResult):OpenlawDateTime = DateConverter.cast(value, executionResult.clock)
   def internalFormat(value: OpenlawValue): String = {
     val offset = OffsetDateTime.now().getOffset
-    (VariableType.convert[OpenlawDateTime](value).localDateTime.toEpochSecond(offset) * 1000).toString
+    (VariableType.convert[OpenlawDateTime](value).underlying.toEpochSecond(offset) * 1000).toString
   }
 
   override def construct(constructorParams:Parameter, executionResult:TemplateExecutionResult): Result[Option[OpenlawDateTime]] = constructorParams match {
@@ -44,7 +44,7 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => O
   }
 
   def plus(d:OpenlawDateTime, p:Period):OpenlawDateTime = d
-    .localDateTime
+    .underlying
     .plusSeconds(p.seconds)
     .plusMinutes(p.minutes)
     .plusHours(p.hours)
@@ -69,7 +69,7 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => O
   }
 
   private def minus(d:OpenlawDateTime, p:Period):OpenlawDateTime = d
-    .localDateTime
+    .underlying
     .minusSeconds(p.seconds)
     .minusMinutes(p.minutes)
     .minusHours(p.hours)
@@ -140,7 +140,7 @@ object DateConverter {
 
   private def toLocalDateTime(year:Int, month:Int, day:Int, hour:Int, minute:Int, second:Int, clock:Clock):OpenlawDateTime =
     toLocalDateTime(year,month,day, clock)
-      .localDateTime
+      .underlying
       .withHour(hour)
       .withMinute(minute)
       .withSecond(second)
@@ -165,7 +165,7 @@ class PatternFormat(pattern: String) extends Formatter {
   val formatter = DateTimeFormatter.ofPattern(pattern, Locale.ENGLISH)
 
   override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] = DateHelper.convertToDate(value, executionResult.clock).map(zonedDate => {
-    Seq(FreeText(Text(formatter.format(zonedDate.localDateTime))))
+    Seq(FreeText(Text(formatter.format(zonedDate.underlying))))
   })
 }
 
@@ -177,25 +177,25 @@ class MonthNameFormatter extends PatternFormat("MMMM")
 
 class SimpleDateFormatter extends Formatter {
   override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] = DateHelper.convertToDate(value, executionResult.clock).map(zonedDate => {
-    val month = zonedDate.localDateTime.getMonth.getDisplayName(TextStyle.FULL, Locale.ENGLISH)
-    Seq(FreeText(Text(s"$month ${zonedDate.localDateTime.getDayOfMonth}, ${zonedDate.localDateTime.getYear}")))
+    val month = zonedDate.underlying.getMonth.getDisplayName(TextStyle.FULL, Locale.ENGLISH)
+    Seq(FreeText(Text(s"$month ${zonedDate.underlying.getDayOfMonth}, ${zonedDate.underlying.getYear}")))
   })
 }
 
 class SimpleDateTimeFormatter extends Formatter{
   override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] = DateHelper.convertToDate(value, executionResult.clock).map(zonedDate => {
-    val hour = String.format("%02d", Integer.valueOf(VariableType.convert[OpenlawInt](zonedDate.localDateTime.getHour).int))
-    val minute = String.format("%02d", Integer.valueOf(VariableType.convert[OpenlawInt](zonedDate.localDateTime.getMinute).int))
-    val second = String.format("%02d", Integer.valueOf(VariableType.convert[OpenlawInt](zonedDate.localDateTime.getSecond).int))
-    val month = zonedDate.localDateTime.getMonth.getDisplayName(TextStyle.FULL, Locale.ENGLISH)
-    Seq(FreeText(Text(s"$month ${zonedDate.localDateTime.getDayOfMonth}, ${zonedDate.localDateTime.getYear} $hour:$minute:$second")))
+    val hour = String.format("%02d", Integer.valueOf(VariableType.convert[OpenlawInt](zonedDate.underlying.getHour).underlying))
+    val minute = String.format("%02d", Integer.valueOf(VariableType.convert[OpenlawInt](zonedDate.underlying.getMinute).underlying))
+    val second = String.format("%02d", Integer.valueOf(VariableType.convert[OpenlawInt](zonedDate.underlying.getSecond).underlying))
+    val month = zonedDate.underlying.getMonth.getDisplayName(TextStyle.FULL, Locale.ENGLISH)
+    Seq(FreeText(Text(s"$month ${zonedDate.underlying.getDayOfMonth}, ${zonedDate.underlying.getYear} $hour:$minute:$second")))
   })
 }
 
 object DateHelper {
   def prepareDate(date:OpenlawDateTime, clock:Clock): OpenlawDateTime = {
-    val offset = clock.getZone.getRules.getOffset(date.localDateTime)
-    val zonedDate = date.localDateTime.plusSeconds(offset.getTotalSeconds)
+    val offset = clock.getZone.getRules.getOffset(date.underlying)
+    val zonedDate = date.underlying.plusSeconds(offset.getTotalSeconds)
     zonedDate
   }
 
