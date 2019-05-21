@@ -7,13 +7,15 @@ import org.adridadou.openlaw.parser.template.expressions.{Expression, ValueExpre
 import org.adridadou.openlaw.parser.template.formatters.{DefaultFormatter, Formatter}
 import cats.Eq
 import cats.implicits._
-import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
-import io.circe.{Decoder, Encoder, HCursor, Json}
+import io.circe._
+import io.circe.syntax._
+import io.circe.generic.semiauto._
 
 import scala.reflect.ClassTag
 import scala.util.Try
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 import LocalDateTimeHelper._
+import org.adridadou.openlaw.oracles.{EthereumEventFilterExecution, PreparedERC712SmartContractCallExecution}
 
 trait NoShowInForm
 
@@ -23,6 +25,48 @@ trait ActionValue {
 
 trait ActionType extends NoShowInForm {
   def actionValue(value:Any):ActionValue
+
+}
+
+object OpenlawExecution {
+  implicit val openlawExecutionEnc:Encoder[OpenlawExecution] = (a: OpenlawExecution) => Json.obj(
+    "type" -> Json.fromString(a.typeIdentifier),
+    "value" -> a.serialize
+  )
+  implicit val openlawExecutionDec:Decoder[OpenlawExecution] = (c: HCursor) => c.downField("type").as[String]
+    .flatMap(convertOpenlawExecution(_, c.downField("value")))
+
+  protected def className[T]()(implicit cls:ClassTag[T]):String = cls.runtimeClass.getName
+
+  private def convertOpenlawExecution(typeDefinition: String, cursor: ACursor):Decoder.Result[OpenlawExecution] = typeDefinition match {
+    case _ if typeDefinition === className[EthereumEventFilterExecution] =>
+      cursor.as[EthereumEventFilterExecution]
+    case _ if typeDefinition === className[EthereumSmartContractExecution] =>
+      cursor.as[EthereumSmartContractExecution]
+  }
+}
+
+object OpenlawExecutionInit {
+  implicit val openlawExecutionInitEnc:Encoder[OpenlawExecutionInit] = (a: OpenlawExecutionInit) => Json.obj(
+    "type" -> Json.fromString(a.typeIdentifier),
+    "value" -> Json.fromString(a.serialize)
+  )
+  implicit val openlawExecutionDec:Decoder[OpenlawExecutionInit] = (c: HCursor) => c.downField("type").as[String]
+    .flatMap(convertOpenlawExecutionInit(_, c.downField("value")))
+
+  protected def className[T]()(implicit cls:ClassTag[T]):String = cls.runtimeClass.getName
+
+  private def convertOpenlawExecutionInit(typeDefinition: String, cursor: ACursor):Decoder.Result[OpenlawExecutionInit] = typeDefinition match {
+    case _ if typeDefinition === className[PreparedERC712SmartContractCallExecution] =>
+      cursor.as[PreparedERC712SmartContractCallExecution]
+  }
+}
+
+trait OpenlawExecutionInit {
+  protected def className[T]()(implicit cls:ClassTag[T]):String = cls.runtimeClass.getName
+
+  def typeIdentifier: String
+  def serialize: String
 }
 
 trait OpenlawExecution {
@@ -30,6 +74,9 @@ trait OpenlawExecution {
   def executionDate:LocalDateTime
   def executionStatus:OpenlawExecutionStatus
   def key:Any
+  def typeIdentifier: String
+  def serialize: Json
+  protected def className[T]()(implicit cls:ClassTag[T]):String = cls.runtimeClass.getName
 }
 
 object EthereumSmartContractExecution {
@@ -45,6 +92,9 @@ case class EthereumSmartContractExecution(scheduledDate:LocalDateTime, execution
   }
 
   def key:EthereumHash = tx
+
+  override def typeIdentifier: String = className[EthereumSmartContractExecution]
+  override def serialize: Json = this.asJson
 }
 
 sealed abstract class OpenlawExecutionStatus(val name:String)
@@ -80,6 +130,9 @@ trait ParameterTypeProvider {
 }
 
 abstract class VariableType(val name: String) {
+
+  def serialize: Json = Json.obj("name" -> io.circe.Json.fromString(name))
+
   def validateOperation(expr: ValueExpression, executionResult: TemplateExecutionResult): Option[String] = None
 
   def accessVariables(name:VariableName, keys:Seq[String], executionResult: TemplateExecutionResult): Seq[VariableName] =
@@ -88,11 +141,11 @@ abstract class VariableType(val name: String) {
   def operationWith(rightType: VariableType, operation: ValueOperation): VariableType =
     this
 
-  def access(value: Any, keys: Seq[String], executionResult:TemplateExecutionResult): Result[Any] = {
+  def access(value: Any, variableName:VariableName, keys: Seq[String], executionResult:TemplateExecutionResult): Result[Option[Any]] = {
     if(keys.isEmpty) {
-      Success(value)
+      Success(Some(value))
     } else {
-      Failure(s"The variable type $name has no properties")
+      Failure(s"The variable $variableName of type $name has no properties")
     }
   }
 
@@ -101,13 +154,13 @@ abstract class VariableType(val name: String) {
   def checkTypeName(nameToCheck: String): Boolean =
     this.name.equalsIgnoreCase(nameToCheck)
 
-  def validateKeys(name:VariableName, keys:Seq[String], executionResult: TemplateExecutionResult): Result[Unit] =
-    keys.headOption.map(_ => Failure(s"The variable type $name has no properties")).getOrElse(Success(()))
+  def validateKeys(variableName:VariableName, keys:Seq[String], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] =
+    keys.headOption.map(_ => Failure(s"The variable $variableName of type $name has no properties")).getOrElse(Success(()))
 
-  def keysType(keys:Seq[String], executionResult: TemplateExecutionResult):VariableType = if(keys.nonEmpty) {
-    throw new RuntimeException(s"the type $name has no properties")
+  def keysType(keys: Seq[String], expression: Expression, executionResult: TemplateExecutionResult):Result[VariableType] = if(keys.nonEmpty) {
+    Failure(s"the type $name has no properties")
   } else {
-    thisType
+    Success(thisType)
   }
 
   def plus(optLeft: Option[Any], optRight: Option[Any], executionResult: TemplateExecutionResult): Option[Any] =
@@ -168,10 +221,13 @@ abstract class VariableType(val name: String) {
 
   def thisType:VariableType
 
-  def getExpression(params:Map[String,Parameter], name:String):Expression = params.get(name).map(getExpression) match {
+  def getExpression(params:Map[String,Parameter], names:String*):Expression = getParameter(params, names:_*).map(getExpression) match {
     case Some(expr) => expr
     case None => throw new RuntimeException(s"parameter $name not found. available parameters: ${params.keys.mkString(",")}")
   }
+
+  def getParameter(params:Map[String,Parameter], names:String*):Option[Parameter] =
+    names.flatMap(params.get).headOption
 
   def getExpression(param:Parameter):Expression = param match {
     case OneValueParameter(expr) => expr
@@ -196,13 +252,16 @@ object VariableType {
 
   def allTypes():Seq[VariableType] = Seq(
     AbstractCollectionType,
+    OLOwnType,
     AddressType,
     ChoiceType,
+    ClauseType,
     DateType,
     DateTimeType,
     EthAddressType,
+    EthTxHashType,
     EthereumCallType,
-    StripeCallType,
+    EthereumEventFilterType,
     IdentityType,
     LargeTextType,
     ImageType,
@@ -262,6 +321,25 @@ object VariableType {
       case _ => Right(Seq())
     }
   }
+
+  implicit val variableTypeEnc: Encoder[VariableType] = (a: VariableType) =>
+    a.serialize
+
+  implicit val variableTypeDec: Decoder[VariableType] = (c: HCursor) => c.downField("name").as[String]
+    .flatMap(name => VariableType.allTypes().find(_.name === name) match {
+        case Some(varType) => Right(varType)
+        case None => createCustomType(c, name)
+      })
+
+  private def createCustomType(cursor: HCursor, name:String):Decoder.Result[VariableType] = {
+    DefinedStructureType.definedStructureTypeDec(cursor) match {
+      case Right(value) => Right(value)
+      case Left(_) => DefinedChoiceType.definedChoiceTypeDec(cursor) match {
+        case Right(value) => Right(value)
+        case Left(_) => Left(DecodingFailure(s"unknown type $name. or error while decoding", List()))
+      }
+    }
+  }
 }
 
 object LocalDateTimeHelper {
@@ -280,4 +358,7 @@ object LocalDateTimeHelper {
   implicit val clockEncoder: Encoder[LocalDateTime] = (a: LocalDateTime) => Json.fromLong(a.toEpochSecond(ZoneOffset.UTC))
   implicit val eqForLocalDateTime: Eq[LocalDateTime] = Eq.fromUniversalEquals
 
+  implicit val dateKeyEncoder:KeyEncoder[LocalDateTime] = (key: LocalDateTime) => key.toEpochSecond(ZoneOffset.UTC).toString
+
+  implicit val dateKeyDecoder:KeyDecoder[LocalDateTime] = (key: String) => Try(LocalDateTime.ofEpochSecond(key.toLong, 0, ZoneOffset.UTC)).toOption
 }

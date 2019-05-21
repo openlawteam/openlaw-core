@@ -1,7 +1,7 @@
 package org.adridadou.openlaw.values
 
 import cats.Eq
-import io.circe.{Decoder, Encoder}
+import io.circe.{Decoder, Encoder, HCursor, Json, KeyDecoder, KeyEncoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import cats.implicits._
 import org.adridadou.openlaw.parser.template.variableTypes.EthereumAddress
@@ -30,24 +30,32 @@ object TemplateId {
 
 case class TemplateIdentifier(title:TemplateTitle, version:Int)
 
-case class TemplateTitle(title:String = "") {
+case class TemplateTitle(originalTitle:String, title:String) {
   override def toString:String = title
+
+  override def equals(obj: Any): Boolean = obj match {
+    case other:TemplateTitle => this === other
+    case _ => false
+  }
+
+  override def hashCode(): Int = this.title.hashCode
 }
 
 object TemplateTitle {
 
-  def apply(title:String):TemplateTitle = new TemplateTitle(title.toLowerCase())
+  def apply():TemplateTitle = TemplateTitle("")
+  def apply(title:String):TemplateTitle = TemplateTitle(originalTitle = title, title = title.toLowerCase())
 
   implicit val eq:Eq[TemplateTitle] = (x: TemplateTitle, y: TemplateTitle) => x.title === y.title
-  implicit val templateTitleEnc:Encoder[TemplateTitle] = deriveEncoder[TemplateTitle]
-  implicit val templateTitleDec:Decoder[TemplateTitle] = deriveDecoder[TemplateTitle]
-}
+  implicit val templateTitleEnc:Encoder[TemplateTitle] = (a: TemplateTitle) => Json.fromString(a.originalTitle)
+  implicit val templateTitleDec:Decoder[TemplateTitle] = (c: HCursor) => (for {
+    title <- c.downField("title").as[String]
+  } yield TemplateTitle(title)) match {
+    case Right(title) => Right(title)
+    case Left(_) =>
+      c.as[String].map(TemplateTitle(_))
+  }
 
-
-case class TemplateCommentId(id:Int = -1) extends Comparable[TemplateCommentId] {
-  override def compareTo(o: TemplateCommentId): Int = id.compareTo(o.id)
-}
-
-object TemplateCommentId {
-  implicit val templateCommentIdEq:Eq[TemplateCommentId] = Eq.fromUniversalEquals
+  implicit val templateTitleKeyEnc:KeyEncoder[TemplateTitle] = (key: TemplateTitle) => key.title
+  implicit val templateTitleKeyDec:KeyDecoder[TemplateTitle] = (key: String) => Some(TemplateTitle(key))
 }

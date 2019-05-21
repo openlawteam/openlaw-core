@@ -7,3 +7,5 @@ trait OpenlawVmEvent {
   def serialize: String
   protected def className[T]()(implicit cls:ClassTag[T]):String = cls.runtimeClass.getName
 }
+
+trait OpenlawVmInitEvent extends OpenlawVmEvent

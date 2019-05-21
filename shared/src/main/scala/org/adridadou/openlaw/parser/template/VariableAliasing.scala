@@ -1,10 +1,16 @@
 package org.adridadou.openlaw.parser.template
 
+import io.circe.{Decoder, Encoder}
+import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import org.adridadou.openlaw.parser.template.variableTypes.VariableType
 
-import scala.util.{Failure, Success, Try}
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.result.Result
+
+object VariableAliasing {
+  implicit val variableAliasingEnc: Encoder[VariableAliasing] = deriveEncoder[VariableAliasing]
+  implicit val variableAliasingDec: Decoder[VariableAliasing] = deriveDecoder[VariableAliasing]
+}
 
 case class VariableAliasing(name:VariableName, expr:Expression) extends Expression with TemplatePart{
   def validate(executionResult: TemplateExecutionResult): Result[Unit] =

@@ -27,6 +27,14 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
       Failure("was expecting agreement")
   })
 
+  private def executeTemplate(text:String, p:Map[String, String] = Map(), templates:Map[TemplateSourceIdentifier, CompiledTemplate] = Map()):Result[OpenlawExecutionState] = compiledTemplate(text).flatMap({
+    case agreement:CompiledAgreement =>
+      val params = p.map({case (k,v) => VariableName(k) -> v})
+      engine.execute(agreement, TemplateParameters(params), templates)
+    case _ =>
+      Failure("was expecting agreement")
+  })
+
   private def compiledTemplate(text:String): Result[CompiledTemplate] = service.compileTemplate(text)
 
   private def compiledAgreement(text:String): Result[CompiledAgreement] = compiledTemplate(text) match {
@@ -113,7 +121,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     |This is a test.""".stripMargin
 
     val tableElement = structureAgreement(text).map(_.paragraphs.head.elements(3)).right.value.asInstanceOf[TableElement]
-    tableElement.rows(0).head.head shouldBe a [VariableElement]
+    tableElement.rows.head.head.head shouldBe a [VariableElement]
     tableElement.rows(1).head.head should not be a[VariableElement]
     tableElement.rows(2).head.head shouldBe a [VariableElement]
     tableElement.rows(3).head.head should not be a[VariableElement]
@@ -222,14 +230,14 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     val text =
       """[[Id:Identity]]
         |
-        |^ **Services**. This is a test.
+        |^ **Services**. This is a __test__.
         |""".stripMargin
 
     val text2 =
-      """<p class="no-section"></p><ul class="list-lvl-1"><li><p>1.  <strong>Services</strong>. This is a test.<br /></p></li></ul>"""
+      """<p class="no-section"></p><ul class="list-lvl-1"><li><p>1.  <strong>Services</strong>. This is a <u>test</u>.<br /></p></li></ul>"""
 
     val text3 =
-      """<div class="openlaw-paragraph paragraph-1"><p class="no-section"></p></div><ul class="list-lvl-1"><li><div class="openlaw-paragraph paragraph-2"><p>1.  <strong>Services</strong>. This is a test.<br /></p></div></li></ul>"""
+      """<div class="openlaw-paragraph paragraph-1"><p class="no-section"></p></div><ul class="list-lvl-1"><li><div class="openlaw-paragraph paragraph-2"><p>1.  <strong>Services</strong>. This is a <u>test</u>.<br /></p></div></li></ul>"""
 
     resultShouldBe(forReview(text), text2)
     resultShouldBe(forPreview(text), text3)
@@ -260,11 +268,11 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
   it should "handle image variables with URLs" in {
     val text = """[[Image1:Image("https://openlaw.io/static/img/pizza-dog-optimized.svg")]]"""
 
-    structureAgreement(text) match {
-      case Right(structuredAgreement) =>
-        structuredAgreement.executionResult.getVariables(ImageType).size shouldBe 1
+    executeTemplate(text) match {
+      case Right(executionResult) =>
+        executionResult.getVariables(ImageType).size shouldBe 1
 
-        val image = structuredAgreement.executionResult.getVariableValues[String](ImageType).head
+        val image = executionResult.getVariableValues[String](ImageType).head
         image should be ("https://openlaw.io/static/img/pizza-dog-optimized.svg")
 
         resultShouldBe(forPreview(text), "<div class=\"openlaw-paragraph paragraph-1\"><p class=\"no-section\"><span class=\"markdown-variable markdown-variable-Image1\"><img class=\"markdown-embedded-image\" src=\"https://openlaw.io/static/img/pizza-dog-optimized.svg\" /></span></p></div>")
@@ -287,16 +295,16 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
       |repeatEvery:'1 minute 12 seconds')]]
     """.stripMargin
 
-    structureAgreement(text) match {
-      case Right(structuredAgreement) =>
-        structuredAgreement.executionResult.getVariables(EthereumCallType).size shouldBe 1
-        val allActions = structuredAgreement.executionResult.allActions()
+    executeTemplate(text) match {
+      case Right(executionResult) =>
+        executionResult.getVariables(EthereumCallType).size shouldBe 1
+        val allActions = executionResult.allActions()
         allActions.size shouldBe 1
 
-        val call = structuredAgreement.executionResult.getVariableValues[EthereumSmartContractCall](EthereumCallType).head
+        val call = executionResult.getVariableValues[EthereumSmartContractCall](EthereumCallType).head
         call.address.asInstanceOf[StringConstant].value shouldBe "0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAe"
         call.arguments.map(_.toString) shouldBe List("Var1","Var2","Var3")
-        call.metadata.asInstanceOf[StringConstant].value shouldBe "ipfs:5ihruiherg34893zf"
+        call.abi.asInstanceOf[StringConstant].value shouldBe "ipfs:5ihruiherg34893zf"
       case Left(ex) => fail(ex)
     }
   }
@@ -320,6 +328,11 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
   it should "be able to emphasize variables" in {
     val text = "* [[Var]] * ** [[Var]] ** *** [[Var]] ***"
     resultShouldBe(forReview(text, Map("Var" -> "hello world")), """<p class="no-section"><em> hello world </em> <strong> hello world </strong> <strong><em> hello world </em></strong></p>""")
+  }
+
+  it should "be able to underline variables" in {
+    val text = "__[[Var]]__"
+    resultShouldBe(forReview(text, Map("Var" -> "hello world")), """<p class="no-section"><u>hello world</u></p>""")
   }
 
   it should "be able to override section symbols" in {
@@ -441,7 +454,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
   it should "be able to define a default value" in {
     val clauseText = "This is my clause. [[contractor:Text(\"Hello my friend\")]]"
 
-    structureAgreement(clauseText).toOption.flatMap(_.executionResult.getVariable("contractor").flatMap(_.defaultValue)) match {
+    executeTemplate(clauseText).toOption.flatMap(_.getVariable("contractor").flatMap(_.defaultValue)) match {
       case Some(OneValueParameter(StringConstant(str,_))) => str shouldBe "Hello my friend"
       case result => fail(result.toString)
     }
@@ -450,7 +463,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
   it should "be able to define multiple default values" in {
     val clauseText = "This is my clause. [[contractor:Choice(\"First option\", \"Second option\")]]"
 
-    structureAgreement(clauseText).toOption.flatMap(_.executionResult.getVariable("contractor").flatMap(_.defaultValue)) match {
+    executeTemplate(clauseText).toOption.flatMap(_.getVariable("contractor").flatMap(_.defaultValue)) match {
       case Some(ListParameter(vector)) =>
         vector.head.asInstanceOf[StringConstant].value shouldBe "First option"
         vector(1).asInstanceOf[StringConstant].value shouldBe "Second option"
@@ -470,8 +483,8 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
   it should "be able to define a default value for a number " in {
     val clauseText = "This is my clause. [[contractor:Number(24)]]"
 
-    structureAgreement(clauseText) match {
-      case Right(t) => t.executionResult.getVariable("contractor") match {
+    executeTemplate(clauseText) match {
+      case Right(executionResult) => executionResult.getVariable("contractor") match {
         case Some(variable) => variable.defaultValue match {
           case Some(OneValueParameter(NumberConstant(n,_))) => n shouldBe BigDecimal("24")
           case something => fail("default value is not correct:" + something)
@@ -484,8 +497,8 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
 
   it should "be able to define a default value for a date by parsing the date" in {
     val clauseText = "This is my clause. [[contractor:Date(\"2017-06-24\")]]"
-    structureAgreement(clauseText) match {
-      case Right(t) => t.executionResult.getVariable("contractor") match {
+    executeTemplate(clauseText) match {
+      case Right(executionResult) => executionResult.getVariable("contractor") match {
         case Some(variable) => variable.defaultValue match {
           case Some(OneValueParameter(StringConstant(text,_))) => text shouldBe "2017-06-24"
           case something => fail("default value is not correct:" + something)
@@ -499,8 +512,8 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
   it should "be able to define a default value for a date time by parsing the date" in {
     val clauseText = "This is my clause. [[contractor:DateTime(\"2017-06-24 13:45:00\")]]"
 
-    structureAgreement(clauseText) match {
-      case Right(t) => t.executionResult.getVariable("contractor").flatMap(_.defaultValue) match {
+    executeTemplate(clauseText) match {
+      case Right(executionResult) => executionResult.getVariable("contractor").flatMap(_.defaultValue) match {
         case Some(OneValueParameter(StringConstant(text,_))) => text shouldBe "2017-06-24 13:45:00"
         case something => fail("default value is not correct:" + something)
       }
@@ -608,7 +621,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
 
     structureAgreement(text) match {
       case Left(ex) =>
-        ex.message shouldEqual "error while processing the new variable var2. The variables \"var3\" are used in the constructor but have not been defined"
+        ex.message shouldEqual "error while processing the new variable var2. The variable \"var3\" is used in the constructor but has not been defined"
       case Right(_) =>
         fail(s"this should fail")
     }
@@ -635,8 +648,8 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
   it should "handle not logic" in {
     val text="""<%[[My Var:YesNo]][[Another:YesNo]]%>{{My Var && !Another => iojiowejfiowejfiowejfioewjf }}""".stripMargin
 
-    structureAgreement(text) match {
-      case Right(t) => t.executionResult.variables.map(_.name.name).toSet shouldBe Set("My Var", "Another")
+    executeTemplate(text) match {
+      case Right(executionResult) => executionResult.getVariables.map(_.name.name).toSet shouldBe Set("My Var", "Another")
       case Left(ex) => fail(ex)
     }
   }
@@ -644,10 +657,10 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
   it should "let you put different quote characters in a string" in {
     val text="""{{My Var "that's it!" => iojiowejfiowejfiowejfioewjf }}""".stripMargin
 
-    structureAgreement(text) match {
-      case Right(compiledDocument) =>
-        compiledDocument.executionResult.variables.map(_.name.name).toSet shouldBe Set("My Var")
-        compiledDocument.executionResult.variables.map(_.description).head shouldBe Some("that's it!")
+    executeTemplate(text) match {
+      case Right(executionResult) =>
+        executionResult.getVariables.map(_.name.name).toSet shouldBe Set("My Var")
+        executionResult.getVariables.map(_.description).head shouldBe Some("that's it!")
       case Left(ex) => fail(ex)
     }
   }
@@ -877,13 +890,13 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
         |%>
       """.stripMargin
 
-    structureAgreement(text) match {
-      case Right(agreement) =>
-        val sections = agreement.executionResult.sections
+    executeTemplate(text) match {
+      case Right(executionResult) =>
+        val sections = executionResult.sections
         sections("My first section").map(_.name) should contain theSameElementsAs Seq("Variable 1", "Variable 2")
         sections("My second section").map(_.name) should contain theSameElementsAs Seq("Variable 3", "Variable 4", "Variable 5", "Variable 6")
 
-        agreement.executionResult.variables.map(_.name.name).toSet should contain theSameElementsAs Set(
+        executionResult.getVariables.map(_.name.name).toSet should contain theSameElementsAs Set(
           "Variable 1",
           "Variable 2",
           "Variable 3",
@@ -1029,9 +1042,9 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
         |[[var1]]
         |""".stripMargin
 
-    structureAgreement(text, Map()) match {
-      case Right(agreement) =>
-        agreement.executionResult.executedVariables.map(_.name) shouldBe Seq("var1")
+    executeTemplate(text) match {
+      case Right(executionResult) =>
+        executionResult.getAllExecutedVariables.map({case (_, name) => name.name}) shouldBe Seq("var1")
       case Left(ex) => fail(ex)
     }
 
@@ -1047,9 +1060,9 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
         |[[var1]]
         |""".stripMargin
 
-    structureAgreement(text, Map()) match {
-      case Right(agreement) =>
-        agreement.executionResult.getExecutedVariables.map(_.name) shouldBe Seq("var1", "var2")
+    executeTemplate(text) match {
+      case Right(executionResult) =>
+        executionResult.getAllExecutedVariables.map({case (_, name) => name.name}) shouldBe Seq("var1", "var2")
       case Left(ex) => fail(ex)
     }
   }
@@ -1065,9 +1078,9 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
         |[[var1]]
         |""".stripMargin
 
-    structureAgreement(text, Map()) match {
-      case Right(agreement) =>
-        agreement.executionResult.getExecutedVariables.map(_.name) shouldBe Seq("var1", "var2")
+    executeTemplate(text) match {
+      case Right(executionResult) =>
+        executionResult.getAllExecutedVariables.map({case (_, name) => name.name}) shouldBe Seq("var1", "var2")
       case Left(ex) => fail(ex)
     }
   }
@@ -1081,9 +1094,9 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
         |{{(var1 > 10) && (var2 > 20) => iuhiuhuih}}
         |""".stripMargin
 
-      structureAgreement(text, Map("var1" -> "5" , "var2" -> "40")) match {
-        case Right(agreement) =>
-          agreement.executionResult.getExecutedVariables.map(_.name) shouldBe Seq("var1")
+      executeTemplate(text, Map("var1" -> "5" , "var2" -> "40")) match {
+        case Right(executionResult) =>
+          executionResult.getAllExecutedVariables.map({case (_, name) => name.name}) shouldBe Seq("var1")
         case Left(ex) => fail(ex)
       }
   }
@@ -1098,9 +1111,9 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
         |""".stripMargin
 
 
-    structureAgreement(text, Map("var1" -> "25" , "var2" -> "40")) match {
-      case Right(agreement) =>
-        agreement.executionResult.executedVariables.map(_.name) shouldBe Seq("var1")
+    executeTemplate(text, Map("var1" -> "25" , "var2" -> "40")) match {
+      case Right(executionResult) =>
+        executionResult.getAllExecutedVariables.map({case (_, name) => name.name}) shouldBe Seq("var1")
       case Left(ex) => fail(ex)
     }
   }
@@ -1115,9 +1128,9 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
         |""".stripMargin
 
 
-    structureAgreement(text, Map("var1" -> "25" , "var2" -> "40")) match {
-      case Right(agreement) =>
-        agreement.executionResult.executedVariables.map(_.name) shouldBe Seq("var1")
+    executeTemplate(text, Map("var1" -> "25" , "var2" -> "40")) match {
+      case Right(executionResult) =>
+        executionResult.getAllExecutedVariables.map({case (_, name) => name.name}) shouldBe Seq("var1")
       case Left(ex) => fail(ex)
     }
   }
@@ -1125,9 +1138,9 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
   it should "be able to list a variable that is in bold" in {
     val text = "** [[My Var:Text]] **"
 
-    structureAgreement(text, Map()) match {
-      case Right(document) =>
-        document.executionResult.variables.map(_.name.name) should contain("My Var")
+    executeTemplate(text, Map()) match {
+      case Right(executionResult) =>
+        executionResult.getVariables.map(_.name.name) should contain("My Var")
       case Left(ex) => fail(ex)
     }
   }
@@ -1189,10 +1202,10 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
          )]]
       """.stripMargin
 
-    structureAgreement(text, Map("My Number" -> "3")) match {
-      case Right(structuredAgreement) =>
-        structuredAgreement.executionResult.validate() should contain("My Number needs to be higher than 5")
-      case Left(ex) => fail(ex)
+    executeTemplate(text, Map("My Number" -> "3")) match {
+      case Right(executionResult) =>
+        executionResult.validate() should contain("My Number needs to be higher than 5")
+      case Left(ex) => fail(ex.message, ex)
     }
   }
 
@@ -1242,9 +1255,9 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
       """.stripMargin
 
 
-    structureAgreement(text, Map("option" -> "two")) match {
-      case Right(agreement) =>
-        agreement.executionResult.getVariableValue[String](VariableName("option")) shouldBe Some("two")
+    executeTemplate(text, Map("option" -> "two")) match {
+      case Right(executionResult) =>
+        executionResult.getVariableValue[String](VariableName("option")) shouldBe Some("two")
       case Left(ex) =>
         fail(ex)
     }
@@ -1271,13 +1284,13 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
          [[name1:Name]]
       """.stripMargin
 
-    structureAgreement(text) match {
-      case Right(agreement) =>
-        val structureType = agreement.executionResult.findVariableType(VariableTypeDefinition("Name")).getOrElse(NumberType)
+    executeTemplate(text) match {
+      case Right(executionResult) =>
+        val structureType = executionResult.findVariableType(VariableTypeDefinition("Name")).getOrElse(NumberType)
         structureType === NumberType shouldBe false
-        val newAgreement = structureAgreement(text, Map("name1" -> structureType.internalFormat(Map(VariableName("first") -> "John", VariableName("last") -> "Doe")))).toSeq.head
+        val Right(newExecutionResult) = executeTemplate(text, Map("name1" -> structureType.internalFormat(Map(VariableName("first") -> "John", VariableName("last") -> "Doe"))))
 
-        service.parseExpression("name1.first").map(_.evaluate(newAgreement.executionResult)) shouldBe Right(Some("John"))
+        service.parseExpression("name1.first").map(_.evaluate(newExecutionResult)) shouldBe Right(Some("John"))
       case Left(ex) =>
         fail(ex)
     }
@@ -1291,7 +1304,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
          [[@My Id = address.placeId]]
       """.stripMargin
 
-    structureAgreement(text, Map("address" -> AddressType.internalFormat(Address(
+    executeTemplate(text, Map("address" -> AddressType.internalFormat(Address(
       placeId = "placeId",
       streetName = "streetName",
       streetNumber = "streetNumber",
@@ -1301,8 +1314,8 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
       zipCode = "zipCode",
       formattedAddress = "formattedAddress"
     )))) match {
-      case Right(structured) =>
-        val result = structured.executionResult.getAlias("My Id").flatMap(_.evaluate(structured.executionResult))
+      case Right(executionResult) =>
+        val result = executionResult.getAlias("My Id").flatMap(_.evaluate(executionResult))
 
         result shouldBe Some("placeId")
       case Left(ex) => fail(ex)
@@ -1316,9 +1329,9 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
          {{My Conditional "this is a question" => hello }}
       """.stripMargin
 
-    structureAgreement(text, Map("My Conditional" -> "true")) match {
-      case Right(structured) =>
-        val variableDefinition = structured.executionResult.variables.head
+    executeTemplate(text, Map("My Conditional" -> "true")) match {
+      case Right(executionResult) =>
+        val variableDefinition = executionResult.getVariables.head
 
         variableDefinition.name.name shouldBe "My Conditional"
         variableDefinition.variableTypeDefinition.map(_.name) shouldBe Some(YesNoType.name)
@@ -1341,9 +1354,9 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
          }}
       """.stripMargin
 
-    structureAgreement(text, Map("BV" -> "true", "My Conditional" -> "true")) match {
-      case Right(structured) =>
-        val variableDefinition = structured.executionResult.variables.filter(_.name.name === "My Conditional").head
+    executeTemplate(text, Map("BV" -> "true", "My Conditional" -> "true")) match {
+      case Right(executionResult) =>
+        val variableDefinition = executionResult.getVariables.filter(_.name.name === "My Conditional").head
 
         variableDefinition.name.name shouldBe "My Conditional"
         variableDefinition.variableTypeDefinition.map(_.name) shouldBe Some(YesNoType.name)
@@ -1409,11 +1422,11 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
         |{{Stock Award "A Restricted Stock Grant?" => {{Board Action "Do you want to execute a unanimous action of the board?" => }}}}
       """.stripMargin
 
-    structureAgreement(text, Map()) match {
-      case Right(structured) =>
-        structured.executionResult.executedVariables.map(_.name) shouldBe Seq("Additional Agreements" ,"Corporation", "LLC", "PBC", "Stock Award")
+    executeTemplate(text, Map()) match {
+      case Right(executionResult) =>
+        executionResult.getAllExecutedVariables.map({case (_, name) => name.name}) shouldBe Seq("Additional Agreements" ,"Corporation", "LLC", "PBC", "Stock Award")
 
-        structured.executionResult.getVariable("Dispute Resolution") match {
+        executionResult.getVariable("Dispute Resolution") match {
           case Some(variable) =>
             variable.variableTypeDefinition.map(_.name) shouldBe Some(YesNoType.name)
             variable.description shouldBe Some("An Alternative Dispute Resolution Agreement?")
@@ -1436,9 +1449,9 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
         |{{Conditional "Do you want to see the variables?" => The value of Variable A is [[Variable A]]. The value of Variable B is [[Variable B]].}}
       """.stripMargin
 
-    structureAgreement(text) match {
-      case Right(document) =>
-        document.executionResult.executedVariables.map(_.name) shouldBe Seq("Conditional")
+    executeTemplate(text) match {
+      case Right(executionResult) =>
+        executionResult.getAllExecutedVariables.map({case (_, name) => name.name}) shouldBe Seq("Conditional")
       case Left(ex) =>
         fail(ex)
     }

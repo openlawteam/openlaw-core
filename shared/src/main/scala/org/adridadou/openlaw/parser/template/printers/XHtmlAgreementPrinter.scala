@@ -7,20 +7,10 @@ import cats.implicits._
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes.IdentityType
-import org.adridadou.openlaw.values.TemplateTitle
 import scalatags.Text.all._
 import slogging._
 
 import scala.annotation.tailrec
-
-/** Special agreement element type used internally by this printer to demark text to be output without any
-  * styling or wrapping elements.
-  */
-case class PlainText(str: String) extends AgreementElement
-
-/** Agreement element to wrap a title to support printing titles in downloaded documents.
-  */
-case class Title(title: TemplateTitle) extends AgreementElement
 
 object XHtmlAgreementPrinter {
 
@@ -205,14 +195,6 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
           val removeDepth = if (preview && dependencies.forall(variable => !hiddenVariables.contains(variable))) 1 else 0
           tailRecurse(xs, conditionalBlockDepth - removeDepth, inSection, continue)
 
-        case ConditionalStartWithElse(dependencies) =>
-          val addDepth = if (preview && dependencies.forall(variable => !hiddenVariables.contains(variable))) 1 else 0
-          tailRecurse(xs, conditionalBlockDepth + addDepth, inSection, continue)
-
-        case ConditionalEndWithElse(dependencies) =>
-          val removeDepth = if (preview && dependencies.forall(variable => !hiddenVariables.contains(variable))) 1 else 0
-          tailRecurse(xs, conditionalBlockDepth - removeDepth, inSection, continue)
-
         case Link(label, url) =>
           tailRecurse(xs, conditionalBlockDepth, inSection, { elems => continue(a(href := url)(label) +: elems) } )
 
@@ -244,6 +226,11 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
         case FreeText(Strong) =>
           val (inner, remaining) = partitionAtItem(xs, x)
           val frag = strong(recurse(inner, conditionalBlockDepth, inSection))
+          tailRecurse(remaining.drop(1), conditionalBlockDepth, inSection, { elems => continue(frag +: elems) })
+
+        case FreeText(Under) =>
+          val (inner, remaining) = partitionAtItem(xs, x)
+          val frag = u(recurse(inner, conditionalBlockDepth, inSection))
           tailRecurse(remaining.drop(1), conditionalBlockDepth, inSection, { elems => continue(frag +: elems) })
 
         case FreeText(PageBreak) =>

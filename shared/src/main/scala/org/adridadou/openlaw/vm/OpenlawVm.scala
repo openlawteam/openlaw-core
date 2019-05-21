@@ -4,6 +4,7 @@ import java.time.{Clock, LocalDateTime, ZoneOffset}
 
 import cats.Eq
 import cats.implicits._
+import io.circe.{Decoder, Encoder, HCursor, Json}
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.variableTypes._
@@ -13,26 +14,36 @@ import org.adridadou.openlaw.result.{Failure, Result, Success}
 import slogging.LazyLogging
 
 import scala.reflect.ClassTag
+import io.circe.generic.semiauto._
+import LocalDateTimeHelper._
 
 case class Signature(userId:UserId, signature:OpenlawSignatureEvent)
 
-case class Executions(executionMap:Map[LocalDateTime,OpenlawExecution] = Map()) {
-  def update(key:LocalDateTime, value:OpenlawExecution):Executions = {
+object Executions {
+  implicit val executionsEnc:Encoder[Executions] = deriveEncoder[Executions]
+  implicit val executionsDec:Decoder[Executions] = deriveDecoder[Executions]
+}
+
+case class Executions(executionMap:Map[LocalDateTime,OpenlawExecution] = Map(), executionInit:Option[OpenlawExecutionInit] = None) {
+  def update(key:LocalDateTime, value:OpenlawExecution):Executions =
     this.copy(executionMap = executionMap + (key -> value))
-  }
+
+  def update(executionInit: OpenlawExecutionInit):Executions =
+    this.copy(executionInit = Some(executionInit))
 }
 
 case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
                            templates:Map[TemplateId, CompiledTemplate] = Map(),
-                           optExecutionResult:Option[TemplateExecutionResult],
+                           optExecutionResult:Option[OpenlawExecutionState],
                            definition:ContractDefinition,
                            state:TemplateParameters,
                            executions:Map[VariableName, Executions],
                            signatures:Map[Email, OpenlawSignatureEvent],
-                           signatureProofs:Map[Email, SignatureProof] = Map(),
+                           signatureProofs:Map[Email, OpenlawSignatureProof] = Map(),
                            events:List[OpenlawVmEvent] = List(),
                            executionEngine: OpenlawExecutionEngine,
                            executionState:ContractExecutionState,
+                           crypto:CryptoService,
                            clock:Clock) extends LazyLogging {
 
   def updateTemplate(id: TemplateId, compiledTemplate: CompiledTemplate, event:LoadTemplate): OpenlawVmState =
@@ -45,22 +56,22 @@ case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
 
   def updateParameter(name:VariableName, value:String, event:OpenlawVmEvent) :OpenlawVmState = {
     val newParams = state + (name -> value)
-    update(templates, newParams, createNewExecutionResult(newParams, templates, signatureProofs), event).copy(
+    update(templates, newParams, createNewExecutionResult(newParams, templates, signatureProofs, executions), event).copy(
       state = newParams
     )
   }
 
-  def executionResult:Option[TemplateExecutionResult] = optExecutionResult match {
+  def executionResult:Option[OpenlawExecutionState] = optExecutionResult match {
     case Some(result) => Some(result)
-    case None => createNewExecutionResult(state, templates, signatureProofs)
+    case None => createNewExecutionResult(state, templates, signatureProofs, executions)
   }
 
-  private def update(templates:Map[TemplateId, CompiledTemplate], parameters:TemplateParameters, optExecution:Option[TemplateExecutionResult], event:OpenlawVmEvent) : OpenlawVmState = {
+  private def update(templates:Map[TemplateId, CompiledTemplate], parameters:TemplateParameters, optExecution:Option[OpenlawExecutionState], event:OpenlawVmEvent) : OpenlawVmState = {
     val execution = optExecution match {
       case Some(executionResult) =>
         Some(executionResult)
       case None =>
-        createNewExecutionResult(parameters, templates, signatureProofs)
+        createNewExecutionResult(parameters, templates, signatureProofs, executions)
     }
 
     execution.map(executeContract(templates, _) match {
@@ -76,7 +87,7 @@ case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
     )
   }
 
-  private def executeContract(currentTemplates:Map[TemplateId, CompiledTemplate], execution: TemplateExecutionResult):Result[TemplateExecutionResult] = execution.state match {
+  private def executeContract(currentTemplates:Map[TemplateId, CompiledTemplate], execution: OpenlawExecutionState):Result[OpenlawExecutionState] = execution.state match {
     case ExecutionFinished =>
       Success(execution)
 
@@ -85,16 +96,17 @@ case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
       executionEngine.resumeExecution(execution, templates)
   }
 
-  def createNewExecutionResult(signatureProofs:Map[Email, SignatureProof]):Option[TemplateExecutionResult] =
-    createNewExecutionResult(state, templates, signatureProofs)
+  def createNewExecutionResult(signatureProofs:Map[Email, OpenlawSignatureProof]):Option[OpenlawExecutionState] =
+    createNewExecutionResult(state, templates, signatureProofs, executions)
 
-  def createNewExecutionResult(params:TemplateParameters, templates:Map[TemplateId, CompiledTemplate],signatureProofs:Map[Email, SignatureProof]):Option[TemplateExecutionResult] = {
+  def createNewExecutionResult(params:TemplateParameters, templates:Map[TemplateId, CompiledTemplate],signatureProofs:Map[Email, OpenlawSignatureProof], executions:Map[VariableName, Executions]):Option[OpenlawExecutionState] = {
     val templateDefinitions = definition.templates.flatMap({case (templateDefinition, id) => templates.get(id).map(templateDefinition -> _)})
-    templates.get(definition.mainTemplate).map(executionEngine.execute(_, params, templateDefinitions, signatureProofs)) match {
+    templates.get(definition.mainTemplate).map(executionEngine.execute(_, params, templateDefinitions, signatureProofs, executions, Some(definition.id(crypto)))) match {
       case None => None
       case Some(Right(result)) =>
         Some(result)
       case Some(Left(ex)) =>
+        ex.e.printStackTrace()
         logger.warn(ex.message, ex.e)
         None
     }
@@ -114,7 +126,8 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
     signatures = Map(),
     optExecutionResult = None,
     executionState = ContractCreated,
-    clock = parser.internalClock
+    clock = parser.internalClock,
+    crypto = cryptoService
   )
 
   def isSignatureValid(data:EthereumData, event:OpenlawSignatureEvent):Boolean = {
@@ -172,6 +185,19 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
     this
   }
 
+  def setInitExecution(name:VariableName, executionInit: OpenlawExecutionInit):OpenlawVm = {
+    val executions = state.executions.getOrElse(name, Executions())
+    val newExecutions = state.executions + (name  -> executions.update(executionInit))
+    state = state.copy(executions = newExecutions)
+
+    this
+  }
+
+  def initExecution[T <: OpenlawExecutionInit](name:VariableName)(implicit classTag:ClassTag[T]):Option[T] = state.executions
+    .get(name)
+    .flatMap(_.executionInit)
+    .map(VariableType.convert[T])
+
   def newExecution(name:VariableName, execution: OpenlawExecution):OpenlawVm = {
     val executions = state.executions.getOrElse(name, Executions())
     val newExecutions = state.executions + (name  -> executions.update(execution.scheduledDate, execution))
@@ -179,7 +205,8 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
       case FailedExecution =>
         state = state.copy(executions = newExecutions, executionState = ContractStopped)
       case _ =>
-        state = state.copy(executions = newExecutions)
+        val newExecutionResult = state.createNewExecutionResult(state.state, state.templates, state.signatureProofs, newExecutions)
+        state = state.copy(executions = newExecutions, optExecutionResult = newExecutionResult)
     }
 
     this
@@ -225,7 +252,7 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
 
   def mainTemplate:CompiledTemplate = state.templates(contractDefinition.mainTemplate)
 
-  def executionResult:Option[TemplateExecutionResult] = state.executionResult
+  def executionResult:Option[OpenlawExecutionState] = state.executionResult
 
   def content(templateId: TemplateId): String = state.contents(templateId)
 
@@ -276,6 +303,8 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
           processSignature(signature)
         case e:LoadTemplate =>
           templateOracle.incoming(this, e)
+        case e:OpenlawVmInitEvent =>
+          executeEvent(e)
         case _ =>
           Failure("the virtual machine is in creation state. The only events allowed are signature events")
       }
@@ -369,6 +398,9 @@ object ContractExecutionState {
     case ContractStopped.state => ContractStopped
     case ContractResumed.state => ContractResumed
   }
+
+  implicit val contractExecutionStateEnc:Encoder[ContractExecutionState] = (a: ContractExecutionState) => Json.fromString(a.state)
+  implicit val contractExecutionStateDec:Decoder[ContractExecutionState] = (c: HCursor) => c.as[String].map(state => ContractExecutionState(state))
 
   implicit val eqForExecutionState: Eq[ContractExecutionState] = Eq.fromUniversalEquals
 }

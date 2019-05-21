@@ -3,40 +3,49 @@ package org.adridadou.openlaw.parser.template
 import cats.Eq
 import org.adridadou.openlaw.parser.template.variableTypes._
 import cats.implicits._
-import io.circe.{Decoder, Encoder}
+import io.circe.{Decoder, Encoder, KeyDecoder, KeyEncoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
+import org.adridadou.openlaw.result.Implicits.RichResult
 import play.api.libs.json.{JsString, Reads, Writes}
 
 import scala.reflect.ClassTag
 
 case class VariableMember(name:VariableName, keys:Seq[String], formatter:Option[FormatterDefinition]) extends TemplatePart with Expression {
   override def missingInput(executionResult:TemplateExecutionResult): Result[Seq[VariableName]] =
-    name.aliasOrVariable(executionResult).missingInput(executionResult)
+    name.missingInput(executionResult)
 
   override def validate(executionResult:TemplateExecutionResult): Result[Unit] =
-    name.aliasOrVariable(executionResult).expressionType(executionResult)
-      .validateKeys(name, keys, executionResult)
+    name.expressionType(executionResult)
+      .validateKeys(name, keys, name, executionResult)
 
-  override def expressionType(executionResult:TemplateExecutionResult): VariableType =
-    name.aliasOrVariable(executionResult).expressionType(executionResult).keysType(keys, executionResult)
+  override def expressionType(executionResult:TemplateExecutionResult): VariableType = {
+    val expression = name.aliasOrVariable(executionResult)
+    expression
+      .expressionType(executionResult)
+      .keysType(keys, expression, executionResult)
+      .getOrThrow()
+  }
 
   override def evaluate(executionResult:TemplateExecutionResult): Option[Any] = {
+
     val expr = name.aliasOrVariable(executionResult)
     val exprType = expr.expressionType(executionResult)
-
     val optValue = expr.evaluate(executionResult)
-    optValue.map(exprType.access(_, keys, executionResult) match {
-      case Right(value) => value
+
+    optValue.map(exprType.access(_, name, keys, executionResult) match {
+      case Right(Some(value)) => value
+      case Right(None) => None
       case Left(ex) => throw new RuntimeException(ex.e)
     })
   }
 
-  override def variables(executionResult:TemplateExecutionResult): Seq[VariableName] = {
-    val expr = name.aliasOrVariable(executionResult)
-    expr.expressionType(executionResult).accessVariables(name, keys, executionResult)
-  }
+  override def variables(executionResult:TemplateExecutionResult): Seq[VariableName] =
+    name.variables(executionResult)
+
+  override def toString: String =
+    (Seq(name.name) ++ keys).mkString(".")
 }
 
 case class VariableName(name:String) extends Expression {
@@ -99,6 +108,11 @@ case class VariableName(name:String) extends Expression {
 
 }
 
+object FormatterDefinition {
+  implicit val formatterDefinitionEnc:Encoder[FormatterDefinition] = deriveEncoder[FormatterDefinition]
+  implicit val formatterDefinitionDec:Decoder[FormatterDefinition] = deriveDecoder[FormatterDefinition]
+}
+
 case class FormatterDefinition(name:String, parameters:Option[Parameter])
 
 object VariableDefinition {
@@ -107,19 +121,25 @@ object VariableDefinition {
 
   def apply(name:VariableName):VariableDefinition =
     new VariableDefinition(name = name)
+
+  implicit val variableDefinitionEnc: Encoder[VariableDefinition] = deriveEncoder[VariableDefinition]
+  implicit val variableDefinitionDec: Decoder[VariableDefinition] = deriveDecoder[VariableDefinition]
 }
 
 object VariableName {
   implicit val variableNameEnc: Encoder[VariableName] = deriveEncoder[VariableName]
   implicit val variableNameDec: Decoder[VariableName] = deriveDecoder[VariableName]
+  implicit val variableNameKeyEnc: KeyEncoder[VariableName] = (key: VariableName) => key.name
+  implicit val variableNameKeyDec: KeyDecoder[VariableName] = (key: String) => Some(VariableName(key))
   implicit val variableNameEq:Eq[VariableName] = Eq.fromUniversalEquals
   implicit val variableNameJsonWriter:Writes[VariableName] = Writes {name => JsString(name.name)}
   implicit val variableNameJsonReader:Reads[VariableName] = Reads {value => value.validate[String].map(VariableName.apply)}
 
+
   def apply(name:String):VariableName = new VariableName(name.trim)
 }
 
-case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[VariableTypeDefinition] = None, description:Option[String] = None, formatter:Option[FormatterDefinition] = None, isHidden:Boolean = false, defaultValue:Option[Parameter] = None) extends TemplatePart with Expression with TextElement {
+case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[VariableTypeDefinition] = None, description:Option[String] = None, formatter:Option[FormatterDefinition] = None, isHidden:Boolean = false, defaultValue:Option[Parameter] = None) extends TextElement("VariableDefinition") with TemplatePart with Expression {
 
   def constructT[T](executionResult: TemplateExecutionResult)(implicit classTag:ClassTag[T]): Result[Option[T]] = {
     construct(executionResult).flatMap({
@@ -131,18 +151,32 @@ case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[
   def construct(executionResult: TemplateExecutionResult): Result[Option[Any]] = defaultValue match {
     case Some(parameter) =>
       varType(executionResult).construct(parameter, executionResult)
-    case None => Right(None)
+    case None if varType(executionResult) === OLOwnType => Success(Some(executionResult.info))
+    case None => Success(None)
   }
-
 
   def isAnonymous: Boolean = name.isAnonymous
 
-  def varType(executionResult: TemplateExecutionResult):VariableType = variableTypeDefinition.flatMap(name => executionResult.findVariableType(name)).getOrElse(TextType)
+  def varType(executionResult: TemplateExecutionResult):VariableType = variableTypeDefinition
+    .flatMap(typeDefinition => executionResult.findVariableType(typeDefinition)).getOrElse(TextType)
 
   def verifyConstructor(executionResult: TemplateExecutionResult): Result[Option[Any]] = {
+    implicit val eqCls:Eq[Class[_]] = Eq.fromUniversalEquals
     defaultValue match {
       case Some(parameter) =>
-        varType(executionResult).construct(parameter, executionResult)
+        val variableType = varType(executionResult)
+
+        variableType.construct(parameter, executionResult).flatMap({
+          case Some(result) =>
+            val expectedType = this.varType(executionResult).getTypeClass
+            val resultType = result.getClass
+            if(expectedType == resultType) {
+              Success(Some(result))
+            } else {
+            Failure(s"type mismatch while building the default value for type ${variableType.name}. the constructor result type should be ${expectedType.getSimpleName} but instead is ${result.getClass.getSimpleName}")
+          }
+          case None => Success(None)
+        })
       case None => Right(None)
     }
   }
@@ -172,13 +206,11 @@ case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[
     }
   }
 
-  private def constructVariable(optVariable:Option[VariableDefinition], executionResult: TemplateExecutionResult):Option[Any] = {
-    optVariable
+  private def constructVariable(optVariable:Option[VariableDefinition], executionResult: TemplateExecutionResult):Option[Any] = optVariable
       .map(variable => variable.construct(executionResult)) match {
       case Some(Right(value)) => value
       case Some(Left(ex)) => throw ex.e
       case None => None
-    }
   }
 
   override def expressionType(executionResult: TemplateExecutionResult): VariableType = executionResult.getAlias(name)
@@ -237,7 +269,7 @@ case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[
   override def missingInput(executionResult:TemplateExecutionResult): Result[Seq[VariableName]] = {
     val eitherMissing = name.missingInput(executionResult)
     val eitherMissingFromParameters = defaultValue
-      .map(getMissingValuesFromParameter(executionResult, _)).getOrElse(Right(Seq()))
+      .map(getMissingValuesFromParameter(executionResult, _)).getOrElse(Success(Seq()))
 
     for {
       missing <- eitherMissing

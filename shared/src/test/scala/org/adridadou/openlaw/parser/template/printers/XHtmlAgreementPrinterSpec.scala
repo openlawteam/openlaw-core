@@ -3,7 +3,7 @@ package org.adridadou.openlaw.parser.template.printers
 import java.time.Clock
 
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
-import org.adridadou.openlaw.result.Implicits.{failureCause2Exception, RichEither}
+import org.adridadou.openlaw.result.Implicits.failureCause2Exception
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.values.{TemplateParameters, TemplateTitle}
@@ -92,6 +92,13 @@ class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues
     val agreement = structureAgreement(text)
     val html = XHtmlAgreementPrinter(false).printParagraphs(agreement.right.value.paragraphs.toList).print
     html shouldBe """<p class="no-section align-right"> <strong>[[Company Name]]</strong></p>"""
+  }
+
+  it should "handle right aligned underlined section" in {
+    val text = """\right __[[Company Name | Uppercase]]__"""
+    val agreement = structureAgreement(text)
+    val html = XHtmlAgreementPrinter(false).printParagraphs(agreement.right.value.paragraphs.toList).print
+    html shouldBe """<p class="no-section align-right"> <u>[[Company Name]]</u></p>"""
   }
 
   it should "handle right 3/4 aligned section" in {

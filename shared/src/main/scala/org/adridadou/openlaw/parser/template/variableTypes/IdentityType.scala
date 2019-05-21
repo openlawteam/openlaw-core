@@ -10,6 +10,7 @@ import Identity._
 import cats.Eq
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter, SignatureFormatter}
 import org.adridadou.openlaw.parser.template._
+import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 case object IdentityType extends VariableType(name = "Identity") {
@@ -39,15 +40,15 @@ case object IdentityType extends VariableType(name = "Identity") {
     case _ => throw new RuntimeException(s"unknown formatter $name")
   }
 
-  override def access(value: Any, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Any] = {
+  override def access(value: Any, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[Any]] = {
     keys.toList match {
-      case head::tail if tail.isEmpty => accessProperty(Some(VariableType.convert[Identity](value)), head)
-      case _::_ => Success(s"Address has only one level of properties. invalid property access ${keys.mkString(".")}")
-      case _ => Success(value)
+      case head::tail if tail.isEmpty => accessProperty(Some(VariableType.convert[Identity](value)), head).map(Some(_))
+      case _::_ => Failure(s"Identity has only one level of properties. invalid property access ${keys.mkString(".")}") // TODO: Is this correct?
+      case _ => Success(Some(value))
     }
   }
 
-  override def validateKeys(name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Unit] = keys.toList match {
+  override def validateKeys(name:VariableName, keys: Seq[String], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] = keys.toList match {
     case Nil => Success(())
     case head::tail if tail.isEmpty => checkProperty(head)
     case _::_ => Failure(s"invalid property ${keys.mkString(".")}")
@@ -86,6 +87,9 @@ case class Email(email:String) {
 object Email {
 
   private val emailRegex = """^[a-zA-Z0-9\.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$""".r
+
+  implicit val emailKeyEnc:KeyEncoder[Email] = (key: Email) => key.email
+  implicit val emailKeyDec:KeyDecoder[Email] = (key: String) => Email.validate(key).toOption
 
   implicit val eqEmail:Eq[Email] = Eq.fromUniversalEquals
   implicit val emailEnc: Encoder[Email] = (a: Email) => Json.fromString(a.email)

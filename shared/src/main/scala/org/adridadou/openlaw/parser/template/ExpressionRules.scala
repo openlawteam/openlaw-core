@@ -1,10 +1,16 @@
 package org.adridadou.openlaw.parser.template
 
 import cats.kernel.Eq
-import io.circe.Json
+import cats.implicits._
+import io.circe._
+import io.circe.generic.auto._
+import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
+import io.circe.syntax._
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.parboiled2.Rule1
 import org.adridadou.openlaw.parser.template.expressions._
+
+import scala.reflect.ClassTag
 
 /**
   * Created by davidroon on 06.06.17.
@@ -103,11 +109,11 @@ trait ExpressionRules extends JsonRules {
   }
 
   def variableMember: Rule1[VariableMember] = rule {
-    openS ~ zeroOrMore(" ") ~ charsKeyAST ~ oneOrMore("." ~ charsKeyAST) ~ optional( ws ~ "|" ~ formatterDefinition) ~ closeS ~>((name:String, member:Seq[String], formatter:Option[FormatterDefinition]) => VariableMember(VariableName(name.trim), member, formatter))
+    openS ~ zeroOrMore(" ") ~ charsKeyAST ~ oneOrMore("." ~ charsKeyAST) ~ optional( ws ~ "|" ~ formatterDefinition) ~ closeS ~>((name:String, member:Seq[String], formatter:Option[FormatterDefinition]) => VariableMember(VariableName(name), member.map(_.trim), formatter))
   }
 
   def variableMemberInner: Rule1[VariableMember] = rule {
-    charsKeyAST ~ oneOrMore("." ~ charsKeyAST) ~>((name:String, member:Seq[String]) => VariableMember(VariableName(name.trim),member, None))
+    charsKeyAST ~ oneOrMore("." ~ charsKeyAST) ~>((name:String, member:Seq[String]) => VariableMember(VariableName(name),member.map(_.trim), None))
   }
 
   def varKey: Rule1[VariableDefinition] = rule { &(openS) ~ variable }
@@ -139,7 +145,10 @@ trait ExpressionRules extends JsonRules {
   }
 
   def MappingParameterEntry:Rule1[MappingParameter] = rule {
-    oneOrMore(MappingRule).separatedBy(',') ~> ((n:Seq[(VariableName, Expression)]) => MappingParameter(n.toMap))
+    oneOrMore(MappingRule).separatedBy(',') ~> ((n:Seq[(VariableName, Expression)]) => {
+      val mappingInternal = n.map({case (n,v) => n.name -> v}).toMap
+      MappingParameter(mappingInternal)
+    })
   }
 
   def MappingRule:Rule1[(VariableName, Expression)] = rule {
@@ -203,30 +212,72 @@ case object Divide extends ValueOperation{
 
 case object Compare extends ValueOperation
 
+object Parameter {
+  implicit val parameterEq:Eq[Parameter] = Eq.fromUniversalEquals
+
+  implicit val parameterEnc:Encoder[Parameter] = (a: Parameter) => {
+    Json.obj(
+      "name" -> Json.fromString(a.getClass.getSimpleName),
+      "value" -> a.serialize
+    )
+  }
+  implicit val parameterDec:Decoder[Parameter] = (c: HCursor) => {
+    c.downField("name").as[String].flatMap(decodeParameter(_, c))
+  }
+
+  private def className[T](implicit classTag: ClassTag[T]):String = classTag.runtimeClass.getSimpleName
+
+  private def decodeParameter(name: String, cursor: HCursor):Decoder.Result[Parameter] = {
+    name match {
+      case _ if name === className[OneValueParameter] =>
+        cursor.downField("value").as[OneValueParameter]
+      case _ if name === className[ListParameter] =>
+        cursor.downField("value").as[ListParameter]
+      case _ if name === className[Parameters] =>
+        cursor.downField("value").as[Parameters]
+      case _ if name === className[MappingParameter] =>
+        cursor.downField("value").as[MappingParameter]
+      case _ => Left(DecodingFailure(s"unknown parameter type $name", List()))
+    }
+  }
+}
+
 sealed trait Parameter {
+  def serialize:Json
   def variables(executionResult: TemplateExecutionResult):Seq[VariableName]
 }
 final case class OneValueParameter(expr:Expression) extends Parameter {
   override def variables(executionResult: TemplateExecutionResult): Seq[VariableName] =
     expr.variables(executionResult)
+
+  override def serialize: Json = this.asJson
 }
 final case class ListParameter(exprs:Seq[Expression]) extends Parameter {
   override def variables(executionResult: TemplateExecutionResult): Seq[VariableName] =
     exprs.flatMap(_.variables(executionResult)).distinct
+
+  override def serialize: Json = this.asJson
 }
 
 final case class Parameters(parameterMap:Seq[(String, Parameter)]) extends Parameter {
   override def variables(executionResult: TemplateExecutionResult): Seq[VariableName] =
     parameterMap.flatMap({case (_,param) => param.variables(executionResult)}).distinct
+
+  override def serialize: Json = this.asJson
 }
 
-final case class MappingParameter(mapping: Map[VariableName, Expression]) extends Parameter {
+final case class MappingParameter(mappingInternal: Map[String, Expression]) extends Parameter {
+  def mapping:Map[VariableName, Expression] = mappingInternal.map({case (key,value) => VariableName(key) -> value})
   override def variables(executionResult: TemplateExecutionResult): Seq[VariableName] =
     mapping.values.flatMap(_.variables(executionResult)).toSeq.distinct
+
+  override def serialize: Json = this.asJson
 }
 
 object VariableTypeDefinition {
   implicit val variableTypeDefinitionEq:Eq[VariableTypeDefinition] = Eq.fromUniversalEquals
+  implicit val variableTypeDefinitionEnc:Encoder[VariableTypeDefinition] = deriveEncoder[VariableTypeDefinition]
+  implicit val variableTypeDefinitionDec:Decoder[VariableTypeDefinition] = deriveDecoder[VariableTypeDefinition]
 }
 
 case class VariableTypeDefinition(name:String, typeParameter:Option[VariableTypeDefinition] = None)

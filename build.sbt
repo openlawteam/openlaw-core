@@ -12,9 +12,10 @@ licenses += ("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0"))
 
 lazy val scalaV = "2.12.8"
 lazy val catsV = "1.6.0"
-lazy val parboiledV = "2.1.5"
+lazy val parboiledV = "2.1.6"
 lazy val circeV = "0.11.1"
-lazy val playJsonV = "2.7.1"
+lazy val playJsonV = "2.7.3"
+lazy val scalaTagsV = "0.6.8"
 
 lazy val repositories = Seq(
   Resolver.jcenterRepo,
@@ -34,6 +35,7 @@ lazy val commonSettings = Seq(
 )
 
 lazy val publishSettings = Seq(
+  publishArtifact in (Test, packageBin) := true,
   homepage := Some(url(s"https://github.com/$username/$repo")),
   licenses += ("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0")),
   bintrayReleaseOnPublish in ThisBuild := true,
@@ -67,7 +69,7 @@ lazy val publishSettings = Seq(
 
 lazy val releaseSettings = releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,              // : ReleaseStep
-  inquireVersions,                        // : ReleaseStep
+  //inquireVersions,                        // : ReleaseStep
   //setReleaseVersion,                      // : ReleaseStep
   //commitReleaseVersion,                   // : ReleaseStep, performs the initial git checks
   //tagRelease,                             // : ReleaseStep
@@ -93,15 +95,17 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       "io.circe"                %% "circe-core"          % circeV,
       "io.circe"                %% "circe-generic"       % circeV,
       "io.circe"                %% "circe-parser"        % circeV,
+      "io.circe"                %% "circe-java8"        % circeV,
       "com.typesafe.play"       %% "play-json"           % playJsonV,
       "org.parboiled"           %% "parboiled"           % parboiledV,
       "org.typelevel"           %% "cats-core"           % catsV,
       "org.typelevel"           %% "cats-free"           % catsV,
       "io.github.cquiroz"       %% "scala-java-time"     % "2.0.0-RC1",
       "biz.enef"                %% "slogging-slf4j"      % "0.6.1",
-      "com.lihaoyi"             %% "scalatags"           % "0.6.7",
+      "com.beachape"            %% "enumeratum"          % "1.5.13",
+      "com.lihaoyi"             %% "scalatags"           % scalaTagsV,
       //Test
-      "org.scalacheck"          %% "scalacheck"          % "1.14.0"       % Test,
+      "org.scalacheck"          %% "scalacheck"          % "1.14.0"        % Test,
       "org.scalatest"           %% "scalatest"           % "3.2.0-SNAP10"  % Test,
     )
   ).jsSettings(
@@ -116,8 +120,10 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       "io.circe"                %%% "circe-core"           % circeV,
       "io.circe"                %%% "circe-generic"        % circeV,
       "io.circe"                %%% "circe-parser"         % circeV,
+      "io.circe"                %%% "circe-java8"         % circeV,
       "com.typesafe.play"       %%% "play-json"            % playJsonV,
-      "com.lihaoyi"             %%% "scalatags"            % "0.6.7",
+      "com.beachape"            %%% "enumeratum"           % "1.5.13",
+      "com.lihaoyi"             %%% "scalatags"            % scalaTagsV,
       //Test
       "org.scalacheck"          %%% "scalacheck"          % "1.14.0"        % Test,
       "org.scalatest"           %%% "scalatest"           % "3.2.0-SNAP10"  % Test
@@ -129,9 +135,25 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
   .settings(releaseSettings: _*)
   .enablePlugins(WartRemover)
 
+lazy val version = git.gitDescribedVersion
+
+// need commands for releasing both Scala & ScalaJS to avoid issue where release-with-defaults only releases Scala lib
+
+// the next-version flag is to silence SBT's interactive release shell prompt - it doesn't actually alter the version
+// confirmed via running `sbt version` after release.
+addCommandAlias("releaseCore", ";project openlawCore ;release release-version ${version} next-version ${version-SNAPSHOT} with-defaults")
+addCommandAlias("releaseCoreJS", ";project openlawCoreJS ;release release-version ${version} next-version ${version-SNAPSHOT} with-defaults")
+addCommandAlias("releaseBoth", ";releaseCore ;releaseCoreJS")
+
 lazy val openlawCoreJvm = openlawCore.jvm
 lazy val openlawCoreJs = openlawCore.js
+
+git.useGitDescribe := true
+
+
+
 
 val root = (project in file("."))
   .dependsOn(openlawCoreJvm, openlawCoreJs)
   .aggregate(openlawCoreJvm, openlawCoreJs)
+  .enablePlugins(GitVersioning)

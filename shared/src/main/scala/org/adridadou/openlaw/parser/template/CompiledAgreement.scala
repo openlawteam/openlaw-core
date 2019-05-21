@@ -4,6 +4,7 @@ import java.time.Clock
 
 import cats.implicits._
 import org.adridadou.openlaw.parser.template.variableTypes._
+import org.adridadou.openlaw.result.Success
 
 import scala.annotation.tailrec
 
@@ -16,17 +17,18 @@ case class CompiledAgreement(
 
   private val endOfParagraph = "(.)*[\\ |\t|\r]*\n[\\ |\t|\r]*\n[\\ |\t|\r|\n]*".r
 
-  def structuredMainTemplate(executionResult:TemplateExecutionResult):StructuredAgreement =
+  def structuredMainTemplate(executionResult:OpenlawExecutionState):StructuredAgreement =
     structured(executionResult, None, mainTemplate = true)
 
-  def structuredInternal(executionResult: TemplateExecutionResult, path:Option[TemplatePath]):StructuredAgreement =
+  def structuredInternal(executionResult: OpenlawExecutionState, path:Option[TemplatePath]):StructuredAgreement =
     structured(executionResult, path, mainTemplate = false)
 
-  private def structured(executionResult: TemplateExecutionResult, path:Option[TemplatePath], mainTemplate:Boolean): StructuredAgreement = {
+  private def structured(executionResult: OpenlawExecutionState, path:Option[TemplatePath], mainTemplate:Boolean): StructuredAgreement = {
     val paragraphs = cleanupParagraphs(generateParagraphs(getAgreementElements(List(), block.elems.toList, executionResult)))
     StructuredAgreement(
+      executionResultId = executionResult.id,
       header = header,
-      executionResult = executionResult,
+      templateDefinition = executionResult.templateDefinition,
       path = path,
       mainTemplate = mainTemplate,
       paragraphs = paragraphs)
@@ -74,7 +76,7 @@ case class CompiledAgreement(
     case other =>  List(other)
   }
 
-  @tailrec private def getAgreementElements(renderedElements:List[AgreementElement], elements:List[TemplatePart], executionResult: TemplateExecutionResult):List[AgreementElement] = {
+  @tailrec private def getAgreementElements(renderedElements:List[AgreementElement], elements:List[TemplatePart], executionResult: OpenlawExecutionState):List[AgreementElement] = {
     elements match {
       case Nil =>
         renderedElements
@@ -83,7 +85,7 @@ case class CompiledAgreement(
     }
   }
 
-  private def getAgreementElementsFromElement(renderedElements:List[AgreementElement], element:TemplatePart, executionResult: TemplateExecutionResult):List[AgreementElement] = {
+  private def getAgreementElementsFromElement(renderedElements:List[AgreementElement], element:TemplatePart, executionResult: OpenlawExecutionState):List[AgreementElement] = {
     element match {
       case t:Table =>
         val headerElements = t.header.map(entry => getAgreementElements(List(), entry, executionResult))
@@ -103,6 +105,7 @@ case class CompiledAgreement(
       case Text(str) => renderedElements :+ FreeText(Text(str))
       case Em => renderedElements :+ FreeText(Em)
       case Strong => renderedElements :+ FreeText(Strong)
+      case Under => renderedElements :+ FreeText(Under)
       case PageBreak => renderedElements :+ FreeText(PageBreak)
       case Indent => renderedElements :+ FreeText(Indent)
       case Centered => renderedElements :+ FreeText(Centered)
@@ -113,11 +116,19 @@ case class CompiledAgreement(
       case variableDefinition:VariableDefinition if !variableDefinition.isHidden =>
         executionResult.getAliasOrVariableType(variableDefinition.name) match {
           case Right(variableType @ SectionType) =>
-            renderedElements.:+(VariableElement(variableDefinition.name.name, Some(variableType), generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult), getDependencies(variableDefinition.name, executionResult)))
+            renderedElements :+ VariableElement(variableDefinition.name.name, Some(variableType), generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult), getDependencies(variableDefinition.name, executionResult))
+          case Right(ClauseType) =>
+            executionResult.subExecutionsInternal.get(variableDefinition.name) match {
+              case Some(subExecution) =>
+                getAgreementElements(renderedElements, subExecution.template.block.elems.toList, subExecution)
+              case None =>
+                renderedElements
+            }
+
           case Right(_:NoShowInForm) =>
             renderedElements
           case Right(variableType) =>
-            renderedElements.:+(VariableElement(variableDefinition.name.name, Some(variableType), generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult), getDependencies(variableDefinition.name, executionResult)))
+            renderedElements :+ VariableElement(variableDefinition.name.name, Some(variableType), generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult), getDependencies(variableDefinition.name, executionResult))
           case Left(_) =>
             renderedElements
         }
@@ -150,6 +161,7 @@ case class CompiledAgreement(
           val subExecution = executionResult.finishedEmbeddedExecutions.remove(0)
           getAgreementElements(subElements, subBlock.elems.toList, subExecution)
         })
+
       case section @ Section(uuid, definition, lvl) =>
         val resetNumbering = definition
           .flatMap(_.parameters)
@@ -205,11 +217,23 @@ case class CompiledAgreement(
 
   private def generateVariable(name: VariableName, keys:Seq[String], formatter:Option[FormatterDefinition], executionResult: TemplateExecutionResult):List[AgreementElement] = {
     executionResult.getAliasOrVariableType(name).flatMap(varType => {
-      val keysVarType:VariableType = varType.keysType(keys, executionResult)
 
-      executionResult.getExpression(name).flatMap(_.evaluate(executionResult))
-        .map(varType.access(_, keys, executionResult).flatMap(keysVarType.format(formatter, _, executionResult)))
-        .getOrElse(Right(varType.missingValueFormat(name)))
+      val option = for {
+        expression <- executionResult.getExpression(name)
+        value <- expression.evaluate(executionResult)
+      } yield {
+        varType
+          .keysType(keys, expression, executionResult)
+          .flatMap { keysType =>
+            varType
+              .access(value, name, keys, executionResult)
+              .flatMap { option =>
+                option.map(value => keysType.format(formatter, value, executionResult)).getOrElse(Success(List()))
+              }
+          }
+      }
+
+      option.getOrElse(Success(varType.missingValueFormat(name)))
     }) match {
       case Right(result) => result.toList
       case Left(ex) => List(FreeText(Text(s"error: $ex")))

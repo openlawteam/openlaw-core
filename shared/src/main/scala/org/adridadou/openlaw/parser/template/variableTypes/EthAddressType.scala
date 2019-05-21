@@ -28,6 +28,12 @@ case object EthAddressType extends VariableType("EthAddress") {
   override def getTypeClass: Class[EthereumAddress] = classOf[EthereumAddress]
 
   def thisType: VariableType = EthAddressType
+
+  def convert(value:Any): EthereumAddress = value match {
+    case strAddr:String => EthereumAddress(strAddr)
+    case addr:EthereumAddress => addr
+    case _ => VariableType.convert[EthereumAddress](value)
+  }
 }
 
 @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
@@ -106,6 +112,12 @@ object EthereumSignature {
     val combined = address + id
     EthereumSignature(hex2bytes(combined)).signature
   }
+
+  def convert(arg:Any):EthereumSignature = arg match {
+    case s:String => EthereumSignature(s)
+    case s:EthereumSignature => s
+    case _ => throw new RuntimeException(s"cannot convert type ${arg.getClass.getSimpleName} to EthereumSignature")
+  }
 }
 
 object EthereumData {
@@ -147,6 +159,8 @@ object EthereumHash {
   implicit val ethereumHashEq:Eq[EthereumHash] = Eq.fromUniversalEquals
 
   val empty:EthereumHash = EthereumHash(Array[Byte]())
+
+  def apply(hash:String):EthereumHash = new EthereumHash(EthereumAddress.hex2bytes(hash))
 
 }
 
