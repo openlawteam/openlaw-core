@@ -291,8 +291,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     val template =
       """
         |[[info:OLInfo]]
-        |
-        |hello [[info.id]]
+        |hello [[info.id]]. my address is [[info.profileAddress]]
       """.stripMargin
 
     val templateId = TemplateId(TestCryptoService.sha256(template))
@@ -303,7 +302,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
 
     vm.executionResult match {
       case Some(executionResult) =>
-        parser.forReview(executionResult.agreements.head) shouldBe s"""<p class="no-section"><br /></p><p class="no-section">hello ${definition.id(TestCryptoService)}<br />      </p>"""
+        parser.forReview(executionResult.agreements.head) shouldBe s"""<p class="no-section"><br /></p><p class="no-section">hello ${definition.id(TestCryptoService)}. my address is <br />      </p>"""
       case None => fail("no execution result found!")
     }
   }
