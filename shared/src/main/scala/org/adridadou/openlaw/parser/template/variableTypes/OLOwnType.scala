@@ -40,7 +40,7 @@ case object OLOwnType extends VariableType("OLInfo") with NoShowInForm {
   private def accessProperty(info: OLInformation, property: String): Result[String] = {
     property.toLowerCase().trim match {
       case "id" => Success(info.id.map(_.id).getOrElse("-"))
-      case "profileAddress" => Success(info.profileAddress.map(_.withLeading0x).getOrElse("-"))
+      case "profileaddress" => Success(info.profileAddress.map(_.withLeading0x).getOrElse("-"))
       case _ => Failure(s"property '$property' not found for type 'OLInfo'")
     }
   }
