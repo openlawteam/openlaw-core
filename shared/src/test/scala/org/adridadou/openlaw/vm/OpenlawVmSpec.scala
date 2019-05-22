@@ -298,12 +298,12 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     val templateId = TemplateId(TestCryptoService.sha256(template))
     val definition = ContractDefinition(creatorId = UserId("hello@world.com"), mainTemplate = templateId, templates = Map(), parameters = TemplateParameters())
 
-    val vm = vmProvider.create(definition, Some(EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0")), OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq())
+    val vm = vmProvider.create(definition, Some(EthereumAddress("0x531e0957391daff46f8a9609d799ffd067bdbbc0")), OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq())
     vm(LoadTemplate(template))
 
     vm.executionResult match {
       case Some(executionResult) =>
-        parser.forReview(executionResult.agreements.head) shouldBe s"""<p class="no-section"><br /></p><p class="no-section">hello ${definition.id(TestCryptoService)}. Your address is -.<br />      </p>"""
+        parser.forReview(executionResult.agreements.head) shouldBe s"""<p class="no-section"><br /></p><p class="no-section">hello ${definition.id(TestCryptoService)}. Your address is 0x531e0957391daff46f8a9609d799ffd067bdbbc0.<br />      </p>"""
       case None => fail("no execution result found!")
     }
   }
