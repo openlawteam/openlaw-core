@@ -39,8 +39,8 @@ blocks:
       - name: Test
         commands:
           - aws ecr get-login --no-include-email | bash
-          - docker pull ${ECR_IMAGE}:buildcache-ol-${SEMAPHORE_GIT_BRANCH}
-          - docker run --rm -it ${ECR_IMAGE}:buildcache-ol-${SEMAPHORE_GIT_BRANCH} ./scripts/test.sh
+          - docker pull ${ECR_IMAGE}:buildcache-ol-${SEMAPHORE_GIT_BRANCH##*/}
+          - docker run --rm -it ${ECR_IMAGE}:buildcache-ol-${SEMAPHORE_GIT_BRANCH##*/} ./scripts/test.sh
 
       - name: Coverage report
         env_vars:
@@ -48,12 +48,12 @@ blocks:
             value: "0"
         commands:
           - aws ecr get-login --no-include-email | bash
-          - docker pull ${ECR_IMAGE}:buildcache-ol-${SEMAPHORE_GIT_BRANCH}
+          - docker pull ${ECR_IMAGE}:buildcache-ol-${SEMAPHORE_GIT_BRANCH##*/}
           - |
             docker run --rm -it \
             --env CODACY_PROJECT_TOKEN=${CODACY_PROJECT_TOKEN} \
             --env UPLOAD_RESULTS=${UPLOAD_RESULTS} \
-            ${ECR_IMAGE}:buildcache-ol-${SEMAPHORE_GIT_BRANCH} ./scripts/coverage_report.sh
+            ${ECR_IMAGE}:buildcache-ol-${SEMAPHORE_GIT_BRANCH##*/} ./scripts/coverage_report.sh
 
 promotions:
   - name: Release to Bintray

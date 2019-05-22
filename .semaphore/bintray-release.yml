@@ -23,11 +23,11 @@ blocks:
         commands:
           - checkout
           - aws ecr get-login --no-include-email | bash
-          - docker pull ${ECR_IMAGE}:buildcache-ol-${SEMAPHORE_GIT_BRANCH}
+          - docker pull ${ECR_IMAGE}:buildcache-ol-${SEMAPHORE_GIT_BRANCH##*/}
           - |
             docker run --rm -it \
               -v ${PWD}/.git:/src/.git \
               --env BINTRAY_USER=${BINTRAY_USER} \
               --env BINTRAY_PASS=${BINTRAY_PASS} \
               --env RELEASE_TRIGGER=${RELEASE_TRIGGER} \
-              ${ECR_IMAGE}:buildcache-ol-${SEMAPHORE_GIT_BRANCH} ./scripts/release.sh
+              ${ECR_IMAGE}:buildcache-ol-${SEMAPHORE_GIT_BRANCH##*/} ./scripts/release.sh
