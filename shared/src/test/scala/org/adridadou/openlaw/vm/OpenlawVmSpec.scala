@@ -303,7 +303,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
 
     vm.executionResult match {
       case Some(executionResult) =>
-        parser.forReview(executionResult.agreements.head) shouldBe s"""<p class="no-section"><br /></p><p class="no-section">hello ${definition.id(TestCryptoService)}. Your address is -.<br />      </p>"""
+        parser.forReview(executionResult.agreements.head) shouldBe s"""<p class="no-section"><br /></p><p class="no-section">hello ${definition.id(TestCryptoService)}. Your address is 0x531e0957391dabf46f8a9609d799ffd067bdbbc0.<br />      </p>"""
       case None => fail("no execution result found!")
     }
   }
