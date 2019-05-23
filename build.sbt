@@ -111,7 +111,7 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
   ).jsSettings(
     libraryDependencies ++= Seq(
       "io.github.cquiroz"       %%% "scala-java-time"      % "2.0.0-RC2",
-      "io.github.cquiroz"       %%% "scala-java-time-tzdb" % "2.0.0-RC2_2019f",
+      "io.github.cquiroz"       %%% "scala-java-time-tzdb" % "2.0.0-RC2_2019a",
       "org.parboiled"           %%% "parboiled"            % parboiledV,
       "com.chuusai"             %%% "shapeless"            % "2.3.3",
       "biz.enef"                %%% "slogging"             % "0.6.1",
