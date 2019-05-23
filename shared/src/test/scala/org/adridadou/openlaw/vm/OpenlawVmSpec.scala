@@ -99,15 +99,13 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
         |repeatEvery:'1 minute 12 seconds')]]
         |[[identity:Identity]]
         |[[identity2:Identity]]
+        |
+        |{{My Contract Call.isSuccessful => hello world }}
       """.stripMargin
 
     val templateId = TemplateId(TestCryptoService.sha256(template))
     val email = Email("email@email.com")
-    val userId = UserId("userId")
-
     val email2 = Email("email2@email.com")
-    val userId2 = UserId("userId2")
-
     val identity = Identity(email)
     val identity2 = Identity(email2)
     val definition = ContractDefinition(
@@ -145,7 +143,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
       .withYear(2018).withMonth(12).withDayOfMonth(12).withHour(0).withMinute(0).withSecond(0).withNano(0)
 
     vm.nextActionSchedule shouldBe Some(startDate)
-    val execution = EthereumSmartContractExecution(startDate, startDate, SuccessfulExecution, EthereumHash(Array[Byte]()))
+    val execution = EthereumSmartContractExecution(startDate, startDate, SuccessfulExecution, EthereumHash.empty)
     vm.newExecution(VariableName("My Contract Call"), execution)
 
     vm.nextActionSchedule shouldBe Some(LocalDateTime
