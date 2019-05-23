@@ -802,6 +802,7 @@ object TemplateExecutionState {
 sealed trait TemplateExecutionState
 case object ExecutionFinished extends TemplateExecutionState
 case object ExecutionReady extends TemplateExecutionState
+final case class ExecutionFailed(err:Failure[TemplateExecutionResult]) extends TemplateExecutionState
 final case class ExecutionWaitForTemplate(variableName:VariableName, template:TemplateSourceIdentifier, willBeUsedForEmbedded:Boolean) extends TemplateExecutionState
 
 case class ActionInfo(action:ActionValue, name:VariableName, executionResult: TemplateExecutionResult)

@@ -30,6 +30,8 @@ case class EthereumSmartContractCall(
     from: Option[Expression],
     every: Option[Expression]) extends ActionValue {
 
+  def isERC712Call:Boolean = signatureParameter.isDefined || signatureRSVParameter.isDefined
+
   def callKey(executionResult: TemplateExecutionResult, crypto:CryptoService):Option[EthereumData] = for {
     from <- from.flatMap(_.evaluate(executionResult)).map(EthAddressType.convert)
     to <- address.evaluate(executionResult).map(EthAddressType.convert)

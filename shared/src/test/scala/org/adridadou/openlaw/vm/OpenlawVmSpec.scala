@@ -6,7 +6,7 @@ import org.adridadou.openlaw.oracles
 import org.adridadou.openlaw.oracles._
 import org.adridadou.openlaw.parser.template.{ExecutionFinished, ExpressionParserService, OpenlawTemplateLanguageParserService, VariableName}
 import org.adridadou.openlaw.parser.template.variableTypes._
-import org.adridadou.openlaw.result.Failure
+import org.adridadou.openlaw.result.{Failure, Success}
 import org.adridadou.openlaw.values.{ContractDefinition, ContractId, TemplateId, TemplateParameters}
 import org.scalatest.{FlatSpec, Matchers}
 import org.scalatest.OptionValues._
@@ -88,19 +88,30 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
   it should "be able to update the state and reflect this in the vm" in {
 
     val template =
-      """
+      """<%
         |[[My Contract Call:EthereumCall(
         |contract:"0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAe";
         |interface:'ipfs:5ihruiherg34893zf';
-        |network:"4";
         |startDate: '2018-12-12 00:00:00';
         |function:'callFunction';
         |arguments:'hello';
         |repeatEvery:'1 minute 12 seconds')]]
+        |
+        |[[My other call:EthereumCall(
+        |contract:"0xde0B295669a9FD93d5F28D9Ec85E40f4fff97BAe";
+        |interface:'ipfs:5ihruiherg34893zf';
+        |startDate: '2019-12-12 00:00:00';
+        |function:'callFunction';
+        |arguments:'hello';
+        |repeatEvery:'1 minute 12 seconds')]]
+        |%>
+        |{{My Contract Call.isSuccessful =>
+        |hello world
+        |[[My other call]]
+        |}}
+        |
         |[[identity:Identity]]
         |[[identity2:Identity]]
-        |
-        |{{My Contract Call.isSuccessful => hello world }}
       """.stripMargin
 
     val templateId = TemplateId(TestCryptoService.sha256(template))
@@ -142,6 +153,8 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     val startDate = LocalDateTime.now(clock)
       .withYear(2018).withMonth(12).withDayOfMonth(12).withHour(0).withMinute(0).withSecond(0).withNano(0)
 
+    vm.allNextActions.size shouldBe 1
+
     vm.nextActionSchedule shouldBe Some(startDate)
     val execution = EthereumSmartContractExecution(startDate, startDate, SuccessfulExecution, EthereumHash.empty)
     vm.newExecution(VariableName("My Contract Call"), execution)
@@ -150,6 +163,8 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
       .now(clock)
       .withYear(2018).withMonth(12).withDayOfMonth(12).withHour(0).withMinute(1).withSecond(12).withNano(0)
     )
+
+    vm.allNextActions.size shouldBe 2
 
     vm.newExecution(VariableName("My Contract Call"), EthereumSmartContractExecution(
       LocalDateTime.now(), LocalDateTime.now(), FailedExecution, EthereumHash.empty
@@ -303,6 +318,36 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
       case Some(executionResult) =>
         parser.forReview(executionResult.agreements.head) shouldBe s"""<p class="no-section"><br /></p><p class="no-section">hello ${definition.id(TestCryptoService)}<br />      </p>"""
       case None => fail("no execution result found!")
+    }
+  }
+
+  it should "add init execution if we sign with ERC-712" in {
+
+    val address = EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0")
+    val contractAddress = EthereumAddress("0x531e0957391dabf46f8a9609d799ffd067bdbbc0")
+    val abi = """[{"constant":false,"inputs":[{"name":"signature","type":"bytes"}],"name":"callSignature","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"}]"""
+    val template = s"""
+                      |[[Signature: EthereumCall(
+                      |contract: "${contractAddress.withLeading0x}";
+                      |interface: $abi;
+                      |function: "signature";
+                      |from: "${address.withLeading0x}";
+                      |Signature parameter: "signature")]]""".stripMargin
+
+    val templateId = TemplateId(TestCryptoService.sha256(template))
+    val definition = ContractDefinition(creatorId = UserId("hello@world.com"), mainTemplate = templateId, templates = Map(), parameters = TemplateParameters())
+
+    val vm = vmProvider.create(definition, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq(EthereumERC712Oracle(TestCryptoService)))
+
+    (for {
+      _ <- vm.applyEvent(LoadTemplate(template))
+      _ <- vm.applyEvent(PreparedERC712SmartContractCallEvent(VariableName("Signature"), address, EthereumSignature("0x123456789"), contractAddress))
+    } yield vm ) match {
+      case Success(_) =>
+
+        vm.initExecution[PreparedERC712SmartContractCallExecution](VariableName("Signature")) shouldBe Some(PreparedERC712SmartContractCallExecution(VariableName("Signature"),EthereumSignature("0x1234567809")))
+      case Failure(ex, message) =>
+        fail(message, ex)
     }
   }
 

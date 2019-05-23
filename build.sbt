@@ -100,7 +100,7 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       "org.parboiled"           %% "parboiled"           % parboiledV,
       "org.typelevel"           %% "cats-core"           % catsV,
       "org.typelevel"           %% "cats-free"           % catsV,
-      "io.github.cquiroz"       %% "scala-java-time"     % "2.0.0-RC1",
+      "io.github.cquiroz"       %% "scala-java-time"     % "2.0.0-RC2",
       "biz.enef"                %% "slogging-slf4j"      % "0.6.1",
       "com.beachape"            %% "enumeratum"          % "1.5.13",
       "com.lihaoyi"             %% "scalatags"           % scalaTagsV,
@@ -110,8 +110,8 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
     )
   ).jsSettings(
     libraryDependencies ++= Seq(
-      "io.github.cquiroz"       %%% "scala-java-time"      % "2.0.0-RC1",
-      "io.github.cquiroz"       %%% "scala-java-time-tzdb" % "2.0.0-RC1_2018f",
+      "io.github.cquiroz"       %%% "scala-java-time"      % "2.0.0-RC2",
+      "io.github.cquiroz"       %%% "scala-java-time-tzdb" % "2.0.0-RC2_2019f",
       "org.parboiled"           %%% "parboiled"            % parboiledV,
       "com.chuusai"             %%% "shapeless"            % "2.3.3",
       "biz.enef"                %%% "slogging"             % "0.6.1",
