@@ -303,8 +303,6 @@ object VariableType {
       case None => throw new RuntimeException("could not get the value. Missing data")
     }
 
-  //def convert[T](value:OpenlawValue)(implicit ev: T => OpenlawValue): OpenlawValue = convert[T](value)
-
   def convert[U <: OpenlawValue](value:OpenlawValue)(implicit classTag: ClassTag[U]): U#T = value match {
     case convertedValue: U =>
       convertedValue.underlying
