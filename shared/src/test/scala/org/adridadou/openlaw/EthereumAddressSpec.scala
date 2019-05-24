@@ -4,7 +4,7 @@ import org.adridadou.openlaw.parser.template.variableTypes.EthereumAddress
 import org.scalacheck.Arbitrary._
 import org.scalacheck.Gen
 import org.scalacheck.Prop._
-import org.scalatest.prop.Checkers
+import org.scalatest.check.Checkers
 import org.scalatest.{FlatSpec, Matchers}
 
 /**

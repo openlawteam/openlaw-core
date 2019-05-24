@@ -36,7 +36,7 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => L
       case str:String =>
         attempt(PeriodType.cast(str, executionResult)) match {
           case Success(period) => plus(VariableType.convert[LocalDateTime](left), period)
-          case Failure(_) => throw new RuntimeException(s"you can only make an addition between a date and a period. You are making an addition between a ${left.getClass.getSimpleName} and ${right.getClass.getSimpleName}")
+          case Failure(_,_) => throw new RuntimeException(s"you can only make an addition between a date and a period. You are making an addition between a ${left.getClass.getSimpleName} and ${right.getClass.getSimpleName}")
         }
       case _ => throw new RuntimeException(s"you can only make an addition between a date and a period. You are making an addition between a ${left.getClass.getSimpleName} and ${right.getClass.getSimpleName}")
     }
@@ -60,7 +60,7 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => L
       case str:String =>
         attempt(PeriodType.cast(str, executionResult)) match {
           case Success(period) => minus(VariableType.convert[LocalDateTime](left), period)
-          case Failure(_) => throw new RuntimeException(s"you can only make a substraction between a date and a period. You are making an addition between a ${left.getClass.getSimpleName} and ${right.getClass.getSimpleName}")
+          case Failure(_,_) => throw new RuntimeException(s"you can only make a substraction between a date and a period. You are making an addition between a ${left.getClass.getSimpleName} and ${right.getClass.getSimpleName}")
         }
       case _ => throw new RuntimeException(s"you can only make a substraction between a date and a period. You are making an addition between a ${left.getClass.getSimpleName} and ${right.getClass.getSimpleName}")
     }

@@ -47,9 +47,12 @@ case object EthereumCallType extends VariableType("EthereumCall") with ActionTyp
 
   override def validateKeys(variableName:VariableName, keys:Seq[String], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] =
     keys.headOption
-      .map(key => propertyDef.get(key).map(_ => Success())
-        .getOrElse(Failure(s"Ethereum Call type does not have the property $key defined")))
-      .getOrElse(Success(()))
+      .map(checkIfHasProperty)
+      .getOrElse(Success.unit)
+
+  private def checkIfHasProperty(key:String):Result[Unit] =
+    propertyDef.get(key).map(_ => Success.unit)
+      .getOrElse(Failure(s"Ethereum Call type does not have the property $key defined"))
 
   override def keysType(keys: Seq[String], expression: Expression, executionResult: TemplateExecutionResult): Result[VariableType] = {
     keys.toList match {

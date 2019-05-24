@@ -259,6 +259,15 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
 
   def content(templateId: TemplateId): String = state.contents(templateId)
 
+  def getAllExecutedVariables(varType: VariableType):Seq[(TemplateExecutionResult, VariableDefinition)] =
+    state.executionResult.map(_.getAllExecutedVariables).getOrElse(Seq())
+    .map({case (result, variable) => (result, variable.aliasOrVariable(result))})
+    .flatMap({
+      case (result, variable:VariableDefinition) =>
+        if(variable.varType(result) === varType) Some((result, variable)) else None
+      case (_, _) => None
+    })
+
   def getAllVariables(varType: VariableType):Seq[(TemplateExecutionResult, VariableDefinition)] =
     state.executionResult.map(_.getVariables(varType)).getOrElse(Seq())
 

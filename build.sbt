@@ -25,9 +25,8 @@ lazy val repositories = Seq(
   Resolver.mavenLocal
 )
 
-scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
-
 lazy val commonSettings = Seq(
+  scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature"),
   organization := "org.openlaw",
   name := "openlaw-core",
   scalaVersion := scalaV,

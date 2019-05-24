@@ -7,6 +7,8 @@ import VariableType._
 import cats.implicits._
 import org.adridadou.openlaw.parser.template._
 
+import scala.language.implicitConversions
+
 case object PeriodType extends VariableType("Period") {
 
   override def plus(optLeft: Option[Any], optRight: Option[Any], executionResult:TemplateExecutionResult): Option[Any] = for {
