@@ -340,7 +340,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     val templateId = TemplateId(TestCryptoService.sha256(template))
     val definition = ContractDefinition(creatorId = UserId("hello@world.com"), mainTemplate = templateId, templates = Map(), parameters = TemplateParameters())
 
-    val vm = vmProvider.create(definition, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq(EthereumERC712Oracle(TestCryptoService)))
+    val vm = vmProvider.create(definition, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq(EthereumERC712Oracle(TestCryptoService)))
 
     (for {
       _ <- vm.applyEvent(LoadTemplate(template))
