@@ -40,11 +40,12 @@ case object OLOwnType extends VariableType("OLInfo") with NoShowInForm {
   private def accessProperty(info: OLInformation, property: String): Result[String] = {
     property.toLowerCase().trim match {
       case "id" => Success(info.id.map(_.id).getOrElse("-"))
+      case "profileaddress" => Success(info.profileAddress.map(_.withLeading0x).getOrElse("-"))
       case _ => Failure(s"property '$property' not found for type 'OLInfo'")
     }
   }
 
-  private def checkProperty(key:String): Result[Unit] = accessProperty(OLInformation(id = None), key) match {
+  private def checkProperty(key:String): Result[Unit] = accessProperty(OLInformation(id = None, profileAddress = None), key) match {
     case Left(ex) => Failure(ex)
     case Right(_) => Success(())
   }
@@ -55,4 +56,4 @@ object OLInformation {
   implicit val olInformationDec:Decoder[OLInformation] = deriveDecoder[OLInformation]
 }
 
-case class OLInformation(id:Option[ContractId])
+case class OLInformation(id:Option[ContractId], profileAddress:Option[EthereumAddress])

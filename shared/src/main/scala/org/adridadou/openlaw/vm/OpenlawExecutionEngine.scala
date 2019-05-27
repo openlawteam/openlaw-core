@@ -26,13 +26,13 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     * Entry point. This is where you start the execution of the main template
     */
   def execute(mainTemplate:CompiledTemplate, parameters:TemplateParameters, templates:Map[TemplateSourceIdentifier, CompiledTemplate]):Result[OpenlawExecutionState] =
-    execute(mainTemplate, parameters, templates, Map(), Map(), None)
+    execute(mainTemplate, parameters, templates, Map(), Map(), None, None)
 
-  def execute(mainTemplate:CompiledTemplate, parameters:TemplateParameters, templates:Map[TemplateSourceIdentifier, CompiledTemplate], signatureProofs:Map[Email, OpenlawSignatureProof], executions:Map[VariableName, Executions], id:Option[ContractId]):Result[OpenlawExecutionState] = {
+  def execute(mainTemplate:CompiledTemplate, parameters:TemplateParameters, templates:Map[TemplateSourceIdentifier, CompiledTemplate], signatureProofs:Map[Email, OpenlawSignatureProof], executions:Map[VariableName, Executions], id:Option[ContractId], profileAddress:Option[EthereumAddress]):Result[OpenlawExecutionState] = {
     val executionResult = OpenlawExecutionState(
       parameters = parameters,
       id = TemplateExecutionResultId(s"@@anonymous_main_template_id@@"),
-      info = OLInformation(id = id),
+      info = OLInformation(id = id, profileAddress = profileAddress),
       template = mainTemplate,
       executions = executions,
       anonymousVariableCounter = new AtomicInteger(0),

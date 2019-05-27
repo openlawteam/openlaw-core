@@ -36,6 +36,7 @@ case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
                            templates:Map[TemplateId, CompiledTemplate] = Map(),
                            optExecutionResult:Option[OpenlawExecutionState],
                            definition:ContractDefinition,
+                           profileAddress:Option[EthereumAddress],
                            state:TemplateParameters,
                            executions:Map[VariableName, Executions],
                            signatures:Map[Email, OpenlawSignatureEvent],
@@ -102,7 +103,7 @@ case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
 
   def createNewExecutionResult(params:TemplateParameters, templates:Map[TemplateId, CompiledTemplate],signatureProofs:Map[Email, OpenlawSignatureProof], executions:Map[VariableName, Executions]):Option[OpenlawExecutionState] = {
     val templateDefinitions = definition.templates.flatMap({case (templateDefinition, id) => templates.get(id).map(templateDefinition -> _)})
-    templates.get(definition.mainTemplate).map(executionEngine.execute(_, params, templateDefinitions, signatureProofs, executions, Some(definition.id(crypto)))) match {
+    templates.get(definition.mainTemplate).map(executionEngine.execute(_, params, templateDefinitions, signatureProofs, executions, Some(definition.id(crypto)), profileAddress)) match {
       case None => None
       case Some(Right(result)) =>
         Some(result)
@@ -114,7 +115,7 @@ case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
   }
 }
 
-case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: CryptoService, parser:OpenlawTemplateLanguageParserService, identityOracle:OpenlawSignatureOracle, oracles:Seq[OpenlawOracle[_]]) extends LazyLogging {
+case class OpenlawVm(contractDefinition: ContractDefinition, profileAddress:Option[EthereumAddress], cryptoService: CryptoService, parser:OpenlawTemplateLanguageParserService, identityOracle:OpenlawSignatureOracle, oracles:Seq[OpenlawOracle[_]]) extends LazyLogging {
   private val templateOracle = TemplateLoadOracle(cryptoService)
   val contractId:ContractId = contractDefinition.id(cryptoService)
   private val expressionParser = new ExpressionParserService
@@ -122,6 +123,7 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
   private var state:OpenlawVmState = OpenlawVmState(
     state = contractDefinition.parameters,
     definition = contractDefinition,
+    profileAddress = profileAddress,
     executionEngine = new OpenlawExecutionEngine(),
     executions = Map(),
     signatures = Map(),
