@@ -269,7 +269,7 @@ trait TemplateExecutionResult {
     this.getAliasOrVariableType(name) match {
       case Success(_) =>
         Failure(s"${name.name} has already been defined!")
-      case Failure(_) =>
+      case Failure(_,_) =>
         val result = OpenlawExecutionState(
           id = TemplateExecutionResultId(UUID.randomUUID().toString),
           info = info,
@@ -802,6 +802,7 @@ object TemplateExecutionState {
 sealed trait TemplateExecutionState
 case object ExecutionFinished extends TemplateExecutionState
 case object ExecutionReady extends TemplateExecutionState
+final case class ExecutionFailed(err:Failure[_]) extends TemplateExecutionState
 final case class ExecutionWaitForTemplate(variableName:VariableName, template:TemplateSourceIdentifier, willBeUsedForEmbedded:Boolean) extends TemplateExecutionState
 
 case class ActionInfo(action:ActionValue, name:VariableName, executionResult: TemplateExecutionResult)

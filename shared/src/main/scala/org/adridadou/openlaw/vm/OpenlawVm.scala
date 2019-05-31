@@ -79,8 +79,9 @@ case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
       case Right(newResult) =>
         this.copy(optExecutionResult = Some(newResult))
 
-      case Left(ex) =>
-        logger.warn(ex.message, ex.e)
+      case Failure(ex, message) =>
+        ex.printStackTrace()
+        logger.warn(message, ex)
         this
     }).getOrElse(this).copy(
       templates = templates,
@@ -188,12 +189,14 @@ case class OpenlawVm(contractDefinition: ContractDefinition, profileAddress:Opti
   }
 
   def setInitExecution(name:VariableName, executionInit: OpenlawExecutionInit):OpenlawVm = {
+
     val executions = state.executions.getOrElse(name, Executions())
     val newExecutions = state.executions + (name  -> executions.update(executionInit))
     state = state.copy(executions = newExecutions)
-
     this
   }
+
+  def executionDef:Map[VariableName, Executions] = state.executions
 
   def initExecution[T <: OpenlawExecutionInit](name:VariableName)(implicit classTag:ClassTag[T]):Option[T] = state.executions
     .get(name)
@@ -257,6 +260,15 @@ case class OpenlawVm(contractDefinition: ContractDefinition, profileAddress:Opti
   def executionResult:Option[OpenlawExecutionState] = state.executionResult
 
   def content(templateId: TemplateId): String = state.contents(templateId)
+
+  def getAllExecutedVariables(varType: VariableType):Seq[(TemplateExecutionResult, VariableDefinition)] =
+    state.executionResult.map(_.getAllExecutedVariables).getOrElse(Seq())
+    .map({case (result, variable) => (result, variable.aliasOrVariable(result))})
+    .flatMap({
+      case (result, variable:VariableDefinition) =>
+        if(variable.varType(result) === varType) Some((result, variable)) else None
+      case (_, _) => None
+    })
 
   def getAllVariables(varType: VariableType):Seq[(TemplateExecutionResult, VariableDefinition)] =
     state.executionResult.map(_.getVariables(varType)).getOrElse(Seq())
@@ -354,8 +366,7 @@ case class OpenlawVm(contractDefinition: ContractDefinition, profileAddress:Opti
     case Some(oracle) =>
       oracle.executeIfPossible(this, event)
     case None =>
-      logger.warn(s"no oracle found! for event type ${event.getClass.getSimpleName}")
-      Right(this)
+      Failure(s"no oracle found! for event type ${event.getClass.getSimpleName}")
   }
 
   def apply(cmd:OpenlawVmCommand): Result[OpenlawVm] = cmd match {

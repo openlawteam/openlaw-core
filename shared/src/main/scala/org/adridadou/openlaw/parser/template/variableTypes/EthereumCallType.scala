@@ -45,6 +45,15 @@ case object EthereumCallType extends VariableType("EthereumCall") with ActionTyp
       call.asJson.noSpaces
   }
 
+  override def validateKeys(variableName:VariableName, keys:Seq[String], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] =
+    keys.headOption
+      .map(checkIfHasProperty)
+      .getOrElse(Success.unit)
+
+  private def checkIfHasProperty(key:String):Result[Unit] =
+    propertyDef.get(key).map(_ => Success.unit)
+      .getOrElse(Failure(s"Ethereum Call type does not have the property $key defined"))
+
   override def keysType(keys: Seq[String], expression: Expression, executionResult: TemplateExecutionResult): Result[VariableType] = {
     keys.toList match {
       case Nil => Success(thisType)

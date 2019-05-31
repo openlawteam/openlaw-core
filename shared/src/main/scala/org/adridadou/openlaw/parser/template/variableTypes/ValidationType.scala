@@ -58,6 +58,6 @@ case class Validation(condition:Expression, errorMessage:Expression) {
       .map(_ => errorMessage
         .evaluate(executionResult).map(VariableType.convert[String])
         .getOrElse(s"validation error (error message could not be resolved)")
-      ) .map(Failure(_)).getOrElse(Success())
+      ) .map(Failure(_)).getOrElse(Success.unit)
   }
 }
