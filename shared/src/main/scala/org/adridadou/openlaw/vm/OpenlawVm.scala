@@ -37,6 +37,7 @@ case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
                            templates:Map[TemplateId, CompiledTemplate] = Map(),
                            optExecutionResult:Option[OpenlawExecutionState],
                            definition:ContractDefinition,
+                           profileAddress:Option[EthereumAddress],
                            state:TemplateParameters,
                            executions:Map[VariableName, Executions],
                            signatures:Map[Email, OpenlawSignatureEvent],
@@ -79,8 +80,9 @@ case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
       case Right(newResult) =>
         this.copy(optExecutionResult = Some(newResult))
 
-      case Left(ex) =>
-        logger.warn(ex.message, ex.e)
+      case Failure(ex, message) =>
+        ex.printStackTrace()
+        logger.warn(message, ex)
         this
     }).getOrElse(this).copy(
       templates = templates,
@@ -102,7 +104,7 @@ case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
 
   def createNewExecutionResult(params:TemplateParameters, templates:Map[TemplateId, CompiledTemplate],signatureProofs:Map[Email, OpenlawSignatureProof], executions:Map[VariableName, Executions]):Option[OpenlawExecutionState] = {
     val templateDefinitions = definition.templates.flatMap({case (templateDefinition, id) => templates.get(id).map(templateDefinition -> _)})
-    templates.get(definition.mainTemplate).map(executionEngine.execute(_, params, templateDefinitions, signatureProofs, executions, Some(definition.id(crypto)))) match {
+    templates.get(definition.mainTemplate).map(executionEngine.execute(_, params, templateDefinitions, signatureProofs, executions, Some(definition.id(crypto)), profileAddress)) match {
       case None => None
       case Some(Right(result)) =>
         Some(result)
@@ -114,7 +116,7 @@ case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
   }
 }
 
-case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: CryptoService, parser:OpenlawTemplateLanguageParserService, identityOracle:OpenlawSignatureOracle, oracles:Seq[OpenlawOracle[_]]) extends LazyLogging {
+case class OpenlawVm(contractDefinition: ContractDefinition, profileAddress:Option[EthereumAddress], cryptoService: CryptoService, parser:OpenlawTemplateLanguageParserService, identityOracle:OpenlawSignatureOracle, oracles:Seq[OpenlawOracle[_]]) extends LazyLogging {
   private val templateOracle = TemplateLoadOracle(cryptoService)
   val contractId:ContractId = contractDefinition.id(cryptoService)
   private val expressionParser = new ExpressionParserService
@@ -122,6 +124,7 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
   private var state:OpenlawVmState = OpenlawVmState(
     state = contractDefinition.parameters,
     definition = contractDefinition,
+    profileAddress = profileAddress,
     executionEngine = new OpenlawExecutionEngine(),
     executions = Map(),
     signatures = Map(),
@@ -187,12 +190,14 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
   }
 
   def setInitExecution(name:VariableName, executionInit: OpenlawExecutionInit):OpenlawVm = {
+
     val executions = state.executions.getOrElse(name, Executions())
     val newExecutions = state.executions + (name  -> executions.update(executionInit))
     state = state.copy(executions = newExecutions)
-
     this
   }
+
+  def executionDef:Map[VariableName, Executions] = state.executions
 
   def initExecution[T <: OpenlawExecutionInit](name:VariableName)(implicit classTag:ClassTag[T]):Option[T] = state.executions
     .get(name)
@@ -256,6 +261,15 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
   def executionResult:Option[OpenlawExecutionState] = state.executionResult
 
   def content(templateId: TemplateId): String = state.contents(templateId)
+
+  def getAllExecutedVariables(varType: VariableType):Seq[(TemplateExecutionResult, VariableDefinition)] =
+    state.executionResult.map(_.getAllExecutedVariables).getOrElse(Seq())
+    .map({case (result, variable) => (result, variable.aliasOrVariable(result))})
+    .flatMap({
+      case (result, variable:VariableDefinition) =>
+        if(variable.varType(result) === varType) Some((result, variable)) else None
+      case (_, _) => None
+    })
 
   def getAllVariables(varType: VariableType):Seq[(TemplateExecutionResult, VariableDefinition)] =
     state.executionResult.map(_.getVariables(varType)).getOrElse(Seq())
@@ -353,8 +367,7 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
     case Some(oracle) =>
       oracle.executeIfPossible(this, event)
     case None =>
-      logger.warn(s"no oracle found! for event type ${event.getClass.getSimpleName}")
-      Right(this)
+      Failure(s"no oracle found! for event type ${event.getClass.getSimpleName}")
   }
 
   def apply(cmd:OpenlawVmCommand): Result[OpenlawVm] = cmd match {

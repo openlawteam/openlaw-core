@@ -6,7 +6,7 @@ import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template.printers.{AgreementPrinter, XHtmlAgreementPrinter}
 import org.adridadou.openlaw.parser.template.printers.XHtmlAgreementPrinter.FragsPrinter
 import org.adridadou.openlaw.parser.template.variableTypes.YesNoType
-import org.parboiled2.{ErrorFormatter, ParseError}
+import org.parboiled2.ParseError
 import cats.implicits._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt, handleFatalErrors}
@@ -26,7 +26,7 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
     val compiler = createTemplateCompiler(source, clock)
 
     attempt(compiler.rootRule.run().toResult).flatten match {
-      case Failure(parseError: ParseError, _) => Failure(compiler.formatError(parseError, new ErrorFormatter(showTraces = true)))
+      case Failure(parseError: ParseError, _) => Failure(compiler.formatError(parseError))
       case Failure(ex, _) => handleFatalErrors(ex)
       case Success(result) => validate(result)
     }

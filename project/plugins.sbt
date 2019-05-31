@@ -5,13 +5,13 @@ resolvers += "Bintray sbt-reactjs" at "https://dl.bintray.com/ddispaltro/sbt-plu
 resolvers += Resolver.url("sbt-plugins", url("https://dl.bintray.com/ssidorenko/sbt-plugins/"))(Resolver.ivyStylePatterns)
 
 addSbtPlugin("org.lyranthe.sbt" % "partial-unification" % "1.1.0")
-addSbtPlugin("org.wartremover" % "sbt-wartremover" % "2.4.1")
+addSbtPlugin("org.wartremover" % "sbt-wartremover" % "2.4.2")
 
 /* TODO: potentially move this to global install instead of project-specific */
 addSbtPlugin("com.timushev.sbt" % "sbt-updates" % "0.3.4")
 
 /* ScalaJS related */
-addSbtPlugin("org.scala-js" % "sbt-scalajs" % "0.6.27")
+addSbtPlugin("org.scala-js" % "sbt-scalajs" % "0.6.28")
 addSbtPlugin("org.portable-scala" % "sbt-scalajs-crossproject" % "0.6.0")
 
 /* Release process */

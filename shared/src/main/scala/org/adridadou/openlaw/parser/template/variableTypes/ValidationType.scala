@@ -61,6 +61,6 @@ case class Validation(condition:Expression, errorMessage:Expression) extends Ope
       .map(_ => errorMessage
         .evaluate(executionResult).map(VariableType.convert[OpenlawString](_).underlying)
         .getOrElse(s"validation error (error message could not be resolved)")
-      ) .map(Failure(_)).getOrElse(Success(Unit))
+      ) .map(Failure(_)).getOrElse(Success.unit)
   }
 }
