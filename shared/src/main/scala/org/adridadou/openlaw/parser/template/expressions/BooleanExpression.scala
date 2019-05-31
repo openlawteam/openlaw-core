@@ -17,7 +17,7 @@ case class BooleanExpression(left:Expression, right:Expression, op:BooleanOperat
                 } yield VariableType.convert[OpenlawBoolean](leftValue).underlying || VariableType.convert[OpenlawBoolean](rightValue).underlying
   }
 
-  override def expressionType(executionResult: TemplateExecutionResult):VariableType = YesNoType
+  override def expressionType(executionResult: TemplateExecutionResult):Result[VariableType] = YesNoType
 
   override def validate(executionResult:TemplateExecutionResult): Result[Unit] = {
     (left.expressionType(executionResult), right.expressionType(executionResult)) match {
@@ -51,7 +51,7 @@ case class BooleanExpression(left:Expression, right:Expression, op:BooleanOperat
 }
 
 case class BooleanUnaryExpression(expr:Expression, op:BooleanUnaryOperation) extends Expression {
-  override def expressionType(executionResult:TemplateExecutionResult): VariableType = YesNoType
+  override def expressionType(executionResult:TemplateExecutionResult): Result[VariableType] = YesNoType
 
   override def evaluate(executionResult:TemplateExecutionResult): Option[OpenlawBoolean] = expr.evaluate(executionResult).map({
     case OpenlawBoolean(result) => op match {

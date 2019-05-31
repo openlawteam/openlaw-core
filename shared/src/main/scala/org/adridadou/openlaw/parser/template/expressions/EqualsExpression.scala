@@ -3,6 +3,7 @@ package org.adridadou.openlaw.parser.template.expressions
 import org.adridadou.openlaw.OpenlawBoolean
 import org.adridadou.openlaw.parser.template.TemplateExecutionResult
 import org.adridadou.openlaw.parser.template.variableTypes.{VariableType, YesNoType}
+import org.adridadou.openlaw.result.Result
 
 case class EqualsExpression(left:Expression, right:Expression) extends BinaryExpression {
 
@@ -12,5 +13,5 @@ case class EqualsExpression(left:Expression, right:Expression) extends BinaryExp
     } yield leftValue == rightValue
   }
 
-  override def expressionType(executionResult: TemplateExecutionResult): VariableType = YesNoType
+  override def expressionType(executionResult: TemplateExecutionResult): Result[VariableType] = YesNoType
 }

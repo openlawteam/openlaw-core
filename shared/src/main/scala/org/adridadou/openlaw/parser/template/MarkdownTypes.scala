@@ -25,7 +25,7 @@ trait ConstantExpression extends Expression {
 
   def typeFunction: TemplateExecutionResult => VariableType
 
-  override def expressionType(executionResult: TemplateExecutionResult): VariableType = typeFunction(executionResult)
+  override def expressionType(executionResult: TemplateExecutionResult): Result[VariableType] = typeFunction(executionResult)
 
   override def validate(executionResult: TemplateExecutionResult): Result[Unit] = Success(())
 

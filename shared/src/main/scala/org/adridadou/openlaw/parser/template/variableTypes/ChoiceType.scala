@@ -1,15 +1,15 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
+import cats.implicits._
 import io.circe.{Decoder, Encoder, HCursor, Json}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.syntax._
 import io.circe.parser._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template._
-import cats.implicits._
 import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawString, OpenlawValue}
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
-import org.adridadou.openlaw.result.{Failure, Result, attempt}
+import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 case class Choices(values: Seq[String]) extends OpenlawNativeValue
 
@@ -24,23 +24,29 @@ case object ChoiceType extends VariableType("Choice") with TypeGenerator[Choices
 
   override def construct(param:Parameter, executionResult: TemplateExecutionResult): Result[Option[Choices]] = param match {
     case OneValueParameter(value) =>
-      attempt(Some(Choices(generateValues(Seq(value), executionResult))))
+      generateValues(Seq(value), executionResult).map(seq => Some(Choices(seq)))
     case ListParameter(values) =>
-      attempt(Some(Choices(generateValues(values, executionResult))))
-    case _ => Failure("choice must have one or more expressions as constructor parameters")
+      generateValues(values, executionResult).map(seq => Some(Choices(seq)))
+    case _ =>
+      Failure("choice must have one or more expressions as constructor parameters")
   }
 
-  private def generateValues(exprs:Seq[Expression], executionResult: TemplateExecutionResult):Seq[String] = {
-    exprs.flatMap(_.evaluate(executionResult)).map(VariableType.convert[OpenlawString](_).underlying)
+  private def generateValues(exprs:Seq[Expression], executionResult: TemplateExecutionResult): Result[Seq[String]] = {
+    exprs
+      .toList
+      .map(_.evaluate(executionResult).map(_.toList))
+      .sequence
+      .map(_.flatten)
+      .flatMap(_.map(VariableType.convert[OpenlawString](_)).sequence)
   }
 
   override def defaultFormatter: Formatter = new NoopFormatter
 
-  override def cast(value: String, executionResult: TemplateExecutionResult): Choices = handleEither(decode[Choices](value))
+  override def cast(value: String, executionResult: TemplateExecutionResult): Result[Choices] = handleEither(decode[Choices](value))
 
-  override def internalFormat(value: OpenlawValue): String = value match {
-    case call:Choices =>
-      call.asJson.noSpaces
+  override def internalFormat(value: OpenlawValue): Result[String] = value match {
+    case call:Choices => Success(call.asJson.noSpaces)
+    case _ => Failure(s"expected Choices but found: ${value.getClass}")
   }
 
   override def checkTypeName(nameToCheck: String): Boolean = Seq("Choice").exists(_.equalsIgnoreCase(nameToCheck))
@@ -72,17 +78,18 @@ case class DefinedChoiceType(choices:Choices, typeName:String) extends VariableT
       "values" -> Json.arr(choices.values.map(v => Json.fromString(v)):_*))
   }
 
-  override def cast(value: String, executionResult: TemplateExecutionResult): OpenlawValue = {
-    choices.values
+  override def cast(value: String, executionResult: TemplateExecutionResult): Result[OpenlawValue] = {
+    choices
+      .values
       .find(_ === value) match {
         case Some(result) =>
-          result
+          Success(result)
         case None =>
-          throw new RuntimeException(s"the value $value is not part of the type $typeName")
+          Failure(s"the value $value is not part of the type $typeName")
       }
   }
 
-  override def internalFormat(value: OpenlawValue): String = VariableType.convert[OpenlawString](value)
+  override def internalFormat(value: OpenlawValue): Result[String] = VariableType.convert[OpenlawString](value)
 
   override def thisType: VariableType = this
 

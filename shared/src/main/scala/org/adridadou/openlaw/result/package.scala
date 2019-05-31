@@ -2,7 +2,7 @@ package org.adridadou.openlaw
 
 import cats.data.Validated.Invalid
 import cats.data.{NonEmptyList, ValidatedNel}
-import cats.data.NonEmptyList.one
+import cats.data.NonEmptyList.{of, one}
 import org.adridadou.openlaw.result.Implicits.RichTry
 
 import scala.util.Try
@@ -33,6 +33,7 @@ package result {
 
   object FailureNel {
     def apply[A](e: FailureCause): ResultNel[A] = Invalid[NonEmptyList[FailureCause]](one(e))
+    def apply[A](head: FailureCause, tail: FailureCause*): ResultNel[A] = Invalid[NonEmptyList[FailureCause]](of(head, tail : _*))
   }
 
   object Failure {

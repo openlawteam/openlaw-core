@@ -15,8 +15,11 @@ import scala.reflect.ClassTag
 import scala.util.Try
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 import LocalDateTimeHelper._
+import cats.data.EitherT
 import org.adridadou.openlaw.oracles.{EthereumEventFilterExecution, PreparedERC712SmartContractCallExecution}
 import org.adridadou.openlaw._
+import org.adridadou.openlaw.parser.template.variableTypes.PeriodType.minus
+import org.adridadou.openlaw.parser.template.variableTypes.VariableType.convert
 
 trait NoShowInForm
 
@@ -25,8 +28,7 @@ trait ActionValue {
 }
 
 trait ActionType extends NoShowInForm {
-  def actionValue(value:OpenlawValue):ActionValue
-
+  def actionValue(value:OpenlawValue): Result[ActionValue]
 }
 
 object OpenlawExecution {
@@ -136,8 +138,8 @@ abstract class VariableType(val name: String) {
 
   def validateOperation(expr: ValueExpression, executionResult: TemplateExecutionResult): Option[String] = None
 
-  def accessVariables(name:VariableName, keys:Seq[String], executionResult: TemplateExecutionResult): Seq[VariableName] =
-    Seq(name)
+  def accessVariables(name:VariableName, keys:Seq[String], executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =
+    Success(Seq(name))
 
   def operationWith(rightType: VariableType, operation: ValueOperation): VariableType =
     this
@@ -164,27 +166,54 @@ abstract class VariableType(val name: String) {
     Success(thisType)
   }
 
-  def plus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Option[OpenlawValue] =
-    throw new UnsupportedOperationException(s"$name type does not support addition")
-  def minus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Option[OpenlawValue] =
-    throw new UnsupportedOperationException(s"$name type does not support substraction")
-  def multiply(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Option[OpenlawValue] =
-    throw new UnsupportedOperationException(s"$name type does not support multiplication")
-  def divide(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Option[OpenlawValue] =
-    throw new UnsupportedOperationException(s"$name type does not support division")
+  def combineConverted[U <: OpenlawValue, Y <: OpenlawValue](optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue])(operation: PartialFunction[(U#T, U#T), Result[Y]]): Result[Option[Y]] =
+    combineConverted[U, U, Y](optLeft, optRight)(operation)
+
+  def combineConverted[U <: OpenlawValue, V <: OpenlawValue, Y <: OpenlawValue](optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue])(operation: PartialFunction[(U#T, V#T), Result[Y]]): Result[Option[Y]] = {
+    (for {
+      left <- EitherT(optLeft.map(convert[U]))
+      right <- EitherT(optRight.map(convert[V]))
+    } yield {
+      if (operation.isDefinedAt(left -> right)) operation(left -> right)
+      else Failure(s"no matching case in partial function for arguments $left and $right")
+    })
+      .value
+      .map(_.flatten)
+      .sequence
+  }
+
+  def combine[Y <: OpenlawValue](optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue])(operation: PartialFunction[(OpenlawValue, OpenlawValue), Result[Y]]): Result[Option[Y]] = {
+    (for {
+      left <- optLeft
+      right <- optRight
+    } yield {
+      if (operation.isDefinedAt(left -> right)) operation(left -> right)
+      else Failure(s"no matching case in partial function for arguments $left and $right")
+    })
+      .sequence
+  }
+
+  def plus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] =
+    Failure(new UnsupportedOperationException(s"$name type does not support addition"))
+  def minus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] =
+    Failure(new UnsupportedOperationException(s"$name type does not support substraction"))
+  def multiply(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] =
+    Failure(new UnsupportedOperationException(s"$name type does not support multiplication"))
+  def divide(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] =
+    Failure(new UnsupportedOperationException(s"$name type does not support division"))
 
   def isCompatibleType(otherType: VariableType, operation: ValueOperation): Boolean =
     otherType === this
 
-  def cast(value: String, executionResult:TemplateExecutionResult): OpenlawValue
+  def cast(value: String, executionResult:TemplateExecutionResult):Result[OpenlawValue]
 
   def missingValueFormat(name: VariableName): Seq[AgreementElement] = Seq(FreeText(Text(s"[[${name.name}]]")))
 
-  def internalFormat(value: OpenlawValue): String
+  def internalFormat(value: OpenlawValue): Result[String]
 
   def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = constructorParams match {
       case OneValueParameter(expr) =>
-        attempt(expr.evaluate(executionResult))
+        expr.evaluate(executionResult)
       case Parameters(parameterMap) =>
         parameterMap.toMap.get("value") match {
           case Some(parameter) =>
@@ -198,8 +227,7 @@ abstract class VariableType(val name: String) {
   def defaultFormatter: Formatter =
     new DefaultFormatter
 
-  def getFormatter(name:FormatterDefinition, executionResult:TemplateExecutionResult):Formatter =
-    defaultFormatter
+  def getFormatter(name:FormatterDefinition, executionResult:TemplateExecutionResult): Result[Formatter] = Success(defaultFormatter)
 
   def getSingleParameter(constructorParams: Parameter): Expression =
     constructorParams match {
@@ -214,10 +242,10 @@ abstract class VariableType(val name: String) {
       case scala.util.Failure(ex) => throw ex
     }
 
-  def handleEither[T](thisTry: Either[io.circe.Error, T]): T =
+  def handleEither[T](thisTry: Either[io.circe.Error, T]): Result[T] =
     thisTry match {
-      case Right(v) => v
-      case Left(ex) => throw new RuntimeException(ex)
+      case Right(v) => Success(v)
+      case Left(ex) => Failure(ex)
     }
 
   def thisType:VariableType
@@ -282,37 +310,37 @@ object VariableType {
   implicit val eqForVariableType: Eq[VariableType] =
     (x: VariableType, y: VariableType) => x == y
 
-  def getPeriod(v: Expression, executionResult: TemplateExecutionResult): Period =
+  def getPeriod(v: Expression, executionResult: TemplateExecutionResult): Result[Period] =
     get(v,executionResult, PeriodType.cast)
-  def getEthereumAddress(v: Expression, executionResult: TemplateExecutionResult): EthereumAddress =
+  def getEthereumAddress(v: Expression, executionResult: TemplateExecutionResult): Result[EthereumAddress] =
     get(v,executionResult,EthAddressType.cast)
-  def getDate(v: Expression, executionResult: TemplateExecutionResult): OpenlawDateTime =
+  def getDate(v: Expression, executionResult: TemplateExecutionResult): Result[OpenlawDateTime] =
     get(v,executionResult, DateTimeType.cast)
-  def getMetadata(v: Expression, executionResult: TemplateExecutionResult): SmartContractMetadata =
+  def getMetadata(v: Expression, executionResult: TemplateExecutionResult): Result[SmartContractMetadata] =
     get(v,executionResult,SmartContractMetadataType.cast)
-  def getString(v: Expression, executionResult: TemplateExecutionResult): String =
-    get[OpenlawString](v,executionResult, (str,_) => str).underlying
+  def getString(v: Expression, executionResult: TemplateExecutionResult): Result[String] =
+    get[OpenlawString](v,executionResult, (str,_) => Success(str)).map(_.underlying)
 
-  def get[T <: OpenlawValue](v: Expression, executionResult: TemplateExecutionResult, cast: (String,TemplateExecutionResult) => T)(implicit classTag: ClassTag[T]): T =
-    v.evaluate(executionResult).map({
-      case value:T => value
-      case value:OpenlawString => cast(value, executionResult)
-      case value => throw new RuntimeException("cannot get value of type " + value.getClass.getSimpleName + ". expecting " + classTag.runtimeClass.getSimpleName)
-    }) match {
-      case Some(value) => value
-      case None => throw new RuntimeException("could not get the value. Missing data")
-    }
+  def get[T <: OpenlawValue](expr: Expression, executionResult: TemplateExecutionResult, cast: (String,TemplateExecutionResult) => Result[T])(implicit classTag: ClassTag[T]): Result[T] =
+    expr
+      .evaluate(executionResult)
+      .flatMap {
+        case Some(value:T) => Success(value)
+        case Some(value:OpenlawString) => cast(value, executionResult)
+        case Some(value) => Failure("cannot get value of type " + value.getClass.getSimpleName + ". expecting " + classTag.runtimeClass.getSimpleName)
+        case None => Failure("could not get the value. Missing data")
+      }
 
-  def convert[U <: OpenlawValue](value:OpenlawValue)(implicit classTag: ClassTag[U]): U#T = value match {
+  def convert[U <: OpenlawValue](value:OpenlawValue)(implicit classTag: ClassTag[U]): Result[U#T] = value match {
     case convertedValue: U =>
-      convertedValue.underlying
+      Success(convertedValue.underlying)
     case other =>
       val msg = "invalid type " +
         other.getClass.getSimpleName +
         " expecting " +
         classTag.runtimeClass.getSimpleName +
         s".value:$other"
-      throw new RuntimeException(msg)
+      Failure(msg)
   }
 
   def sequence[L,R](seq:Seq[Either[L,R]]):Either[L, Seq[R]] = seq.partition(_.isLeft) match {

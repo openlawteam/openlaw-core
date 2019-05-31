@@ -33,9 +33,9 @@ case object AbstractStructureType extends VariableType(name = "Structure") with 
 
   override def defaultFormatter: Formatter = new NoopFormatter
 
-  override def cast(value: String, executionResult: TemplateExecutionResult): Structure = throw new RuntimeException("structured type definition cannot be casted")
+  override def cast(value: String, executionResult: TemplateExecutionResult): Result[Structure] = Failure("structured type definition cannot be casted")
 
-  override def internalFormat(value: OpenlawValue): String = throw new RuntimeException("no internal format for structured type definition")
+  override def internalFormat(value: OpenlawValue): Result[String] = Failure("no internal format for structured type definition")
 
   override def getTypeClass: Class[_ <: Structure] = classOf[Structure]
 

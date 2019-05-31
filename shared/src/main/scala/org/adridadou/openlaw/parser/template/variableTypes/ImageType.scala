@@ -1,9 +1,10 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
+import cats.implicits._
 import org.adridadou.openlaw.{OpenlawString, OpenlawValue}
 import org.adridadou.openlaw.parser.template.formatters.Formatter
 import org.adridadou.openlaw.parser.template._
-import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
+import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 object ImageFormatter extends Formatter {
   def format(value:OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] = value match {
@@ -13,13 +14,15 @@ object ImageFormatter extends Formatter {
 }
 
 case object ImageType extends VariableType("Image") {
-  override def cast(value: String, executionResult: TemplateExecutionResult): OpenlawString = value
+  override def cast(value: String, executionResult: TemplateExecutionResult): Result[OpenlawString] = Success(value)
 
-  override def internalFormat(value: OpenlawValue): String = VariableType.convert[OpenlawString](value)
+  override def internalFormat(value: OpenlawValue): Result[String] = VariableType.convert[OpenlawString](value)
 
   override def construct(constructorParams:Parameter, executionResult:TemplateExecutionResult): Result[Option[OpenlawString]] = constructorParams match {
     case OneValueParameter(expr) =>
-      attempt(expr.evaluate(executionResult).map(value => VariableType.convert[OpenlawString](value)))
+      expr
+        .evaluate(executionResult)
+        .flatMap(opt => opt.map(value => VariableType.convert[OpenlawString](value).map(OpenlawString(_))).sequence)
     case _ => Failure("constructor only handles single value")
   }
 

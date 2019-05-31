@@ -2,42 +2,46 @@ package org.adridadou.openlaw.parser.template.variableTypes
 
 import org.parboiled2._
 import VariableType._
+import cats._
+import cats.data.EitherT
 import cats.implicits._
 import org.adridadou.openlaw.{OpenlawDateTime, OpenlawNativeValue, OpenlawValue}
 import org.adridadou.openlaw.parser.template._
+import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 import scala.language.implicitConversions
 
 case object PeriodType extends VariableType("Period") {
 
-  override def plus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult:TemplateExecutionResult): Option[OpenlawValue] = for {
-    left <- optLeft
-    right <-optRight
-  } yield {
-    right match {
-      case period:Period => plus(convert[Period](left), period)
-      case date:OpenlawDateTime => DateTimeType.plus(date, convert[Period](left))
+  override def plus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult:TemplateExecutionResult): Result[Option[OpenlawValue]] =
+    combine(optLeft, optRight) {
+      case (left, period:Period) => Success(plus(convert[Period](left), period))
+      case (left, date: OpenlawDateTime) => Success(DateTimeType.plus(date, convert[Period](left)))
     }
-  }
 
-  private def plus(left:Period, right:Period):Period = left.plus(right)
+  private def plus(left:Period, right:Period): Period = left.plus(right)
 
-  override def minus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult:TemplateExecutionResult): Option[Period] = for(
-    left <- optLeft;
-    right <-optRight
-  ) yield minus(convert[Period](left), convert[Period](right))
+  override def minus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult:TemplateExecutionResult): Result[Option[Period]] =
+    combine(optLeft, optRight) {
+      case (left, right) => Success(minus(left, right))
+    }
 
   private def minus(left:Period, right:Period):Period = left.minus(right)
 
-  override def cast(value: String, executionResult:TemplateExecutionResult): Period =
+  override def cast(value: String, executionResult:TemplateExecutionResult): Result[Period] =
     cast(value)
 
-  def cast(value: String): Period = {
+  def cast(value: String): Result[Period] = {
     val parser = new PeriodTypeParser(value)
     parser.root.run().toEither match {
-      case Right(res) => res
+      case Right(res) =>
+        Success(res)
       case Left(ex:ParseError) =>
-        throw new RuntimeException(parser.formatError(ex))
+        Failure(parser.formatError(ex))
+      case Left(ex: Exception) =>
+        Failure(ex)
+
+      // Do not try to handle fatal error
       case Left(ex) =>
         throw ex
     }
@@ -49,16 +53,16 @@ case object PeriodType extends VariableType("Period") {
     case _ => false
   }
 
-  override def internalFormat(value: OpenlawValue): String = {
-    val period = convert[Period](value)
-    val result = ( if( period.years > 0 ) s"${period.years}" + " years " else "") +
-      ( if( period.months > 0 ) s"${period.months}" + " months " else "") +
-      ( if( period.weeks > 0 ) s"${period.weeks}" + " weeks " else "") +
-      ( if( period.days > 0 ) s"${period.days}" + " days " else "") +
-      ( if( period.minutes > 0 ) s"${period.minutes}" + " minutes " else "") +
-      ( if( period.seconds > 0 ) s"${period.seconds}" + " seconds " else "")
-    result
-  }
+  override def internalFormat(value: OpenlawValue) =
+    convert[Period](value).map { period =>
+      val result = (if (period.years > 0) s"${period.years}" + " years " else "") +
+        (if (period.months > 0) s"${period.months}" + " months " else "") +
+        (if (period.weeks > 0) s"${period.weeks}" + " weeks " else "") +
+        (if (period.days > 0) s"${period.days}" + " days " else "") +
+        (if (period.minutes > 0) s"${period.minutes}" + " minutes " else "") +
+        (if (period.seconds > 0) s"${period.seconds}" + " seconds " else "")
+      result
+    }
 
   override def getTypeClass: Class[_ <: Period] = classOf[Period]
 

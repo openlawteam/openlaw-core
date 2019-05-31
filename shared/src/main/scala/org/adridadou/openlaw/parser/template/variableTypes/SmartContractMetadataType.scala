@@ -1,35 +1,45 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
+import cats.implicits._
 import org.adridadou.openlaw._
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
-import org.adridadou.openlaw.result.{Failure, Result, attempt}
+import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 
 case object SmartContractMetadataType extends VariableType("SmartContractMetadata") {
 
-  override def cast(value: String, executionResult:TemplateExecutionResult): SmartContractMetadata = {
+  override def cast(value: String, executionResult:TemplateExecutionResult): Result[SmartContractMetadata] = {
     val firstIndex = value.indexOf(":")
     val protocol = value.substring(0,firstIndex)
     val address = value.substring(firstIndex + 1)
-    SmartContractMetadata(protocol, address)
+    Success(SmartContractMetadata(protocol, address))
   }
 
-  override def internalFormat(value: OpenlawValue): String = VariableType.convert[SmartContractMetadata](value).protocol + ":" + VariableType.convert[SmartContractMetadata](value).address
+  override def internalFormat(value: OpenlawValue): Result[String] =
+    for {
+      metadata <- VariableType.convert[SmartContractMetadata](value)
+    } yield metadata.protocol + ":" + metadata.address
 
   override def construct(constructorParams:Parameter, executionResult:TemplateExecutionResult): Result[Option[SmartContractMetadata]] = constructorParams match {
       case OneValueParameter(expr) =>
-        attempt(expr.evaluate(executionResult).map(result => cast(result.toString, executionResult)))
+        expr.evaluate(executionResult).flatMap(result => result.map(value => cast(value.toString, executionResult)).sequence)
       case Parameters(v) =>
         val values = v.toMap
-        for {
-          optProtocol <- attempt(VariableType.convert[OneValueParameter](values("protocol")).expr.evaluate(executionResult))
-          optAddress <- attempt(VariableType.convert[OneValueParameter](values("address")).expr.evaluate(executionResult))
+
+        (for {
+          protocolParameter <- VariableType.convert[OneValueParameter](values("protocol"))
+          optProtocol <- protocolParameter.expr.evaluate(executionResult)
+          addressParameter <- VariableType.convert[OneValueParameter](values("address"))
+          optAddress <- addressParameter.expr.evaluate(executionResult)
         } yield {
-          for {
-            protocol <- optProtocol
-            address <- optAddress
-          } yield SmartContractMetadata(VariableType.convert[OpenlawString](protocol), VariableType.convert[OpenlawString](address))
-        }
+          combine(optProtocol, optAddress) {
+            case (protocol, address) =>
+              for {
+                protocolString <- VariableType.convert[OpenlawString](protocol)
+                addressString <- VariableType.convert[OpenlawString](address)
+              } yield SmartContractMetadata(protocolString, addressString)
+          }
+        }).flatten
       case _ =>
         Failure("Smart contract metadata can be constructed with a string only")
     }
