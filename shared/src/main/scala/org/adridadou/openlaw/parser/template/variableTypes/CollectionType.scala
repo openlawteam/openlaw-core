@@ -24,7 +24,7 @@ case object AbstractCollectionType extends VariableType("Collection") with Param
 }
 
 case class CollectionValue(size:Int = 1, values:Map[Int, OpenlawValue] = Map(), collectionType:CollectionType) extends OpenlawNativeValue {
-  def castValue(value:String, executionResult: TemplateExecutionResult):Any = collectionType.typeParameter.cast(value, executionResult)
+  def castValue(value:String, executionResult: TemplateExecutionResult):OpenlawValue = collectionType.typeParameter.cast(value, executionResult)
   def valueInternalFormat(value:OpenlawValue):String = collectionType.typeParameter.internalFormat(value)
   def list:Seq[OpenlawValue] = values.values.toSeq
 }

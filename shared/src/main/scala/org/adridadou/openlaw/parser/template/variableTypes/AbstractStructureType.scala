@@ -103,7 +103,7 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
     keys.toList match {
       case Nil =>
         Success(AbstractStructureType)
-      case head::tail =>
+      case head::_ =>
         val name = VariableName(head)
         structure.typeDefinition.get(name) match {
           case Some(varType) =>
