@@ -2,8 +2,8 @@ package org.adridadou.openlaw.parser.template
 
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
+import org.adridadou.openlaw.OpenlawValue
 import org.adridadou.openlaw.parser.template.variableTypes.VariableType
-
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.result.Result
 
@@ -19,7 +19,7 @@ case class VariableAliasing(name:VariableName, expr:Expression) extends Expressi
   override def expressionType(executionResult: TemplateExecutionResult): VariableType =
     expr.expressionType(executionResult)
 
-  override def evaluate(executionResult: TemplateExecutionResult): Option[Any] =
+  override def evaluate(executionResult: TemplateExecutionResult): Option[OpenlawValue] =
     expr.evaluate(executionResult)
 
   override def variables(executionResult: TemplateExecutionResult): Seq[VariableName] =

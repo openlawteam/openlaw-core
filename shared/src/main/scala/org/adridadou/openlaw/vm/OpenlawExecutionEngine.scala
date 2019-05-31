@@ -7,6 +7,7 @@ import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.values.{ContractId, TemplateParameters}
 import cats.implicits._
+import org.adridadou.openlaw._
 import org.adridadou.openlaw.oracles.OpenlawSignatureProof
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.printers.SectionHelper
@@ -204,7 +205,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       case OneValueParameter(expr) => expr.evaluate(executionResult)
       case _ => None
     }) match {
-      case Some(value:BigDecimal) =>
+      case Some(OpenlawBigDecimal(value)) =>
         val values = (0 until value.toInt).map(_ => section.lvl)
         val allValues = ((1 until section.lvl)
           .flatMap(lvl => {
@@ -275,7 +276,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
         }
     })
 
-    blocks.find(_.conditionalExpression.evaluate(executionResult).exists(VariableType.convert[Boolean]))
+    blocks.find(_.conditionalExpression.evaluate(executionResult).exists(VariableType.convert[OpenlawBoolean](_).underlying))
       .map(subBlock => {
         executionResult.remainingElements.prependAll(subBlock.block.elems)
         Success(executionResult)
@@ -352,7 +353,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
         }
     })
 
-    blocks.find(_.conditionalExpression.evaluate(executionResult).exists(VariableType.convert[Boolean])) match {
+    blocks.find(_.conditionalExpression.evaluate(executionResult).exists(VariableType.convert[OpenlawBoolean])) match {
       case Some(subBlock) =>
         executionResult.remainingElements.prependAll(subBlock.block.elems)
       case None =>
@@ -367,7 +368,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
         processVariable(executionResult, variable, executed = false)
       case _ =>
     }
-    if(expression.evaluate(executionResult).exists(VariableType.convert[Boolean])) {
+    if(expression.evaluate(executionResult).exists(VariableType.convert[OpenlawBoolean])) {
       val initialValue:Result[OpenlawExecutionState] = Success(executionResult)
       val initialValue2 = block.elems.foldLeft(initialValue)((exec, elem) => exec.flatMap(processCodeElement(_, templates, elem)))
       elseBlock.map(_.elems.foldLeft(initialValue2)((exec, elem) => exec.flatMap(processCodeElement(_, templates, elem)))).getOrElse(initialValue2)
@@ -417,7 +418,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       }
 
       if (exprType === YesNoType) {
-        if(expr.evaluate(executionResult).exists(VariableType.convert[Boolean])) {
+        if(expr.evaluate(executionResult).exists(VariableType.convert[OpenlawBoolean])) {
           executionResult.remainingElements.prependAll(subBlock.elems)
           Success(executionResult)
         } else {

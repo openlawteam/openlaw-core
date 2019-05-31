@@ -3,6 +3,7 @@ package org.adridadou.openlaw.parser.template
 import java.time.Clock
 
 import cats.implicits._
+import org.adridadou.openlaw.{OpenlawBigDecimal, OpenlawBoolean}
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.result.Success
 
@@ -135,13 +136,13 @@ case class CompiledAgreement(
 
       case ConditionalBlockSet(blocks) =>
         blocks.find({
-          case ConditionalBlock(_,_, conditionalExpression) => conditionalExpression.evaluate(executionResult).exists(VariableType.convert[Boolean])
+          case ConditionalBlock(_,_, conditionalExpression) => conditionalExpression.evaluate(executionResult).exists(VariableType.convert[OpenlawBoolean])
         }) match {
           case Some(conditionalBlock) =>
             getAgreementElementsFromElement(renderedElements, conditionalBlock, executionResult)
           case None => renderedElements
         }
-      case ConditionalBlock(subBlock, _, conditionalExpression) if conditionalExpression.evaluate(executionResult).exists(VariableType.convert[Boolean]) =>
+      case ConditionalBlock(subBlock, _, conditionalExpression) if conditionalExpression.evaluate(executionResult).exists(VariableType.convert[OpenlawBoolean]) =>
         val dependencies = conditionalExpression.variables(executionResult).map(_.name)
         getAgreementElements(renderedElements ++ List(ConditionalStart(dependencies = dependencies)), subBlock.elems.toList, executionResult) ++ List(ConditionalEnd(dependencies))
 
@@ -167,7 +168,7 @@ case class CompiledAgreement(
           .flatMap(_.parameters)
           .flatMap(_.parameterMap.toMap.get("numbering"))
           .flatMap({
-            case OneValueParameter(expr) => expr.evaluate(executionResult).map(VariableType.convert[BigDecimal]).map(_.toInt)
+            case OneValueParameter(expr) => expr.evaluate(executionResult).map(VariableType.convert[OpenlawBigDecimal]).map(_.toInt)
             case _ => None
           })
 

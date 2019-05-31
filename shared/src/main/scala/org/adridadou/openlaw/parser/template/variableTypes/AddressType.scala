@@ -3,6 +3,7 @@ import io.circe._
 import io.circe.generic.semiauto._
 import io.circe.syntax._
 import io.circe.parser._
+import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawValue}
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.Formatter
@@ -23,7 +24,7 @@ object AddressType extends VariableType(name = "Address") {
 
   override def defaultFormatter: Formatter = AddressFormatter
 
-  override def internalFormat(value: Any): String = VariableType.convert[Address](value).asJson.noSpaces
+  override def internalFormat(value: OpenlawValue): String = VariableType.convert[Address](value).asJson.noSpaces
 
   override def keysType(keys: Seq[String], expr: Expression, executionResult: TemplateExecutionResult): Result[VariableType] = keys.toList match {
     case _::tail if tail.isEmpty => Success(TextType)
@@ -31,7 +32,7 @@ object AddressType extends VariableType(name = "Address") {
     case _ => Success(AddressType)
   }
 
-  override def access(value: Any, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[Any]] = {
+  override def access(value: OpenlawValue, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = {
     keys.toList match {
       case head::tail if tail.isEmpty => accessProperty(getAddress(value, executionResult), head).map(Some(_))
       case _::_ => Failure(s"Address has only one level of properties. invalid property access ${keys.mkString(".")}")
@@ -77,7 +78,7 @@ object AddressType extends VariableType(name = "Address") {
   }
 }
 
-case class Address(placeId:String = "", streetName:String = "", streetNumber:String = "", city:String = "", state:String = "", country:String = "", zipCode:String = "", formattedAddress:String = "")
+case class Address(placeId:String = "", streetName:String = "", streetNumber:String = "", city:String = "", state:String = "", country:String = "", zipCode:String = "", formattedAddress:String = "") extends OpenlawNativeValue
 
 object Address{
   implicit val addressEnc: Encoder[Address] = deriveEncoder[Address]
@@ -85,7 +86,7 @@ object Address{
 }
 
 object AddressFormatter extends Formatter {
-  override def format(value: Any, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] = value match {
+  override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] = value match {
     case address:Address => Success(Seq(FreeText(Text(address.formattedAddress))))
     case _ => Failure(s"incompatible type. Expecting address, got ${value.getClass.getSimpleName}")
   }

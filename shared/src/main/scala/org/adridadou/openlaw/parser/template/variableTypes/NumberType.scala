@@ -3,6 +3,7 @@ package org.adridadou.openlaw.parser.template.variableTypes
 import VariableType._
 import org.adridadou.openlaw.parser.template.formatters.Formatter
 import cats.implicits._
+import org.adridadou.openlaw.{OpenlawBigDecimal, OpenlawValue}
 import org.adridadou.openlaw.parser.template.expressions.{Expression, ValueExpression}
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
@@ -11,38 +12,38 @@ import scala.math.BigDecimal
 import scala.math.BigDecimal.RoundingMode
 
 case object NumberType extends VariableType("Number") {
-  override def cast(value: String, executionResult: TemplateExecutionResult): BigDecimal = BigDecimal(value)
+  override def cast(value: String, executionResult: TemplateExecutionResult): OpenlawBigDecimal = BigDecimal(value)
 
-  override def construct(constructorParams: Parameter,executionResult: TemplateExecutionResult): Result[Option[BigDecimal]] = constructorParams match {
+  override def construct(constructorParams: Parameter,executionResult: TemplateExecutionResult): Result[Option[OpenlawBigDecimal]] = constructorParams match {
     case OneValueParameter(expr) =>
       val constructorType = expr.expressionType(executionResult)
       if(constructorType =!= this) {
         Failure(s"the constructor type should be $name but is ${constructorType.name}")
       } else {
-        attempt(expr.evaluateT[BigDecimal](executionResult))
+        attempt(expr.evaluateT[OpenlawBigDecimal](executionResult).map(OpenlawBigDecimal(_)))
       }
     case _ =>
       Failure(s"the constructor for $name only handles single values")
   }
 
-  override def plus(optLeft: Option[Any], optRight: Option[Any], executionResult: TemplateExecutionResult): Option[BigDecimal] = for(
+  override def plus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Option[OpenlawBigDecimal] = for(
     leftValue <- optLeft;
-    rightValue <- optRight) yield convert[BigDecimal](leftValue) + convert[BigDecimal](rightValue)
+    rightValue <- optRight) yield convert[OpenlawBigDecimal](leftValue) + convert[OpenlawBigDecimal](rightValue)
 
-  override def minus(optLeft: Option[Any], optRight: Option[Any], executionResult: TemplateExecutionResult): Option[BigDecimal] = for(
+  override def minus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Option[OpenlawBigDecimal] = for(
     leftValue <- optLeft;
-    rightValue <- optRight) yield convert[BigDecimal](leftValue) - convert[BigDecimal](rightValue)
+    rightValue <- optRight) yield convert[OpenlawBigDecimal](leftValue) - convert[OpenlawBigDecimal](rightValue)
 
-  override def multiply(optLeft: Option[Any], optRight: Option[Any], executionResult: TemplateExecutionResult): Option[BigDecimal] = for(
+  override def multiply(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Option[OpenlawBigDecimal] = for(
     leftValue <- optLeft;
-    rightValue <- optRight) yield convert[BigDecimal](leftValue) * convert[BigDecimal](rightValue)
+    rightValue <- optRight) yield convert[OpenlawBigDecimal](leftValue) * convert[OpenlawBigDecimal](rightValue)
 
-  override def divide(optLeft: Option[Any], optRight: Option[Any], executionResult: TemplateExecutionResult): Option[BigDecimal] = for(
+  override def divide(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Option[OpenlawBigDecimal] = for(
     leftValue <- optLeft;
-    rightValue <- optRight if convert[BigDecimal](rightValue) =!= BigDecimal(0)) yield convert[BigDecimal](leftValue) / convert[BigDecimal](rightValue)
+    rightValue <- optRight if convert[OpenlawBigDecimal](rightValue) =!= BigDecimal(0)) yield convert[OpenlawBigDecimal](leftValue) / convert[OpenlawBigDecimal](rightValue)
 
-  override def internalFormat(value: Any): String =
-    convert[BigDecimal](value).toString
+  override def internalFormat(value: OpenlawValue): String =
+    convert[OpenlawBigDecimal](value).underlying.toString
 
   override def getFormatter(formatter: FormatterDefinition, executionResult: TemplateExecutionResult):Formatter = formatter.name.toLowerCase match {
     case "notrailingzeros" => NoTrailingZerosFormatter
@@ -63,7 +64,7 @@ case object NumberType extends VariableType("Number") {
     expr.operation match {
       case Divide =>
         expr.right.evaluate(executionResult) match {
-          case Some(value:BigDecimal) if value === BigDecimal(0) => Some(s"error while evaluating the expression '$expr': division by zero!")
+          case Some(value:OpenlawBigDecimal) if value.underlying === BigDecimal(0) => Some(s"error while evaluating the expression '$expr': division by zero!")
           case _ => None
         }
       case _ =>
@@ -71,7 +72,7 @@ case object NumberType extends VariableType("Number") {
     }
   }
 
-  override def getTypeClass: Class[BigDecimal] = classOf[BigDecimal]
+  override def getTypeClass: Class[OpenlawBigDecimal] = classOf[OpenlawBigDecimal]
 
   def thisType: VariableType = NumberType
 }
@@ -83,24 +84,24 @@ trait NumberFormatter {
 }
 
 case object NoTrailingZerosFormatter extends Formatter with NumberFormatter {
-  override def format(value: Any, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] =
-    attempt(VariableType.convert[BigDecimal](value).bigDecimal.stripTrailingZeros()) map {
+  override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] =
+    attempt(VariableType.convert[OpenlawBigDecimal](value).bigDecimal.stripTrailingZeros()) map {
       case bd => Seq(FreeText(Text(formatNumber(bd))))
     }
 }
 
 case object RawNumberFormatter extends Formatter with NumberFormatter {
-  override def format(value: Any, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] =
-    attempt(VariableType.convert[BigDecimal](value).bigDecimal.stripTrailingZeros().toPlainString) map {
+  override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] =
+    attempt(VariableType.convert[OpenlawBigDecimal](value).bigDecimal.stripTrailingZeros().toPlainString) map {
       case str => Seq(FreeText(Text(str)))
     }
 }
 
 case class Rounding(expr:Expression) extends Formatter with NumberFormatter {
-  override def format(value: Any, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] = {
+  override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] = {
     expr.evaluate(executionResult)
-      .map(VariableType.convert[BigDecimal])
-      .map(_.toInt).map(rounding => attempt(VariableType.convert[BigDecimal](value).setScale(rounding, RoundingMode.HALF_UP))) match {
+      .map(VariableType.convert[OpenlawBigDecimal])
+      .map(_.toInt).map(rounding => attempt(VariableType.convert[OpenlawBigDecimal](value).setScale(rounding, RoundingMode.HALF_UP))) match {
         case None => Success(Seq(FreeText(Text(value.toString))))
         case Some(Success(result)) => Success(Seq(FreeText(Text(result.toString))))
         case Some(Failure(e, message)) => Failure(e, message)

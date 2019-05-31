@@ -3,17 +3,18 @@ package org.adridadou.openlaw.parser.template.expressions
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes.{VariableType, YesNoType}
 import cats.implicits._
+import org.adridadou.openlaw.OpenlawBoolean
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 case class BooleanExpression(left:Expression, right:Expression, op:BooleanOperation) extends Expression {
-  override def evaluate(executionResult: TemplateExecutionResult): Option[Boolean] = op match {
+  override def evaluate(executionResult: TemplateExecutionResult): Option[OpenlawBoolean] = op match {
     case And => for{leftValue <- left.evaluate(executionResult)
                     rightValue <- right.evaluate(executionResult)
-                } yield VariableType.convert[Boolean](leftValue) && VariableType.convert[Boolean](rightValue)
+                } yield VariableType.convert[OpenlawBoolean](leftValue).underlying && VariableType.convert[OpenlawBoolean](rightValue).underlying
 
     case Or => for{leftValue <- left.evaluate(executionResult)
                    rightValue <- right.evaluate(executionResult)
-                } yield VariableType.convert[Boolean](leftValue) || VariableType.convert[Boolean](rightValue)
+                } yield VariableType.convert[OpenlawBoolean](leftValue).underlying || VariableType.convert[OpenlawBoolean](rightValue).underlying
   }
 
   override def expressionType(executionResult: TemplateExecutionResult):VariableType = YesNoType
@@ -29,12 +30,12 @@ case class BooleanExpression(left:Expression, right:Expression, op:BooleanOperat
   override def variables(executionResult:TemplateExecutionResult): Seq[VariableName] = op match {
     case And =>
       left.evaluate(executionResult) match {
-        case Some(true) => left.variables(executionResult) ++ right.variables(executionResult)
+        case Some(OpenlawBoolean(true)) => left.variables(executionResult) ++ right.variables(executionResult)
         case _ => left.variables(executionResult)
       }
     case Or =>
       left.evaluate(executionResult) match {
-        case Some(false) => left.variables(executionResult) ++ right.variables(executionResult)
+        case Some(OpenlawBoolean(false)) => left.variables(executionResult) ++ right.variables(executionResult)
         case _ => left.variables(executionResult)
       }
 
@@ -52,8 +53,8 @@ case class BooleanExpression(left:Expression, right:Expression, op:BooleanOperat
 case class BooleanUnaryExpression(expr:Expression, op:BooleanUnaryOperation) extends Expression {
   override def expressionType(executionResult:TemplateExecutionResult): VariableType = YesNoType
 
-  override def evaluate(executionResult:TemplateExecutionResult): Option[Boolean] = expr.evaluate(executionResult).map({
-    case result:Boolean => op match {
+  override def evaluate(executionResult:TemplateExecutionResult): Option[OpenlawBoolean] = expr.evaluate(executionResult).map({
+    case OpenlawBoolean(result) => op match {
       case Not => !result
       case _ => throw new RuntimeException(s"unknown symbol $op")
     }

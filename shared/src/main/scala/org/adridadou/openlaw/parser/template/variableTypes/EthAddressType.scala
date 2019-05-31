@@ -6,6 +6,7 @@ import cats.Eq
 import cats.implicits._
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.{Decoder, Encoder}
+import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawString, OpenlawValue}
 import org.adridadou.openlaw.oracles.UserId
 import org.adridadou.openlaw.parser.template.variableTypes.EthereumAddress.hex2bytes
 import org.adridadou.openlaw.parser.template.{Parameter, TemplateExecutionResult}
@@ -15,11 +16,11 @@ import org.adridadou.openlaw.values.ContractId
 case object EthAddressType extends VariableType("EthAddress") {
   override def cast(value: String, executionResult:TemplateExecutionResult): EthereumAddress = EthereumAddress(value)
 
-  override def internalFormat(value: Any): String = VariableType.convert[EthereumAddress](value).withLeading0x
+  override def internalFormat(value: OpenlawValue): String = VariableType.convert[EthereumAddress](value).withLeading0x
 
   override def construct(constructorParams: Parameter, executionResult:TemplateExecutionResult): Result[Option[EthereumAddress]] = {
     getSingleParameter(constructorParams).evaluate(executionResult).map({
-      case value:String => attempt(Some(EthereumAddress(value)))
+      case OpenlawString(value) => attempt(Some(EthereumAddress(value)))
       case value:EthereumAddress => Success(Some(value))
       case value => Failure("wrong type " + value.getClass.getSimpleName + ". expecting String")
     }).getOrElse(Success(None))
@@ -29,15 +30,15 @@ case object EthAddressType extends VariableType("EthAddress") {
 
   def thisType: VariableType = EthAddressType
 
-  def convert(value:Any): EthereumAddress = value match {
-    case strAddr:String => EthereumAddress(strAddr)
+  def convert(value:OpenlawValue): EthereumAddress = value match {
+    case OpenlawString(strAddr) => EthereumAddress(strAddr)
     case addr:EthereumAddress => addr
     case _ => VariableType.convert[EthereumAddress](value)
   }
 }
 
 @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
-case class EthereumAddress(address: Array[Byte]) {
+case class EthereumAddress(address: Array[Byte]) extends OpenlawNativeValue {
 
   if (address.length > EthereumAddress.maxAddressSize) throw new RuntimeException("byte array of the address cannot be bigger than 20.value:" + EthereumAddress.bytes2hex(address))
 
@@ -165,7 +166,7 @@ object EthereumHash {
 }
 
 @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
-case class EthereumHash(data: Array[Byte]) {
+case class EthereumHash(data: Array[Byte]) extends OpenlawNativeValue {
   def withLeading0x: String = "0x" + this.toString
   override def toString: String = EthereumAddress.bytes2hex(data)
 

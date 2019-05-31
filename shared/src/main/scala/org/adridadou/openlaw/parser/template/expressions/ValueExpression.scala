@@ -1,5 +1,6 @@
 package org.adridadou.openlaw.parser.template.expressions
 
+import org.adridadou.openlaw.OpenlawValue
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes.VariableType
 import org.adridadou.openlaw.result.{Failure, Result, Success}
@@ -12,7 +13,7 @@ case class ValueExpression(left:Expression, right:Expression, operation:ValueOpe
     leftType.operationWith(rightType, operation)
   }
 
-  override def evaluate(executionResult: TemplateExecutionResult): Option[Any] = {
+  override def evaluate(executionResult: TemplateExecutionResult): Option[OpenlawValue] = {
     operation match {
       case Plus => left.plus(right, executionResult)
       case Minus => left.minus(right, executionResult)

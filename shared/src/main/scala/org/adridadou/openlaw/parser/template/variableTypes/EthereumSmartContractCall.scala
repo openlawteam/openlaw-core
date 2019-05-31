@@ -3,6 +3,7 @@ package org.adridadou.openlaw.parser.template.variableTypes
 import java.time.{LocalDateTime, ZoneOffset}
 import java.time.temporal.ChronoUnit
 
+import org.adridadou.openlaw.{OpenlawDateTime, OpenlawNativeValue, OpenlawString, OpenlawValue}
 import org.adridadou.openlaw.parser.template._
 import VariableType._
 import org.adridadou.openlaw.parser.template.expressions.Expression
@@ -28,7 +29,7 @@ case class EthereumSmartContractCall(
     startDate: Option[Expression],
     endDate: Option[Expression],
     from: Option[Expression],
-    every: Option[Expression]) extends ActionValue {
+    every: Option[Expression]) extends ActionValue with OpenlawNativeValue {
 
   def isERC712Call:Boolean = signatureParameter.isDefined || signatureRSVParameter.isDefined
 
@@ -49,20 +50,20 @@ case class EthereumSmartContractCall(
   def getEvery(executionResult: TemplateExecutionResult): Option[Period] =
     every.map(getPeriod(_ , executionResult))
   def getStartDate(executionResult: TemplateExecutionResult): Option[LocalDateTime] =
-    startDate.map(getDate(_, executionResult))
+    startDate.map(getDate(_, executionResult).underlying)
   def getEndDate(executionResult: TemplateExecutionResult): Option[LocalDateTime] =
-    endDate.map(getDate(_, executionResult))
+    endDate.map(getDate(_, executionResult).underlying)
   def getFunctionName(executionResult: TemplateExecutionResult): String =
     getString(functionName, executionResult)
   def getContractAddress(executionResult: TemplateExecutionResult): EthereumAddress =
     getEthereumAddress(address, executionResult)
   def getEthereumNetwork(executionResult: TemplateExecutionResult):Option[String] =
     network.evaluate(executionResult)
-      .map(VariableType.convert[String])
+      .map(VariableType.convert[OpenlawString](_).underlying)
 
   def getFrom(executionResult: TemplateExecutionResult):Option[EthereumAddress] = {
     from.flatMap(_.evaluate(executionResult)).map({
-      case strAddr:String => EthereumAddress(strAddr)
+      case OpenlawString(strAddr) => EthereumAddress(strAddr)
       case addr:EthereumAddress => addr
     })
   }
@@ -75,7 +76,7 @@ case class EthereumSmartContractCall(
   def parameterToIgnore(executionResult: TemplateExecutionResult):Seq[String] = {
     signatureParameter.flatMap(_.evaluate(executionResult)) match {
       case Some(value) =>
-        Seq(VariableType.convert[String](value))
+        Seq(VariableType.convert[OpenlawString](value).underlying)
       case None =>
         signatureRSVParameter.flatMap(_.getRsv(executionResult)).map(rsv => Seq(rsv.r, rsv.s, rsv.v)).getOrElse(Seq())
     }
@@ -102,7 +103,7 @@ case class EthereumSmartContractCall(
           getEvery(executionResult).flatMap(schedulePeriod => {
             DateTimeType
               .plus(Some(lastDate), Some(schedulePeriod), executionResult)
-              .map(VariableType.convert[LocalDateTime])
+              .map(VariableType.convert[OpenlawDateTime](_).underlying)
               .filter(nextDate => getEndDate(executionResult).forall(date => nextDate.isBefore(date) || nextDate === date))
           })
       }
@@ -110,4 +111,4 @@ case class EthereumSmartContractCall(
   }
 }
 
-case class SmartContractMetadata(protocol: String, address: String)
+case class SmartContractMetadata(protocol: String, address: String) extends OpenlawNativeValue

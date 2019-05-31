@@ -1,5 +1,6 @@
 package org.adridadou.openlaw.parser.template
 
+import org.adridadou.openlaw.OpenlawValue
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.variableTypes.VariableType
 import org.adridadou.openlaw.result.Result
@@ -15,7 +16,7 @@ case class MappingExpression(expression: Expression, scopeExecutionResult: Templ
   override def expressionType(executionResult: TemplateExecutionResult): VariableType =
     expression.expressionType(scopeExecutionResult)
 
-  override def evaluate(executionResult: TemplateExecutionResult): Option[Any] =
+  override def evaluate(executionResult: TemplateExecutionResult): Option[OpenlawValue] =
     expression.evaluate(scopeExecutionResult)
 
   override def variables(executionResult: TemplateExecutionResult): Seq[VariableName] =

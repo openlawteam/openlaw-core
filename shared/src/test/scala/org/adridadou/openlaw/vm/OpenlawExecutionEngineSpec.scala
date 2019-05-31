@@ -10,6 +10,8 @@ import org.adridadou.openlaw.result.{Failure, Success}
 import org.adridadou.openlaw.values.{TemplateParameters, TemplateTitle}
 import org.scalatest.{FlatSpec, Matchers, OptionValues}
 import play.api.libs.json.Json
+import io.circe.parser._
+import org.adridadou.openlaw._
 
 class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValues {
 
@@ -509,7 +511,10 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
       case Right(result) =>
         result.state shouldBe ExecutionFinished
         result.getAllExecutedVariables.map({case (_, variable) => variable.name}).toSet should contain theSameElementsAs Set("Someone")
-        result.getVariableValue[Map[VariableName, Any]](VariableName("Someone")) shouldBe Some(Map(VariableName("name") -> "David", VariableName("number") -> 23))
+
+        val map = result.getVariableValue[OpenlawMap[VariableName, OpenlawValue]](VariableName("Someone")).value.underlying
+        map.get(VariableName("name")).value.toString shouldBe ("David")
+        map.get(VariableName("number")).map { case OpenlawBigDecimal(value) => value }.value shouldBe (BigDecimal(23))
       case Left(ex) =>
         fail(ex)
     }
@@ -794,9 +799,9 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
       case Right(result) =>
         result.state shouldBe ExecutionFinished
         val Some(variable) = result.getVariable("var")
-        variable.varType(result).getTypeClass shouldBe classOf[String]
+        variable.varType(result).getTypeClass shouldBe classOf[OpenlawString]
 
-        variable.evaluate(result) shouldBe Some("hello")
+        variable.evaluate(result).value.toString shouldBe ("hello")
 
       case Left(ex) =>
         fail(ex)
@@ -1278,7 +1283,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
       case Right(_) =>
         fail("should fail")
       case Left(ex) =>
-        ex.message shouldBe "type mismatch while building the default value for type Text. the constructor result type should be String but instead is BigDecimal"
+        ex.message shouldBe "type mismatch while building the default value for type Text. the constructor result type should be OpenlawString but instead is OpenlawBigDecimal"
     }
   }
 
