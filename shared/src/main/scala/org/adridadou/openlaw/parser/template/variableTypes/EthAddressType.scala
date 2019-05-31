@@ -3,6 +3,7 @@ package org.adridadou.openlaw.parser.template.variableTypes
 import java.util
 
 import cats.Eq
+import cats._
 import cats.implicits._
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.{Decoder, Encoder}
@@ -11,28 +12,32 @@ import org.adridadou.openlaw.oracles.UserId
 import org.adridadou.openlaw.parser.template.variableTypes.EthereumAddress.hex2bytes
 import org.adridadou.openlaw.parser.template.{Parameter, TemplateExecutionResult}
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
+import org.adridadou.openlaw.result.Implicits.RichResult
 import org.adridadou.openlaw.values.ContractId
 
 case object EthAddressType extends VariableType("EthAddress") {
-  override def cast(value: String, executionResult:TemplateExecutionResult): EthereumAddress = EthereumAddress(value)
+  override def cast(value: String, executionResult:TemplateExecutionResult): Result[EthereumAddress] = EthereumAddress(value)
 
-  override def internalFormat(value: OpenlawValue): String = VariableType.convert[EthereumAddress](value).withLeading0x
+  override def internalFormat(value: OpenlawValue): Result[String] = VariableType.convert[EthereumAddress](value).map(_.withLeading0x)
 
   override def construct(constructorParams: Parameter, executionResult:TemplateExecutionResult): Result[Option[EthereumAddress]] = {
-    getSingleParameter(constructorParams).evaluate(executionResult).map({
-      case OpenlawString(value) => attempt(Some(EthereumAddress(value)))
-      case value:EthereumAddress => Success(Some(value))
-      case value => Failure("wrong type " + value.getClass.getSimpleName + ". expecting String")
-    }).getOrElse(Success(None))
+    getSingleParameter(constructorParams)
+      .evaluate(executionResult)
+      .flatMap {
+        case Some(OpenlawString(value)) => EthereumAddress(value).map(Some(_))
+        case Some(value:EthereumAddress) => Success(Some(value))
+        case Some(value) => Failure("wrong type " + value.getClass.getSimpleName + ". expecting String")
+        case None => Success(None)
+      }
   }
 
   override def getTypeClass: Class[EthereumAddress] = classOf[EthereumAddress]
 
   def thisType: VariableType = EthAddressType
 
-  def convert(value:OpenlawValue): EthereumAddress = value match {
+  def convert(value:OpenlawValue): Result[EthereumAddress] = value match {
     case OpenlawString(strAddr) => EthereumAddress(strAddr)
-    case addr:EthereumAddress => addr
+    case addr:EthereumAddress => Success(addr)
     case _ => VariableType.convert[EthereumAddress](value)
   }
 }
@@ -58,19 +63,19 @@ object EthereumAddress {
   val maxAddressSize = 20
   val maxSignatureSize = 63
 
-  def apply(address: Array[Byte]): EthereumAddress = {
-    if (address.length > maxAddressSize) throw new RuntimeException("byte array of the address cannot be bigger than 20.value:" + bytes2hex(address))
-    new EthereumAddress(address)
+  def apply(address: Array[Byte]): Result[EthereumAddress] = {
+    if (address.length > maxAddressSize) Failure("byte array of the address cannot be bigger than 20.value:" + bytes2hex(address))
+    Success(new EthereumAddress(address))
   }
 
-  def apply(a: String): EthereumAddress = Option(a) match {
-    case None => empty
+  def apply(a: String): Result[EthereumAddress] = Option(a) match {
+    case None => Success(empty)
     case Some(address) if address.startsWith("0x") => apply(address.substring(2))
-    case Some(address) if address.length =!= 40 => throw new RuntimeException("the address string should be 40 or 42 with '0x' prefix")
+    case Some(address) if address.length =!= 40 => Failure("the address string should be 40 or 42 with '0x' prefix")
     case Some(address) => apply(hex2bytes(address))
   }
 
-  def empty: EthereumAddress = EthereumAddress(Array[Byte]())
+  def empty: EthereumAddress = EthereumAddress(Array[Byte]()).getOrThrow()
 
   def hex2bytes(hex: String): Array[Byte] = {
     hex.replaceAll("[^0-9A-Fa-f]", "").sliding(2, 2).toArray.map(Integer.parseInt(_, 16).toByte)

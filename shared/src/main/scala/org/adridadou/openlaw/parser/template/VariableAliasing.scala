@@ -16,7 +16,7 @@ case class VariableAliasing(name:VariableName, expr:Expression) extends Expressi
   def validate(executionResult: TemplateExecutionResult): Result[Unit] =
     expr.validate(executionResult)
 
-  override def expressionType(executionResult: TemplateExecutionResult): VariableType =
+  override def expressionType(executionResult: TemplateExecutionResult): Result[VariableType] =
     expr.expressionType(executionResult)
 
   override def evaluate(executionResult: TemplateExecutionResult): Option[OpenlawValue] =

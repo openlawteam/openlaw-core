@@ -13,7 +13,7 @@ case class MappingExpression(expression: Expression, scopeExecutionResult: Templ
     expression.validate(scopeExecutionResult)
 
 
-  override def expressionType(executionResult: TemplateExecutionResult): VariableType =
+  override def expressionType(executionResult: TemplateExecutionResult): Result[VariableType] =
     expression.expressionType(scopeExecutionResult)
 
   override def evaluate(executionResult: TemplateExecutionResult): Option[OpenlawValue] =

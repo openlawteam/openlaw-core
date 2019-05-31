@@ -1,5 +1,6 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
+import cats.implicits._
 import cats.Eq
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
@@ -23,12 +24,10 @@ case class TemplatePath(path:Seq[String] = Seq()) extends OpenlawNativeValue {
 }
 
 case object TemplatePathType extends VariableType("TemplateType") with NoShowInForm {
-  override def cast(value: String, executionResult: TemplateExecutionResult): TemplatePath =
-    decode[TemplatePath](value) match {
-      case Right(result) =>
-        result
-      case Left(ex) =>
-        throw new RuntimeException(ex)
+  override def cast(value: String, executionResult: TemplateExecutionResult): Result[TemplatePath] =
+    decode[TemplatePath](value).leftFlatMap {
+      case e: Exception => Failure(e)
+      case e => throw e
     }
 
   override def getTypeClass: Class[TemplateDefinition] = classOf[TemplateDefinition]
@@ -39,12 +38,8 @@ case object TemplatePathType extends VariableType("TemplateType") with NoShowInF
   override def thisType: VariableType =
     TemplatePathType
 
-  override def divide(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Option[OpenlawValue] = {
-    for {
-      left <- optLeft.map(VariableType.convert[TemplatePath])
-      right <- optRight.map(VariableType.convert[OpenlawString])
-    } yield TemplatePath(left.path ++ Seq(right.underlying))
-  }
+  override def divide(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Result[Option[TemplatePath]] =
+    combineConverted[TemplatePath, OpenlawString, TemplatePath](optLeft, optRight) { case (left, right) => Success(TemplatePath(left.path ++ Seq(right))) }
 }
 
 object TemplateDefinition {
@@ -85,9 +80,11 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
     } else {
       getMandatoryParameter("name", mappingParameter) match {
         case templateName: OneValueParameter =>
-          attempt(templateName.expr.evaluate(executionResult)
-            .map(VariableType.convert[OpenlawString])
-            .map(title => TemplateSourceIdentifier(TemplateTitle(title))))
+          templateName
+            .expr
+            .evaluate(executionResult)
+            .flatMap(_.map(VariableType.convert[OpenlawString]).sequence)
+            .map(_.map(title => TemplateSourceIdentifier(TemplateTitle(title))))
         case _ =>
           Failure("parameter 'name' accepts only single value")
       }
@@ -96,14 +93,16 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
 
   private def prepareTemplatePath(parameters: Parameters, executionResult:TemplateExecutionResult):Result[Option[TemplatePath]] = parameters.parameterMap.toMap.get("path") match {
     case Some(OneValueParameter(expr)) =>
-      expr.evaluate(executionResult).map({
-        case p: TemplatePath =>
-          Success(Some(p))
-        case p: OpenlawString =>
-          Success(Some(TemplatePath(Seq(p.underlying))))
-        case other =>
-          Failure(s"parameter 'path' should be a path but instead was ${other.getClass.getSimpleName}")
-      }).getOrElse(Right(None))
+      expr.evaluate(executionResult).flatMap { option =>
+        option.map({
+          case p: TemplatePath =>
+            Success(Some(p))
+          case p: OpenlawString =>
+            Success(Some(TemplatePath(Seq(p.underlying))))
+          case other =>
+            Failure(s"parameter 'path' should be a path but instead was ${other.getClass.getSimpleName}")
+        }).getOrElse(Right(None))
+      }
     case Some(other) =>
       Failure(s"parameter 'path' should be a single value, not ${other.getClass.getSimpleName}")
     case None =>
@@ -148,25 +147,34 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
     case Nil =>
       Success(Some(value))
     case head::tail =>
-      executionResult.subExecutions.get(VariableName(head)).flatMap(subExecution =>
-        subExecution.getExpression(VariableName(head))
-          .flatMap(variable => variable.evaluate(subExecution)
-            .map(subValue => variable.expressionType(subExecution).access(subValue, VariableName(head), tail, subExecution))
-          )).getOrElse(Failure(s"properties '${tail.mkString(".")}' could not be resolved in sub template '$head'"))
+
+      executionResult.subExecutions.get(VariableName(head)).flatMap { subExecution =>
+        subExecution
+          .getExpression(VariableName(head))
+          .flatMap { variable =>
+            variable
+              .evaluate(subExecution)
+              .map { option =>
+                option.map { subValue => variable.expressionType(subExecution).flatMap(_.access(subValue, VariableName(head), tail, subExecution)) }
+              }
+              .sequence.map(_.flatten)
+          }
+      }
+      .getOrElse(Failure(s"properties '${tail.mkString(".")}' could not be resolved in sub template '$head'"))
   }
 
   override def keysType(keys: Seq[String], expr: Expression, executionResult: TemplateExecutionResult): Result[VariableType] = {
     keys.toList match {
       case Nil => Success(TemplateType)
       case head::tail =>
-        executionResult.subExecutions.get(VariableName(head)).flatMap(subExecution =>
-            subExecution.getExpression(VariableName(head))
-              .map(subExpr => subExpr.expressionType(subExecution).keysType(tail, subExpr, executionResult))) match {
-              case Some(varType) =>
-                varType
-              case None =>
-                Failure(s"property '${tail.mkString(".")}' could not be resolved in sub template '$head'")
-            }
+        executionResult.subExecutions.get(VariableName(head)).flatMap { subExecution =>
+            subExecution
+              .getExpression(VariableName(head))
+              .map(subExpr => subExpr.expressionType(subExecution).flatMap(_.keysType(tail, subExpr, executionResult)))
+        } match {
+            case Some(varType) => varType
+            case None => Failure(s"property '${tail.mkString(".")}' could not be resolved in sub template '$head'")
+          }
         }
   }
 
@@ -174,9 +182,10 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
     case Nil =>
       Success(())
     case head::tail =>
-      executionResult.subExecutions.get(name).flatMap(subExecution =>
+      executionResult.subExecutions.get(name).flatMap { subExecution =>
         subExecution.getExpression(VariableName(head))
-          .map(variable => variable.expressionType(subExecution).keysType(tail, variable, subExecution))) match {
+          .map(variable => variable.expressionType(subExecution).flatMap(_.keysType(tail, variable, subExecution)))
+      } match {
         case Some(_) =>
           Success(())
         case None =>
@@ -184,23 +193,22 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
       }
   }
 
-  override def accessVariables(name:VariableName, keys:Seq[String], executionResult: TemplateExecutionResult): Seq[VariableName] = keys.toList match {
+  override def accessVariables(name:VariableName, keys:Seq[String], executionResult: TemplateExecutionResult): Result[Seq[VariableName]] = keys.toList match {
     case Nil =>
-      Seq()
+      Success(Seq())
     case head::tail =>
-      executionResult.subExecutions.get(name).flatMap(subExecution =>
-        subExecution.getExpression(VariableName(head))
-          .map(variable => variable
-            .expressionType(subExecution)
-            .accessVariables(VariableName(head), tail, subExecution)
-          )
-      ).getOrElse(Seq(name))
+      executionResult.subExecutions.get(name).flatMap { subExecution =>
+        subExecution
+          .getExpression(VariableName(head))
+          .map(variable => variable.expressionType(subExecution).flatMap(_.accessVariables(VariableName(head), tail, subExecution)))
+      }
+      .getOrElse(Success(Seq(name)))
   }
 
   override def getTypeClass: Class[_ <: TemplateDefinition ] = classOf[TemplateDefinition]
 
-  override def cast(value: String, executionResult: TemplateExecutionResult): TemplateDefinition = handleEither(decode[TemplateDefinition](value))
-  override def internalFormat(value: OpenlawValue): String = VariableType.convert[TemplateDefinition](value).asJson.noSpaces
+  override def cast(value: String, executionResult: TemplateExecutionResult): Result[TemplateDefinition] = handleEither(decode[TemplateDefinition](value))
+  override def internalFormat(value: OpenlawValue): Result[String] = VariableType.convert[TemplateDefinition](value).map(_.asJson.noSpaces)
   override def defaultFormatter: Formatter = new NoopFormatter
 
   def thisType: VariableType = TemplateType

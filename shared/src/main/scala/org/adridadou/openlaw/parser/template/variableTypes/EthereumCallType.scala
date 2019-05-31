@@ -1,10 +1,10 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
+import cats.implicits._
 import io.circe._
 import io.circe.syntax._
 import io.circe.parser._
 import io.circe.generic.semiauto._
-import cats.implicits._
 import org.adridadou.openlaw.{OpenlawString, OpenlawValue}
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
@@ -21,11 +21,24 @@ case class SignatureRSVParameterNames(r:String, s:String, v:String) {
 }
 
 case class SignatureRSVParameter(rExpr:Expression, sExpr:Expression, vExpr:Expression) {
-  def getRsv(executionResult: TemplateExecutionResult):Option[SignatureRSVParameterNames] = for {
-    r <- rExpr.evaluate(executionResult)
-    s <- sExpr.evaluate(executionResult)
-    v <- vExpr.evaluate(executionResult)
-  } yield SignatureRSVParameterNames(VariableType.convert[OpenlawString](r),VariableType.convert[OpenlawString](s),VariableType.convert[OpenlawString](v))
+  def getRsv(executionResult: TemplateExecutionResult): Result[Option[SignatureRSVParameterNames]] =
+    (for {
+      rOpt <- rExpr.evaluate(executionResult)
+      sOpt <- sExpr.evaluate(executionResult)
+      vOpt <- vExpr.evaluate(executionResult)
+    } yield {
+      for {
+        r <- rOpt
+        s <- sOpt
+        v <- vOpt
+      } yield {
+        for {
+          rString <- VariableType.convert[OpenlawString](r)
+          sString <- VariableType.convert[OpenlawString](s)
+          vString <- VariableType.convert[OpenlawString](v)
+        } yield SignatureRSVParameterNames(rString, sString, vString)
+      }
+    }).map(_.sequence).flatten
 }
 
 case object EthereumCallType extends VariableType("EthereumCall") with ActionType {
@@ -38,12 +51,11 @@ case object EthereumCallType extends VariableType("EthereumCall") with ActionTyp
     "tx" -> EthereumCallPropertyDef(typeDef = EthTxHashType, _.headOption.map(_.tx))
   )
 
-  override def cast(value: String, executionResult: TemplateExecutionResult): EthereumSmartContractCall =
+  override def cast(value: String, executionResult: TemplateExecutionResult): Result[EthereumSmartContractCall] =
     handleEither(decode[EthereumSmartContractCall](value))
 
-  override def internalFormat(value: OpenlawValue): String = value match {
-    case call:EthereumSmartContractCall =>
-      call.asJson.noSpaces
+  override def internalFormat(value: OpenlawValue): Result[String] = value match {
+    case call:EthereumSmartContractCall => Success(call.asJson.noSpaces)
   }
 
   override def validateKeys(variableName:VariableName, keys:Seq[String], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] =
@@ -72,11 +84,14 @@ case object EthereumCallType extends VariableType("EthereumCall") with ActionTyp
       case Nil => Success(Some(value))
       case prop::Nil => propertyDef.get(prop) match {
         case Some(propDef) =>
-          val executions:Seq[EthereumSmartContractExecution] = executionResult.executions.get(name).map(_.executionMap.values.toSeq)
-            .getOrElse(Seq())
-            .map(VariableType.convert[EthereumSmartContractExecution])
-
-          Success(propDef.data(executions))
+            executionResult
+              .executions
+              .get(name)
+              .map(_.executionMap.values.toList)
+              .getOrElse(List.empty)
+              .map(VariableType.convert[EthereumSmartContractExecution])
+              .sequence
+              .map(seq => propDef.data(seq))
         case None => Failure(s"unknown property $prop for EthereumCall type")
       }
       case _ =>
@@ -130,5 +145,5 @@ case object EthereumCallType extends VariableType("EthereumCall") with ActionTyp
     case _ => throw new RuntimeException("invalid parameter type " + param.getClass.getSimpleName + " expecting list of expressions")
   }
 
-  override def actionValue(value: OpenlawValue): EthereumSmartContractCall = VariableType.convert[EthereumSmartContractCall](value)
+  override def actionValue(value: OpenlawValue): Result[EthereumSmartContractCall] = VariableType.convert[EthereumSmartContractCall](value)
 }

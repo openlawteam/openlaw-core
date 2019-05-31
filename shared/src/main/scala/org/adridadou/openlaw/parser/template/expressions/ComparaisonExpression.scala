@@ -4,6 +4,7 @@ import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes.{VariableType, YesNoType}
 import cats.implicits._
 import org.adridadou.openlaw.OpenlawBoolean
+import org.adridadou.openlaw.result.Result
 
 case class ComparaisonExpression(left:Expression, right:Expression, op:Operation) extends BinaryExpression {
 
@@ -27,7 +28,7 @@ case class ComparaisonExpression(left:Expression, right:Expression, op:Operation
     })
   }
 
-  override def expressionType(executionResult: TemplateExecutionResult): VariableType = YesNoType
+  override def expressionType(executionResult: TemplateExecutionResult): Result[VariableType] = YesNoType
 
   override def toString: String = s"$left $op $right"
 }

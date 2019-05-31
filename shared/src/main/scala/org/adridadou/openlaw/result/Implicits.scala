@@ -50,6 +50,10 @@ object Implicits {
   }
 
   implicit class RichResult[T](val result: Result[T]) extends AnyVal {
+    def addFailure(cause: FailureCause): ResultNel[T] = result match {
+      case Success(_) => FailureNel(cause)
+      case Left(original) => FailureNel(cause, original)
+    }
     def convert(pf: PartialFunction[Exception, Exception]): Result[T] =
       result.left.map {
         case FailureException(e, _) if pf.isDefinedAt(e) => FailureException(pf(e))
