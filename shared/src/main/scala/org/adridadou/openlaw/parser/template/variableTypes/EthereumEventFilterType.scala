@@ -20,7 +20,8 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
 
   private val propertyDef:Map[String,EthereumEventPropertyDef] = Map[String, EthereumEventPropertyDef](
     "executionDate" -> EthereumEventPropertyDef(typeDef = DateTimeType, evts => Success(evts.headOption.map(_.executionDate))),
-    "tx" -> EthereumEventPropertyDef(typeDef = EthTxHashType, evts => Success(evts.headOption.map(_.event.hash)))
+    "tx" -> EthereumEventPropertyDef(typeDef = EthTxHashType, evts => Success(evts.headOption.map(_.event.hash))),
+    "received" -> EthereumEventPropertyDef(typeDef = YesNoType, evts => Success(Some(evts.nonEmpty)))
   )
 
   override def cast(value: String, executionResult: TemplateExecutionResult): EventFilterDefinition =
@@ -39,19 +40,13 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
           .map(list => list.find(_.name.name === key)
           .map(definition => definition.varType(executionResult))) match {
           case Success(Some(typeDef)) =>
-
             Success(EthereumEventPropertyDef(typeDef = typeDef, _.headOption.map(execution => {
               generateStructureType(VariableName("none"), eventFilterDefinition, executionResult).flatMap { structure =>
                 structure.access(structure.cast(execution.event.values.asJson.noSpaces, executionResult), VariableName("none"), Seq(key), executionResult)
               }
             }).getOrElse(Success(None))))
           case Success(None) =>
-            propertyDef.get(key) match {
-              case Some(pd) =>
-                Success(pd)
-              case None =>
-                Failure(s"unknown key $key for $expr")
-            }
+            Failure(s"property $key not found in the event definition")
           case Failure(ex, message) =>
             Failure(ex, message)
         }
@@ -61,15 +56,19 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
   }
 
   override def keysType(keys: Seq[String], expr: Expression, executionResult: TemplateExecutionResult): Result[VariableType] =
-    keys match {
-      case Seq(key) =>
-        propertyDef(key, expr, executionResult).map(_.typeDef)
+    keys.toList match {
+      case key::Nil =>
+        propertyDef.get(key) map { e => Success(e.typeDef) } getOrElse Failure(s"unknown key $key for $name")
+      case "event"::head::Nil =>
+        propertyDef(head, expr, executionResult).map(_.typeDef)
       case _ => super.keysType(keys, expr, executionResult)
     }
 
-  override def validateKeys(name:VariableName, keys: Seq[String], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] = keys match {
-    case Seq(key) =>
-      propertyDef(key, expression, executionResult).map(_ => Unit)
+  override def validateKeys(name:VariableName, keys: Seq[String], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] = keys.toList match {
+    case key::Nil =>
+      propertyDef.get(key) map { _ => Success() } getOrElse Failure(s"unknown key $key for $name")
+    case "event"::head::Nil =>
+      propertyDef(head, name, executionResult).map(_ => Unit)
     case _ =>
       super.validateKeys(name, keys, expression, executionResult)
   }
@@ -77,10 +76,17 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
   override def access(value: OpenlawValue, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = {
     keys.toList match {
       case Nil => Success(Some(value))
-      case head::tail if tail.isEmpty =>
+      case key::Nil =>
+        propertyDef.get(key) match {
+          case Some(pd) =>
+            pd.data(getExecutions(name, executionResult))
+          case None =>
+            Failure(s"unknown key $key for $name")
+        }
+
+      case "event"::head::Nil =>
         propertyDef(head, name, executionResult)
           .flatMap(_.data(getExecutions(name, executionResult)))
-
       case _ => Failure(s"Ethereum event only support one level of properties. invalid property access ${keys.mkString(".")}")
     }
   }
