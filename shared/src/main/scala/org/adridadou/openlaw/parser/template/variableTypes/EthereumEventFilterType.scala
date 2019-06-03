@@ -66,7 +66,7 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
 
   override def validateKeys(name:VariableName, keys: Seq[String], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] = keys.toList match {
     case key::Nil =>
-      propertyDef.get(key) map { _ => Success() } getOrElse Failure(s"unknown key $key for $name")
+      propertyDef.get(key) map { _ => Success.unit } getOrElse Failure(s"unknown key $key for $name")
     case "event"::head::Nil =>
       propertyDef(head, name, executionResult).map(_ => Unit)
     case _ =>
