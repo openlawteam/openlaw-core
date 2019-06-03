@@ -15,14 +15,14 @@ case object PeriodType extends VariableType("Period") {
 
   override def plus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult:TemplateExecutionResult): Result[Option[OpenlawValue]] =
     combine(optLeft, optRight) {
-      case (left, period:Period) => Success(plus(convert[Period](left), period))
-      case (left, date: OpenlawDateTime) => Success(DateTimeType.plus(date, convert[Period](left)))
+      case (left, period:Period) => convert[Period](left).map(plus(_, period))
+      case (left, date: OpenlawDateTime) => convert[Period](left).map(DateTimeType.plus(date, _))
     }
 
   private def plus(left:Period, right:Period): Period = left.plus(right)
 
   override def minus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult:TemplateExecutionResult): Result[Option[Period]] =
-    combine(optLeft, optRight) {
+    combineConverted[Period, Period](optLeft, optRight) {
       case (left, right) => Success(minus(left, right))
     }
 
