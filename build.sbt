@@ -11,11 +11,16 @@ lazy val repo     = "openlaw-core"
 licenses += ("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0"))
 
 lazy val scalaV = "2.12.8"
-lazy val catsV = "1.6.0"
+lazy val scalaJavaTimeV = "2.0.0-RC2"
+lazy val catsV = "1.6.1"
 lazy val parboiledV = "2.1.6"
 lazy val circeV = "0.11.1"
 lazy val playJsonV = "2.7.3"
 lazy val scalaTagsV = "0.6.8"
+lazy val sLoggingV = "0.6.1"
+lazy val enumeratumV = "1.5.13"
+lazy val scalaCheckV = "1.14.0"
+lazy val scalaTestV = "3.2.0-SNAP10"
 
 lazy val repositories = Seq(
   Resolver.jcenterRepo,
@@ -100,21 +105,20 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       "org.parboiled"           %% "parboiled"           % parboiledV,
       "org.typelevel"           %% "cats-core"           % catsV,
       "org.typelevel"           %% "cats-free"           % catsV,
-      "io.github.cquiroz"       %% "scala-java-time"     % "2.0.0-RC2",
-      "biz.enef"                %% "slogging-slf4j"      % "0.6.1",
-      "com.beachape"            %% "enumeratum"          % "1.5.13",
+      "io.github.cquiroz"       %% "scala-java-time"     % scalaJavaTimeV,
+      "biz.enef"                %% "slogging-slf4j"      % sLoggingV,
+      "com.beachape"            %% "enumeratum"          % enumeratumV,
       "com.lihaoyi"             %% "scalatags"           % scalaTagsV,
       //Test
-      "org.scalacheck"          %% "scalacheck"          % "1.14.0"        % Test,
-      "org.scalatest"           %% "scalatest"           % "3.2.0-SNAP10"  % Test,
+      "org.scalacheck"          %% "scalacheck"          % scalaCheckV % Test,
+      "org.scalatest"           %% "scalatest"           % scalaTestV  % Test,
     )
   ).jsSettings(
     libraryDependencies ++= Seq(
-      "io.github.cquiroz"       %%% "scala-java-time"      % "2.0.0-RC2",
+      "io.github.cquiroz"       %%% "scala-java-time"      % scalaJavaTimeV,
       "io.github.cquiroz"       %%% "scala-java-time-tzdb" % "2.0.0-RC2_2019a",
       "org.parboiled"           %%% "parboiled"            % parboiledV,
-      "com.chuusai"             %%% "shapeless"            % "2.3.3",
-      "biz.enef"                %%% "slogging"             % "0.6.1",
+      "biz.enef"                %%% "slogging"             % sLoggingV,
       "org.typelevel"           %%% "cats-core"            % catsV,
       "org.typelevel"           %%% "cats-free"            % catsV,
       "io.circe"                %%% "circe-core"           % circeV,
@@ -122,11 +126,11 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       "io.circe"                %%% "circe-parser"         % circeV,
       "io.circe"                %%% "circe-java8"         % circeV,
       "com.typesafe.play"       %%% "play-json"            % playJsonV,
-      "com.beachape"            %%% "enumeratum"           % "1.5.13",
+      "com.beachape"            %%% "enumeratum"           % enumeratumV,
       "com.lihaoyi"             %%% "scalatags"            % scalaTagsV,
       //Test
-      "org.scalacheck"          %%% "scalacheck"          % "1.14.0"        % Test,
-      "org.scalatest"           %%% "scalatest"           % "3.2.0-SNAP10"  % Test
+      "org.scalacheck"          %%% "scalacheck"          % scalaCheckV % Test,
+      "org.scalatest"           %%% "scalatest"           % scalaTestV  % Test
     )
   )
   .settings(parallelExecution in Test := false)
