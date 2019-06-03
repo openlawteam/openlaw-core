@@ -46,8 +46,8 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
 
     vm(LoadTemplate(template))
 
-    vm.evaluate[OpenlawString]("Hello").right.value.underlying shouldBe ("World")
-    vm.evaluate[OpenlawString]("Hello + ' World'").right.value.underlying shouldBe ("World World")
+    vm.evaluate[OpenlawString]("Hello").right.value.underlying shouldBe "World"
+    vm.evaluate[OpenlawString]("Hello + ' World'").right.value.underlying shouldBe "World World"
   }
 
   it should "be possible to register signature as incoming events and distinguish failed signatures" in {
