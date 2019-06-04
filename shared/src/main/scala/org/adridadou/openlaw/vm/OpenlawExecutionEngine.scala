@@ -259,7 +259,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       .flatMap { case (template, expressionType) =>
 
         val initialValue: Result[OpenlawExecutionState] = Success(executionResult)
-        executionResult.executedVariablesInternal appendAll foreachBlock.expression.variables(executionResult)
+        foreachBlock.expression.variables(executionResult).map(vars => executionResult.executedVariablesInternal appendAll vars)
 
         val elementsResult =
           foreachBlock
@@ -288,7 +288,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
           case variable: VariableDefinition =>
             processVariable(executionResult, variable, executed = true)
           case _ =>
-            executionResult.executedVariablesInternal appendAll subBlock.conditionalExpression.variables(executionResult)
+            subBlock.conditionalExpression.variables(executionResult).map(vars => executionResult.executedVariablesInternal appendAll vars)
         }
     })
 
@@ -409,15 +409,16 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       case Some(_:VariableDefinition) =>
         processDefinedVariable(executionResult, variable, executed)
       case Some(alias:VariableAliasing) if variable.nameOnly =>
-        executionResult.executedVariablesInternal appendAll alias.expr.variables(executionResult)
-        Success(executionResult)
+        alias.expr.variables(executionResult).map(vars => executionResult.executedVariablesInternal appendAll vars).map(_ => executionResult)
       case Some(mappingExpression:MappingExpression) =>
         if(executed) {
           executionResult.parentExecutionInternal.map(parent => {
             val initialValue:Result[OpenlawExecutionState] = Success(parent)
-            mappingExpression.expression.variables(parent)
-              .flatMap(name => parent.getVariable(name))
-              .foldLeft(initialValue)((parentExecution,subVariable) => parentExecution.flatMap(pe => executeVariable(pe, subVariable)))
+            mappingExpression.expression.variables(parent).map { vars =>
+              vars
+                .flatMap(name => parent.getVariable(name))
+                .foldLeft(initialValue)((parentExecution, subVariable) => parentExecution.flatMap(pe => executeVariable(pe, subVariable)))
+            }
           })
         }
         Success(executionResult)
