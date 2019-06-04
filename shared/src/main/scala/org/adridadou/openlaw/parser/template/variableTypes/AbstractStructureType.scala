@@ -1,5 +1,6 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
+import cats.implicits._
 import io.circe.{Decoder, Encoder, HCursor, Json}
 import org.adridadou.openlaw.parser.template._
 import play.api.libs.json.JsObject
@@ -83,16 +84,17 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
         Success(Some(value))
       case head :: tail =>
         val headName = VariableName(head)
-        val values = VariableType.convert[OpenlawMap[VariableName, OpenlawValue]](value).underlying
-        (for {
-          result <- values.get(headName)
-          keyType <- structure.typeDefinition.get(headName)
-        } yield keyType.access(result, name, tail, executionResult) ) match {
-          case Some(result) => result
-          case None if structure.names.contains(headName) =>
-            Success(Some(structure.typeDefinition(headName).missingValueFormat(headName)))
-          case None =>
-            Failure(s"properties '${keys.mkString(".")}' could not be resolved for the structured type $typeName. available properties ${structure.names.map(name => s"'${name.name}'").mkString(",")}")
+        VariableType.convert[OpenlawMap[VariableName, OpenlawValue]](value).flatMap { values =>
+          (for {
+            result <- values.get(headName)
+            keyType <- structure.typeDefinition.get(headName)
+          } yield keyType.access(result, name, tail, executionResult)) match {
+            case Some(result) => result
+            case None if structure.names.contains(headName) =>
+              Success(Some(structure.typeDefinition(headName).missingValueFormat(headName)))
+            case None =>
+              Failure(s"properties '${keys.mkString(".")}' could not be resolved for the structured type $typeName. available properties ${structure.names.map(name => s"'${name.name}'").mkString(",")}")
+          }
         }
     }
   }
@@ -129,19 +131,27 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
       }
   }
 
-  override def cast(value: String, executionResult: TemplateExecutionResult): OpenlawMap[VariableName, OpenlawValue] = {
+  override def cast(value: String, executionResult: TemplateExecutionResult): Result[OpenlawMap[VariableName, OpenlawValue]] = {
     val json = play.api.libs.json.Json.parse(value)
 
-    structure.typeDefinition.flatMap({case (fieldName, fieldType) =>
-          (json.as[JsObject] \ fieldName.name).asOpt[String].map(value => fieldName -> fieldType.cast(value, executionResult))
-    })
+    structure.typeDefinition.flatMap {case (fieldName, fieldType) =>
+      (json.as[JsObject] \ fieldName.name).asOpt[String].map(value => fieldType.cast(value, executionResult).map(fieldName -> _))
+    }
+    .toList
+    .sequence
+    .map(_.toMap)
   }
 
-  override def internalFormat(value: OpenlawValue): String = {
-    val values = VariableType.convert[OpenlawMap[VariableName, OpenlawValue]](value).underlying
-    structure.typeDefinition
-      .flatMap({case (fieldName,fieldType) => values.get(fieldName).map(value => fieldName.name -> fieldType.internalFormat(value))})
-      .asJson.noSpaces
+  override def internalFormat(value: OpenlawValue): Result[String] = {
+    VariableType.convert[OpenlawMap[VariableName, OpenlawValue]](value).flatMap { values =>
+      structure
+        .typeDefinition
+        .flatMap { case (fieldName, fieldType) => values.get(fieldName).map(value => fieldType.internalFormat(value).map( fieldName.name -> _)) }
+        .toList
+        .sequence
+        .map(_.toMap)
+        .map { _.asJson.noSpaces }
+    }
   }
 
   override def thisType: VariableType = this

@@ -115,22 +115,21 @@ case object RawNumberFormatter extends Formatter with NumberFormatter {
 
 case class Rounding(expr:Expression) extends Formatter with NumberFormatter {
   override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] = {
-    for {
-      valueOpt <- expr.evaluate(executionResult)
-
-      value
-    }
     expr
       .evaluate(executionResult)
       .flatMap { valueOpt =>
         valueOpt
-          .map(VariableType.convert[OpenlawBigDecimal])
-          .map(_.toInt)
-          .map(rounding => VariableType.convert[OpenlawBigDecimal](value).map(_.setScale(rounding, RoundingMode.HALF_UP))) match {
-          case None => Success(Seq(FreeText(Text(value.toString))))
-          case Some(Success(result)) => Success(Seq(FreeText(Text(result.toString))))
-          case Some(Failure(e, message)) => Failure(e, message)
-        }
+          .map { value =>
+            val x = VariableType
+              .convert[OpenlawBigDecimal]()
+              .map(x => x.toInt)
+              .flatMap(rounding => VariableType.convert[OpenlawBigDecimal](value).map(_.setScale(rounding, RoundingMode.HALF_UP)))
+            x
+          } match {
+            case None => Success(Seq(FreeText(Text(value.toString))))
+            case Some(Success(result)) => Success(Seq(FreeText(Text(result.toString))))
+            case Some(Failure(e, message)) => Failure(e, message)
+          }
       }
   }
 }

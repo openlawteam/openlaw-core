@@ -14,17 +14,15 @@ import io.circe.generic.semiauto._
 import scala.reflect.ClassTag
 import scala.util.Try
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
-import LocalDateTimeHelper._
 import cats.data.EitherT
 import org.adridadou.openlaw.oracles.{EthereumEventFilterExecution, PreparedERC712SmartContractCallExecution}
 import org.adridadou.openlaw._
-import org.adridadou.openlaw.parser.template.variableTypes.PeriodType.minus
 import org.adridadou.openlaw.parser.template.variableTypes.VariableType.convert
 
 trait NoShowInForm
 
 trait ActionValue {
-  def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions:Seq[OpenlawExecution]):Option[LocalDateTime]
+  def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions:Seq[OpenlawExecution]): Result[Option[LocalDateTime]]
 }
 
 trait ActionType extends NoShowInForm {
@@ -266,8 +264,8 @@ abstract class VariableType(val name: String) {
   def format(formatter:Option[FormatterDefinition], value:OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] =
     formatter
       .map(getFormatter(_, executionResult))
-      .getOrElse(defaultFormatter)
-      .format(value, executionResult)
+      .getOrElse(Success(defaultFormatter))
+      .flatMap(_.format(value, executionResult))
 
   def getMandatoryParameter(name:String, parameter:Parameters):Parameter = {
     parameter.parameterMap.toMap.get(name) match {

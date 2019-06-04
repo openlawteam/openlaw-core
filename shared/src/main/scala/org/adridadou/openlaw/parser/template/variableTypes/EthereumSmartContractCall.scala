@@ -12,6 +12,7 @@ import cats.implicits._
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import org.adridadou.openlaw.oracles.CryptoService
+import org.adridadou.openlaw.result.{Result, Success}
 
 object EthereumSmartContractCall {
   implicit val smartContractEnc: Encoder[EthereumSmartContractCall] = deriveEncoder[EthereumSmartContractCall]
@@ -33,81 +34,120 @@ case class EthereumSmartContractCall(
 
   def isERC712Call:Boolean = signatureParameter.isDefined || signatureRSVParameter.isDefined
 
-  def callKey(executionResult: TemplateExecutionResult, crypto:CryptoService):Option[EthereumData] = for {
-    from <- from.flatMap(_.evaluate(executionResult)).map(EthAddressType.convert)
-    to <- address.evaluate(executionResult).map(EthAddressType.convert)
-
-  } yield {
-    val args = arguments.flatMap(expr => {
-      val varType = expr.expressionType(executionResult)
-      expr.evaluate(executionResult).map(varType.internalFormat)
-    })
-    val argHash = EthereumData(crypto.sha256(args.map(arg => EthereumData(crypto.sha256(arg)).withLeading0x).mkString("")))
-
-    EthereumData(crypto.sha256(from.withLeading0x + to.withLeading0x + argHash.withLeading0x))
+  def callKey(executionResult: TemplateExecutionResult, crypto:CryptoService): Result[Option[EthereumData]] = {
+    (for {
+      fromResult <- from.flatMap(_.evaluate(executionResult).flatMap(_.map(EthAddressType.convert).sequence).sequence)
+      toResult <- address.evaluate(executionResult).flatMap(_.map(EthAddressType.convert).sequence).sequence
+    } yield {
+      for {
+        from <- fromResult
+        to <- toResult
+        ethereumData <- {
+          val args = arguments.toList.map { expr =>
+            val x = expr.expressionType(executionResult).flatMap(varType => expr.evaluate(executionResult).flatMap(_.map(varType.internalFormat).sequence))
+            x
+          }
+          .sequence
+          .map(_.flatten)
+          .map { args =>
+            val argHash = EthereumData(crypto.sha256(args.map(arg => EthereumData(crypto.sha256(arg)).withLeading0x).mkString("")))
+            EthereumData(crypto.sha256(from.withLeading0x + to.withLeading0x + argHash.withLeading0x))
+          }
+          args
+        }
+      } yield ethereumData
+    }).sequence
   }
 
-  def getEvery(executionResult: TemplateExecutionResult): Option[Period] =
-    every.map(getPeriod(_ , executionResult))
-  def getStartDate(executionResult: TemplateExecutionResult): Option[LocalDateTime] =
-    startDate.map(getDate(_, executionResult).underlying)
-  def getEndDate(executionResult: TemplateExecutionResult): Option[LocalDateTime] =
-    endDate.map(getDate(_, executionResult).underlying)
-  def getFunctionName(executionResult: TemplateExecutionResult): String =
+  def getEvery(executionResult: TemplateExecutionResult): Result[Option[Period]] =
+    every.map(getPeriod(_ , executionResult)).sequence
+  def getStartDate(executionResult: TemplateExecutionResult): Result[Option[LocalDateTime]] =
+    startDate.map(getDate(_, executionResult).map(_.underlying)).sequence
+  def getEndDate(executionResult: TemplateExecutionResult): Result[Option[LocalDateTime]] =
+    endDate.map(getDate(_, executionResult).map(_.underlying)).sequence
+  def getFunctionName(executionResult: TemplateExecutionResult): Result[String] =
     getString(functionName, executionResult)
-  def getContractAddress(executionResult: TemplateExecutionResult): EthereumAddress =
+  def getContractAddress(executionResult: TemplateExecutionResult): Result[EthereumAddress] =
     getEthereumAddress(address, executionResult)
-  def getEthereumNetwork(executionResult: TemplateExecutionResult):Option[String] =
-    network.evaluate(executionResult)
-      .map(VariableType.convert[OpenlawString](_).underlying)
+  def getEthereumNetwork(executionResult: TemplateExecutionResult): Result[Option[String]] =
+    network.evaluate(executionResult).flatMap(_.map(VariableType.convert[OpenlawString]).sequence)
 
-  def getFrom(executionResult: TemplateExecutionResult):Option[EthereumAddress] = {
-    from.flatMap(_.evaluate(executionResult)).map({
-      case OpenlawString(strAddr) => EthereumAddress(strAddr)
-      case addr:EthereumAddress => addr
-    })
-  }
-
-  def getInterfaceProtocol(executionResult: TemplateExecutionResult): String =
-    getMetadata(abi, executionResult).protocol
-  def getInterfaceAddress(executionResult: TemplateExecutionResult): String =
-    getMetadata(abi, executionResult).address
-
-  def parameterToIgnore(executionResult: TemplateExecutionResult):Seq[String] = {
-    signatureParameter.flatMap(_.evaluate(executionResult)) match {
-      case Some(value) =>
-        Seq(VariableType.convert[OpenlawString](value).underlying)
-      case None =>
-        signatureRSVParameter.flatMap(_.getRsv(executionResult)).map(rsv => Seq(rsv.r, rsv.s, rsv.v)).getOrElse(Seq())
-    }
-  }
-
-  override def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions:Seq[OpenlawExecution]): Option[LocalDateTime] = {
-    val executions = pastExecutions.map(VariableType.convert[EthereumSmartContractExecution])
-    val callToReRun = executions
-      .map(VariableType.convert[EthereumSmartContractExecution])
-      .find(execution => execution.executionStatus match {
-        case FailedExecution =>
-          execution.executionDate
-            .isBefore(LocalDateTime.now(executionResult.clock).minus(5, ChronoUnit.MINUTES))
-        case _ =>
-          false
-      }).map(_.scheduledDate)
-
-    callToReRun orElse {
-      executions.map(_.scheduledDate).toList match {
-        case Nil =>
-          Some(getStartDate(executionResult).getOrElse(LocalDateTime.now(executionResult.clock)))
-        case list =>
-          val lastDate = list.maxBy(_.toEpochSecond(ZoneOffset.UTC))
-          getEvery(executionResult).flatMap(schedulePeriod => {
-            DateTimeType
-              .plus(Some(lastDate), Some(schedulePeriod), executionResult)
-              .map(VariableType.convert[OpenlawDateTime](_).underlying)
-              .filter(nextDate => getEndDate(executionResult).forall(date => nextDate.isBefore(date) || nextDate === date))
-          })
+  def getFrom(executionResult: TemplateExecutionResult):Result[Option[EthereumAddress]] =
+    from
+      .flatMap(_.evaluate(executionResult).sequence)
+      .map {
+        _.flatMap {
+          case OpenlawString(strAddr) => EthereumAddress(strAddr)
+          case addr: EthereumAddress => Success(addr)
+        }
       }
-    }
+      .sequence
+
+  def getInterfaceProtocol(executionResult: TemplateExecutionResult): Result[String] =
+    getMetadata(abi, executionResult).map(_.protocol)
+  def getInterfaceAddress(executionResult: TemplateExecutionResult): Result[String] =
+    getMetadata(abi, executionResult).map(_.address)
+
+  def parameterToIgnore(executionResult: TemplateExecutionResult): Result[Seq[String]] =
+    (for {
+      signatureParameterValue <- signatureParameter
+      signatureRSVParameterValue <- signatureRSVParameter
+      result <- {
+        val z = signatureParameterValue
+          .evaluate(executionResult)
+          .flatMap {
+            case Some(value) =>
+              VariableType.convert[OpenlawString](value).map(x => Some(Seq(x)))
+            case None =>
+              signatureRSVParameterValue.getRsv(executionResult).map(_.map(rsv => Seq(rsv.r, rsv.s, rsv.v)))
+          }
+        z.sequence
+      }
+    } yield result).getOrElse(Success(Seq()))
+
+  override def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions:Seq[OpenlawExecution]): Result[Option[LocalDateTime]] = {
+
+    for {
+      executions <- pastExecutions.toList.map(VariableType.convert[EthereumSmartContractExecution]).sequence
+      result <- {
+        val callToRerun: Option[LocalDateTime] = executions
+          .find { execution =>
+            execution.executionStatus match {
+              case FailedExecution =>
+                execution.executionDate
+                  .isBefore(LocalDateTime.now(executionResult.clock).minus(5, ChronoUnit.MINUTES))
+              case _ =>
+                false
+            }
+          }
+          .map(_.scheduledDate)
+
+        callToRerun.map(Success(_)).orElse {
+          executions.map(_.scheduledDate) match {
+            case Nil =>
+              Some(getStartDate(executionResult).map(_.getOrElse(LocalDateTime.now(executionResult.clock))))
+            case list =>
+              val lastDate = list.maxBy(_.toEpochSecond(ZoneOffset.UTC))
+              (for {
+                schedulePeriodOption <- getEvery(executionResult)
+                endDate <- getEndDate(executionResult)
+              } yield {
+                schedulePeriodOption.map { schedulePeriod =>
+                  DateTimeType
+                    .plus(Some(OpenlawDateTime(lastDate)), Some(schedulePeriod), executionResult)
+                    .flatMap { p =>
+                      p
+                        .map(VariableType.convert[OpenlawDateTime](_).map(_.underlying))
+                        .sequence
+                        .map(pOption => pOption.filter(nextDate => endDate.forall(date => nextDate.isBefore(date) || nextDate === date)))
+                    }
+                }
+                .flatMap(_.sequence)
+              }).sequence.map(_.flatten)
+        }
+      }.sequence
+     }
+   } yield result
   }
 }
 
