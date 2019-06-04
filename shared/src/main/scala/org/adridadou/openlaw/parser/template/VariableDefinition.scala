@@ -5,7 +5,7 @@ import org.adridadou.openlaw.parser.template.variableTypes._
 import cats.implicits._
 import io.circe.{Decoder, Encoder, KeyDecoder, KeyEncoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
-import org.adridadou.openlaw.{OpenlawString, OpenlawValue}
+import org.adridadou.openlaw.OpenlawValue
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 import org.adridadou.openlaw.result.Implicits.RichResult
@@ -239,9 +239,9 @@ case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[
     val currentType = varType(executionResult)
 
     currentType match {
-      case DefinedChoiceType(choices,typeName) =>
+      case choiceType:DefinedChoiceType =>
         // may use ResultNel to accumulate this errors
-        exprs.map(validateOption(_, choices, typeName, executionResult)).headOption.getOrElse(Success(()))
+        exprs.map(validateOption(_, choiceType, executionResult)).headOption.getOrElse(Success(()))
       case _ =>
         exprs
             .flatMap({
@@ -257,18 +257,20 @@ case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[
     }
   }
 
-  private def validateOption(expr:Expression, choices:Choices, typeName:String, executionResult: TemplateExecutionResult): Result[Unit] = {
-    expr.evaluate(executionResult).map {
-      case OpenlawString(str) =>
-        choices.values.find(_ === str) match {
+  private def validateOption(expr:Expression, choiceType:DefinedChoiceType, executionResult: TemplateExecutionResult): Result[Unit] = {
+    expr match {
+      case StringConstant(str, _) =>
+        choiceType.choices.values.find(_ === str) match {
           case Some(_) =>
-            Success(())
+            Success.unit
           case None =>
-            Failure(s"the value $str is not part of the Choice type $typeName")
+            Failure(s"the value $str is not part of the Choice type ${choiceType.typeName}")
         }
+      case _ if expr.expressionType(executionResult) === choiceType =>
+        Success.unit
       case _ =>
         Failure(s"the options need to be of type Text to possibly be of type ${expr.expressionType(executionResult)}")
-    }.getOrElse(Success(()))
+    }
   }
 
   override def variables(executionResult: TemplateExecutionResult): Seq[VariableName] =
