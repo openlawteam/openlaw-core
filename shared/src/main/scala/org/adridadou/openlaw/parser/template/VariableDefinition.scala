@@ -243,7 +243,15 @@ case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[
         // may use ResultNel to accumulate this errors
         exprs.map(validateOption(_, choices, typeName, executionResult)).headOption.getOrElse(Success(()))
       case _ =>
-        exprs.find(_.expressionType(executionResult) =!= currentType)
+        exprs
+            .flatMap({
+              case expr @ StringConstant(value,_) =>
+                attempt(currentType.cast(value, executionResult)) match {
+                  case Success(_) => None
+                  case Failure(_,_) => Some(expr)
+                }
+              case expr => Some(expr)
+            }).find(_.expressionType(executionResult) =!= currentType)
           .map(expr => Failure(s"options element error! should be of type ${varType(executionResult).name} but ${expr.toString} is ${expr.expressionType(executionResult).name} instead"))
           .getOrElse(Success(()))
     }
