@@ -30,35 +30,38 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
     case call:EventFilterDefinition => Success(call.asJson.noSpaces)
   }
 
-  private def propertyDef(key:String, expr:Expression, executionResult:TemplateExecutionResult):Result[EthereumEventPropertyDef] = {
-    val x = expr.evaluate(executionResult).map {
-      case eventFilterDefinition: EventFilterDefinition =>
-        eventFilterDefinition
-          .abiOpenlawVariables(executionResult)
-          .map(list => list.find(_.name.name === key)
-          .map(definition => definition.varType(executionResult))) match {
-          case Success(Some(typeDef)) =>
+  private def propertyDef(key:String, expr:Expression, executionResult:TemplateExecutionResult): Result[EthereumEventPropertyDef] =
+    expr
+      .evaluate(executionResult)
+      .flatMap { option =>
+        option
+          .map {
+            case eventFilterDefinition: EventFilterDefinition =>
+              eventFilterDefinition
+                .abiOpenlawVariables(executionResult)
+                .map(list => list.find(_.name.name === key).map(definition => definition.varType(executionResult))) match {
+                case Success(Some(typeDef)) =>
 
-            EthereumEventPropertyDef(typeDef = typeDef, _.headOption.map { execution =>
-              generateStructureType(VariableName("none"), eventFilterDefinition, executionResult).flatMap { structure =>
-                structure.cast(execution.event.values.asJson.noSpaces, executionResult).flatMap(structure.access(_, VariableName("none"), Seq(key), executionResult))
+                  Success(EthereumEventPropertyDef(typeDef = typeDef, _.headOption.map { execution =>
+                    generateStructureType(VariableName("none"), eventFilterDefinition, executionResult).flatMap { structure =>
+                      structure.cast(execution.event.values.asJson.noSpaces, executionResult).flatMap(structure.access(_, VariableName("none"), Seq(key), executionResult))
+                    }
+                  }.getOrElse(Success(None))))
+                case Success(None) =>
+                  propertyDef.get(key) match {
+                    case Some(pd) =>
+                      Success(pd)
+                    case None =>
+                      Failure(s"unknown key $key for $expr")
+                  }
+                case Failure(ex, message) =>
+                  Failure(ex, message)
               }
-            }.getOrElse(Success(None)))
-          case Success(None) =>
-            propertyDef.get(key) match {
-              case Some(pd) =>
-                Success(pd)
-              case None =>
-                Failure(s"unknown key $key for $expr")
-            }
-          case Failure(ex, message) =>
-            Failure(ex, message)
-        }
 
-      case x => Failure(s"unexpected value provided, expected EventFilterDefinition: $x")
-    }
-      x.getOrElse(Failure("the Ethereum event filter definition could not be found"))
-  }
+            case x => Failure(s"unexpected value provided, expected EventFilterDefinition: $x")
+          }
+          .getOrElse(Failure("the Ethereum event filter definition could not be found"))
+      }
 
   override def keysType(keys: Seq[String], expr: Expression, executionResult: TemplateExecutionResult): Result[VariableType] =
     keys match {

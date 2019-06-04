@@ -47,7 +47,7 @@ trait Expression {
   def evaluateT[U <: OpenlawValue](executionResult: TemplateExecutionResult)(implicit classTag:ClassTag[U]):Result[Option[U#T]] =
     evaluate(executionResult).flatMap(_.map(VariableType.convert[U]).sequence)
 
-  def variables(executionResult: TemplateExecutionResult):Seq[VariableName]
+  def variables(executionResult: TemplateExecutionResult): Result[Seq[VariableName]]
 }
 
 case class ParensExpression(expr:Expression) extends Expression {

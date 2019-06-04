@@ -38,11 +38,11 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => R
     combine(optLeft, optRight) {
       case (left, period:Period) => VariableType.convert[OpenlawDateTime](left).map(x => plus(x, period))
       case (left, OpenlawString(str)) =>
-        PeriodType.cast(str, executionResult).map {
+        PeriodType.cast(str, executionResult) match {
           case Success(period) => VariableType.convert[OpenlawDateTime](left).map(x => plus(x, period))
           case f @ Failure(_, _) =>
             f.addFailure(FailureMessage(s"you can only make an addition between a date and a period. You are making an addition between a ${left.getClass.getSimpleName} and ${str.getClass.getSimpleName}")).toResult
-        }.flatten
+        }
     }
 
   def plus(d:OpenlawDateTime, p:Period):OpenlawDateTime = d
@@ -59,11 +59,11 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => R
     combine(optLeft, optRight) {
       case (left, period:Period) => VariableType.convert[OpenlawDateTime](left).map(x => minus(x, period))
       case (left, OpenlawString(str)) =>
-        PeriodType.cast(str, executionResult).map {
+        PeriodType.cast(str, executionResult) match {
           case Success(period) => VariableType.convert[OpenlawDateTime](left).map(x => minus(x, period))
           case f @ Failure(_, _) =>
             f.addFailure(FailureMessage(s"you can only make an subtraction between a date and a period. You are making an addition between a ${left.getClass.getSimpleName} and ${str.getClass.getSimpleName}")).toResult
-        }.flatten
+        }
     }
 
   private def minus(d:OpenlawDateTime, p:Period):OpenlawDateTime = d
@@ -80,15 +80,15 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => R
     case _ => converter(value, executionResult.clock)
   }
 
-  override def getFormatter(formatter:FormatterDefinition, executionResult:TemplateExecutionResult): Formatter = formatter.name.toLowerCase match {
-    case "date" => new SimpleDateFormatter
-    case "datetime" => new SimpleDateTimeFormatter
-    case "year" => new YearFormatter
-    case "day_name" => new DayNameFormatter
-    case "day" => new DayFormatter
-    case "month_name" => new MonthNameFormatter
-    case "month" => new MonthFormatter
-    case _ => throw new RuntimeException(s"unknown formatter $formatter for type $varTypeName")
+  override def getFormatter(formatter:FormatterDefinition, executionResult:TemplateExecutionResult): Result[Formatter] = formatter.name.toLowerCase match {
+    case "date" => Success(new SimpleDateFormatter)
+    case "datetime" => Success(new SimpleDateTimeFormatter)
+    case "year" => Success(new YearFormatter)
+    case "day_name" => Success(new DayNameFormatter)
+    case "day" => Success(new DayFormatter)
+    case "month_name" => Success(new MonthNameFormatter)
+    case "month" => Success(new MonthFormatter)
+    case _ => Failure(s"unknown formatter $formatter for type $varTypeName")
   }
 
   override def isCompatibleType(otherType: VariableType, operation: ValueOperation): Boolean = operation match {
@@ -166,7 +166,7 @@ object DateConverter {
 }
 
 class PatternFormat(pattern: String) extends Formatter {
-  val formatter = DateTimeFormatter.ofPattern(pattern, Locale.ENGLISH)
+  val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern(pattern, Locale.ENGLISH)
 
   override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] =
     DateHelper.convertToDate(value, executionResult.clock).map { zonedDate =>
@@ -214,7 +214,5 @@ object DateHelper {
   }
 
   def convertToDate(value:OpenlawValue, clock: Clock): Result[LocalDateTime] =
-    VariableType.convert[OpenlawDateTime](value).map {
-      case date => DateHelper.prepareDate(date, clock)
-    }
+    VariableType.convert[OpenlawDateTime](value).map(date => DateHelper.prepareDate(date, clock))
 }

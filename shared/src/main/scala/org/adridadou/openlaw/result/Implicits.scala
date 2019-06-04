@@ -50,7 +50,11 @@ object Implicits {
   }
 
   implicit class RichResult[T](val result: Result[T]) extends AnyVal {
-    def addFailure(cause: FailureCause): ResultNel[T] = result match {
+    def addCause(cause: Failure[T]): ResultNel[T] = result match {
+      case Success(_) => cause.toResultNel
+      case Left(original) => FailureNel(original, cause.value)
+    }
+    def addFailure[U](cause: FailureCause): ResultNel[U] = result match {
       case Success(_) => FailureNel(cause)
       case Left(original) => FailureNel(cause, original)
     }
