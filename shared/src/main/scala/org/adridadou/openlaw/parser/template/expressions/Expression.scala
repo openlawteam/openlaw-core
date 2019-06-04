@@ -63,7 +63,7 @@ case class ParensExpression(expr:Expression) extends Expression {
   override def evaluate(executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] =
     expr.evaluate(executionResult)
 
-  override def variables(executionResult: TemplateExecutionResult): Seq[VariableName] =
+  override def variables(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =
     expr.variables(executionResult)
 
   override def toString: String = s"($expr)"

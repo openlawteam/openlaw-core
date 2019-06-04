@@ -29,7 +29,7 @@ case class EthereumSmartContractOracle() extends OpenlawOracle[EthereumSmartCont
         case Some(execution) =>
           Success(vm.newExecution(event.name, createNewExecution(vm, toOpenlawExecutionStatus(event), event, execution.scheduledDate)))
         case None =>
-          getScheduledDate(actionInfo, vm, event) match {
+          getScheduledDate(actionInfo, vm, event) flatMap {
             case Some(scheduleDate) =>
               Success(vm.newExecution(event.name, createNewExecution(vm, toOpenlawExecutionStatus(event), event, scheduleDate)))
             case None =>
@@ -65,10 +65,10 @@ case class EthereumSmartContractOracle() extends OpenlawOracle[EthereumSmartCont
       executionStatus = executionStatus,
       tx = event.hash)
 
-  private def getScheduledDate(info:ActionInfo, vm:OpenlawVm, event:EthereumSmartContractCallEvent):Option[LocalDateTime] = {
+  private def getScheduledDate(info:ActionInfo, vm:OpenlawVm, event:EthereumSmartContractCallEvent): Result[Option[LocalDateTime]] = {
     vm.executions[EthereumSmartContractExecution](info.name).find(_.tx === event.hash) match {
       case Some(execution) =>
-        Some(execution.scheduledDate)
+        Success(Some(execution.scheduledDate))
       case None =>
         info.action.nextActionSchedule(info.executionResult, vm.executions(event.name))
     }

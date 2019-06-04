@@ -15,15 +15,27 @@ case class EthereumERC712Oracle(crypto:CryptoService) extends OpenlawOracle[Prep
 
   override def incoming(vm: OpenlawVm, event: PreparedERC712SmartContractCallEvent): Result[OpenlawVm] = {
     vm.getAllVariables(EthereumCallType)
-      .find({ case (_, variable) => variable.name === event.name })
-      .flatMap { case (executionResult, variable) => variable.evaluateT[EthereumSmartContractCall](executionResult).map((_, variable.name, executionResult)) }
-      .flatMap({ case (call, name, executionResult) => for {
-        from <- call.getFrom(executionResult) if from === event.signee
-        to <- Some(call.getContractAddress(executionResult)) if to === event.receiveAddress
-      } yield name})
-      .filter(_ === event.name)
-      .map { name => Success(vm.setInitExecution(name, PreparedERC712SmartContractCallExecution(name, event.signedCall))) }
-      .getOrElse(Failure(s"action not found for ${event.name.name}. available ${vm.allNextActions.map(_.name.name).mkString(",")}"))
+      .find { case (_, variable) => variable.name === event.name }
+      .map { case (executionResult, variable) =>
+        val x = variable.evaluateT[EthereumSmartContractCall](executionResult).map(x => x.map((_, variable.name, executionResult)))
+        x.flatMap { option =>
+
+          option.map { case (call, name, executionResult) =>
+            for {
+              fromOption <- call.getFrom(executionResult)
+              to <- call.getContractAddress(executionResult)
+            } yield {
+              for {
+                from <- fromOption if from === event.signee
+                to <- Some(to) if to === event.receiveAddress
+              } yield name
+            }
+            .filter(_ === event.name)
+            .map { name => vm.setInitExecution(name, PreparedERC712SmartContractCallExecution(name, event.signedCall)) }
+          }.sequence
+        }
+      }.sequence.map(_.flatten.flatten)
+      .flatMap(x => x.map(Success(_)).getOrElse(Failure(s"action not found for ${event.name.name}. available ${vm.allNextActions.map(_.name.name).mkString(",")}")))
   }
 
   override def shouldExecute(event: OpenlawVmEvent): Boolean = event match {
