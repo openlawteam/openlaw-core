@@ -9,21 +9,22 @@ import cats.Eq
 import io.circe._
 import io.circe.generic.semiauto._
 import io.circe.syntax._
+import org.adridadou.openlaw.result.{Result, Success}
 import org.adridadou.openlaw.values.ContractId
 import org.adridadou.openlaw.vm.OpenlawVmEvent
 
 case class OpenlawSignatureOracle(crypto:CryptoService, serverAccount:EthereumAddress) {
 
-  def isSignatureValid(data:EthereumData, signatureEvent: OpenlawSignatureEvent): Boolean = signatureEvent match {
+  def isSignatureValid(data:EthereumData, signatureEvent: OpenlawSignatureEvent): Result[Boolean] = signatureEvent match {
     case event:OpenlawSignatureEvent =>
       val signedData = EthereumData(crypto.sha256(event.email.email))
         .merge(EthereumData(crypto.sha256(data.data)))
 
-      val actualAddress = EthereumAddress(crypto.validateECSignature(signedData.data, event.signature.signature))
+      EthereumAddress(crypto.validateECSignature(signedData.data, event.signature.signature)).map { actualAddress =>
+        actualAddress === serverAccount
+      }
 
-      actualAddress === serverAccount
-
-    case _ => false
+    case _ => Success(false)
   }
 }
 

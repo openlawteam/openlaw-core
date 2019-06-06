@@ -487,12 +487,13 @@ case class OpenlawExecutionState(
       }
     }).map({case (_, variable) => variable})
 
-    val missingIdentitiesResult = variables.map({ case (result, variable) =>
+    val missingIdentitiesResult: Result[(Seq[VariableName], Seq[String])] = variables.map({ case (result, variable) =>
       variable.varType(result) match {
         case IdentityType =>
-          resultFromMissingInput(variable.missingInput(result))
+          Success(resultFromMissingInput(variable.missingInput(result)))
+
         case collectionType:CollectionType if collectionType.typeParameter === IdentityType =>
-          result.getVariableValue[CollectionValue](variable.name) match {
+          result.getVariableValue[CollectionValue](variable.name).map {
             case Some(value) if value.size =!= value.values.size =>
               (Seq(variable.name), Seq())
             case Some(_) =>
@@ -502,19 +503,20 @@ case class OpenlawExecutionState(
           }
 
         case structureType:DefinedStructureType if structureType.structure.typeDefinition.values.exists(_ === IdentityType) =>
-          val values = result.getVariableValue[OpenlawMap[VariableName, OpenlawValue]](variable.name).map(_.underlying)
-          val identityProperties = structureType.structure.typeDefinition
-            .filter({case (_,propertyType) => propertyType === IdentityType})
-            .map({case (propertyName,_) => propertyName}).toSeq
+          result.getVariableValue[OpenlawMap[VariableName, OpenlawValue]](variable.name).map { values =>
+            val identityProperties = structureType.structure.typeDefinition
+              .filter({ case (_, propertyType) => propertyType === IdentityType })
+              .map({ case (propertyName, _) => propertyName }).toSeq
 
-          if(identityProperties.forall(values.getOrElse(Map()).contains)) {
-            (Seq(), Seq())
-          } else {
-            (Seq(variable.name), Seq())
+            if (identityProperties.forall(values.getOrElse(Map()).contains)) {
+              (Seq(), Seq())
+            } else {
+              (Seq(variable.name), Seq())
+            }
           }
 
         case _ =>
-          (Seq(), Seq())
+          Success((Seq(), Seq()))
       }
     })
 
@@ -617,47 +619,50 @@ case class OpenlawExecutionState(
   def getCompiledTemplate(templates: Map[TemplateSourceIdentifier, CompiledTemplate]):Option[CompiledTemplate] =
     getTemplateIdentifier flatMap templates.get
 
-  def startForEachExecution(variableName:VariableName, template:CompiledTemplate, name:VariableName, value:OpenlawValue, varType:VariableType): Result[OpenlawExecutionState] = {
-    startSubExecution(variableName, template, embedded = true).map(result => {
-      val newResult = result.copy(parameters = parameters + (name -> varType.internalFormat(value)))
+  def startForEachExecution(variableName:VariableName, template:CompiledTemplate, name:VariableName, value:OpenlawValue, varType:VariableType): Result[OpenlawExecutionState] =
+    for {
+      result <- startSubExecution(variableName, template, embedded = true)
+      internalFormat <- varType.internalFormat(value)
+    } yield {
+      val newResult = result.copy(parameters = parameters + (name -> internalFormat))
       this.forEachExecutions append newResult
       newResult
-    })
-  }
+    }
 
-  def startSubExecution(variableName:VariableName, template:CompiledTemplate, embedded:Boolean): Result[OpenlawExecutionState] = {
-    getVariableValue[TemplateDefinition](variableName).map(templateDefinition => {
-      detectCyclicDependency(templateDefinition).map(_ => {
-        val newExecution = OpenlawExecutionState(
-          id = TemplateExecutionResultId(createAnonymousVariable().name),
-          info = info,
-          parameters = parameters,
-          embedded = embedded,
-          sectionLevelStack = if (embedded) this.sectionLevelStack else mutable.Buffer(),
-          template = template,
-          anonymousVariableCounter = new AtomicInteger(anonymousVariableCounter.get()),
-          clock = clock,
-          parentExecution = Some(this),
-          parentExecutionInternal = Some(this),
-          variableRedefinition = template.redefinition,
-          templateDefinition = Some(templateDefinition),
-          mapping = templateDefinition.mapping,
-          remainingElements = mutable.Buffer(template.block.elems: _*),
-          executions = this.executions
-        )
+  def startSubExecution(variableName:VariableName, template:CompiledTemplate, embedded:Boolean): Result[OpenlawExecutionState] =
+    getVariableValue[TemplateDefinition](variableName).flatMap { templateDefinitionOption =>
+      templateDefinitionOption.map { templateDefinition =>
+        detectCyclicDependency(templateDefinition).map(_ => {
+          val newExecution = OpenlawExecutionState(
+            id = TemplateExecutionResultId(createAnonymousVariable().name),
+            info = info,
+            parameters = parameters,
+            embedded = embedded,
+            sectionLevelStack = if (embedded) this.sectionLevelStack else mutable.Buffer(),
+            template = template,
+            anonymousVariableCounter = new AtomicInteger(anonymousVariableCounter.get()),
+            clock = clock,
+            parentExecution = Some(this),
+            parentExecutionInternal = Some(this),
+            variableRedefinition = template.redefinition,
+            templateDefinition = Some(templateDefinition),
+            mapping = templateDefinition.mapping,
+            remainingElements = mutable.Buffer(template.block.elems: _*),
+            executions = this.executions
+          )
 
-        val execution = template match {
-          case agreement: CompiledAgreement =>
-            newExecution.copy(compiledAgreement = Some(agreement))
-          case _ =>
-            newExecution
-        }
+          val execution = template match {
+            case agreement: CompiledAgreement =>
+              newExecution.copy(compiledAgreement = Some(agreement))
+            case _ =>
+              newExecution
+          }
 
-        this.subExecutionsInternal.put(variableName, execution)
-        execution
-      })
-    }).getOrElse(Failure(s"template ${variableName.name} was not resolved! ${variables.map(_.name)}"))
-  }
+          this.subExecutionsInternal.put(variableName, execution)
+          execution
+        })
+      }.getOrElse(Failure(s"template ${variableName.name} was not resolved! ${variables.map(_.name)}"))
+    }
 
   private def detectCyclicDependency(definition: TemplateDefinition): Result[TemplateExecutionResult] =
     detectCyclicDependency(this, definition)
@@ -676,10 +681,10 @@ case class OpenlawExecutionState(
     }
   }
 
-  def structuredMainTemplate(agreement:CompiledAgreement): StructuredAgreement =
+  def structuredMainTemplate(agreement:CompiledAgreement): Result[StructuredAgreement] =
     agreement.structuredMainTemplate(this)
 
-  def structuredInternal(agreement: CompiledAgreement): StructuredAgreement =
+  def structuredInternal(agreement: CompiledAgreement): Result[StructuredAgreement] =
     agreement.structuredInternal(this, templateDefinition.flatMap(_.path))
 
 }
