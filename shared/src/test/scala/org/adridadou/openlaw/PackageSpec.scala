@@ -19,7 +19,7 @@ class PackageSpec extends FlatSpec with Matchers with Checkers {
 
 	it should "be comparable" in {
 		OpenlawString("test").compareTo(OpenlawString("test")) should be (0)
-		OpenlawString("test").compareTo(OpenlawString("TEST")) should be (32)
+		OpenlawString("test").compareTo(OpenlawString("TEST")) shouldNot be (0)
 	}
 
 	it should "implicitly convert to it's underlying type" in {
