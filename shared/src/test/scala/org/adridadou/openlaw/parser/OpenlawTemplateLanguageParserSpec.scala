@@ -83,10 +83,6 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
 
     val structure = structureAgreement(text)
     structure.map(_.paragraphs.head.elements(1)).right.value shouldBe a [TableElement]
-
-    val string: String = OpenlawString("test")
-
-    OpenlawString("test") shouldBe (OpenlawString("test"))
    }
 
    it should "handle tables mixed with other elements with pipes" in {
