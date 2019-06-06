@@ -134,43 +134,79 @@ case class OpenlawVm(contractDefinition: ContractDefinition, profileAddress:Opti
     crypto = cryptoService
   )
 
-  def isSignatureValid(data:EthereumData, event:OpenlawSignatureEvent):Boolean = {
+  def isSignatureValid(data:EthereumData, event:OpenlawSignatureEvent): Result[Boolean] = {
     identityOracle.isSignatureValid(data, event)
   }
 
-  def allIdentities:Seq[Identity] = {
-    state.executionResult.map(executionResult => {
-      executionResult.getAllExecutedVariables
-        .flatMap({case (result, name) => result.getVariable(name).map(variable => (result, variable))}).flatMap({ case (result, variable) =>
-        variable.varType(result) match {
-          case IdentityType =>
-            variable.evaluate(result).map(VariableType.convert[Identity]).toSeq
-          case collectionType:CollectionType if collectionType.typeParameter === IdentityType =>
-            variable.evaluate(result)
-              .map(VariableType.convert[CollectionValue])
-              .map(_.list).getOrElse(Seq())
-              .map(VariableType.convert[Identity])
-          case structureType:DefinedStructureType if structureType.structure.typeDefinition.values.exists(_ === IdentityType) =>
-            val values = variable.evaluate(result).map(VariableType.convert[OpenlawMap[VariableName, OpenlawValue]](_).underlying).getOrElse(Map())
+  def allIdentities: Result[Seq[Identity#T]] =
+    state
+      .executionResult
+      .map { executionResult =>
+        executionResult
+          .getAllExecutedVariables
+          .flatMap { case (result, name) => result.getVariable(name).map(variable => (result, variable)) }
+          .map { case (result, variable) =>
+            variable.varType(result) match {
+              case IdentityType =>
+                variable.evaluate(result).flatMap(_.map(VariableType.convert[Identity]).sequence).map(_.toList)
+              case collectionType: CollectionType if collectionType.typeParameter === IdentityType =>
+                variable
+                  .evaluate(result)
+                  .flatMap(_.map(VariableType.convert[CollectionValue]).sequence)
+                  .flatMap { option =>
+                    option
+                      .map(_.list)
+                      .getOrElse(Seq())
+                      .map(VariableType.convert[Identity])
+                      .toList
+                      .sequence
+                  }
+              case structureType:DefinedStructureType if structureType.structure.typeDefinition.values.exists(_ === IdentityType) =>
+                variable
+                  .evaluate(result)
+                  .flatMap(_.map(VariableType.convert[OpenlawMap[VariableName, OpenlawValue]]).sequence)
+                  .map(_.getOrElse(Map()))
+                  .flatMap { values =>
+                    structureType
+                      .structure
+                      .typeDefinition
+                      .map {
+                        case (name, varType) if varType === IdentityType =>
+                          values.get(name).map(VariableType.convert[Identity]).sequence
+                        case _ =>
+                          Success[Option[Identity#T]](None)
+                      }
+                      .toList
+                      .sequence
+                      .map(_.flatten)
+                  }
 
-            structureType.structure.typeDefinition
-              .flatMap({
-                case (name, varType) if varType === IdentityType =>
-                  values.get(name).map(VariableType.convert[Identity])
-                case _ => None
-              })
+              case _ =>
+                Success(List())
+            }
+          }
+          .toList
+          .sequence
+          .map(_.flatten)
+      }
+      .sequence
+      .map(_.getOrElse(List()))
 
-          case _ =>
-            Seq()
-        }
-      })
-    }).getOrElse(Seq())
+  def allNextActions: Result[Seq[ActionInfo]] = {
+    val x: Result[List[LocalDateTime]] = allActions
+      .map(info => info.action.nextActionSchedule(info.executionResult, executions(info.name)))
+      .toList
+      .sequence
+      .map(_.flatten)
+      .map { list =>
+        val t = list
+          .map(nextDate => (info, nextDate)))
+          .sortBy { case (_, nextDate) => nextDate.toEpochSecond(ZoneOffset.UTC) }
+          .map { case (info,_) => info }
+        t
+      }
+    x
   }
-
-  def allNextActions: Seq[ActionInfo] = allActions
-    .flatMap(info => info.action.nextActionSchedule(info.executionResult, executions(info.name)).map(nextDate => (info, nextDate)))
-    .sortBy({case (_, nextDate) => nextDate.toEpochSecond(ZoneOffset.UTC)})
-    .map({case (info,_) => info})
 
   def executionState:ContractExecutionState = state.executionState
 
@@ -199,10 +235,13 @@ case class OpenlawVm(contractDefinition: ContractDefinition, profileAddress:Opti
 
   def executionDef:Map[VariableName, Executions] = state.executions
 
-  def initExecution[T <: OpenlawExecutionInit](name:VariableName)(implicit classTag:ClassTag[T]):Option[T] = state.executions
-    .get(name)
-    .flatMap(_.executionInit)
-    .map(VariableType.convert[T])
+  def initExecution[T <: OpenlawExecutionInit](name:VariableName)(implicit classTag:ClassTag[T]): Result[Option[T]] =
+    state
+      .executions
+      .get(name)
+      .flatMap(_.executionInit)
+      .map(VariableType.convert[T])
+      .sequence
 
   def newExecution(name:VariableName, execution: OpenlawExecution):OpenlawVm = {
     val executions = state.executions.getOrElse(name, Executions())
@@ -227,8 +266,7 @@ case class OpenlawVm(contractDefinition: ContractDefinition, profileAddress:Opti
 
   def events: Seq[OpenlawVmEvent] = state.events
 
-  def nextAction: Option[ActionInfo] = allNextActions
-    .headOption
+  def nextAction: Result[Option[ActionInfo]] = allNextActions.map(_.headOption)
 
   def agreements:Seq[StructuredAgreement] =
     executionResult.map(_.agreements).getOrElse(Seq())
@@ -236,17 +274,20 @@ case class OpenlawVm(contractDefinition: ContractDefinition, profileAddress:Opti
   def executionResultState:TemplateExecutionState =
     executionResult.map(_.state).getOrElse(ExecutionReady)
 
-  def allActions:Seq[ActionInfo] = executionState match {
+  def allActions: Result[Seq[ActionInfo]] = executionState match {
     case ContractRunning =>
       executionResult.map(_.allActions()).getOrElse(Seq())
     case ContractResumed =>
       executionResult.map(_.allActions()).getOrElse(Seq())
     case ContractCreated =>
       executionResult
-        .map(_.allIdentityEmails).getOrElse(Seq())
-        .flatMap(email => generateSignatureAction(email))
+        .map(_.allIdentityEmails)
+        .sequence
+        .map {
+          _.getOrElse(Seq()).flatMap(email => generateSignatureAction(email))
+        }
     case _ =>
-      Seq()
+      Success(Seq())
   }
 
   private def generateSignatureAction(email:Email):Option[ActionInfo] =
@@ -274,10 +315,15 @@ case class OpenlawVm(contractDefinition: ContractDefinition, profileAddress:Opti
   def getAllVariables(varType: VariableType):Seq[(TemplateExecutionResult, VariableDefinition)] =
     state.executionResult.map(_.getVariables(varType)).getOrElse(Seq())
 
-  def getAllVariableValues[U <: OpenlawValue](varType: VariableType)(implicit classTag:ClassTag[U]):Seq[U#T] =
-    getAllVariables(varType).flatMap({case (executionResult, variable) =>
-      variable.evaluate(executionResult).map(VariableType.convert[U])
-    })
+  def getAllVariableValues[U <: OpenlawValue](varType: VariableType)(implicit classTag:ClassTag[U]): Result[Seq[U#T]] =
+    getAllVariables(varType)
+      .toList
+      .flatMap { case (executionResult, variable) =>
+        val x = variable.evaluate(executionResult).flatMap(_.map(VariableType.convert[U]).sequence)
+          x
+      }
+      .sequence
+      .map(_.flatten)
 
   def parseExpression(expr:String): Result[Expression] = expressionParser.parseExpression(expr)
 

@@ -76,7 +76,7 @@ case class VariableName(name:String) extends Expression {
     }
   }
 
-  override def variables(executionResult:TemplateExecutionResult):Seq[VariableName] =
+  override def variables(executionResult:TemplateExecutionResult): Result[Seq[VariableName]] =
     executionResult.getExpression(this) match {
       case Some(variable:VariableDefinition) =>
         Seq(this) ++ variable.defaultValue.map(_.variables(executionResult)).getOrElse(Seq())
@@ -281,7 +281,7 @@ case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[
       }
   }
 
-  override def variables(executionResult: TemplateExecutionResult): Seq[VariableName] =
+  override def variables(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =
     name.variables(executionResult)
 
   override def missingInput(executionResult:TemplateExecutionResult): Result[Seq[VariableName]] = {

@@ -10,6 +10,7 @@ import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawValue}
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.parboiled2.Rule1
 import org.adridadou.openlaw.parser.template.expressions._
+import org.adridadou.openlaw.result.Result
 
 import scala.reflect.ClassTag
 
@@ -245,32 +246,32 @@ object Parameter {
 
 sealed trait Parameter extends OpenlawNativeValue {
   def serialize:Json
-  def variables(executionResult: TemplateExecutionResult):Seq[VariableName]
+  def variables(executionResult: TemplateExecutionResult): Result[Seq[VariableName]]
 }
 final case class OneValueParameter(expr:Expression) extends Parameter {
-  override def variables(executionResult: TemplateExecutionResult): Seq[VariableName] =
+  override def variables(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =
     expr.variables(executionResult)
 
   override def serialize: Json = this.asJson
 }
 final case class ListParameter(exprs:Seq[Expression]) extends Parameter {
-  override def variables(executionResult: TemplateExecutionResult): Seq[VariableName] =
-    exprs.flatMap(_.variables(executionResult)).distinct
+  override def variables(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =
+    exprs.toList.map(_.variables(executionResult)).sequence.map(_.flatten.distinct)
 
   override def serialize: Json = this.asJson
 }
 
 final case class Parameters(parameterMap:Seq[(String, Parameter)]) extends Parameter {
-  override def variables(executionResult: TemplateExecutionResult): Seq[VariableName] =
-    parameterMap.flatMap({case (_,param) => param.variables(executionResult)}).distinct
+  override def variables(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =
+    parameterMap.toList.map { case (_,param) => param.variables(executionResult) }.sequence.map(_.flatten.distinct)
 
   override def serialize: Json = this.asJson
 }
 
 final case class MappingParameter(mappingInternal: Map[String, Expression]) extends Parameter {
   def mapping:Map[VariableName, Expression] = mappingInternal.map({case (key,value) => VariableName(key) -> value})
-  override def variables(executionResult: TemplateExecutionResult): Seq[VariableName] =
-    mapping.values.flatMap(_.variables(executionResult)).toSeq.distinct
+  override def variables(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =
+    mapping.values.toList.map(_.variables(executionResult)).sequence.map(_.flatten.distinct)
 
   override def serialize: Json = this.asJson
 }
