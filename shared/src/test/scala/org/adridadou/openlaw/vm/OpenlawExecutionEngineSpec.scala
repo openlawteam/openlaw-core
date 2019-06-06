@@ -512,8 +512,8 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
         result.getAllExecutedVariables.map({case (_, variable) => variable.name}).toSet should contain theSameElementsAs Set("Someone")
 
         val map = result.getVariableValue[OpenlawMap[VariableName, OpenlawValue]](VariableName("Someone")).value.underlying
-        map.get(VariableName("name")).value.toString shouldBe ("David")
-        map.get(VariableName("number")).map { case OpenlawBigDecimal(value) => value }.value shouldBe (BigDecimal(23))
+        map.get(VariableName("name")).value.toString shouldBe "David"
+        map.get(VariableName("number")).map { case OpenlawBigDecimal(v) => v }.value shouldBe BigDecimal(23)
       case Left(ex) =>
         fail(ex)
     }
@@ -800,7 +800,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
         val Some(variable) = result.getVariable("var")
         variable.varType(result).getTypeClass shouldBe classOf[OpenlawString]
 
-        variable.evaluate(result).value.toString shouldBe ("hello")
+        variable.evaluate(result).value.toString shouldBe "hello"
 
       case Left(ex) =>
         fail(ex)
@@ -1284,6 +1284,28 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
       case Left(ex) =>
         ex.message shouldBe "type mismatch while building the default value for type Text. the constructor result type should be OpenlawString but instead is OpenlawBigDecimal"
     }
+  }
+
+  it should "be able to define options for Period type" in {
+    val text="""[[test:Period(options: "1 day", "1 week", "2 months")]]"""
+
+    val template = compile(text)
+
+    val Right(result) = engine.execute(template, TemplateParameters())
+
+    val Some(variable) = result.getVariable("test")
+
+    variable.validate(result) shouldBe Success.unit
+  }
+
+  it should "still fail if the defined options are invalid" in {
+    val text="""[[test:Period(options: "1 day", "1 week", "2 monthsfehwfw")]]"""
+
+    val template = compile(text)
+
+    val Failure(_, message) = engine.execute(template, TemplateParameters())
+
+    message shouldBe "options element error! should be of type Period but \"2 monthsfehwfw\" is Text instead"
   }
 
   private def compile(text:String):CompiledTemplate = parser.compileTemplate(text) match {
