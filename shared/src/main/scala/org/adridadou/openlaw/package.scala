@@ -11,6 +11,13 @@ package object openlaw {
   trait OpenlawValue {
     type T
     val underlying: T
+
+    override def equals(o: Any): Boolean = o match {
+      case value: OpenlawValue => underlying.equals(value.underlying)
+      case _ => false
+    }
+
+    override def hashCode(): Int = underlying.hashCode
   }
 
   trait OpenlawNativeValue extends OpenlawValue {
@@ -19,21 +26,22 @@ package object openlaw {
   }
 
   object OpenlawString {
-    def unapply(string: OpenlawString): Option[String] = Some(string.underlying)
-  }
-
-  object OpenlawBigDecimal {
-    def unapply(bigDecimal: OpenlawBigDecimal): Option[BigDecimal] = Some(bigDecimal.underlying)
+    def unapply(value: OpenlawString): Option[String] = Some(value.underlying)
   }
 
   object OpenlawBoolean {
-    def unapply(boolean: OpenlawBoolean): Option[Boolean] = Some(boolean.underlying)
+    def unapply(value: OpenlawBoolean): Option[Boolean] = Some(value.underlying)
   }
 
-  implicit def unwrap(string: OpenlawString): String = string.underlying
-  implicit def unwrap(boolean: OpenlawBoolean): Boolean = boolean.underlying
-  implicit def unwrap(bigDecimal: OpenlawBigDecimal): BigDecimal = bigDecimal.underlying
-  implicit def unwrap(int: OpenlawInt): Int = int.underlying
+  object OpenlawBigDecimal {
+    def unapply(value: OpenlawBigDecimal): Option[BigDecimal] = Some(value.underlying)
+  }
+
+  object OpenlawDateTime {
+    def unapply(value: OpenlawDateTime): Option[LocalDateTime] = Some(value.underlying)
+  }
+
+  implicit def unwrap[U <: OpenlawValue](value: U): U#T = value.underlying
 
   implicit class OpenlawBoolean(override val underlying: Boolean) extends Comparable[OpenlawBoolean] with OpenlawValue {
     override type T = Boolean
