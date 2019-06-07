@@ -27,7 +27,7 @@ case object TemplatePathType extends VariableType("TemplateType") with NoShowInF
   override def cast(value: String, executionResult: TemplateExecutionResult): Result[TemplatePath] =
     decode[TemplatePath](value).leftFlatMap {
       case e: Exception => Failure(e)
-      case e => throw e
+      case e => throw e // We only want to handle non-fatal exceptions, so we throw any Errors
     }
 
   override def getTypeClass: Class[TemplateDefinition] = classOf[TemplateDefinition]
@@ -78,7 +78,7 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
     if(unknownParameters.nonEmpty) {
       Failure(s"unknown parameters ${unknownParameters.mkString(",")}. only ${availableParameters.mkString(",")} are allowed")
     } else {
-      getMandatoryParameter("name", mappingParameter) match {
+      getMandatoryParameter("name", mappingParameter).flatMap {
         case templateName: OneValueParameter =>
           templateName
             .expr

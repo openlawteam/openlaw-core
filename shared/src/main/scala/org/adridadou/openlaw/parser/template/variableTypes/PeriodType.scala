@@ -41,9 +41,8 @@ case object PeriodType extends VariableType("Period") {
       case Left(ex: Exception) =>
         Failure(ex)
 
-      // Do not try to handle fatal error
       case Left(ex) =>
-        throw ex
+        throw ex // Do not try to handle fatal error
     }
   }
 

@@ -105,44 +105,56 @@ case object EthereumCallType extends VariableType("EthereumCall") with ActionTyp
     constructorParams match {
       case Parameters(v) =>
         val values = v.toMap
-        val optNetwork = getParameter(values, "network").map(getExpression).getOrElse(NoopConstant(TextType))
-        attempt(Some(EthereumSmartContractCall(
-          address = getExpression(values, "contract", "to"),
-          abi = getExpression(values, "interface", "abi"),
-          network = optNetwork,
-          signatureParameter = getParameter(values, "Signature parameter").map(getExpression),
-          signatureRSVParameter = getParameter(values, "Signature RSV parameter").map(getSignatureRSVParameter),
-          functionName = getExpression(values, "function"),
-          arguments = getParameter(values, "arguments", "parameters", "params").map(getExpressionList).getOrElse(Seq()),
-          startDate = values.get("startDate").map(name => getExpression(name)),
-          endDate = getParameter(values, "endDate").map(getExpression),
-          every = getParameter(values, "repeatEvery").map(getExpression),
-          from = getParameter(values, "from").map(getExpression)
-        )))
+        for {
+          address <- getExpression(values, "contract", "to")
+          abi <- getExpression(values, "interface", "abi")
+          optNetwork <- getParameter(values, "network").map(getExpression).sequence.map(_.getOrElse(NoopConstant(TextType)))
+          signatureParameter <- getParameter(values, "Signature parameter").map(getExpression).sequence
+          signatureRSVParameter <- getParameter(values, "Signature RSV parameter").map(getSignatureRSVParameter).sequence
+          functionName <- getExpression(values, "function")
+          expressionList <- getParameter(values, "arguments", "parameters", "params").map(getExpressionList).sequence.map(_.getOrElse(Seq()))
+          startDate <- values.get("startDate").map(name => getExpression(name)).sequence
+          endDate <- getParameter(values, "endDate").map(getExpression).sequence
+          every <- getParameter(values, "repeatEvery").map(getExpression).sequence
+          from <- getParameter(values, "from").map(getExpression).sequence
+        } yield
+          Some(EthereumSmartContractCall(
+            address = address,
+            abi = abi,
+            network = optNetwork,
+            signatureParameter = signatureParameter,
+            signatureRSVParameter = signatureRSVParameter,
+            functionName = functionName,
+            arguments = expressionList,
+            startDate = startDate,
+            endDate = endDate,
+            every = every,
+            from = from
+          ))
       case _ =>
         Failure("Ethereum Calls need to get 'contract', 'interface', 'network', 'function' as constructor parameter")
     }
   }
 
-  private def getSignatureRSVParameter(param:Parameter):SignatureRSVParameter = param match {
+  private def getSignatureRSVParameter(param:Parameter): Result[SignatureRSVParameter] = param match {
     case Parameters(parameterMap) =>
       val map = parameterMap.toMap
-      SignatureRSVParameter(
-        rExpr = getExpression(map, "r"),
-        sExpr = getExpression(map, "s"),
-        vExpr = getExpression(map, "v")
-      )
-    case _ => throw new RuntimeException("invalid parameter type " + param.getClass.getSimpleName + " expecting single expression")
+      for {
+        rExpr <- getExpression(map, "r")
+        sExpr <- getExpression(map, "s")
+        vExpr <- getExpression(map, "v")
+      } yield SignatureRSVParameter(rExpr = rExpr, sExpr = sExpr, vExpr = vExpr)
+    case _ => Failure("invalid parameter type " + param.getClass.getSimpleName + " expecting single expression")
   }
 
   override def getTypeClass: Class[_ <: EthereumSmartContractCall] = classOf[EthereumSmartContractCall]
 
   def thisType: VariableType = EthereumCallType
 
-  private def getExpressionList(param:Parameter):Seq[Expression] = param match {
-    case ListParameter(exprs) => exprs
-    case OneValueParameter(expr) => Seq(expr)
-    case _ => throw new RuntimeException("invalid parameter type " + param.getClass.getSimpleName + " expecting list of expressions")
+  private def getExpressionList(param:Parameter): Result[Seq[Expression]] = param match {
+    case ListParameter(exprs) => Success(exprs)
+    case OneValueParameter(expr) => Success(Seq(expr))
+    case _ => Failure("invalid parameter type " + param.getClass.getSimpleName + " expecting list of expressions")
   }
 
   override def actionValue(value: OpenlawValue): Result[EthereumSmartContractCall] = VariableType.convert[EthereumSmartContractCall](value)

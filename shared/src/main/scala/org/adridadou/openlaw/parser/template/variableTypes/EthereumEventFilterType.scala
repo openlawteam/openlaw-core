@@ -107,14 +107,17 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
     constructorParams match {
       case Parameters(v) =>
         val values = v.toMap
-        attempt {
-          Some(EventFilterDefinition(
-            contractAddress = getExpression(values, "contract address"),
-            interface = getExpression(values, "interface"),
-            eventType = getExpression(values, "event type name"),
-            conditionalFilter = getExpression(values, "conditional filter")
+        for {
+          contractAddress <- getExpression(values, "contract address")
+          interface <- getExpression(values, "interface")
+          eventType <- getExpression(values, "event type name")
+          conditionalFilter <- getExpression(values, "conditional filter")
+        } yield Some(EventFilterDefinition(
+            contractAddress = contractAddress,
+            interface = interface,
+            eventType = eventType,
+            conditionalFilter = conditionalFilter
           ))
-        }
       case _ =>
         Failure("Ethereum event listener needs to get 'contract address', 'interface', 'event type name', 'conditional filter' as constructor parameter")
     }

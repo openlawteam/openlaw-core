@@ -228,33 +228,36 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
         case None =>
           Success(executionResult.sectionLevelStack, Nil)
       }.flatMap {
-      _.map { case (numbering, newSectionValues) =>
-        for {
-          overrideSymbol <- section.overrideSymbol(executionResult)
-          overrideFormat <- section.overrideFormat(executionResult)
-        } yield {
-          val sectionValue = SectionHelper.generateListNumber(section.lvl, numbering, overrideSymbol, overrideFormat)
-          val referenceValue = SectionHelper.generateReferenceValue(section.lvl, numbering, overrideSymbol)
-          val params = Seq(
-            "reference value" -> OneValueParameter(StringConstant(generateFullSectionValue(section, referenceValue, executionResult))),
-            "numbering" -> OneValueParameter(StringConstant(sectionValue))
-          )
-          val name = section.definition
-            .map(_.name)
-            .filter(_ =!= "_") //_ means anonymous
-            .map(VariableName(_))
-            .getOrElse(executionResult.createAnonymousVariable())
+        _.flatMap { case (numbering, newSectionValues) =>
+          for {
+            overrideSymbol <- section.overrideSymbol(executionResult)
+            overrideFormat <- section.overrideFormat(executionResult)
+          } yield {
+            for {
+              sectionValue <- SectionHelper.generateListNumber(section.lvl, numbering, overrideSymbol, overrideFormat)
+              referenceValue <- SectionHelper.generateReferenceValue(section.lvl, numbering, overrideSymbol)
+            } yield {
+              val params = Seq(
+                "reference value" -> OneValueParameter(StringConstant(generateFullSectionValue(section, referenceValue, executionResult))),
+                "numbering" -> OneValueParameter(StringConstant(sectionValue))
+              )
+              val name = section.definition
+                .map(_.name)
+                .filter(_ =!= "_") //_ means anonymous
+                .map(VariableName(_))
+                .getOrElse(executionResult.createAnonymousVariable())
 
-          val variable = VariableDefinition(name = name, variableTypeDefinition = Some(VariableTypeDefinition("Section")), defaultValue = Some(Parameters(params)))
-          executionResult.variablesInternal.append(variable)
-          executionResult.executedVariablesInternal.append(name)
-          executionResult.sectionNameMapping put(section.uuid, name)
-          executionResult.sectionNameMappingInverseInternal put(name, section.uuid)
-          executionResult.addLastSectionByLevel(section.lvl, referenceValue)
-          executionResult.addSectionLevelStack(newSectionValues)
-          executionResult.addProcessedSection(section, SectionHelper.calculateNumberInList(section.lvl, numbering))
+              val variable = VariableDefinition(name = name, variableTypeDefinition = Some(VariableTypeDefinition("Section")), defaultValue = Some(Parameters(params)))
+              executionResult.variablesInternal.append(variable)
+              executionResult.executedVariablesInternal.append(name)
+              executionResult.sectionNameMapping put(section.uuid, name)
+              executionResult.sectionNameMappingInverseInternal put(name, section.uuid)
+              executionResult.addLastSectionByLevel(section.lvl, referenceValue)
+              executionResult.addSectionLevelStack(newSectionValues)
+              executionResult.addProcessedSection(section, SectionHelper.calculateNumberInList(section.lvl, numbering))
 
-          executionResult
+              executionResult
+            }
         }
       }
     }

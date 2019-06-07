@@ -24,10 +24,14 @@ case object ValidationType extends VariableType(name = "Validation") with NoShow
   override def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = constructorParams match {
     case Parameters(v) =>
       val values = v.toMap
-      validate(Validation(
-        condition = getExpression(values, "condition"),
-        errorMessage = getExpression(values, "errorMessage")
-      ), executionResult).map(Some(_))
+      for {
+        condition <- getExpression(values, "condition")
+        errorMessage <- getExpression(values, "errorMessage")
+        result <- validate(Validation(
+          condition = condition,
+          errorMessage = errorMessage
+        ), executionResult).map(Some(_))
+      } yield result
 
     case _ => Failure("Validation need to get 'condition' and 'errorMessage' as constructor parameter")
   }
