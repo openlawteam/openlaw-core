@@ -3,6 +3,8 @@ package org.adridadou.openlaw.parser.template.printers
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.values.TemplateTitle
 import cats.implicits._
+import org.adridadou.openlaw.result.Result
+import org.adridadou.openlaw.result.Implicits.RichOption
 
 trait AgreementPrinter[T] {
   def result: T
@@ -86,19 +88,20 @@ object SectionHelper {
 
   }
 
-  def generateReferenceValue(lvl: Int, sections: Seq[Int], overrideSymbol: Option[SectionSymbol]):String = {
+  def generateReferenceValue(lvl: Int, sections: Seq[Int], overrideSymbol: Option[SectionSymbol]): Result[String] = {
     val numberInList = calculateNumberInList(lvl, sections)
-    val defaultFormat = SectionFormats.get(lvl - 1).getOrElse(throw new RuntimeException(s"we handle only ${SectionFormats.size} levels for now"))
-    formatSectionValue(numberInList, overrideSymbol.getOrElse(defaultFormat._1), "%s")
+    SectionFormats.get(lvl - 1).toResult(s"we handle only ${SectionFormats.size} levels for now").map { defaultFormat =>
+      formatSectionValue(numberInList, overrideSymbol.getOrElse(defaultFormat._1), "%s")
+    }
   }
 
-  def generateListNumber(lvl: Int, sections: Seq[Int], overrideSymbol: Option[SectionSymbol], overrideFormat: Option[SectionFormat]): String = {
+  def generateListNumber(lvl: Int, sections: Seq[Int], overrideSymbol: Option[SectionSymbol], overrideFormat: Option[SectionFormat]): Result[String] = {
     val numberInList = calculateNumberInList(lvl, sections)
-    val defaultFormat = SectionFormats.get(lvl - 1).getOrElse(throw new RuntimeException(s"we handle only ${SectionFormats.size} levels for now"))
-    val sectionSymbol = overrideSymbol.getOrElse(defaultFormat._1)
-    val sectionFormat = overrideFormat.getOrElse(defaultFormat._3)
-
-    formatSectionValue(numberInList, sectionSymbol, sectionFormat.formatString)
+    SectionFormats.get(lvl - 1).toResult(s"we handle only ${SectionFormats.size} levels for now").map { defaultFormat =>
+      val sectionSymbol = overrideSymbol.getOrElse(defaultFormat._1)
+      val sectionFormat = overrideFormat.getOrElse(defaultFormat._3)
+      formatSectionValue(numberInList, sectionSymbol, sectionFormat.formatString)
+    }
   }
 
   def calculateNumberInList(lvl: Int, sections: Seq[Int]): Int =

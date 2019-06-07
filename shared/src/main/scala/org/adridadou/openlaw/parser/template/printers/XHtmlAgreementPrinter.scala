@@ -7,6 +7,7 @@ import cats.implicits._
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes.IdentityType
+import org.adridadou.openlaw.result.{Result, Success}
 import scalatags.Text.all._
 import slogging._
 
@@ -103,8 +104,8 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
 
             // If there is an overridden paragraph, render its content instead of this paragraph
             case Some(str) =>
-              val results = MarkdownParser.parseMarkdownOrThrow(str)
-              results.map(FreeText)
+              // TODO: This should be refactored to use Result, but this is deferred since this printer is very sensitive to stack overflows
+              MarkdownParser.parseMarkdownOrThrow(str).map(FreeText)
 
             // Otherwise, render this paragraph as normal
             case None =>

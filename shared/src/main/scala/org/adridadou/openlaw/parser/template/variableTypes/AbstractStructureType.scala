@@ -111,7 +111,7 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
           case Some(varType) =>
             varType.keysType(keys, expression, executionResult)
           case None =>
-            throw new RuntimeException(s"property '${keys.mkString(".")}' could not be resolved in structure value '$head'")
+            Failure(s"property '${keys.mkString(".")}' could not be resolved in structure value '$head'")
         }
     }
   }

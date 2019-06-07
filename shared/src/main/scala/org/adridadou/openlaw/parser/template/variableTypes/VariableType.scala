@@ -235,11 +235,11 @@ abstract class VariableType(val name: String) {
 
   def getFormatter(name:FormatterDefinition, executionResult:TemplateExecutionResult): Result[Formatter] = Success(defaultFormatter)
 
-  def getSingleParameter(constructorParams: Parameter): Expression =
+  def getSingleParameter(constructorParams: Parameter): Result[Expression] =
     constructorParams match {
-      case OneValueParameter(expr) => expr
+      case OneValueParameter(expr) => Success(expr)
       case _ =>
-        throw new RuntimeException("expecting a single value")
+        Failure("expecting a single value")
     }
 
   def handleTry[T](thisTry: Try[T]): T =
@@ -256,17 +256,21 @@ abstract class VariableType(val name: String) {
 
   def thisType:VariableType
 
-  def getExpression(params:Map[String,Parameter], names:String*):Expression = getParameter(params, names:_*).map(getExpression) match {
-    case Some(expr) => expr
-    case None => throw new RuntimeException(s"parameter $name not found. available parameters: ${params.keys.mkString(",")}")
-  }
+  def getExpression(params:Map[String,Parameter], names:String*): Result[Expression] =
+    getParameter(params, names:_*)
+      .map(getExpression)
+      .sequence
+      .flatMap {
+        case Some(expr) => Success(expr)
+        case None => Failure(s"parameter $name not found. available parameters: ${params.keys.mkString(",")}")
+      }
 
   def getParameter(params:Map[String,Parameter], names:String*):Option[Parameter] =
     names.flatMap(params.get).headOption
 
-  def getExpression(param:Parameter):Expression = param match {
-    case OneValueParameter(expr) => expr
-    case _ => throw new RuntimeException("invalid parameter type " + param.getClass.getSimpleName + " expecting single expression")
+  def getExpression(param:Parameter): Result[Expression] = param match {
+    case OneValueParameter(expr) => Success(expr)
+    case _ => Failure("invalid parameter type " + param.getClass.getSimpleName + " expecting single expression")
   }
 
   def format(formatter:Option[FormatterDefinition], value:OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] =
@@ -275,10 +279,10 @@ abstract class VariableType(val name: String) {
       .getOrElse(Success(defaultFormatter))
       .flatMap(_.format(value, executionResult))
 
-  def getMandatoryParameter(name:String, parameter:Parameters):Parameter = {
+  def getMandatoryParameter(name:String, parameter:Parameters): Result[Parameter] = {
     parameter.parameterMap.toMap.get(name) match {
-      case Some(param) => param
-      case None => throw new RuntimeException(s"mandatory parameter $name could not be found")
+      case Some(param) => Success(param)
+      case None => Failure(s"mandatory parameter $name could not be found")
     }
   }
 }

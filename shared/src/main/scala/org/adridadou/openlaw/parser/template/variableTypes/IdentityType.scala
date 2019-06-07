@@ -19,7 +19,7 @@ case object IdentityType extends VariableType(name = "Identity") {
   override def cast(value: String, executionResult: TemplateExecutionResult): Result[Identity] =
     decode[Identity](value) match {
       case Right(identity) => Success(identity)
-      case Left(_) => Success(Identity(Email(value)))
+      case Left(_) => Email(value).map(Identity(_))
     }
 
   override def defaultFormatter: Formatter = new NoopFormatter
@@ -35,9 +35,9 @@ case object IdentityType extends VariableType(name = "Identity") {
 
   override def internalFormat(value: OpenlawValue): Result[String] = VariableType.convert[Identity](value).map(_.asJson.noSpaces)
 
-  override def getFormatter(formatterDefinition: FormatterDefinition, executionResult: TemplateExecutionResult):Formatter = formatterDefinition.name.trim().toLowerCase() match {
-    case "signature" => new SignatureFormatter
-    case _ => throw new RuntimeException(s"unknown formatter $name")
+  override def getFormatter(formatterDefinition: FormatterDefinition, executionResult: TemplateExecutionResult): Result[Formatter] = formatterDefinition.name.trim().toLowerCase() match {
+    case "signature" => Success(new SignatureFormatter)
+    case _ => Failure(s"unknown formatter $name")
   }
 
   override def access(value: OpenlawValue, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = {
@@ -111,18 +111,15 @@ object Email {
     case None => Failure("invalid Email $email")
   }
 
-  def apply(email:String):Email = validate(email) match {
-    case Right(e) => e
-    case Left(ex) => throw new RuntimeException(ex.e)
-  }
+  def apply(email:String): Result[Email] = validate(email)
 }
 
 case class SignatureAction(email:Email) extends ActionValue {
-  override def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions: Seq[OpenlawExecution]): Option[LocalDateTime] = {
+  override def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions: Seq[OpenlawExecution]): Result[Option[LocalDateTime]] = {
     if(executionResult.hasSigned(email)) {
-      None
+      Success(None)
     } else {
-      Some(LocalDateTime.now)
+      Success(Some(LocalDateTime.now))
     }
   }
 }
