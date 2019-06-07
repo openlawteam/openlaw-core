@@ -164,10 +164,18 @@ abstract class VariableType(val name: String) {
     Success(thisType)
   }
 
-  def combineConverted[U <: OpenlawValue, Y <: OpenlawValue](optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue])(operation: PartialFunction[(U#T, U#T), Result[Y]]): Result[Option[Y]] =
+  def combineConverted[U <: OpenlawValue, Y <: OpenlawValue]
+    (optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue])
+    (operation: PartialFunction[(U#T, U#T), Result[Y]])
+    (implicit ct: ClassTag[U])
+  : Result[Option[Y]] =
     combineConverted[U, U, Y](optLeft, optRight)(operation)
 
-  def combineConverted[U <: OpenlawValue, V <: OpenlawValue, Y <: OpenlawValue](optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue])(operation: PartialFunction[(U#T, V#T), Result[Y]]): Result[Option[Y]] = {
+  def combineConverted[U <: OpenlawValue, V <: OpenlawValue, Y <: OpenlawValue]
+    (optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue])
+    (operation: PartialFunction[(U#T, V#T), Result[Y]])
+    (implicit ct1: ClassTag[U], ct2: ClassTag[V])
+  : Result[Option[Y]] = {
     (for {
       left <- EitherT(optLeft.map(convert[U]))
       right <- EitherT(optRight.map(convert[V]))

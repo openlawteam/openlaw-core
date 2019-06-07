@@ -65,13 +65,15 @@ case class Validation(condition:Expression, errorMessage:Expression) extends Ope
       .flatMap { booleanOption =>
         booleanOption
           .filter(_ === false)
-          .flatMap { _ =>
+          .map { _ =>
             errorMessage
               .evaluate(executionResult)
-              .map { stringOption =>
-                stringOption.map(VariableType.convert[OpenlawString].map(_.getOrElse(s"validation error (error message could not be resolved)")))
+              .flatMap { stringOption =>
+                stringOption
+                  .map(VariableType.convert[OpenlawString](_))
+                  .sequence
               }
-              .sequence
+              .map (_.getOrElse(s"validation error (error message could not be resolved)"))
           }
           .sequence
       }

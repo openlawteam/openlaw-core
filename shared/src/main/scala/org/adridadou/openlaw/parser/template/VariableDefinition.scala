@@ -21,17 +21,19 @@ case class VariableMember(name:VariableName, keys:Seq[String], formatter:Option[
       .expressionType(executionResult)
       .map(_.validateKeys(name, keys, name, executionResult))
 
-  override def expressionType(executionResult:TemplateExecutionResult): Result[VariableType] = {
-    val expression = name.aliasOrVariable(executionResult)
-    expression
-      .expressionType(executionResult)
-      .map(_.keysType(keys, expression, executionResult))
-      .flatten
-  }
+  override def expressionType(executionResult:TemplateExecutionResult): Result[VariableType] =
+    name
+      .aliasOrVariable(executionResult)
+      .flatMap { expression =>
+        expression
+          .expressionType(executionResult)
+          .map(_.keysType(keys, expression, executionResult))
+          .flatten
+      }
 
-  override def evaluate(executionResult:TemplateExecutionResult): Result[Option[OpenlawValue]] = {
-    val expr = name.aliasOrVariable(executionResult)
+  override def evaluate(executionResult:TemplateExecutionResult): Result[Option[OpenlawValue]] =
     (for {
+      expr <- name.aliasOrVariable(executionResult)
       exprType <- expr.expressionType(executionResult)
       optValue <- expr.evaluate(executionResult)
     } yield {
@@ -40,9 +42,8 @@ case class VariableMember(name:VariableName, keys:Seq[String], formatter:Option[
         .sequence
         .map(_.flatten)
     }).flatten
-  }
 
-  override def variables(executionResult:TemplateExecutionResult): Seq[VariableName] =
+  override def variables(executionResult:TemplateExecutionResult): Result[Seq[VariableName]] =
     name.variables(executionResult)
 
   override def toString: String =
@@ -59,7 +60,7 @@ case class VariableName(name:String) extends Expression {
       case Some(variable) =>
         Success(variable.varType(executionResult))
       case None =>
-        executionResult.getAlias(name).map(_.expressionType(executionResult)).getOrElse(TextType)
+        executionResult.getAlias(name).map(_.expressionType(executionResult)).sequence.map(_.getOrElse(TextType))
     }
   }
 
@@ -79,13 +80,18 @@ case class VariableName(name:String) extends Expression {
   override def variables(executionResult:TemplateExecutionResult): Result[Seq[VariableName]] =
     executionResult.getExpression(this) match {
       case Some(variable:VariableDefinition) =>
-        Seq(this) ++ variable.defaultValue.map(_.variables(executionResult)).getOrElse(Seq())
+        variable
+          .defaultValue
+          .map(_.variables(executionResult))
+          .sequence
+          .map(_.getOrElse(Seq()))
+          .map(Seq(this) ++ _)
       case Some(alias:VariableAliasing) =>
         alias.variables(executionResult)
       case Some(expression:Expression) =>
         expression.variables(executionResult)
       case None =>
-        Seq(this)
+        Success(Seq(this))
     }
 
   override def toString:String = name
@@ -102,13 +108,13 @@ case class VariableName(name:String) extends Expression {
       }
   }
 
-  def aliasOrVariable(executionResult:TemplateExecutionResult):Expression =
+  def aliasOrVariable(executionResult:TemplateExecutionResult): Result[Expression] =
     executionResult.getAlias(name) match {
-      case Some(expr) => expr
+      case Some(expr) => Success(expr)
       case None => executionResult.getVariable(name) match {
-        case Some(variable) => variable
+        case Some(variable) => Success(variable)
         case None =>
-          throw new RuntimeException(s"no alias or variable found with the name $name")
+          Failure(s"no alias or variable found with the name $name")
       }
     }
 

@@ -139,7 +139,7 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
     }
     .toList
     .sequence
-    .map(_.toMap)
+    .map(list => OpenlawMap(list.toMap))
   }
 
   override def internalFormat(value: OpenlawValue): Result[String] = {

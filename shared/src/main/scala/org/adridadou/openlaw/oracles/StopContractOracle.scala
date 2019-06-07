@@ -1,5 +1,6 @@
 package org.adridadou.openlaw.oracles
 
+import cats.implicits._
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.vm._
 import io.circe.{Decoder, Encoder}
@@ -11,16 +12,27 @@ import org.adridadou.openlaw.result.{Failure, Result}
 case class StopContractOracle(crypto:CryptoService) extends OpenlawOracle[StopExecutionEvent] {
 
   override def incoming(vm:OpenlawVm, event: StopExecutionEvent): Result[OpenlawVm] = {
-    vm.getAllVariables(IdentityType)
-      .map({case (id,variable) => (variable.name, vm.evaluate[Identity](id, variable.name))})
-      .find({
-        case (_, Right(identity)) =>
-          vm.isSignatureValid(vm.contractDefinition.id(crypto).stopContract(crypto), OpenlawSignatureEvent(vm.contractId, identity.email, "", event.signature, EthereumHash.empty))
-        case _ => false
-      }) match {
-      case Some((name:VariableName, Right(identity:Identity))) => processEvent(vm, event, name.name, identity)
-      case _ =>
-        Failure("invalid event! no matching identity while stopping the contract")
+    val identityResult = vm
+      .getAllVariables(IdentityType)
+      .toList
+      .map { case (id,variable) => (variable.name, vm.evaluate[Identity](id, variable.name)) }
+      .collect {
+        // TODO: Figure out which errors are expected here and allow remaining failures to stop processing
+        case (id, Right(identity)) =>
+          vm.isSignatureValid(vm.contractDefinition.id(crypto).stopContract(crypto), OpenlawSignatureEvent(vm.contractId, identity.email, "", event.signature, EthereumHash.empty)).map { x =>
+            (id, identity) -> x
+          }
+      }
+      .sequence
+      .map { list =>
+        list.find {
+          case (_, boolean) => boolean
+        }
+      }
+
+    identityResult.flatMap {
+      case Some(((name:VariableName, identity:Identity), _)) => processEvent(vm, event, name.name, identity)
+      case _ => Failure("invalid event! no matching identity while stopping the contract")
     }
   }
 

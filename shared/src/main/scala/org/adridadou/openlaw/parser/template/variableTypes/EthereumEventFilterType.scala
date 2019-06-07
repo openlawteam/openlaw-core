@@ -81,18 +81,24 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
     keys.toList match {
       case Nil => Success(Some(value))
       case head::tail if tail.isEmpty =>
-        propertyDef(head, name, executionResult)
-          .flatMap(_.data(getExecutions(name, executionResult)))
+        for {
+          property <- propertyDef(head, name, executionResult)
+          executions <- getExecutions(name, executionResult)
+          result <- property.data(executions)
+        } yield result
 
       case _ => Failure(s"Ethereum event only support one level of properties. invalid property access ${keys.mkString(".")}")
     }
   }
 
-  private def getExecutions(name:VariableName, executionResult: TemplateExecutionResult):Result[Seq[EthereumEventFilterExecution]] = {
-    executionResult.executions.get(name)
+  private def getExecutions(name:VariableName, executionResult: TemplateExecutionResult):Result[List[EthereumEventFilterExecution]] = {
+    val x = executionResult
+      .executions
+      .get(name)
       .map(_.executionMap.values.toList.map(VariableType.convert[EthereumEventFilterExecution]))
-      .getOrElse(List.empty)
+      .getOrElse(Nil)
       .sequence
+    x
   }
 
   override def defaultFormatter: Formatter = new NoopFormatter

@@ -38,11 +38,11 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => R
     combine(optLeft, optRight) {
       case (left, period:Period) => VariableType.convert[OpenlawDateTime](left).map(x => plus(x, period))
       case (left, OpenlawString(str)) =>
-        PeriodType.cast(str, executionResult) match {
-          case Success(period) => VariableType.convert[OpenlawDateTime](left).map(x => plus(x, period))
-          case f @ Failure(_, _) =>
-            f.addFailure(FailureMessage(s"you can only make an addition between a date and a period. You are making an addition between a ${left.getClass.getSimpleName} and ${str.getClass.getSimpleName}")).toResult
-        }
+        PeriodType
+          .cast(str, executionResult)
+          .addMessageToFailure(s"you can only make an addition between a date and a period. You are making an addition between a ${left.getClass.getSimpleName} and ${str.getClass.getSimpleName}")
+          .toResult
+          .flatMap { period => VariableType.convert[OpenlawDateTime](left).map(x => plus(x, period)) }
     }
 
   def plus(d:OpenlawDateTime, p:Period):OpenlawDateTime = d
@@ -59,11 +59,11 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => R
     combine(optLeft, optRight) {
       case (left, period:Period) => VariableType.convert[OpenlawDateTime](left).map(x => minus(x, period))
       case (left, OpenlawString(str)) =>
-        PeriodType.cast(str, executionResult) match {
-          case Success(period) => VariableType.convert[OpenlawDateTime](left).map(x => minus(x, period))
-          case f @ Failure(_, _) =>
-            f.addFailure(FailureMessage(s"you can only make an subtraction between a date and a period. You are making an addition between a ${left.getClass.getSimpleName} and ${str.getClass.getSimpleName}")).toResult
-        }
+        PeriodType
+          .cast(str, executionResult)
+          .addMessageToFailure(s"you can only make an subtraction between a date and a period. You are making an addition between a ${left.getClass.getSimpleName} and ${str.getClass.getSimpleName}")
+          .toResult
+          .flatMap(period => VariableType.convert[OpenlawDateTime](left).map(x => minus(x, period)))
     }
 
   private def minus(d:OpenlawDateTime, p:Period):OpenlawDateTime = d
@@ -197,9 +197,9 @@ class SimpleDateTimeFormatter extends Formatter {
           minuteInt <- VariableType.convert[OpenlawInt](zonedDate.getMinute)
           secondInt <- VariableType.convert[OpenlawInt](zonedDate.getSecond)
         } yield {
-          val hour = String.format("%02d", hourInt)
-          val minute = String.format("%02d", minuteInt)
-          val second = String.format("%02d", secondInt)
+          val hour = String.format("%02d", hourInt.asInstanceOf[Integer])
+          val minute = String.format("%02d", minuteInt.asInstanceOf[Integer])
+          val second = String.format("%02d", secondInt.asInstanceOf[Integer])
           val month = zonedDate.underlying.getMonth.getDisplayName(TextStyle.FULL, Locale.ENGLISH)
           Seq(FreeText(Text(s"$month ${zonedDate.underlying.getDayOfMonth}, ${zonedDate.underlying.getYear} $hour:$minute:$second")))
         }

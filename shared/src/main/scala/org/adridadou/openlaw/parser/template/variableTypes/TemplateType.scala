@@ -32,8 +32,8 @@ case object TemplatePathType extends VariableType("TemplateType") with NoShowInF
 
   override def getTypeClass: Class[TemplateDefinition] = classOf[TemplateDefinition]
 
-  override def internalFormat(value: OpenlawValue): String =
-    VariableType.convert[TemplatePath](value).asJson.noSpaces
+  override def internalFormat(value: OpenlawValue): Result[String] =
+    VariableType.convert[TemplatePath](value).map(_.asJson.noSpaces)
 
   override def thisType: VariableType =
     TemplatePathType

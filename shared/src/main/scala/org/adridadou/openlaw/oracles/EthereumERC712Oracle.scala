@@ -36,7 +36,7 @@ case class EthereumERC712Oracle(crypto:CryptoService) extends OpenlawOracle[Prep
           }.sequence
         }
       }.sequence.map(_.flatten.flatten)
-      .flatMap(x => x.map(Success(_)).getOrElse(Failure(s"action not found for ${event.name.name}. available ${vm.allNextActions.map(_.name.name).mkString(",")}")))
+      .flatMap(_.map(Success(_)).getOrElse(vm.allNextActions.flatMap(actions => Failure(s"action not found for ${event.name.name}. available ${actions.map(_.name.name).mkString(",")}"))))
   }
 
   override def shouldExecute(event: OpenlawVmEvent): Boolean = event match {

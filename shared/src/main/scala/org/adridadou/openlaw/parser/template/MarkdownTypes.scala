@@ -25,38 +25,38 @@ trait ConstantExpression extends Expression {
 
   def typeFunction: TemplateExecutionResult => VariableType
 
-  override def expressionType(executionResult: TemplateExecutionResult): Result[VariableType] = typeFunction(executionResult)
+  override def expressionType(executionResult: TemplateExecutionResult): Result[VariableType] = Success(typeFunction(executionResult))
 
   override def validate(executionResult: TemplateExecutionResult): Result[Unit] = Success(())
 
-  override def variables(executionResult: TemplateExecutionResult): Seq[VariableName] = Seq()
+  override def variables(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] = Success(Seq())
 
   override def missingInput(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] = Success(Seq())
 }
 
 case class NoopConstant(varType:VariableType) extends ConstantExpression {
   override def typeFunction: TemplateExecutionResult => VariableType = _ => varType
-  override def evaluate(executionResult: TemplateExecutionResult): Option[OpenlawValue] = None
+  override def evaluate(executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = Success(None)
 }
 
 case class StringConstant(value:String, typeFunction: TemplateExecutionResult => VariableType = _ => TextType) extends ConstantExpression {
-  override def evaluate(executionResult: TemplateExecutionResult): Option[OpenlawValue] =
-    Some(typeFunction(executionResult).cast(value, executionResult))
+  override def evaluate(executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] =
+    typeFunction(executionResult).cast(value, executionResult).map(Some(_))
 
   override def toString: String = "\"" + value + "\""
 }
 
 case class JsonConstant(value:String, typeFunction: TemplateExecutionResult => VariableType = _ => TextType) extends ConstantExpression {
-  override def evaluate(executionResult: TemplateExecutionResult): Option[OpenlawValue] =
-    Some(typeFunction(executionResult).cast(value, executionResult))
+  override def evaluate(executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] =
+    typeFunction(executionResult).cast(value, executionResult).map(Some(_))
 
 
   override def toString: String = value
 }
 
 case class NumberConstant(value:BigDecimal, typeFunction: TemplateExecutionResult => VariableType = _ => NumberType) extends ConstantExpression {
-  override def evaluate(executionResult: TemplateExecutionResult): Option[OpenlawValue] =
-    Some(typeFunction(executionResult).cast(value.toString(), executionResult))
+  override def evaluate(executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] =
+    typeFunction(executionResult).cast(value.toString(), executionResult).map(Some(_))
 
 
   override def toString: String = value.toString()
@@ -71,7 +71,7 @@ trait ConditionalExpression {
 case class ConditionalBlock(block:Block, elseBlock:Option[Block], conditionalExpression:Expression) extends TemplatePart
 case class ForEachBlock(variable:VariableName, expression: Expression, block:Block) extends TemplatePart {
   def toCompiledTemplate(executionResult: TemplateExecutionResult): Result[(CompiledTemplate, VariableType)] = {
-    expression.expressionType(executionResult) match {
+    expression.expressionType(executionResult).flatMap {
       case listType:CollectionType =>
         val newVariable = VariableDefinition(variable, Some(VariableTypeDefinition(listType.typeParameter.name)))
         val specialCodeBlock = CodeBlock(Seq(newVariable))
@@ -111,9 +111,9 @@ case class Section(uuid:String, definition:Option[SectionDefinition], lvl:Int) e
     case _ => None
   }
 
-  def overrideSymbol(executionResult: TemplateExecutionResult): Option[SectionSymbol] =
-    localOverrideSymbol(executionResult) match {
-      case symbol @ Some(_) => symbol
+  def overrideSymbol(executionResult: TemplateExecutionResult): Result[Option[SectionSymbol]] =
+    localOverrideSymbol(executionResult).flatMap {
+      case symbol @ Some(_) => Success(symbol)
       case None =>
         executionResult
           .allProcessedSections
@@ -121,12 +121,14 @@ case class Section(uuid:String, definition:Option[SectionDefinition], lvl:Int) e
           .reverse
           .filter(s => s.lvl === lvl)
           .map(s => s.localOverrideSymbol(executionResult))
-          .collectFirst { case Some(symbol) => symbol }
+          .toList
+          .sequence
+          .map(_.collectFirst { case Some(symbol) => symbol })
     }
 
-  def overrideFormat(executionResult: TemplateExecutionResult): Option[SectionFormat] =
-    localOverrideFormat(executionResult) match {
-      case symbol @ Some(_) => symbol
+  def overrideFormat(executionResult: TemplateExecutionResult): Result[Option[SectionFormat]] =
+    localOverrideFormat(executionResult).flatMap {
+      case format @ Some(_) => Success(format)
       case None =>
         executionResult
           .allProcessedSections
@@ -135,28 +137,40 @@ case class Section(uuid:String, definition:Option[SectionDefinition], lvl:Int) e
           .dropWhile(s => s === this)
           .filter(s => s.lvl === lvl)
           .map(s => s.localOverrideFormat(executionResult))
-          .collectFirst { case Some(format) => format }
+          .toList
+          .sequence
+          .map(_.collectFirst { case Some(format) => format })
     }
 
-  private def localOverrideSymbol(executionResult: TemplateExecutionResult): Option[SectionSymbol] =
-    for {
+  private def localOverrideSymbol(executionResult: TemplateExecutionResult): Result[Option[SectionSymbol]] =
+    (for {
       definition <- definition
       parameters <- definition.parameters
       parameter <- parameters.parameterMap.toMap.get("symbol")
       expr <- getSingleExpression(parameter)
-      name <- expr.evaluate(executionResult)
-      result <- SectionSymbol.withNameOption(VariableType.convert[OpenlawString](name))
-    } yield result
+    } yield {
+      expr
+        .evaluate(executionResult)
+        .flatMap(_.map(VariableType.convert[OpenlawString]).sequence)
+        .map(_.flatMap(SectionSymbol.withNameOption))
+    })
+    .sequence
+    .map(_.flatten)
 
-  private def localOverrideFormat(executionResult: TemplateExecutionResult): Option[SectionFormat] =
-    for {
+  private def localOverrideFormat(executionResult: TemplateExecutionResult): Result[Option[SectionFormat]] =
+    (for {
       definition <- definition
       parameters <- definition.parameters
       parameter <- parameters.parameterMap.toMap.get("format")
       expr <- getSingleExpression(parameter)
-      name <- expr.evaluate(executionResult)
-      result <- SectionFormat.withNameOption(VariableType.convert[OpenlawString](name))
-    } yield result
+    } yield {
+      expr
+        .evaluate(executionResult)
+        .flatMap(_.map(VariableType.convert[OpenlawString]).sequence)
+        .map(_.flatMap(SectionFormat.withNameOption))
+    })
+    .sequence
+    .map(_.flatten)
 }
 
 object TextElement {

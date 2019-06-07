@@ -10,7 +10,7 @@ import org.parboiled2.ParseError
 import cats.implicits._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt, handleFatalErrors}
-import org.adridadou.openlaw.result.Implicits.RichTry
+import org.adridadou.openlaw.result.Implicits.{RichResult, RichResultNel, RichTry}
 
 /**
   * Created by davidroon on 05.06.17.
@@ -127,46 +127,39 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
   def forReviewEdit(paragraph:Paragraph):String =
     XHtmlAgreementPrinter(preview = false).printParagraphs(List(paragraph)).print
 
-  def forReviewParagraph(str: String): String = MarkdownParser.parseMarkdown(str) match {
-    case Left(ex) => throw new RuntimeException("error while parsing the markdown:" + ex)
-    case Right(result) => XHtmlAgreementPrinter(preview = false).printFragments(result.map(FreeText).toList).print
+  def forReviewParagraph(str: String): Result[String] = MarkdownParser.parseMarkdown(str) match {
+    case Left(ex) => Failure("error while parsing the markdown:" + ex)
+    case Right(result) => Success(XHtmlAgreementPrinter(preview = false).printFragments(result.map(FreeText).toList).print)
   }
 
-  def render[T](structuredAgreement: StructuredAgreement, overriddenParagraphs:ParagraphEdits, agreementPrinter: AgreementPrinter[T], hiddenVariables:Set[String]):AgreementPrinter[T] =
+  def render[T](structuredAgreement: StructuredAgreement, overriddenParagraphs:ParagraphEdits, agreementPrinter: AgreementPrinter[T], hiddenVariables:Set[String]): Result[AgreementPrinter[T]] =
     structuredAgreement.paragraphs
-    .foldLeft(agreementPrinter)({
-      case (printer,paragraph) =>
-        renderParagraph(paragraph, overriddenParagraphs, hiddenVariables, printer)
-    })
-
-  def handleOverriddenParagraph[T](p: AgreementPrinter[T], str: String):AgreementPrinter[T] = {
-    val newP = MarkdownParser.parseMarkdown(str) match {
-      case Left(ex) => throw new RuntimeException("error while parsing the markdown:" + ex)
-      case Right(result) => result
-        .foldLeft(p)({case (printer, elem) =>
-          renderElement(FreeText(elem), Paragraph(), None, Set(), printer)
-        })
+    .foldLeft(Success(agreementPrinter)) {
+      case (result, paragraph) => result.flatMap(printer => renderParagraph(paragraph, overriddenParagraphs, hiddenVariables, printer))
     }
-    newP.newState(p.state.copy(overriddenParagraphGenerated = true))
-  }
 
-  def getOrThrow(either:Either[String, CompiledTemplate]):CompiledTemplate = either match {
-    case Right(compiledTemplate) => compiledTemplate
-    case Left(ex) => throw new RuntimeException(ex)
-  }
+  def handleOverriddenParagraph[T](p: AgreementPrinter[T], str: String): Result[AgreementPrinter[T]] =
+    MarkdownParser
+      .parseMarkdown(str)
+      .addMessageToFailure(s"error while parsing the markdown")
+      .toResult
+      .flatMap(_.foldLeft(Success(p)) { case (result, elem) => result.flatMap(printer => renderElement(FreeText(elem), Paragraph(), None, Set(), printer)) })
+      .map(_.newState(p.state.copy(overriddenParagraphGenerated = true)))
 
-  private def renderParagraph[T](paragraph: Paragraph, overriddenParagraphs:ParagraphEdits, hiddenVariables:Set[String], agreementPrinter: AgreementPrinter[T]): AgreementPrinter[T] = {
+  private def renderParagraph[T](paragraph: Paragraph, overriddenParagraphs:ParagraphEdits, hiddenVariables:Set[String], agreementPrinter: AgreementPrinter[T]): Result[AgreementPrinter[T]] = {
     if(hasContent(paragraph)) {
       val p = agreementPrinter
           .paragraphStart()
 
       val optParagraph = overriddenParagraphs.edits.get(agreementPrinter.state.paragraphIndex)
       paragraph
-        .elements.foldLeft(p)({case (printer, element) => renderElement(element, paragraph, optParagraph, hiddenVariables, printer)})
-        .paragraphFooter.paragraphEnd()
-    }else {
+        .elements
+        .foldLeft(Success(p)) { case (result, element) => result.flatMap(printer => renderElement(element, paragraph, optParagraph, hiddenVariables, printer)) }
+        .map(_.paragraphFooter.paragraphEnd())
+    } else {
       paragraph
-        .elements.foldLeft(agreementPrinter)({case (printer, element) => renderElement(element, paragraph, None, hiddenVariables, printer)})
+        .elements
+        .foldLeft(Success(agreementPrinter)) { case (result, element) => result.flatMap(printer => renderElement(element, paragraph, None, hiddenVariables, printer)) }
     }
   }
 
@@ -177,10 +170,10 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
     case _ => false
   })
 
-  private def renderElement[T](element: AgreementElement, docParagraph:Paragraph, optParagraph:Option[String], hiddenVariables:Set[String], agreementPrinter: AgreementPrinter[T]): AgreementPrinter[T] = {
+  private def renderElement[T](element: AgreementElement, docParagraph:Paragraph, optParagraph:Option[String], hiddenVariables:Set[String], agreementPrinter: AgreementPrinter[T]): Result[AgreementPrinter[T]] = {
     (element, optParagraph) match {
       case (table:TableElement, _) =>
-        agreementPrinter.table(table) { (element: AgreementElement, printer: AgreementPrinter[T]) => renderElement(element, docParagraph, optParagraph, hiddenVariables, printer) }
+        Success(agreementPrinter.table(table) { (element: AgreementElement, printer: AgreementPrinter[T]) => renderElement(element, docParagraph, optParagraph, hiddenVariables, printer) })
       case (_:FreeText, _) if !agreementPrinter.state.headerGenerated =>
         renderElement(element, docParagraph, optParagraph, hiddenVariables, agreementPrinter.paragraphHeader(docParagraph))
       case (_:VariableElement, _) if !agreementPrinter.state.headerGenerated =>
@@ -192,38 +185,39 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
       case (_:SectionElement, Some(paragraph)) if !agreementPrinter.state.overriddenParagraphGenerated =>
         handleOverriddenParagraph(agreementPrinter, paragraph)
       case (_:FreeText, _) if agreementPrinter.state.overriddenParagraphGenerated =>
-        agreementPrinter
+        Success(agreementPrinter)
       case (_:VariableElement,_) if agreementPrinter.state.overriddenParagraphGenerated =>
-        agreementPrinter
+        Success(agreementPrinter)
       case (_:SectionElement,_) if agreementPrinter.state.overriddenParagraphGenerated =>
-        agreementPrinter
+        Success(agreementPrinter)
       case (txt:FreeText,_) if agreementPrinter.state.conditionalDepth > 0 =>
-        agreementPrinter.conditionalTextStart().text(txt.elem).conditionalTextEnd()
+        Success(agreementPrinter.conditionalTextStart().text(txt.elem).conditionalTextEnd())
       case (txt:FreeText,_) =>
-        agreementPrinter.text(txt.elem)
+        Success(agreementPrinter.text(txt.elem))
       case (image:ImageElement,_) =>
-        agreementPrinter.image(image)
+        Success(agreementPrinter.image(image))
       case (link:Link,_) =>
-        agreementPrinter.link(link)
+        Success(agreementPrinter.link(link))
       case (variable:VariableElement,_) if variable.dependencies.forall(variable => !hiddenVariables.contains(variable)) =>
         agreementPrinter.variableStart(variable.name)
         variable.content
-          .foldLeft(agreementPrinter)((p, elem) => renderElement(elem, docParagraph, optParagraph, hiddenVariables, p))
-            .variableEnd()
+          .foldLeft(Success(agreementPrinter))((result, elem) => result.flatMap(p => renderElement(elem, docParagraph, optParagraph, hiddenVariables, p)))
+          .map(_.variableEnd())
       case (variable:VariableElement,_) =>
-        variable.content
-          .foldLeft(agreementPrinter)((p, elem) => renderElement(elem, docParagraph, optParagraph, hiddenVariables, p))
+        variable
+          .content
+          .foldLeft(Success(agreementPrinter))((result, elem) => result.flatMap(p => renderElement(elem, docParagraph, optParagraph, hiddenVariables, p)))
       case (ConditionalStart(dependencies),_) if dependencies.forall(variable => !hiddenVariables.contains(variable)) =>
-        agreementPrinter.conditionalStart()
+        Success(agreementPrinter.conditionalStart())
       case (ConditionalEnd(dependencies),_) if dependencies.forall(variable => !hiddenVariables.contains(variable)) =>
-        agreementPrinter.conditionalEnd()
+        Success(agreementPrinter.conditionalEnd())
       case (section:SectionElement, _) =>
-        agreementPrinter
+        Success(agreementPrinter
           .sectionStart(section)
           .paragraphHeader(docParagraph)
-          .sectionHeader(section)
+          .sectionHeader(section))
       case _ =>
-        agreementPrinter
+        Success(agreementPrinter)
     }
   }
 

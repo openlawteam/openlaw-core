@@ -54,9 +54,13 @@ object Implicits {
       case Success(_) => cause.toResultNel
       case Left(original) => FailureNel(original, cause.value)
     }
-    def addFailure[U](cause: FailureCause): ResultNel[U] = result match {
-      case Success(_) => FailureNel(cause)
+    def addFailure[U >: T](cause: FailureCause): ResultNel[U] = result match {
+      case s @ Success(_) => s.toResultNel
       case Left(original) => FailureNel(cause, original)
+    }
+    def addMessageToFailure[U >: T](message: String): ResultNel[U] = result match {
+      case s @ Success(_) => s.toResultNel
+      case Left(original) => FailureNel(FailureMessage(message), original)
     }
     def convert(pf: PartialFunction[Exception, Exception]): Result[T] =
       result.left.map {
@@ -80,6 +84,7 @@ object Implicits {
   }
 
   implicit class RichResultNel[T](val result: ResultNel[T]) extends AnyVal {
+    def toUnit: ResultNel[Unit] = result.map(_ => ())
     def toResult: Result[T] = result.toEither.leftMap {
       case NonEmptyList(x, Seq()) => x
       case nel => FailureException(MultipleCauseException(nel))

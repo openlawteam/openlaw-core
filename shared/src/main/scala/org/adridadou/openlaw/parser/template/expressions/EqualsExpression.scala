@@ -7,9 +7,13 @@ import org.adridadou.openlaw.result.{Result, Success}
 
 case class EqualsExpression(left:Expression, right:Expression) extends BinaryExpression {
 
-  override def evaluate(executionResult: TemplateExecutionResult): Option[OpenlawBoolean] = {
-    for{ leftValue <- left.evaluate(executionResult)
-        rightValue <- right.evaluate(executionResult)
+  override def evaluate(executionResult: TemplateExecutionResult): Result[Option[OpenlawBoolean]] = {
+    for {
+      leftOption <- left.evaluate(executionResult)
+      rightOption <- right.evaluate(executionResult)
+    } yield for {
+      leftValue <- leftOption
+      rightValue <- rightOption
     } yield leftValue == rightValue
   }
 
