@@ -20,21 +20,18 @@ import scala.reflect.ClassTag
   */
 trait ExpressionRules extends JsonRules {
 
-  def ExpressionRule: Rule1[Expression] = {
-    val x = rule {
+  def ExpressionRule: Rule1[Expression] = rule {
       Term ~ ws ~ zeroOrMore(operation ~ ws ~ Term ~ ws ~> ((op, expr) => PartialOperation(op, expr))) ~> ((left: Expression, others: Seq[PartialOperation]) => others.foldLeft(left)({
-        case (expr, op) => createOperation(expr, op)
+        case (expr, op) => createOperation(expr, op).getOrThrow() // TODO: Convert this to use fail()
       }))
     }
-    x.sequence
-  }
     //.recoverMerge { case failure => fail(failure.message) }
 
   def Term:Rule1[Expression] = rule {
     ws ~ Factor ~ ws ~ zeroOrMore(
       operation ~ ws ~ Factor ~ ws ~> ((op, expr) => PartialOperation(op,expr))
     ) ~> ((left:Expression, others:Seq[PartialOperation]) => others.foldLeft(left)({
-      case (expr, op) => createOperation(expr,op).recoverMerge { case failure => fail(failure.message) }
+      case (expr, op) => createOperation(expr,op).getOrThrow() // TODO: Convert this to use fail()
     }))
   }
 
