@@ -4,7 +4,7 @@ import java.time.LocalDateTime
 
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
-import org.adridadou.openlaw.parser.template.{ActionIdentifier, ActionInfo, VariableName}
+import org.adridadou.openlaw.parser.template.{ActionIdentifier, ActionInfo}
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.vm.{OpenlawVm, OpenlawVmEvent}
 import slogging.LazyLogging
@@ -24,7 +24,7 @@ case class EthereumSmartContractOracle() extends OpenlawOracle[EthereumSmartCont
   }
 
   private def handleEvent(vm:OpenlawVm, event:EthereumSmartContractCallEvent): Result[OpenlawVm] = {
-    vm.allActions.find(info => info.name === event.name).map { actionInfo =>
+    vm.allActions.find(info => info.identifier === event.identifier).map { actionInfo =>
       vm.executions[EthereumSmartContractExecution](event.identifier).find(_.tx === event.hash) match {
         case Some(execution) =>
           Success(vm.newExecution(event.identifier, createNewExecution(vm, toOpenlawExecutionStatus(event), event, execution.scheduledDate)))
@@ -37,7 +37,7 @@ case class EthereumSmartContractOracle() extends OpenlawOracle[EthereumSmartCont
               Success(vm)
           }
       }
-    }.getOrElse(Failure(s"action not found for ${event.name.name}. available ${vm.allNextActions.map(_.name.name).mkString(",")}"))
+    }.getOrElse(Failure(s"action not found for event ${event.typeIdentifier}"))
   }
 
   private def handleFailedEvent(vm: OpenlawVm, event: FailedEthereumSmartContractCallEvent): Result[OpenlawVm] = {
@@ -97,13 +97,11 @@ object SuccessfulEthereumSmartContractCallEvent {
 
 sealed trait EthereumSmartContractCallEvent extends OpenlawVmEvent {
   val identifier:ActionIdentifier
-  val name:VariableName
   val hash:EthereumHash
   val executionDate:LocalDateTime
 }
 
 final case class PendingEthereumSmartContractCallEvent(
-                                                 name:VariableName,
                                                  identifier:ActionIdentifier,
                                                  hash:EthereumHash,
                                                  receiveAddress:EthereumAddress,
@@ -113,7 +111,6 @@ final case class PendingEthereumSmartContractCallEvent(
 }
 
 final case class SuccessfulEthereumSmartContractCallEvent(
-                                                        name:VariableName,
                                                         identifier:ActionIdentifier,
                                                         hash:EthereumHash,
                                                         receiveAddress:EthereumAddress,
@@ -123,7 +120,6 @@ final case class SuccessfulEthereumSmartContractCallEvent(
 }
 
 final case class FailedEthereumSmartContractCallEvent(
-                                                 name:VariableName,
                                                  identifier:ActionIdentifier,
                                                  hash:EthereumHash,
                                                  errorMessage:String,

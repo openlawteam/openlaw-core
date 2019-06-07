@@ -19,7 +19,7 @@ import io.circe.generic.auto._
 import io.circe.generic.semiauto._
 import io.circe.syntax._
 import org.adridadou.openlaw.{OpenlawMap, OpenlawValue}
-import org.adridadou.openlaw.oracles.{CryptoService, OpenlawSignatureProof}
+import org.adridadou.openlaw.oracles.OpenlawSignatureProof
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 import org.adridadou.openlaw.vm.Executions
 
@@ -163,7 +163,7 @@ trait TemplateExecutionResult {
       }
     })
 
-  def allActions(crypto:CryptoService):Seq[ActionInfo] = getAllExecutedVariables.flatMap({
+  def allActions:Seq[ActionInfo] = getAllExecutedVariables.flatMap({
     case (executionResult, variableName) =>
       executionResult.getVariable(variableName)
         .flatMap(variable => variable.varType(executionResult) match {
@@ -171,7 +171,7 @@ trait TemplateExecutionResult {
             variable.evaluate(executionResult).map(actionType.actionValue)
           case _ =>
             None
-        }).map(action => ActionInfo(action, variableName, executionResult, crypto))
+        }).map(action => ActionInfo(action, executionResult))
   })
 
   def getTemplateDefinitionForVariable(name: VariableName):Option[TemplateDefinition] = variables.find(_.name === name) match {
@@ -806,7 +806,7 @@ case object ExecutionReady extends TemplateExecutionState
 final case class ExecutionFailed(err:Failure[_]) extends TemplateExecutionState
 final case class ExecutionWaitForTemplate(variableName:VariableName, template:TemplateSourceIdentifier, willBeUsedForEmbedded:Boolean) extends TemplateExecutionState
 
-case class ActionInfo(action:ActionValue, name:VariableName, executionResult: TemplateExecutionResult, crypto:CryptoService) {
+case class ActionInfo(action:ActionValue, executionResult: TemplateExecutionResult) {
   def identifier:ActionIdentifier = action.identifier(executionResult)
 }
 

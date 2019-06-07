@@ -9,7 +9,7 @@ import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 import org.adridadou.openlaw.result.Implicits.failureCause2Exception
 import org.adridadou.openlaw.values.TemplateParameters
-import org.adridadou.openlaw.vm.{OpenlawExecutionEngine, TestCryptoService}
+import org.adridadou.openlaw.vm.OpenlawExecutionEngine
 import org.scalatest._
 import org.scalatest.OptionValues._
 
@@ -301,7 +301,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     executeTemplate(text) match {
       case Right(executionResult) =>
         executionResult.getVariables(EthereumCallType).size shouldBe 1
-        val allActions = executionResult.allActions(TestCryptoService)
+        val allActions = executionResult.allActions
         allActions.size shouldBe 1
 
         val call = executionResult.getVariableValues[EthereumSmartContractCall](EthereumCallType).head

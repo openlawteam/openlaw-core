@@ -24,7 +24,7 @@ case class EthereumERC712Oracle(crypto:CryptoService) extends OpenlawOracle[Prep
       } yield call.identifier(executionResult)})
       .filter(_ === event.identifier)
       .map { name => Success(vm.setInitExecution(name, PreparedERC712SmartContractCallExecution(name, event.signedCall))) }
-      .getOrElse(Failure(s"action not found for ${event.name.name}. available ${vm.allNextActions.map(_.name.name).mkString(",")}"))
+      .getOrElse(Failure(s"action not found for ${event.typeIdentifier}"))
   }
 
   override def shouldExecute(event: OpenlawVmEvent): Boolean = event match {

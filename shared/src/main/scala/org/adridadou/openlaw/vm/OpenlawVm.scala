@@ -238,9 +238,9 @@ case class OpenlawVm(contractDefinition: ContractDefinition, profileAddress:Opti
 
   def allActions:Seq[ActionInfo] = executionState match {
     case ContractRunning =>
-      executionResult.map(_.allActions(crypto)).getOrElse(Seq())
+      executionResult.map(_.allActions).getOrElse(Seq())
     case ContractResumed =>
-      executionResult.map(_.allActions(crypto)).getOrElse(Seq())
+      executionResult.map(_.allActions).getOrElse(Seq())
     case ContractCreated =>
       executionResult
         .map(_.allIdentityEmails).getOrElse(Seq())
@@ -250,7 +250,7 @@ case class OpenlawVm(contractDefinition: ContractDefinition, profileAddress:Opti
   }
 
   private def generateSignatureAction(email:Email):Option[ActionInfo] =
-    this.executionResult.map(ActionInfo(SignatureAction(email), VariableName(""), _, crypto))
+    this.executionResult.map(ActionInfo(SignatureAction(email), _))
 
   def template(definition: TemplateSourceIdentifier):CompiledTemplate = state.templates(contractDefinition.templates(definition))
   def template(id:TemplateId):CompiledTemplate = state.templates(id)
