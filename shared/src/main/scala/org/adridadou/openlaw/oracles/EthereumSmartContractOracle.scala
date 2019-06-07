@@ -4,7 +4,7 @@ import java.time.LocalDateTime
 
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
-import org.adridadou.openlaw.parser.template.{ActionInfo, VariableName}
+import org.adridadou.openlaw.parser.template.{ActionIdentifier, ActionInfo, VariableName}
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.vm.{OpenlawVm, OpenlawVmEvent}
 import slogging.LazyLogging
@@ -25,13 +25,13 @@ case class EthereumSmartContractOracle() extends OpenlawOracle[EthereumSmartCont
 
   private def handleEvent(vm:OpenlawVm, event:EthereumSmartContractCallEvent): Result[OpenlawVm] = {
     vm.allActions.find(info => info.name === event.name).map { actionInfo =>
-      vm.executions[EthereumSmartContractExecution](event.name).find(_.tx === event.hash) match {
+      vm.executions[EthereumSmartContractExecution](event.identifier).find(_.tx === event.hash) match {
         case Some(execution) =>
-          Success(vm.newExecution(event.name, createNewExecution(vm, toOpenlawExecutionStatus(event), event, execution.scheduledDate)))
+          Success(vm.newExecution(event.identifier, createNewExecution(vm, toOpenlawExecutionStatus(event), event, execution.scheduledDate)))
         case None =>
           getScheduledDate(actionInfo, vm, event) match {
             case Some(scheduleDate) =>
-              Success(vm.newExecution(event.name, createNewExecution(vm, toOpenlawExecutionStatus(event), event, scheduleDate)))
+              Success(vm.newExecution(event.identifier, createNewExecution(vm, toOpenlawExecutionStatus(event), event, scheduleDate)))
             case None =>
               logger.warn(s"the transaction ${event.hash.toString} has not been added yet")
               Success(vm)
@@ -47,7 +47,7 @@ case class EthereumSmartContractOracle() extends OpenlawOracle[EthereumSmartCont
       executionStatus = FailedExecution,
       tx = EthereumHash.empty)
 
-    Success(vm.newExecution(event.name, failedExecution))
+    Success(vm.newExecution(event.identifier, failedExecution))
   }
 
   private def toOpenlawExecutionStatus(event:EthereumSmartContractCallEvent):OpenlawExecutionStatus = event match {
@@ -66,11 +66,11 @@ case class EthereumSmartContractOracle() extends OpenlawOracle[EthereumSmartCont
       tx = event.hash)
 
   private def getScheduledDate(info:ActionInfo, vm:OpenlawVm, event:EthereumSmartContractCallEvent):Option[LocalDateTime] = {
-    vm.executions[EthereumSmartContractExecution](info.name).find(_.tx === event.hash) match {
+    vm.executions[EthereumSmartContractExecution](info.identifier).find(_.tx === event.hash) match {
       case Some(execution) =>
         Some(execution.scheduledDate)
       case None =>
-        info.action.nextActionSchedule(info.executionResult, vm.executions(event.name))
+        info.action.nextActionSchedule(info.executionResult, vm.executions(info.identifier))
     }
   }
 
@@ -96,6 +96,7 @@ object SuccessfulEthereumSmartContractCallEvent {
 }
 
 sealed trait EthereumSmartContractCallEvent extends OpenlawVmEvent {
+  val identifier:ActionIdentifier
   val name:VariableName
   val hash:EthereumHash
   val executionDate:LocalDateTime
@@ -103,6 +104,7 @@ sealed trait EthereumSmartContractCallEvent extends OpenlawVmEvent {
 
 final case class PendingEthereumSmartContractCallEvent(
                                                  name:VariableName,
+                                                 identifier:ActionIdentifier,
                                                  hash:EthereumHash,
                                                  receiveAddress:EthereumAddress,
                                                  executionDate:LocalDateTime) extends EthereumSmartContractCallEvent {
@@ -112,6 +114,7 @@ final case class PendingEthereumSmartContractCallEvent(
 
 final case class SuccessfulEthereumSmartContractCallEvent(
                                                         name:VariableName,
+                                                        identifier:ActionIdentifier,
                                                         hash:EthereumHash,
                                                         receiveAddress:EthereumAddress,
                                                         executionDate:LocalDateTime) extends EthereumSmartContractCallEvent {
@@ -121,6 +124,7 @@ final case class SuccessfulEthereumSmartContractCallEvent(
 
 final case class FailedEthereumSmartContractCallEvent(
                                                  name:VariableName,
+                                                 identifier:ActionIdentifier,
                                                  hash:EthereumHash,
                                                  errorMessage:String,
                                                  scheduledDate:LocalDateTime,

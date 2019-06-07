@@ -3,7 +3,7 @@ package org.adridadou.openlaw.parser.template.variableTypes
 import java.time.{LocalDateTime, ZoneOffset}
 import java.time.temporal.ChronoUnit
 
-import org.adridadou.openlaw.{OpenlawDateTime, OpenlawNativeValue, OpenlawString, OpenlawValue}
+import org.adridadou.openlaw.{OpenlawDateTime, OpenlawNativeValue, OpenlawString}
 import org.adridadou.openlaw.parser.template._
 import VariableType._
 import org.adridadou.openlaw.parser.template.expressions.Expression
@@ -108,6 +108,19 @@ case class EthereumSmartContractCall(
           })
       }
     }
+  }
+
+  override def identifier(executionResult: TemplateExecutionResult): ActionIdentifier = {
+    ActionIdentifier(address.evaluate(executionResult)
+      .map(EthAddressType.convert)
+      .map(_.withLeading0x).getOrElse("") +
+    abi.evaluateT[OpenlawString](executionResult).getOrElse("") +
+    network.evaluateT[OpenlawString](executionResult).getOrElse("") +
+    functionName.evaluateT[OpenlawString](executionResult).getOrElse("") +
+    arguments.flatMap(_.evaluate(executionResult)).mkString(",") +
+    from.flatMap(_.evaluate(executionResult))
+      .map(EthAddressType.convert)
+      .map(_.withLeading0x).getOrElse(""))
   }
 }
 
