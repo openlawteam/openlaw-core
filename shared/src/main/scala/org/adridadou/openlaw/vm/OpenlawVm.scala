@@ -189,26 +189,20 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
       .sequence
       .map(_.getOrElse(List()))
 
-  def allNextActions: Result[Seq[ActionInfo]] = {
-    val x: Result[List[LocalDateTime]] = allActions
-      .map(info => info.action.nextActionSchedule(info.executionResult, executions(info.name)))
-      .toList
-      .sequence
-      .map(_.flatten)
-      .map { list =>
-        val t = list
-          .map(nextDate => (info, nextDate)))
-          .sortBy { case (_, nextDate) => nextDate.toEpochSecond(ZoneOffset.UTC) }
-          .map { case (info,_) => info }
-        t
-      }
-    x
-  }
+  def allNextActions: Result[Seq[ActionInfo]] = allActions
+    .flatMap { seq =>
+      seq
+        .map { info => info.action.nextActionSchedule(info.executionResult, executions(info.name)).map(_.map(nextDate => (info, nextDate))) }
+        .toList
+        .sequence
+        .map(_.flatten)
+    }
+    .map(list => list.sortBy { case (_, nextDate) => nextDate.toEpochSecond(ZoneOffset.UTC) }.map { case (info, _) => info })
 
   def executionState:ContractExecutionState = state.executionState
 
-  def nextActionSchedule:Option[LocalDateTime] = nextAction
-    .flatMap(info => info.action.nextActionSchedule(info.executionResult, executions(info.name)))
+  def nextActionSchedule: Result[Option[LocalDateTime]] =
+    nextAction.flatMap(_.flatMap(info => info.action.nextActionSchedule(info.executionResult, executions(info.name)).sequence).sequence)
 
   def newSignature(identity:Identity, fullName:String, signature:OpenlawSignatureEvent):OpenlawVm = {
     val email = identity.email
@@ -271,9 +265,9 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
 
   def allActions: Result[Seq[ActionInfo]] = executionState match {
     case ContractRunning =>
-      executionResult.map(_.allActions()).getOrElse(Seq())
+      executionResult.map(_.allActions()).getOrElse(Success(Seq()))
     case ContractResumed =>
-      executionResult.map(_.allActions()).getOrElse(Seq())
+      executionResult.map(_.allActions()).getOrElse(Success(Seq()))
     case ContractCreated =>
       executionResult
         .map(_.allIdentityEmails)
@@ -304,10 +298,7 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
   def getAllVariableValues[U <: OpenlawValue](varType: VariableType)(implicit classTag:ClassTag[U]): Result[Seq[U#T]] =
     getAllVariables(varType)
       .toList
-      .flatMap { case (executionResult, variable) =>
-        val x = variable.evaluate(executionResult).flatMap(_.map(VariableType.convert[U]).sequence)
-          x
-      }
+      .map { case (executionResult, variable) => variable.evaluate(executionResult).flatMap(_.map(VariableType.convert[U]).sequence) }
       .sequence
       .map(_.flatten)
 
@@ -337,11 +328,12 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
   def evaluate[T](executionResult: TemplateExecutionResult, expr:String)(implicit classTag:ClassTag[T]): Result[T] = parseExpression(expr)
     .flatMap(evaluate[T](executionResult,_))
 
-  def evaluate[T](executionResult: TemplateExecutionResult, expr:Expression)(implicit classTag:ClassTag[T]): Result[T] = expr.evaluate(executionResult) match {
-    case Some(value:T) => Success(value)
-    case Some(value) => Failure(s"conversion error. Was expecting ${classTag.runtimeClass.getName} but got ${value.getClass.getName}")
-    case None => Failure(s"could not resolve ${expr.toString}")
-  }
+  def evaluate[T](executionResult: TemplateExecutionResult, expr:Expression)(implicit classTag:ClassTag[T]): Result[T] =
+    expr.evaluate(executionResult).flatMap {
+      case Some(value:T) => Success(value)
+      case Some(value) => Failure(s"conversion error. Was expecting ${classTag.runtimeClass.getName} but got ${value.getClass.getName}")
+      case None => Failure(s"could not resolve ${expr.toString}")
+    }
 
   def applyEvent(event:OpenlawVmEvent): Result[OpenlawVm] = state.executionState match {
     case ContractCreated =>

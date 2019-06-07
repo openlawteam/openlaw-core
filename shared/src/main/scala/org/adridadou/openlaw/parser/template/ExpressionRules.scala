@@ -6,11 +6,12 @@ import io.circe._
 import io.circe.generic.auto._
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.syntax._
-import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawValue}
+import org.adridadou.openlaw.OpenlawNativeValue
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.parboiled2.Rule1
 import org.adridadou.openlaw.parser.template.expressions._
-import org.adridadou.openlaw.result.Result
+import org.adridadou.openlaw.result.{Failure, Result, Success}
+import org.adridadou.openlaw.result.Implicits.RichResult
 
 import scala.reflect.ClassTag
 
@@ -19,33 +20,37 @@ import scala.reflect.ClassTag
   */
 trait ExpressionRules extends JsonRules {
 
-  def ExpressionRule: Rule1[Expression] = rule {
-    Term ~ ws ~ zeroOrMore( operation ~ ws ~ Term ~ ws ~> ((op, expr) => PartialOperation(op,expr)) ) ~> ((left:Expression, others:Seq[PartialOperation]) => others.foldLeft(left)({
-      case (expr, op) => createOperation(expr,op)
-    }))
+  def ExpressionRule: Rule1[Expression] = {
+    val x = rule {
+      Term ~ ws ~ zeroOrMore(operation ~ ws ~ Term ~ ws ~> ((op, expr) => PartialOperation(op, expr))) ~> ((left: Expression, others: Seq[PartialOperation]) => others.foldLeft(left)({
+        case (expr, op) => createOperation(expr, op)
+      }))
+    }
+    x.sequence
   }
+    //.recoverMerge { case failure => fail(failure.message) }
 
   def Term:Rule1[Expression] = rule {
     ws ~ Factor ~ ws ~ zeroOrMore(
       operation ~ ws ~ Factor ~ ws ~> ((op, expr) => PartialOperation(op,expr))
     ) ~> ((left:Expression, others:Seq[PartialOperation]) => others.foldLeft(left)({
-      case (expr, op) => createOperation(expr,op)
+      case (expr, op) => createOperation(expr,op).recoverMerge { case failure => fail(failure.message) }
     }))
   }
 
-  private def createOperation(left:Expression, op:PartialOperation):Expression = op.op match {
-    case "+" => ValueExpression(left, op.expr, Plus)
-    case "-" => ValueExpression(left, op.expr, Minus)
-    case "/" => ValueExpression(left, op.expr, Divide)
-    case "*" => ValueExpression(left, op.expr, Multiple)
-    case "||" => BooleanExpression(left, op.expr, Or)
-    case "&&" => BooleanExpression(left, op.expr, And)
-    case ">" => ComparaisonExpression(left, op.expr, GreaterThan)
-    case "<" => ComparaisonExpression(left, op.expr, LesserThan)
-    case ">=" => ComparaisonExpression(left, op.expr, GreaterOrEqual)
-    case "<=" => ComparaisonExpression(left, op.expr, LesserOrEqual)
-    case "=" => ComparaisonExpression(left, op.expr, Equals)
-    case _ => throw new RuntimeException(s"unknown operation ${op.op}")
+  private def createOperation(left:Expression, op:PartialOperation): Result[Expression] = op.op match {
+    case "+" => Success(ValueExpression(left, op.expr, Plus))
+    case "-" => Success(ValueExpression(left, op.expr, Minus))
+    case "/" => Success(ValueExpression(left, op.expr, Divide))
+    case "*" => Success(ValueExpression(left, op.expr, Multiple))
+    case "||" => Success(BooleanExpression(left, op.expr, Or))
+    case "&&" => Success(BooleanExpression(left, op.expr, And))
+    case ">" => Success(ComparaisonExpression(left, op.expr, GreaterThan))
+    case "<" => Success(ComparaisonExpression(left, op.expr, LesserThan))
+    case ">=" => Success(ComparaisonExpression(left, op.expr, GreaterOrEqual))
+    case "<=" => Success(ComparaisonExpression(left, op.expr, LesserOrEqual))
+    case "=" => Success(ComparaisonExpression(left, op.expr, Equals))
+    case _ => Failure(s"unknown operation ${op.op}")
   }
 
   def Factor:Rule1[Expression] = rule {constant | conditionalVariableDefinition | variableMemberInner | variableName | Parens | UnaryMinus | UnaryNot }

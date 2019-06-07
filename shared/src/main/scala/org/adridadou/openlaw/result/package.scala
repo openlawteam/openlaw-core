@@ -1,10 +1,12 @@
 package org.adridadou.openlaw
 
-import cats.data.Validated.Invalid
+import result.Implicits.RichResult
+import cats.data.Validated._
 import cats.data.{NonEmptyList, ValidatedNel}
 import cats.data.NonEmptyList.{of, one}
+import cats.implicits._
+import cats.Semigroup
 import org.adridadou.openlaw.result.Implicits.RichTry
-
 import scala.util.Try
 import scala.util.control.NonFatal
 
@@ -29,6 +31,11 @@ package result {
   object Success {
     def apply[A](a: A): Result[A] = Right(a)
     def unapply[A](result: Result[A]): Option[A] = result.toOption
+  }
+
+  object ResultNel {
+    def apply[A](nel: NonEmptyList[Result[A]]): ResultNel[NonEmptyList[A]] = nel.map(_.toResultNel).sequence
+    def apply[A](nel: List[Result[A]]): ResultNel[List[A]] = nel.map(_.toResultNel).sequence
   }
 
   object FailureNel {

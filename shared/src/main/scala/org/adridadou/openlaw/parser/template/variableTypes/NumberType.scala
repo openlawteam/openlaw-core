@@ -119,9 +119,9 @@ case class Rounding(expr:Expression) extends Formatter with NumberFormatter {
       .evaluate(executionResult)
       .flatMap { valueOpt =>
         valueOpt
-          .map { value =>
+          .map { evalValue =>
             val x = VariableType
-              .convert[OpenlawBigDecimal]()
+              .convert[OpenlawBigDecimal](evalValue)
               .map(x => x.toInt)
               .flatMap(rounding => VariableType.convert[OpenlawBigDecimal](value).map(_.setScale(rounding, RoundingMode.HALF_UP)))
             x

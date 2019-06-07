@@ -125,7 +125,9 @@ case class CompiledAgreement(
       case variableDefinition:VariableDefinition if !variableDefinition.isHidden =>
         executionResult.getAliasOrVariableType(variableDefinition.name) match {
           case Right(variableType @ SectionType) =>
-            Success(renderedElements :+ VariableElement(variableDefinition.name.name, Some(variableType), generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult), getDependencies(variableDefinition.name, executionResult)))
+           getDependencies(variableDefinition.name, executionResult).map {
+             renderedElements :+ VariableElement(variableDefinition.name.name, Some(variableType), generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult), _)
+           }
           case Right(ClauseType) =>
             executionResult.subExecutionsInternal.get(variableDefinition.name) match {
               case Some(subExecution) =>
@@ -137,7 +139,9 @@ case class CompiledAgreement(
           case Right(_:NoShowInForm) =>
             Success(renderedElements)
           case Right(variableType) =>
-            Success(renderedElements :+ VariableElement(variableDefinition.name.name, Some(variableType), generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult), getDependencies(variableDefinition.name, executionResult)))
+           getDependencies(variableDefinition.name, executionResult).map {
+             renderedElements :+ VariableElement(variableDefinition.name.name, Some(variableType), generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult), _)
+           }
           case Left(_) =>
             // TODO: Should ignore failure?
             Success(renderedElements)
@@ -155,16 +159,23 @@ case class CompiledAgreement(
             .getOrElse(Success(renderedElements))
         }
 
-      // TODO: How to deal with Result in guard clause?
-      case ConditionalBlock(subBlock, _, conditionalExpression) if conditionalExpression.evaluate(executionResult).exists(VariableType.convert[OpenlawBoolean]) =>
-        val dependencies = conditionalExpression.variables(executionResult).map(_.name)
-        getAgreementElements(renderedElements ++ List(ConditionalStart(dependencies = dependencies)), subBlock.elems.toList, executionResult).map(_ ++ List(ConditionalEnd(dependencies)))
+      case ConditionalBlock(subBlock, elseBlock, conditionalExpression) =>
 
-      case ConditionalBlock(_, elseBlock, conditionalExpression) =>
-        val dependencies = conditionalExpression.variables(executionResult).map(_.name)
-        elseBlock
-          .map(block => getAgreementElements(renderedElements ++ List(ConditionalStart(dependencies = dependencies)), block.elems.toList, executionResult).map(_ ++ List(ConditionalEnd(dependencies))))
-          .getOrElse(Success(renderedElements))
+        conditionalExpression.evaluate(executionResult).flatMap(_.map(VariableType.convert[OpenlawBoolean](_)).sequence).flatMap {
+          case Some(true) =>
+            conditionalExpression.variables(executionResult).flatMap { variables =>
+              val dependencies = variables.map(_.name)
+              getAgreementElements(renderedElements ++ List(ConditionalStart(dependencies = dependencies)), subBlock.elems.toList, executionResult).map(_ ++ List(ConditionalEnd(dependencies)))
+            }
+
+          case _ =>
+            conditionalExpression.variables(executionResult).flatMap { variables =>
+              val dependencies = variables.map(_.name)
+              elseBlock
+                .map(block => getAgreementElements(renderedElements ++ List(ConditionalStart(dependencies = dependencies)), block.elems.toList, executionResult).map(_ ++ List(ConditionalEnd(dependencies))))
+                .getOrElse(Success(renderedElements))
+            }
+        }
 
       case ForEachBlock(_, expression, subBlock) =>
         (for {
@@ -207,7 +218,10 @@ case class CompiledAgreement(
         } yield {
           value match {
             case Some(value: SectionInfo) =>
-              Success(renderedElements.:+(SectionElement(value.numbering, lvl, number, resetNumbering, overrideSymbol, overrideFormat)))
+              for {
+                overrideSymbolValue <- overrideSymbol
+                overrideFormatValue <- overrideFormat
+              } yield renderedElements.:+(SectionElement(value.numbering, lvl, number, resetNumbering, overrideSymbolValue, overrideFormatValue))
 
             case None =>
               val name = executionResult.sectionNameMapping(uuid)
@@ -219,9 +233,12 @@ case class CompiledAgreement(
               result.flatMap { r =>
                 r match {
                   case Some(v) =>
-                    VariableType.convert[SectionInfo](v).map { info =>
-                      renderedElements.:+(SectionElement(info.numbering, lvl, number, resetNumbering, overrideSymbol, overrideFormat))
-                    }
+                    for {
+                      overrideSymbolValue <- overrideSymbol
+                      overrideFormatValue <- overrideFormat
+                      info <- VariableType.convert[SectionInfo](v)
+                    } yield renderedElements.:+(SectionElement(info.numbering, lvl, number, resetNumbering, overrideSymbolValue, overrideFormatValue))
+
                   case None =>
                     Failure("Section referenced before it has been rendered. The executor can't guess the section number before rendering it yet.")
                 }
@@ -233,18 +250,20 @@ case class CompiledAgreement(
 
       case VariableMember(name, keys, formatter) =>
         val definition = executionResult.getVariable(name).map(_.varType(executionResult))
-        Success(renderedElements.:+(VariableElement(name.name, definition, generateVariable(name, keys, formatter, executionResult), getDependencies(name, executionResult))))
+        getDependencies(name, executionResult).map { seq =>
+          renderedElements.:+(VariableElement(name.name, definition, generateVariable(name, keys, formatter, executionResult), seq))
+        }
       case _ =>
         Success(renderedElements)
     }
   }
 
-  private def getDependencies(name:VariableName, executionResult: TemplateExecutionResult):Seq[String] = executionResult.getAlias(name) match {
+  private def getDependencies(name:VariableName, executionResult: TemplateExecutionResult): Result[Seq[String]] = executionResult.getAlias(name) match {
     case Some(alias) =>
-      alias.variables(executionResult).map(_.name)
+      alias.variables(executionResult).map(_.map(_.name))
     case None => executionResult.getVariable(name) match {
-      case Some(_) => Seq(name.name)
-      case None => Seq()
+      case Some(_) => Success(Seq(name.name))
+      case None => Success(Seq())
     }
   }
 

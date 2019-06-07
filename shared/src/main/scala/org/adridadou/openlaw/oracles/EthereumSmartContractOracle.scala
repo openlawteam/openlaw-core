@@ -24,20 +24,24 @@ case class EthereumSmartContractOracle() extends OpenlawOracle[EthereumSmartCont
   }
 
   private def handleEvent(vm:OpenlawVm, event:EthereumSmartContractCallEvent): Result[OpenlawVm] = {
-    vm.allActions.find(info => info.name === event.name).map { actionInfo =>
-      vm.executions[EthereumSmartContractExecution](event.name).find(_.tx === event.hash) match {
-        case Some(execution) =>
-          Success(vm.newExecution(event.name, createNewExecution(vm, toOpenlawExecutionStatus(event), event, execution.scheduledDate)))
-        case None =>
-          getScheduledDate(actionInfo, vm, event) flatMap {
-            case Some(scheduleDate) =>
-              Success(vm.newExecution(event.name, createNewExecution(vm, toOpenlawExecutionStatus(event), event, scheduleDate)))
+    vm
+      .allActions
+      .flatMap { actions =>
+        actions.find(info => info.name === event.name).map { actionInfo =>
+          vm.executions[EthereumSmartContractExecution](event.name).find(_.tx === event.hash) match {
+            case Some(execution) =>
+              Success(vm.newExecution(event.name, createNewExecution(vm, toOpenlawExecutionStatus(event), event, execution.scheduledDate)))
             case None =>
-              logger.warn(s"the transaction ${event.hash.toString} has not been added yet")
-              Success(vm)
+              getScheduledDate(actionInfo, vm, event) flatMap {
+                case Some(scheduleDate) =>
+                  Success(vm.newExecution(event.name, createNewExecution(vm, toOpenlawExecutionStatus(event), event, scheduleDate)))
+                case None =>
+                  logger.warn(s"the transaction ${event.hash.toString} has not been added yet")
+                  Success(vm)
+              }
           }
+        }.getOrElse(vm.allNextActions.flatMap(actions => Failure(s"action not found for ${event.name.name}. available ${actions.map(_.name.name).mkString(",")}")))
       }
-    }.getOrElse(Failure(s"action not found for ${event.name.name}. available ${vm.allNextActions.map(_.name.name).mkString(",")}"))
   }
 
   private def handleFailedEvent(vm: OpenlawVm, event: FailedEthereumSmartContractCallEvent): Result[OpenlawVm] = {

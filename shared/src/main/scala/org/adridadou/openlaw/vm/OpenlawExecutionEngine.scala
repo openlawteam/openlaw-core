@@ -47,7 +47,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     resumeExecution(executionResult, templates).flatMap(newResult => {
       mainTemplate match {
         case agreement:CompiledAgreement if newResult.agreements.isEmpty =>
-          attempt(executionResult.structuredMainTemplate(agreement))
+          executionResult.structuredMainTemplate(agreement)
             .map { t =>
               newResult.agreementsInternal.append(t)
               newResult
@@ -97,28 +97,32 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
   }
 
   private def finishExecution(executionResult: OpenlawExecutionState, templates:Map[TemplateSourceIdentifier, CompiledTemplate]):Result[OpenlawExecutionState] = {
-    executionResult.parentExecutionInternal.map(parent => {
+    executionResult.parentExecutionInternal.map { parent =>
       (for {
         definition <- executionResult.templateDefinition
       } yield {
-        if(!executionResult.embedded) {
+        val result = if (!executionResult.embedded) {
           executionResult.template match {
             case agreement:CompiledAgreement =>
-              attempt(getRoot(parent).agreementsInternal.append(executionResult.structuredInternal(agreement)))
+              executionResult.structuredInternal(agreement).map(getRoot(parent).agreementsInternal.append(_))
             case _ =>
+              Success(())
+          }
+        } else {
+          Success(())
+        }
+        result.flatMap { _ =>
+          validateSubExecution(executionResult, definition).map { _ =>
+            if (executionResult.embedded) {
+              parent.finishedEmbeddedExecutions append executionResult
+            }
+            parent
           }
         }
 
-        validateSubExecution(executionResult, definition).map(_ => {
-          if(executionResult.embedded) {
-            parent.finishedEmbeddedExecutions append executionResult
-          }
-          parent
-        })
+      }).getOrElse(Success(parent)).map(x => x.copy(state = ExecutionReady))
 
-      }).getOrElse(Success(parent)) map (_.copy(state = ExecutionReady))
-
-    }).getOrElse(Success(executionResult))
+    }.getOrElse(Success(executionResult))
   }
 
   private final def executeInternal(execution: OpenlawExecutionState, templates:Map[TemplateSourceIdentifier, CompiledTemplate]): Result[OpenlawExecutionState] = {
@@ -221,32 +225,35 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
           Failure(s"numbering parameter in section definition should be a number, not ${badValue.getClass.getSimpleName}")
         case None =>
           Success(executionResult.sectionLevelStack, Nil)
-      }.map {
+      }.flatMap {
       _.map { case (numbering, newSectionValues) =>
-        val overrideSymbol = section.overrideSymbol(executionResult)
-        val overrideFormat = section.overrideFormat(executionResult)
-        val sectionValue = SectionHelper.generateListNumber(section.lvl, numbering, overrideSymbol, overrideFormat)
-        val referenceValue = SectionHelper.generateReferenceValue(section.lvl, numbering, overrideSymbol)
-        val params = Seq(
-          "reference value" -> OneValueParameter(StringConstant(generateFullSectionValue(section, referenceValue, executionResult))),
-          "numbering" -> OneValueParameter(StringConstant(sectionValue))
-        )
-        val name = section.definition
-          .map(_.name)
-          .filter(_ =!= "_") //_ means anonymous
-          .map(VariableName(_))
-          .getOrElse(executionResult.createAnonymousVariable())
+        for {
+          overrideSymbol <- section.overrideSymbol(executionResult)
+          overrideFormat <- section.overrideFormat(executionResult)
+        } yield {
+          val sectionValue = SectionHelper.generateListNumber(section.lvl, numbering, overrideSymbol, overrideFormat)
+          val referenceValue = SectionHelper.generateReferenceValue(section.lvl, numbering, overrideSymbol)
+          val params = Seq(
+            "reference value" -> OneValueParameter(StringConstant(generateFullSectionValue(section, referenceValue, executionResult))),
+            "numbering" -> OneValueParameter(StringConstant(sectionValue))
+          )
+          val name = section.definition
+            .map(_.name)
+            .filter(_ =!= "_") //_ means anonymous
+            .map(VariableName(_))
+            .getOrElse(executionResult.createAnonymousVariable())
 
-        val variable = VariableDefinition(name = name, variableTypeDefinition = Some(VariableTypeDefinition("Section")), defaultValue = Some(Parameters(params)))
-        executionResult.variablesInternal.append(variable)
-        executionResult.executedVariablesInternal.append(name)
-        executionResult.sectionNameMapping put(section.uuid, name)
-        executionResult.sectionNameMappingInverseInternal put(name, section.uuid)
-        executionResult.addLastSectionByLevel(section.lvl, referenceValue)
-        executionResult.addSectionLevelStack(newSectionValues)
-        executionResult.addProcessedSection(section, SectionHelper.calculateNumberInList(section.lvl, numbering))
+          val variable = VariableDefinition(name = name, variableTypeDefinition = Some(VariableTypeDefinition("Section")), defaultValue = Some(Parameters(params)))
+          executionResult.variablesInternal.append(variable)
+          executionResult.executedVariablesInternal.append(name)
+          executionResult.sectionNameMapping put(section.uuid, name)
+          executionResult.sectionNameMappingInverseInternal put(name, section.uuid)
+          executionResult.addLastSectionByLevel(section.lvl, referenceValue)
+          executionResult.addSectionLevelStack(newSectionValues)
+          executionResult.addProcessedSection(section, SectionHelper.calculateNumberInList(section.lvl, numbering))
 
-        executionResult
+          executionResult
+        }
       }
     }
     .flatten

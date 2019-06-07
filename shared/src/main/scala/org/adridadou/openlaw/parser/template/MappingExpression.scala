@@ -3,7 +3,7 @@ package org.adridadou.openlaw.parser.template
 import org.adridadou.openlaw.OpenlawValue
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.variableTypes.VariableType
-import org.adridadou.openlaw.result.Result
+import org.adridadou.openlaw.result.{Result, Success}
 
 case class MappingExpression(expression: Expression, scopeExecutionResult: TemplateExecutionResult) extends Expression {
   override def missingInput(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =
@@ -16,9 +16,9 @@ case class MappingExpression(expression: Expression, scopeExecutionResult: Templ
   override def expressionType(executionResult: TemplateExecutionResult): Result[VariableType] =
     expression.expressionType(scopeExecutionResult)
 
-  override def evaluate(executionResult: TemplateExecutionResult): Option[OpenlawValue] =
+  override def evaluate(executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] =
     expression.evaluate(scopeExecutionResult)
 
-  override def variables(executionResult: TemplateExecutionResult): Seq[VariableName] =
-    Seq()
+  override def variables(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =
+    Success(Seq())
 }

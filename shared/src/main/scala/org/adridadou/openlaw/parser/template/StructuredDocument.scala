@@ -1,27 +1,28 @@
 package org.adridadou.openlaw.parser.template
+
+import cats.implicits._
+import cats.Eq
 import java.time.{Clock, ZoneId}
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
 
-import cats.Eq
-import org.adridadou.openlaw.values.{ContractId, TemplateParameters, TemplateTitle}
-
-import scala.collection.mutable
-import cats.implicits._
-import org.adridadou.openlaw.parser.template.expressions.Expression
-import org.adridadou.openlaw.parser.template.variableTypes._
-
-import scala.annotation.tailrec
-import scala.reflect.ClassTag
-import VariableName._
 import io.circe._
 import io.circe.generic.auto._
 import io.circe.generic.semiauto._
 import io.circe.syntax._
+import org.adridadou.openlaw.values.{ContractId, TemplateParameters, TemplateTitle}
+import org.adridadou.openlaw.parser.template.expressions.Expression
+import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.{OpenlawMap, OpenlawValue}
 import org.adridadou.openlaw.oracles.OpenlawSignatureProof
-import org.adridadou.openlaw.result.{Failure, Result, Success}
+import org.adridadou.openlaw.result.{Failure, FailureCause, Result, ResultNel, Success}
+import org.adridadou.openlaw.result.Implicits.{RichResult, RichResultNel}
 import org.adridadou.openlaw.vm.Executions
+
+import scala.annotation.tailrec
+import scala.collection.mutable
+import scala.reflect.ClassTag
+import VariableName._
 
 trait TemplateExecutionResult {
   def id:TemplateExecutionResultId
@@ -290,8 +291,11 @@ trait TemplateExecutionResult {
       getVariable(name)
   }
 
-  def validate(): Result[Unit] =
-    getVariableValues[Validation](ValidationType).flatMap(_.map(x => x.validate(this)).toList.sequence.map(_ => ()))
+  def validate: ResultNel[Unit] =
+    getVariableValues[Validation](ValidationType).toResultNel andThen { values =>
+      ResultNel(values.toList.map(x => x.validate(this))).toUnit
+    }
+
 
   def getExecutedVariables:Seq[VariableName] = {
     val variableNames = getAllVariableNames
@@ -470,7 +474,7 @@ case class OpenlawExecutionState(
 
   def executionLevel:Int = executionLevel(parentExecution, 0)
 
-  def validateExecution:ValidationResult = {
+  def validateExecution: Result[ValidationResult] = {
     val variables = getAllExecutedVariables
       .flatMap({case (result, name) => result.getVariable(name).map(variable => (result, variable))})
       .filter({case (_, variable) => variable.varType(this) match {
@@ -487,55 +491,64 @@ case class OpenlawExecutionState(
       }
     }).map({case (_, variable) => variable})
 
-    val missingIdentitiesResult: Result[(Seq[VariableName], Seq[String])] = variables.map({ case (result, variable) =>
-      variable.varType(result) match {
-        case IdentityType =>
-          Success(resultFromMissingInput(variable.missingInput(result)))
+    val missingIdentitiesResult = {
+      variables.map { case (result, variable) =>
+        variable.varType(result) match {
+          case IdentityType =>
+            Success(resultFromMissingInput(variable.missingInput(result)))
 
-        case collectionType:CollectionType if collectionType.typeParameter === IdentityType =>
-          result.getVariableValue[CollectionValue](variable.name).map {
-            case Some(value) if value.size =!= value.values.size =>
-              (Seq(variable.name), Seq())
-            case Some(_) =>
-              (Seq(), Seq())
-            case None =>
-              (Seq(variable.name), Seq())
-          }
-
-        case structureType:DefinedStructureType if structureType.structure.typeDefinition.values.exists(_ === IdentityType) =>
-          result.getVariableValue[OpenlawMap[VariableName, OpenlawValue]](variable.name).map { values =>
-            val identityProperties = structureType.structure.typeDefinition
-              .filter({ case (_, propertyType) => propertyType === IdentityType })
-              .map({ case (propertyName, _) => propertyName }).toSeq
-
-            if (identityProperties.forall(values.getOrElse(Map()).contains)) {
-              (Seq(), Seq())
-            } else {
-              (Seq(variable.name), Seq())
+          case collectionType: CollectionType if collectionType.typeParameter === IdentityType =>
+            result.getVariableValue[CollectionValue](variable.name).map {
+              case Some(value) if value.size =!= value.values.size =>
+                (Seq(variable.name), Seq())
+              case Some(_) =>
+                (Seq(), Seq())
+              case None =>
+                (Seq(variable.name), Seq())
             }
-          }
 
-        case _ =>
-          Success((Seq(), Seq()))
+          case structureType: DefinedStructureType if structureType.structure.typeDefinition.values.exists(_ === IdentityType) =>
+            result.getVariableValue[OpenlawMap[VariableName, OpenlawValue]](variable.name).map { values =>
+              val identityProperties = structureType.structure.typeDefinition
+                .filter({ case (_, propertyType) => propertyType === IdentityType })
+                .map({ case (propertyName, _) => propertyName }).toSeq
+
+              if (identityProperties.forall(values.getOrElse(Map()).contains)) {
+                (Seq(), Seq())
+              } else {
+                (Seq(variable.name), Seq())
+              }
+            }
+
+          case _ =>
+            Success((Seq(), Seq()))
+        }
       }
-    })
+      .toList
+      .sequence
+    }
 
-    val identitiesErrors = missingIdentitiesResult.flatMap({
-      case (_, errors) =>  errors
-    })
+    missingIdentitiesResult.map { missingIdentitiesValue =>
 
-    val missingIdentities = missingIdentitiesResult.flatMap({
-      case (values, _) =>  values
-    })
+      val identitiesErrors = missingIdentitiesValue.flatMap({
+        case (_, errors) => errors
+      })
 
-    val (missingInputs, additionalErrors) = resultFromMissingInput(allMissingInput)
+      val missingIdentities = missingIdentitiesValue.flatMap({
+        case (values, _) => values
+      })
 
-    ValidationResult(
-      identities = identities,
-      missingInputs = missingInputs,
-      missingIdentities = missingIdentities,
-      validationExpressionErrors = validate() ++ additionalErrors ++ identitiesErrors
-    )
+      val (missingInputs, additionalErrors) = resultFromMissingInput(allMissingInput)
+
+      val validationErrors = validate.leftMap(nel => nel.map(_.message).toList).swap.getOrElse(Nil)
+
+      ValidationResult(
+        identities = identities,
+        missingInputs = missingInputs,
+        missingIdentities = missingIdentities,
+        validationExpressionErrors = validationErrors ++ additionalErrors ++ identitiesErrors
+      )
+    }
   }
 
   def toSerializable:SerializableTemplateExecutionResult = {

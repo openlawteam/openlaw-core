@@ -32,12 +32,14 @@ case object ChoiceType extends VariableType("Choice") with TypeGenerator[Choices
   }
 
   private def generateValues(exprs:Seq[Expression], executionResult: TemplateExecutionResult): Result[Seq[String]] = {
-    exprs
+    val x = exprs
       .toList
       .map(_.evaluate(executionResult).map(_.toList))
       .sequence
       .map(_.flatten)
-      .flatMap(_.map(VariableType.convert[OpenlawString](_)).sequence)
+
+      val y: Result[List[String]] = x.flatMap(_.map(VariableType.convert[OpenlawString](_)).sequence)
+    y
   }
 
   override def defaultFormatter: Formatter = new NoopFormatter
