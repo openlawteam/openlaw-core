@@ -117,7 +117,7 @@ case class Section(uuid:String, definition:Option[SectionDefinition], lvl:Int) e
       case None =>
         executionResult
           .allProcessedSections
-          .map(_._1)
+          .map({case (section,_) => section})
           .reverse
           .filter(s => s.lvl === lvl)
           .map(s => s.localOverrideSymbol(executionResult))
@@ -130,7 +130,7 @@ case class Section(uuid:String, definition:Option[SectionDefinition], lvl:Int) e
       case None =>
         executionResult
           .allProcessedSections
-          .map(_._1)
+          .map({case (section,_) => section})
           .reverse
           .dropWhile(s => s === this)
           .filter(s => s.lvl === lvl)
