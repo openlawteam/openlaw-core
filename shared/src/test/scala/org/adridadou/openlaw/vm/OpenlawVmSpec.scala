@@ -46,8 +46,8 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
 
     vm(LoadTemplate(template))
 
-    vm.evaluate[OpenlawString]("Hello").right.value.underlying shouldBe ("World")
-    vm.evaluate[OpenlawString]("Hello + ' World'").right.value.underlying shouldBe ("World World")
+    vm.evaluate[OpenlawString]("Hello").right.value.underlying shouldBe "World"
+    vm.evaluate[OpenlawString]("Hello + ' World'").right.value.underlying shouldBe "World World"
   }
 
   it should "be possible to register signature as incoming events and distinguish failed signatures" in {
@@ -282,7 +282,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
         |event type name: "OpenlawSignatureEvent";
         |conditional filter: this.value = 2939)]]
         |
-        |[[Signature.value]]""".stripMargin
+        |[[Signature.event.value]] [[Signature.received]]""".stripMargin
 
     val templateId = TemplateId(TestCryptoService.sha256(template))
     val definition = ContractDefinition(creatorId = UserId("hello@world.com"), mainTemplate = templateId, templates = Map(), parameters = TemplateParameters())
@@ -298,7 +298,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
       case Right(newVm) =>
         newVm.allExecutions.keys should contain(VariableName("Signature"))
         val text = parser.forReview(newVm.executionResult.value.agreements.head)
-        text shouldBe "<p class=\"no-section\"><br /></p><p class=\"no-section\">2,939</p>"
+        text shouldBe "<p class=\"no-section\"><br /></p><p class=\"no-section\">2,939 true</p>"
       case Failure(ex, message) =>
         fail(message, ex)
     }
