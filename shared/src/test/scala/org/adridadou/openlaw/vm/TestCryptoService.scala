@@ -2,6 +2,7 @@ package org.adridadou.openlaw.vm
 
 import org.adridadou.openlaw.oracles.CryptoService
 import org.adridadou.openlaw.parser.template.variableTypes.{EthereumAddress, EthereumData, EthereumSignature}
+import org.adridadou.openlaw.result.Implicits.RichResult
 
 object TestCryptoService extends CryptoService {
 
@@ -27,7 +28,7 @@ case class TestAccount(address:EthereumAddress) {
 object TestAccount {
   def newRandom:TestAccount = {
     val address = Array.fill(20)((scala.util.Random.nextInt(256) - 128).toByte)
-    TestAccount(EthereumAddress(address))
+    TestAccount(EthereumAddress(address).getOrThrow())
   }
 }
 
