@@ -154,7 +154,10 @@ case class CompiledAgreement(
 
         result.flatMap { booleans =>
           booleans
-            .find { case Some((_, true)) => true }
+            .find {
+              case Some((_, true)) => true
+              case _ => false
+            }
             .map { case Some((conditionalBlock, _)) => getAgreementElementsFromElement(renderedElements, conditionalBlock, executionResult) }
             .getOrElse(Success(renderedElements))
         }

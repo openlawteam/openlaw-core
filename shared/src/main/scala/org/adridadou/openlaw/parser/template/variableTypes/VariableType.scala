@@ -134,7 +134,7 @@ abstract class VariableType(val name: String) {
 
   def serialize: Json = Json.obj("name" -> io.circe.Json.fromString(name))
 
-  def validateOperation(expr: ValueExpression, executionResult: TemplateExecutionResult): Option[String] = None
+  def validateOperation(expr: ValueExpression, executionResult: TemplateExecutionResult): Result[Unit] = Success(())
 
   def accessVariables(name:VariableName, keys:Seq[String], executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =
     Success(Seq(name))

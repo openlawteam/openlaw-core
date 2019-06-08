@@ -27,20 +27,21 @@ case class ValueExpression(left:Expression, right:Expression, operation:ValueOpe
     for {
       leftType <- left.expressionType(executionResult)
       rightType <- right.expressionType(executionResult)
-    } yield {
-      if(!leftType.isCompatibleType(rightType, operation)) {
-        Failure("left and right expression are of incompatible types." + leftType.name + " & " + rightType.name + " in " + left.toString + " & " + right.toString)
-      } else {
-        leftType.validateOperation(this, executionResult) match {
-          case Some(err) => Failure(err)
-          case None =>
-            (for {
-            _ <- left.missingInput(executionResult)
-            _ <- right.missingInput(executionResult)
-          } yield () ).left.flatMap(Failure(_))
+      result <- {
+        if (!leftType.isCompatibleType(rightType, operation)) {
+          Failure("left and right expression are of incompatible types." + leftType.name + " & " + rightType.name + " in " + left.toString + " & " + right.toString)
+        } else {
+          leftType
+            .validateOperation(this, executionResult)
+            .flatMap { _ =>
+              for {
+                _ <- left.missingInput(executionResult)
+                _ <- right.missingInput(executionResult)
+              } yield ()
+            }
         }
       }
-    }
+    } yield result
 
   override def toString:String = left.toString + operation.toString + right.toString
 }
