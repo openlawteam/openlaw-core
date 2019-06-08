@@ -34,9 +34,9 @@ case object LargeTextType extends VariableType("LargeText") {
   override def checkTypeName(nameToCheck: String): Boolean =
     Seq("LargeText", "String").exists(_.equalsIgnoreCase(nameToCheck))
 
-  override def getFormatter(formatter: FormatterDefinition, executionResult: TemplateExecutionResult):Formatter = formatter.name.toLowerCase() match {
-    case "uppercase" => new UppercaseFormatter
-    case _ => defaultFormatter
+  override def getFormatter(formatter: FormatterDefinition, executionResult: TemplateExecutionResult): Result[Formatter] = formatter.name.toLowerCase() match {
+    case "uppercase" => Success(new UppercaseFormatter)
+    case _ => Success(defaultFormatter)
   }
 
   def thisType: VariableType = TextType

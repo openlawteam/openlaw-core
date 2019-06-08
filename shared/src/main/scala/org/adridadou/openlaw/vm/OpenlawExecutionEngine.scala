@@ -378,7 +378,10 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       .sequence
       .map { seq =>
         seq
-          .find { case Some((block, true)) => true }
+          .find {
+            case Some((block, true)) => true
+            case _ => false
+          }
           .map { case Some((block, _)) => block }
       }
 
