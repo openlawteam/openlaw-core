@@ -46,7 +46,7 @@ case object NumberType extends VariableType("Number") {
 
   override def divide(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Result[Option[OpenlawBigDecimal]] =
   combineConverted[OpenlawBigDecimal, OpenlawBigDecimal](optLeft, optRight) {
-    case (left, right) if right =!= BigDecimal(0) => Success(left * right)
+    case (left, right) if right =!= BigDecimal(0) => Success(left / right)
   }
 
   override def internalFormat(value: OpenlawValue): Result[String] =
