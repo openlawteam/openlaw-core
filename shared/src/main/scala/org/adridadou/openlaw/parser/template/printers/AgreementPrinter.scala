@@ -88,15 +88,15 @@ object SectionHelper {
 
   def generateReferenceValue(lvl: Int, sections: Seq[Int], overrideSymbol: Option[SectionSymbol]):String = {
     val numberInList = calculateNumberInList(lvl, sections)
-    val defaultFormat = SectionFormats.get(lvl - 1).getOrElse(throw new RuntimeException(s"we handle only ${SectionFormats.size} levels for now"))
-    formatSectionValue(numberInList, overrideSymbol.getOrElse(defaultFormat._1), "%s")
+    val (symbol,_,_,_,_) = SectionFormats.get(lvl - 1).getOrElse(throw new RuntimeException(s"we handle only ${SectionFormats.size} levels for now"))
+    formatSectionValue(numberInList, overrideSymbol.getOrElse(symbol), "%s")
   }
 
   def generateListNumber(lvl: Int, sections: Seq[Int], overrideSymbol: Option[SectionSymbol], overrideFormat: Option[SectionFormat]): String = {
     val numberInList = calculateNumberInList(lvl, sections)
-    val defaultFormat = SectionFormats.get(lvl - 1).getOrElse(throw new RuntimeException(s"we handle only ${SectionFormats.size} levels for now"))
-    val sectionSymbol = overrideSymbol.getOrElse(defaultFormat._1)
-    val sectionFormat = overrideFormat.getOrElse(defaultFormat._3)
+    val (symbol,_,format,_,_) = SectionFormats.get(lvl - 1).getOrElse(throw new RuntimeException(s"we handle only ${SectionFormats.size} levels for now"))
+    val sectionSymbol = overrideSymbol.getOrElse(symbol)
+    val sectionFormat = overrideFormat.getOrElse(format)
 
     formatSectionValue(numberInList, sectionSymbol, sectionFormat.formatString)
   }

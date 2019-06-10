@@ -2,7 +2,7 @@ package org.adridadou.openlaw.oracles
 
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
-import org.adridadou.openlaw.parser.template.VariableName
+import org.adridadou.openlaw.parser.template.{ActionIdentifier, VariableName}
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.vm.{OpenlawVm, OpenlawVmEvent, OpenlawVmInitEvent}
 import slogging.LazyLogging
@@ -16,15 +16,15 @@ case class EthereumERC712Oracle(crypto:CryptoService) extends OpenlawOracle[Prep
 
   override def incoming(vm: OpenlawVm, event: PreparedERC712SmartContractCallEvent): Result[OpenlawVm] = {
     vm
-      .getAllVariables(EthereumCallType)
-      .find({ case (_, variable) => variable.name === event.name }).flatMap { case (executionResult, variable) => variable.evaluateT[EthereumSmartContractCall](executionResult).map((_, variable.name, executionResult)) }
-      .flatMap({ case (call, name, executionResult) => for {
+      .getAllVariableValues[EthereumSmartContractCall](EthereumCallType)
+      .find({ case (call, executionResult) => call.identifier(executionResult) === event.identifier })
+      .flatMap({ case (call, executionResult) => for {
         from <- call.getFrom(executionResult) if from === event.signee
         to <- Some(call.getContractAddress(executionResult)) if to === event.receiveAddress
-      } yield name})
-      .filter(_ === event.name)
+      } yield call.identifier(executionResult)})
+      .filter(_ === event.identifier)
       .map { name => Success(vm.setInitExecution(name, PreparedERC712SmartContractCallExecution(name, event.signedCall))) }
-      .getOrElse(Failure(s"action not found for ${event.name.name}. available ${vm.allNextActions.map(_.name.name).mkString(",")}"))
+      .getOrElse(Failure(s"action not found for ${event.typeIdentifier}"))
   }
 
   override def shouldExecute(event: OpenlawVmEvent): Boolean = event match {
@@ -49,6 +49,7 @@ object PreparedERC712SmartContractCallExecution{
 
 final case class PreparedERC712SmartContractCallEvent(
                                                        name:VariableName,
+                                                       identifier:ActionIdentifier,
                                                        signee:EthereumAddress,
                                                        signedCall:EthereumSignature,
                                                        receiveAddress:EthereumAddress) extends OpenlawVmInitEvent {
@@ -57,7 +58,7 @@ final case class PreparedERC712SmartContractCallEvent(
 }
 
 final case class PreparedERC712SmartContractCallExecution(
-                                                           name:VariableName,
+                                                           identifier:ActionIdentifier,
                                                            signedCall:EthereumSignature) extends OpenlawExecutionInit {
   override def typeIdentifier: String = className[PreparedERC712SmartContractCallExecution]
   override def serialize: String = this.asJson.noSpaces

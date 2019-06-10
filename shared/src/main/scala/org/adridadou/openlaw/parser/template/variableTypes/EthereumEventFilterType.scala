@@ -6,7 +6,7 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.parser._
 import io.circe.syntax._
 import org.adridadou.openlaw.OpenlawValue
-import org.adridadou.openlaw.oracles.EthereumEventFilterExecution
+import org.adridadou.openlaw.oracles.{CryptoService, EthereumEventFilterExecution}
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
@@ -74,25 +74,27 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
   }
 
   override def access(value: OpenlawValue, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = {
+    val actionDefinition = VariableType.convert[EventFilterDefinition](value)
+    val identifier = actionDefinition.identifier(executionResult)
     keys.toList match {
       case Nil => Success(Some(value))
       case key::Nil =>
         propertyDef.get(key) match {
           case Some(pd) =>
-            pd.data(getExecutions(name, executionResult))
+            pd.data(getExecutions(identifier, executionResult))
           case None =>
             Failure(s"unknown key $key for $name")
         }
 
       case "event"::head::Nil =>
         propertyDef(head, name, executionResult)
-          .flatMap(_.data(getExecutions(name, executionResult)))
+          .flatMap(_.data(getExecutions(identifier, executionResult)))
       case _ => Failure(s"Ethereum event only support one level of properties. invalid property access ${keys.mkString(".")}")
     }
   }
 
-  private def getExecutions(name:VariableName, executionResult: TemplateExecutionResult):Seq[EthereumEventFilterExecution] = {
-    executionResult.executions.get(name)
+  private def getExecutions(identifier:ActionIdentifier, executionResult: TemplateExecutionResult):Seq[EthereumEventFilterExecution] = {
+    executionResult.executions.get(identifier)
       .map(_.executionMap.values.toSeq.map(VariableType.convert[EthereumEventFilterExecution]))
       .getOrElse(Seq())
   }

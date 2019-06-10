@@ -6,7 +6,7 @@ import cats.implicits._
 import io.circe.syntax._
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.{Decoder, Encoder, Json}
-import org.adridadou.openlaw.parser.template.{OpenlawTemplateLanguageParserService, TemplateExecutionResult, VariableDefinition, VariableName}
+import org.adridadou.openlaw.parser.template.{ActionIdentifier, OpenlawTemplateLanguageParserService, TemplateExecutionResult, VariableDefinition, VariableName}
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.result.{Result, Success}
 import org.adridadou.openlaw.vm.{OpenlawVm, OpenlawVmEvent}
@@ -30,34 +30,27 @@ case class EthereumEventFilterExecution(executionDate: LocalDateTime, executionS
   override def serialize: Json = this.asJson
 }
 
-case class EthereumEventFilterOracle(parser: OpenlawTemplateLanguageParserService) extends OpenlawOracle[EthereumEventFilterEvent] with LazyLogging {
+case class EthereumEventFilterOracle(parser: OpenlawTemplateLanguageParserService, crypto:CryptoService) extends OpenlawOracle[EthereumEventFilterEvent] with LazyLogging {
 
   override def incoming(vm: OpenlawVm, event: EthereumEventFilterEvent): Result[OpenlawVm] = {
     vm
-      .getAllVariables(EthereumEventFilterType)
-      .find { case (_, variable) => variable.name === event.name }.flatMap {
-      case (executionResult, variable) =>
-        variable
-          .defaultValue
-          .map(EthereumEventFilterType.construct(_, executionResult))
-          .map {
-            case Success(Some(eventFilter)) =>
-              val name = VariableName("this")
-              val result = for {
-                structureType <- generateStructureType(name, eventFilter, executionResult)
-                child <- executionResult.startEphemeralExecution(name, structureType.cast(event.values.asJson.noSpaces, executionResult), structureType)
-              } yield {
-                (eventFilter.contractAddress.evaluate(child), eventFilter.eventType.evaluate(child), eventFilter.conditionalFilter.evaluate(child)) match {
-                  case (Some(OpenlawString(address)), Some(OpenlawString(eventType)), Some(OpenlawBoolean(true))) if address === event.smartContractAddress.withLeading0x && eventType === event.eventType =>
-                    val execution = EthereumEventFilterExecution(event.executionDate, SuccessfulExecution, event)
-                    Success(vm.newExecution(event.name, execution))
-                  case _ =>
-                    Success(vm)
-                }
-              }
-              result.flatten
-            case _ => Success(vm)
+      .getAllVariableValues[EventFilterDefinition](EthereumEventFilterType)
+      .find { case (eventFilterDefinition, executionResult) => eventFilterDefinition.identifier(executionResult) === event.identifier }.map {
+      case (eventFilterDefinition, executionResult) =>
+        val name = VariableName("this")
+        val result = for {
+          structureType <- generateStructureType(name, eventFilterDefinition, executionResult)
+          child <- executionResult.startEphemeralExecution(name, structureType.cast(event.values.asJson.noSpaces, executionResult), structureType)
+        } yield {
+          (eventFilterDefinition.contractAddress.evaluate(child), eventFilterDefinition.eventType.evaluate(child), eventFilterDefinition.conditionalFilter.evaluate(child)) match {
+            case (Some(OpenlawString(address)), Some(OpenlawString(eventType)), Some(OpenlawBoolean(true))) if address === event.smartContractAddress.withLeading0x && eventType === event.eventType =>
+              val execution = EthereumEventFilterExecution(event.executionDate, SuccessfulExecution, event)
+              Success(vm.newExecution(event.identifier, execution))
+            case _ =>
+              Success(vm)
           }
+        }
+        result.flatten
     } match {
       case Some(newVm) => newVm
       case None =>
@@ -89,12 +82,12 @@ object EthereumEventFilterEvent {
 }
 
 final case class EthereumEventFilterEvent(
-  name:VariableName,
-  hash:EthereumHash,
-  smartContractAddress:EthereumAddress,
-  eventType:String,
-  values:Map[VariableName, String],
-  executionDate:LocalDateTime) extends OpenlawVmEvent {
+     identifier:ActionIdentifier,
+     hash:EthereumHash,
+     smartContractAddress:EthereumAddress,
+     eventType:String,
+     values:Map[VariableName, String],
+     executionDate:LocalDateTime) extends OpenlawVmEvent {
 
   override def typeIdentifier: String = className[EthereumEventFilterEvent]
   override def serialize: String = this.asJson.noSpaces

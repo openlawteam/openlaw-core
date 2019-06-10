@@ -72,7 +72,8 @@ case object EthereumCallType extends VariableType("EthereumCall") with ActionTyp
       case Nil => Success(Some(value))
       case prop::Nil => propertyDef.get(prop) match {
         case Some(propDef) =>
-          val executions:Seq[EthereumSmartContractExecution] = executionResult.executions.get(name).map(_.executionMap.values.toSeq)
+          val identifier = VariableType.convert[EthereumSmartContractCall](value).identifier(executionResult)
+          val executions:Seq[EthereumSmartContractExecution] = executionResult.executions.get(identifier).map(_.executionMap.values.toSeq)
             .getOrElse(Seq())
             .map(VariableType.convert[EthereumSmartContractExecution])
 

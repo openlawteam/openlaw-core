@@ -301,7 +301,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers with Eith
     executeTemplate(text) match {
       case Right(executionResult) =>
         executionResult.getVariables(EthereumCallType).size shouldBe 1
-        val allActions = executionResult.allActions()
+        val allActions = executionResult.allActions
         allActions.size shouldBe 1
 
         val call = executionResult.getVariableValues[EthereumSmartContractCall](EthereumCallType).head

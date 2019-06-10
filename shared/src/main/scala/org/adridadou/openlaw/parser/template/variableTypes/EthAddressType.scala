@@ -130,8 +130,8 @@ object EthereumData {
 
   val empty:EthereumData = EthereumData(Array[Byte]())
 
-  def apply(signature: Array[Byte]): EthereumData =
-    new EthereumData(signature)
+  def apply(data: Array[Byte]): EthereumData =
+    new EthereumData(data)
 
   def apply(a: String): EthereumData = Option(a) match {
     case None => throw new RuntimeException("empty signature")

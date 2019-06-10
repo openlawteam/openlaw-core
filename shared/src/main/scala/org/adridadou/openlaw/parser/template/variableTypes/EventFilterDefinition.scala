@@ -3,7 +3,7 @@ package org.adridadou.openlaw.parser.template.variableTypes
 import cats.implicits._
 import java.time.LocalDateTime
 
-import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawString, OpenlawValue}
+import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawString}
 import org.adridadou.openlaw.parser.abi.AbiParser.AbiType
 import org.adridadou.openlaw.parser.abi.{AbiEntry, AbiParam, AbiParser}
 import org.adridadou.openlaw.parser.template._
@@ -84,4 +84,13 @@ case class EventFilterDefinition(
       case _ => None
     }
   }
+
+  override def identifier(executionResult:TemplateExecutionResult): ActionIdentifier = ActionIdentifier(
+    contractAddress.evaluate(executionResult)
+      .map(EthAddressType.convert)
+      .map(_.withLeading0x).getOrElse("") +
+    interface.evaluateT[OpenlawString](executionResult).getOrElse("")+
+    eventType.evaluateT[OpenlawString](executionResult).getOrElse("") +
+    conditionalFilter.toString
+  )
 }
