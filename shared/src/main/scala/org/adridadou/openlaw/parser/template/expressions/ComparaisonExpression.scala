@@ -10,22 +10,31 @@ case class ComparaisonExpression(left:Expression, right:Expression, op:Operation
 
   override def evaluate(executionResult: TemplateExecutionResult): Result[Option[OpenlawBoolean]] = {
     val x = for {
-      leftValue <- left.evaluate(executionResult)
-      rightValue <- right.evaluate(executionResult)
-    } yield (leftValue, rightValue) match {
-      case (one: Comparable[Any] @unchecked, two: Comparable[Any] @unchecked) => Success(one.compareTo(two))
-      case _ => Failure(s"can not compare ${leftValue.getClass} and ${rightValue.getClass}")
+      leftOption <- left.evaluate(executionResult)
+      rightOption <- right.evaluate(executionResult)
+    } yield {
+      (for {
+        leftValue <- leftOption
+        rightValue <- rightOption
+      } yield (leftValue, rightValue) match {
+        case (one: Comparable[Any] @unchecked, two: Comparable[Any] @unchecked) => Success(one.compareTo(two))
+        case _ => Failure(s"can not compare ${leftValue.getClass} and ${rightValue.getClass}")
+      })
+        .sequence
+        .map { option =>
+          option.map { comparaisonResult =>
+            op match {
+              case GreaterThan => comparaisonResult > 0
+              case LesserThan => comparaisonResult < 0
+              case GreaterOrEqual => comparaisonResult >= 0
+              case LesserOrEqual => comparaisonResult <= 0
+              case Equals => comparaisonResult === 0
+            }
+          }
+        }
     }
 
-    x.flatten.map { comparaisonResult =>
-      op match {
-        case GreaterThan => comparaisonResult > 0
-        case LesserThan => comparaisonResult < 0
-        case GreaterOrEqual => comparaisonResult >= 0
-        case LesserOrEqual => comparaisonResult <= 0
-        case Equals => comparaisonResult === 0
-      }
-    }.map(Some(_))
+    x.flatten.map(_.map(OpenlawBoolean))
   }
 
   override def expressionType(executionResult: TemplateExecutionResult): Result[VariableType] = Success(YesNoType)
