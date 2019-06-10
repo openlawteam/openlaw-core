@@ -8,8 +8,8 @@ import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 case class ComparaisonExpression(left:Expression, right:Expression, op:Operation) extends BinaryExpression {
 
-  override def evaluate(executionResult: TemplateExecutionResult): Result[Option[OpenlawBoolean]] = {
-    val x = for {
+  override def evaluate(executionResult: TemplateExecutionResult): Result[Option[OpenlawBoolean]] =
+    (for {
       leftOption <- left.evaluate(executionResult)
       rightOption <- right.evaluate(executionResult)
     } yield {
@@ -32,10 +32,9 @@ case class ComparaisonExpression(left:Expression, right:Expression, op:Operation
             }
           }
         }
-    }
-
-    x.flatten.map(_.map(OpenlawBoolean))
-  }
+    })
+    .flatten
+    .map(_.map(OpenlawBoolean))
 
   override def expressionType(executionResult: TemplateExecutionResult): Result[VariableType] = Success(YesNoType)
 

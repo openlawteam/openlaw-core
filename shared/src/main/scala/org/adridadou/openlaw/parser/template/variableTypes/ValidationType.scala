@@ -61,25 +61,19 @@ case object ValidationType extends VariableType(name = "Validation") with NoShow
 
 case class Validation(condition:Expression, errorMessage:Expression) extends OpenlawNativeValue {
   def validate(executionResult: TemplateExecutionResult):Result[Unit] =
-    condition
-      .evaluate(executionResult)
-      .flatMap { option =>
-        option.map(VariableType.convert[OpenlawBoolean](_)).sequence
-      }
-      .flatMap { booleanOption =>
-        booleanOption
-          .filter(_ === false)
-          .map { _ =>
-            errorMessage
-              .evaluate(executionResult)
-              .flatMap { stringOption =>
-                stringOption
-                  .map(VariableType.convert[OpenlawString](_))
-                  .sequence
-              }
-              .map (_.getOrElse(s"validation error (error message could not be resolved)"))
-          }
-          .sequence
-      }
-      .map(_.map(Failure(_)).getOrElse(Success(())))
+    (for {
+      option <- condition.evaluate(executionResult)
+      value <- option.map(VariableType.convert[OpenlawBoolean](_)).sequence
+      errorOption <- value
+        .filter(_ === false)
+        .map { _ =>
+          errorMessage
+            .evaluate(executionResult).flatMap(_.map(VariableType.convert[OpenlawString]).sequence)
+            .map(_.getOrElse(s"validation error (error message could not be resolved)"))
+        }
+        .sequence
+    } yield {
+      errorOption.map(Failure(_)).getOrElse(Success(()))
+    })
+    .flatten
 }

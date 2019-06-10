@@ -252,25 +252,20 @@ case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[
     val currentType = varType(executionResult)
 
     currentType match {
-      case DefinedChoiceType(choices,typeName) =>
+      case DefinedChoiceType(choices, typeName) =>
         // may use ResultNel to accumulate this errors
         exprs.map(validateOption(_, choices, typeName, executionResult)).headOption.getOrElse(Success(()))
       case _ =>
-        val x: Result[List[VariableType]] = exprs
-          .map(_.expressionType(executionResult))
+        exprs
+          .map { expr => expr.expressionType(executionResult).map(x => expr -> x) }
           .toList
           .sequence
-
-
-        val y = x.flatMap { list =>
-          list
-            .find(_ =!= currentType)
-            .map(expr => Failure(s"options element error! should be of type ${varType(executionResult).name} but ${expr.toString} is ${expr.name} instead"))
-            .getOrElse(Success(()))
-
-        }
-
-        y
+          .flatMap { list =>
+            list
+              .find { case (_, variableType) => variableType =!= currentType }
+              .map { case (expr, variableType) => Failure(s"options element error! should be of type ${varType(executionResult).name} but ${expr.toString} is ${variableType.name} instead") }
+              .getOrElse(Success(()))
+          }
     }
   }
 
