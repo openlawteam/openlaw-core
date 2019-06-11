@@ -51,10 +51,10 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
 
   private[this] val paragraphCounter = new AtomicInteger()
 
-  def printRoot(paragraphs: Seq[Paragraph]): String =
-    html(
+  def printRoot(paragraphs: Seq[Paragraph]): String = html(
       body(printParagraphs(paragraphs))
-    ).toString
+    ).render
+
 
   def printParagraphs(paragraphs: Seq[Paragraph]): Seq[Frag] = {
     printFragments(paragraphs)
@@ -84,13 +84,6 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
           }
 
           tailRecurse(fixed.flatten, conditionalBlockDepth, inSection, continue)
-
-        /* Removed to fix broken conditionalBlockDepth in recursive calls
-        case p @ Paragraph(Seq(c: ConditionalStart, remaining @ _*)) =>
-          printFragments(c +: Paragraph(remaining.toList) +: xs, conditionalBlockDepth, inSection, continue)
-        case p @ Paragraph(Seq(c: ConditionalStartWithElse, remaining @ _*)) =>
-          printFragments(c +: Paragraph(remaining.toList) +: xs, conditionalBlockDepth, inSection, continue)
-        */
 
         case Paragraph(Seq()) =>
           tailRecurse(xs, conditionalBlockDepth, inSection, continue)
