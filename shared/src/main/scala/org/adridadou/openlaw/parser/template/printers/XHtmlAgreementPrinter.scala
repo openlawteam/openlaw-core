@@ -18,7 +18,10 @@ object XHtmlAgreementPrinter {
     * it's content as an XHTML string.
     */
   implicit class FragsPrinter(val frags: Seq[Frag]) extends AnyVal {
-    def print: String = frags.map(_.toString).fold("")(_ + _)
+    def print: String = frags
+      .foldLeft(new StringBuilder)({
+        case (builder, frag) => builder.append(frag.render)
+      }).toString
   }
 }
 
