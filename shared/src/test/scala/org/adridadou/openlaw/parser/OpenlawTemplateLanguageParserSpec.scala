@@ -1178,7 +1178,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
     val text ="<%[[My Address:Address]]%>[[My Address.badProperty]]"
 
     structureAgreement(text) match {
-      case r @ Right(_) => fail("should fail")
+      case Right(_) => fail("should fail")
       case Left(msg) => msg.message shouldBe "property 'badProperty' not found for type Address"
     }
   }
@@ -1282,7 +1282,6 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
       """.stripMargin
 
     val result = structureAgreement(text, Map("option" -> "four"))
-    result should be ("test")
     result.left.value.message shouldBe "the value four is not part of the type Options"
   }
 

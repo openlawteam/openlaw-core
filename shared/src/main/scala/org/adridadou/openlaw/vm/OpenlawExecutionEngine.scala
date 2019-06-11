@@ -165,10 +165,8 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       executionResult.remainingElements.prependAll(elems)
       Success(executionResult)
 
-    case ConditionalBlock(subBlock, elseSubBlock, expr) => {
-      val x = executeConditionalBlock(executionResult, templates, subBlock, elseSubBlock, expr)
-      x
-    }
+    case ConditionalBlock(subBlock, elseSubBlock, expr) =>
+      executeConditionalBlock(executionResult, templates, subBlock, elseSubBlock, expr)
 
     case foreachBlock:ForEachBlock =>
       executeForEachBlock(executionResult, foreachBlock)
@@ -379,14 +377,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       .toList
       .map { block => block.conditionalExpression.evaluate(executionResult).flatMap(_.map(VariableType.convert[OpenlawBoolean](_).map(block -> _)).sequence) }
       .sequence
-      .map { seq =>
-        seq
-          .find {
-            case Some((block, true)) => true
-            case _ => false
-          }
-          .map { case Some((block, _)) => block }
-      }
+      .map { seq => seq.collectFirst { case Some((block, true)) => block } }
 
   private def processConditionalBlockSet(executionResult: OpenlawExecutionState, blocks: Seq[ConditionalBlock]):Result[OpenlawExecutionState] = {
     blocks.foreach({
@@ -464,7 +455,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       exprTypeResult.flatMap { exprType =>
         if (exprType === YesNoType) {
 
-          val x = expr.evaluate(executionResult).flatMap(_.map(VariableType.convert[OpenlawBoolean](_)).sequence).flatMap { option =>
+          expr.evaluate(executionResult).flatMap(_.map(VariableType.convert[OpenlawBoolean](_)).sequence).flatMap { option =>
             if (option.exists(x => x === true)) {
               executionResult.remainingElements.prependAll(subBlock.elems)
               Success(executionResult)
@@ -478,7 +469,6 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
               t
             }
           }
-          x
         }
         else
         {

@@ -15,12 +15,12 @@ trait BinaryExpression extends Expression {
     } yield leftMissing ++ rightMissing
 
   override def validate(executionResult: TemplateExecutionResult): Result[Unit] = {
-    val x = (for {
+    (for {
       leftType <- left.expressionType(executionResult)
       rightType <- right.expressionType(executionResult)
     } yield {
 
-      val x = if (!leftType.isCompatibleType(rightType, Compare)) {
+      if (!leftType.isCompatibleType(rightType, Compare)) {
         Failure("left and right expression need to be of the same type to be computed." + leftType.name + " & " + rightType.name + " in " + left.toString + " & " + right.toString)
       } else {
         (for {
@@ -33,9 +33,7 @@ trait BinaryExpression extends Expression {
             Success(())
         }
       }
-      x
-    })
-      x.flatten
+    }).flatten
   }
 
   override def variables(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =

@@ -125,8 +125,10 @@ case class CompiledAgreement(
       case variableDefinition:VariableDefinition if !variableDefinition.isHidden =>
         executionResult.getAliasOrVariableType(variableDefinition.name) match {
           case Right(variableType @ SectionType) =>
-           getDependencies(variableDefinition.name, executionResult).map {
-             renderedElements :+ VariableElement(variableDefinition.name.name, Some(variableType), generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult), _)
+           getDependencies(variableDefinition.name, executionResult).flatMap { dependencies =>
+             generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult).map { list =>
+               renderedElements :+ VariableElement(variableDefinition.name.name, Some(variableType), list, dependencies)
+             }
            }
           case Right(ClauseType) =>
             executionResult.subExecutionsInternal.get(variableDefinition.name) match {
@@ -139,8 +141,10 @@ case class CompiledAgreement(
           case Right(_:NoShowInForm) =>
             Success(renderedElements)
           case Right(variableType) =>
-           getDependencies(variableDefinition.name, executionResult).map {
-             renderedElements :+ VariableElement(variableDefinition.name.name, Some(variableType), generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult), _)
+           getDependencies(variableDefinition.name, executionResult).flatMap { dependencies =>
+             generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult).map { list =>
+               renderedElements :+ VariableElement(variableDefinition.name.name, Some(variableType), list, dependencies)
+             }
            }
           case Left(x) =>
             // TODO: Should ignore failure?
@@ -158,7 +162,10 @@ case class CompiledAgreement(
               case Some((_, true)) => true
               case _ => false
             }
-            .map { case Some((conditionalBlock, _)) => getAgreementElementsFromElement(renderedElements, conditionalBlock, executionResult) }
+            .map {
+              case Some((conditionalBlock, _)) => getAgreementElementsFromElement(renderedElements, conditionalBlock, executionResult)
+              case x => Failure(s"unexpected value: $x")
+            }
             .getOrElse(Success(renderedElements))
         }
 
@@ -253,8 +260,10 @@ case class CompiledAgreement(
 
       case VariableMember(name, keys, formatter) =>
         val definition = executionResult.getVariable(name).map(_.varType(executionResult))
-        getDependencies(name, executionResult).map { seq =>
-          renderedElements.:+(VariableElement(name.name, definition, generateVariable(name, keys, formatter, executionResult), seq))
+        getDependencies(name, executionResult).flatMap { seq =>
+          generateVariable(name, keys, formatter, executionResult).map { variable =>
+            renderedElements.:+(VariableElement(name.name, definition, variable, seq))
+          }
         }
       case _ =>
         Success(renderedElements)
@@ -270,7 +279,7 @@ case class CompiledAgreement(
     }
   }
 
-  private def generateVariable(name: VariableName, keys:Seq[String], formatter:Option[FormatterDefinition], executionResult: TemplateExecutionResult): List[AgreementElement] = {
+  private def generateVariable(name: VariableName, keys:Seq[String], formatter:Option[FormatterDefinition], executionResult: TemplateExecutionResult): Result[List[AgreementElement]] = {
 
     executionResult.getAliasOrVariableType(name).flatMap { varType =>
       val option = executionResult.getExpression(name).flatMap { expression =>
@@ -282,7 +291,7 @@ case class CompiledAgreement(
                 varType
                   .access(value, name, keys, executionResult)
                   .flatMap { option =>
-                    option.map(value => keysType.format(formatter, value, executionResult)).getOrElse(Success(List()))
+                    option.map(value => keysType.format(formatter, value, executionResult).map(_.toList)).getOrElse(Success(List()))
                   }
               }
           }
@@ -290,13 +299,7 @@ case class CompiledAgreement(
         }
         .sequence
       }
-
-      option.getOrElse(Success(varType.missingValueFormat(name)))
-    } match {
-      case Success(result) => result.toList
-      case Failure(e, message) =>
-        e.printStackTrace()
-        List(FreeText(Text(s"error: $message")))
+      option.getOrElse(Success(varType.missingValueFormat(name).toList))
     }
   }
 
