@@ -19,7 +19,7 @@ case class VariableMember(name:VariableName, keys:Seq[String], formatter:Option[
   override def validate(executionResult:TemplateExecutionResult): Result[Unit] =
     name
       .expressionType(executionResult)
-      .map(_.validateKeys(name, keys, name, executionResult))
+      .flatMap(_.validateKeys(name, keys, name, executionResult))
 
   override def expressionType(executionResult:TemplateExecutionResult): Result[VariableType] =
     name
@@ -203,7 +203,7 @@ case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[
         alias.evaluate(executionResult)
       case None =>
         val optVariable = executionResult.getVariable(this.name)
-        executionResult.getAliasOrVariableType(this.name) match {
+        executionResult.getAliasOrVariableType(this.name).flatMap {
           case _:NoShowInForm =>
             constructVariable(optVariable, executionResult)
           case _ =>

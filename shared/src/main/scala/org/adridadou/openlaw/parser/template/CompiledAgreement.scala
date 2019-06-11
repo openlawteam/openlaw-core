@@ -142,7 +142,7 @@ case class CompiledAgreement(
            getDependencies(variableDefinition.name, executionResult).map {
              renderedElements :+ VariableElement(variableDefinition.name.name, Some(variableType), generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult), _)
            }
-          case Left(_) =>
+          case Left(x) =>
             // TODO: Should ignore failure?
             Success(renderedElements)
         }
@@ -271,11 +271,12 @@ case class CompiledAgreement(
   }
 
   private def generateVariable(name: VariableName, keys:Seq[String], formatter:Option[FormatterDefinition], executionResult: TemplateExecutionResult): List[AgreementElement] = {
+
     executionResult.getAliasOrVariableType(name).flatMap { varType =>
       val option = executionResult.getExpression(name).flatMap { expression =>
         expression.evaluate(executionResult).flatMap { valueOpt =>
           valueOpt.map { value =>
-            val x = varType
+            varType
               .keysType(keys, expression, executionResult)
               .flatMap { keysType =>
                 varType
@@ -284,7 +285,6 @@ case class CompiledAgreement(
                     option.map(value => keysType.format(formatter, value, executionResult)).getOrElse(Success(List()))
                   }
               }
-            x
           }
           .sequence
         }
@@ -293,8 +293,10 @@ case class CompiledAgreement(
 
       option.getOrElse(Success(varType.missingValueFormat(name)))
     } match {
-      case Right(result) => result.toList
-      case Left(ex) => List(FreeText(Text(s"error: $ex")))
+      case Success(result) => result.toList
+      case Failure(e, message) =>
+        e.printStackTrace()
+        List(FreeText(Text(s"error: $message")))
     }
   }
 

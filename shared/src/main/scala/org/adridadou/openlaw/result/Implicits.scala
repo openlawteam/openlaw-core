@@ -68,8 +68,12 @@ object Implicits {
         case f => f
       }
     def recoverMerge(f: FailureCause => T): T = result.fold(failure => f(failure), success => success)
-    def recoverWith(pf: PartialFunction[FailureCause, Result[T]]): Result[T] = result.left.flatMap { error =>
-      if (pf.isDefinedAt(error)) pf(error) else result
+    def recoverWith(pf: PartialFunction[FailureCause, Result[T]]): Result[T] = result.leftFlatMap { error =>
+      if (pf.isDefinedAt(error)) {
+        pf(error)
+      } else {
+        result
+      }
     }
     def toResultNel: ResultNel[T] = result.toValidatedNel
     def toFuture: Future[T] = result match {

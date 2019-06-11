@@ -98,10 +98,11 @@ trait TemplateExecutionResult {
   def getAlias(name:String):Option[Expression] =
     getAlias(VariableName(name))
 
-  def getAliasOrVariableType(name:VariableName): Result[VariableType] =
+  def getAliasOrVariableType(name:VariableName): Result[VariableType] = {
     getExpression(name)
       .map(_.expressionType(this))
       .getOrElse(Failure(s"${name.name} cannot be resolved!"))
+  }
 
   def getVariables:Seq[VariableDefinition] =
     variables

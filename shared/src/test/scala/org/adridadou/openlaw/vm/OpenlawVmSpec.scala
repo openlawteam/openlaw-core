@@ -145,11 +145,11 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     val startDate = LocalDateTime.now(clock)
       .withYear(2018).withMonth(12).withDayOfMonth(12).withHour(0).withMinute(0).withSecond(0).withNano(0)
 
-    vm.nextActionSchedule shouldBe Some(startDate)
+    vm.nextActionSchedule.right.value shouldBe Some(startDate)
     val execution = EthereumSmartContractExecution(startDate, startDate, SuccessfulExecution, EthereumHash(Array[Byte]()))
     vm.newExecution(VariableName("My Contract Call"), execution)
 
-    vm.nextActionSchedule shouldBe Some(LocalDateTime
+    vm.nextActionSchedule.right.value shouldBe Some(LocalDateTime
       .now(clock)
       .withYear(2018).withMonth(12).withDayOfMonth(12).withHour(0).withMinute(1).withSecond(12).withNano(0)
     )

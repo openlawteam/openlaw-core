@@ -379,11 +379,13 @@ case class OpenlawVm(contractDefinition: ContractDefinition, cryptoService: Cryp
   }
 
   private def updateContractStateIfNecessary(vm:OpenlawVm, event: OpenlawVmEvent): Result[OpenlawVm] = {
-    vm.executionState match {
-      case ContractCreated if vm.allNextActions.isEmpty =>
-        vm(UpdateExecutionStateCommand(ContractRunning, event))
-      case _ =>
-        Success(vm)
+    vm.allNextActions.flatMap { nextActions =>
+      vm.executionState match {
+        case ContractCreated if nextActions.isEmpty =>
+          vm(UpdateExecutionStateCommand(ContractRunning, event))
+        case _ =>
+          Success(vm)
+      }
     }
   }
 
