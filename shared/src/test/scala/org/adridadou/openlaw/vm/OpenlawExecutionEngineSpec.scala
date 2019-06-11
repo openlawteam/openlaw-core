@@ -711,8 +711,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
 
     engine.execute(template, TemplateParameters(), Map()) match {
-      case r @ Right(_) =>
-        r shouldBe ("test")
+      case Right(_) =>
         fail("should fail!")
       case Left(ex) =>
         ex.message shouldBe "values cannot be resolved!"
