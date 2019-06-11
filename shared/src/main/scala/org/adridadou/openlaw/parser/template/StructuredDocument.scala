@@ -118,7 +118,7 @@ trait TemplateExecutionResult {
           case collectionType:CollectionType =>
             collectionType.typeParameter === varType
           case structuredType:DefinedStructureType =>
-            structuredType.structure.typeDefinition.values.exists(_ === varType)
+            structuredType.structure.typeDefinition.values.exists(_.varType(this) === varType)
           case variableType => variableType === varType
         }}).map((this, _)) ++ subExecutions.values.flatMap(_.getVariables(varType))
 
@@ -151,11 +151,11 @@ trait TemplateExecutionResult {
         case collectionType:CollectionType if collectionType.typeParameter === IdentityType =>
           variable.evaluate(result)
             .map(col => VariableType.convert[CollectionValue](col).list.map(VariableType.convert[Identity])).getOrElse(Seq())
-        case structureType:DefinedStructureType if structureType.structure.typeDefinition.values.exists(_ === IdentityType) =>
+        case structureType:DefinedStructureType if structureType.structure.typeDefinition.values.exists(_.varType(result) === IdentityType) =>
           val values = variable.evaluate(result).map(VariableType.convert[OpenlawMap[VariableName, OpenlawValue]](_).underlying).getOrElse(Map())
 
           structureType.structure.names
-            .filter(name => structureType.structure.typeDefinition(name) === IdentityType)
+            .filter(name => structureType.structure.typeDefinition(name).varType(result) === IdentityType)
             .map(name => VariableType.convert[Identity](values(name)))
 
         case _ =>
@@ -443,7 +443,7 @@ case class OpenlawExecutionState(
       variable.varType(result) match {
         case IdentityType => true
         case collectionType:CollectionType if collectionType.typeParameter === IdentityType => true
-        case structureType:DefinedStructureType if structureType.structure.typeDefinition.values.exists(_ === IdentityType) => true
+        case structureType:DefinedStructureType if structureType.structure.typeDefinition.values.exists(_.varType(this) === IdentityType) => true
         case _ => false
       }
     }).map({case (_, variable) => variable})
@@ -462,10 +462,10 @@ case class OpenlawExecutionState(
               (Seq(variable.name), Seq())
           }
 
-        case structureType:DefinedStructureType if structureType.structure.typeDefinition.values.exists(_ === IdentityType) =>
+        case structureType:DefinedStructureType if structureType.structure.typeDefinition.values.exists(_.varType(this) === IdentityType) =>
           val values = result.getVariableValue[OpenlawMap[VariableName, OpenlawValue]](variable.name).map(_.underlying)
           val identityProperties = structureType.structure.typeDefinition
-            .filter({case (_,propertyType) => propertyType === IdentityType})
+            .filter({case (_,propertyType) => propertyType.varType(this) === IdentityType})
             .map({case (propertyName,_) => propertyName}).toSeq
 
           if(identityProperties.forall(values.getOrElse(Map()).contains)) {
