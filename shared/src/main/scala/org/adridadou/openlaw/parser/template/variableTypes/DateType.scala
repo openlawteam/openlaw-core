@@ -110,9 +110,7 @@ object DateConverter {
   def cast(value:String, clock:Clock): Result[OpenlawDateTime] = {
     attempt(LocalDateTime.ofEpochSecond(value.toLong / 1000, 0, ZoneOffset.UTC))
       .map(OpenlawDateTime)
-      .recoverWith {
-        case Failure(_, _) => convertToDateTime(value, clock)
-      }
+      .recoverWith { case _ => convertToDateTime(value, clock) }
   }
 
   def convertToDate(d: String, clock:Clock): Result[OpenlawDateTime] = {

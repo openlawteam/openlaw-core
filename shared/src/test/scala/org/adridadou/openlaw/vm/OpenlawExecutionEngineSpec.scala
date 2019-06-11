@@ -84,6 +84,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         text shouldBe "<p class=\"no-section\"><br />                  [[Employer Ethereum Address]]<br /><br />                </p><p class=\"no-section\"><br /><br />    </p><p class=\"no-section\">[[some address]]<br /><br />    </p><p class=\"no-section\"><br />      </p>"
 
       case Failure(ex, message) =>
+        ex.printStackTrace()
         fail(message, ex)
     }
   }
@@ -710,7 +711,8 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
 
     engine.execute(template, TemplateParameters(), Map()) match {
-      case Right(_) =>
+      case r @ Right(_) =>
+        r shouldBe ("test")
         fail("should fail!")
       case Left(ex) =>
         ex.message shouldBe "values cannot be resolved!"

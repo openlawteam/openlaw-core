@@ -55,7 +55,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
   private def resultShouldBe(result:Result[String], expected:String): Unit = result match {
     case Right(actual) if actual === expected =>
     case Right(actual) => throw new RuntimeException(s"$actual should be $expected")
-    case Left(f) => throw new RuntimeException(f)
+    case Failure(e, message) => throw new RuntimeException(e)
   }
 
   "Markdown parser service" should "handle tables" in {
@@ -1178,7 +1178,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
     val text ="<%[[My Address:Address]]%>[[My Address.badProperty]]"
 
     structureAgreement(text) match {
-      case Right(_) => fail("should fail")
+      case r @ Right(_) => fail("should fail")
       case Left(msg) => msg.message shouldBe "property 'badProperty' not found for type Address"
     }
   }
@@ -1215,7 +1215,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
 
     executeTemplate(text, Map("My Number" -> "3")) match {
       case Right(executionResult) =>
-        executionResult.validate.toResult.left.value.message should contain("My Number needs to be higher than 5")
+        executionResult.validate.toResult.left.value.message should be("My Number needs to be higher than 5")
       case Left(ex) => fail(ex.message, ex)
     }
   }
@@ -1282,6 +1282,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
       """.stripMargin
 
     val result = structureAgreement(text, Map("option" -> "four"))
+    result should be ("test")
     result.left.value.message shouldBe "the value four is not part of the type Options"
   }
 

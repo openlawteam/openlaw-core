@@ -155,15 +155,15 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     val startDate = LocalDateTime.now(clock)
       .withYear(2018).withMonth(12).withDayOfMonth(12).withHour(0).withMinute(0).withSecond(0).withNano(0)
 
-    vm.allNextActions.size shouldBe 1
+    vm.allNextActions.right.value.size shouldBe 1
 
     vm.getAllExecutedVariables(EthereumCallType).size shouldBe 1
 
-    vm.nextActionSchedule shouldBe Some(startDate)
-    val execution = EthereumSmartContractExecution(startDate, startDate, SuccessfulExecution, EthereumHash.empty)
+    vm.nextActionSchedule.right.value shouldBe Some(startDate)
+    val execution = EthereumSmartContractExecution(startDate, startDate, SuccessfulExecution, EthereumHash(Array[Byte]()))
     vm.newExecution(VariableName("My Contract Call"), execution)
 
-    vm.nextActionSchedule shouldBe Some(LocalDateTime
+    vm.nextActionSchedule.right.value shouldBe Some(LocalDateTime
       .now(clock)
       .withYear(2018).withMonth(12).withDayOfMonth(12).withHour(0).withMinute(1).withSecond(12).withNano(0)
     )

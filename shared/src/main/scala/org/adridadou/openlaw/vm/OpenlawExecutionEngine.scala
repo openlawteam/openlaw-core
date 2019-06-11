@@ -68,7 +68,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
         executionResult.parentExecution match {
           case Some(_) =>
             // has to be in a matcher for tail call optimization
-            attempt(finishExecution(executionResult, templates)).flatten match {
+            finishExecution(executionResult, templates) match {
               case Success(result) => resumeExecution(result, templates)
               case f => f
             }
@@ -80,7 +80,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
         templates.get(identifier) match {
           case Some(template) =>
             // has to be in a matcher for tail call optimization
-            attempt(executionResult.startSubExecution(variableName, template, willBeUsedForEmbedded)).flatten match {
+            executionResult.startSubExecution(variableName, template, willBeUsedForEmbedded) match {
               case Success(result) => resumeExecution(result, templates)
               case f@Failure(_,_) => f
             }
@@ -165,8 +165,11 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       executionResult.remainingElements.prependAll(elems)
       Success(executionResult)
 
-    case ConditionalBlock(subBlock, elseSubBlock, expr) =>
-      executeConditionalBlock(executionResult, templates, subBlock, elseSubBlock, expr)
+    case ConditionalBlock(subBlock, elseSubBlock, expr) => {
+      val x = executeConditionalBlock(executionResult, templates, subBlock, elseSubBlock, expr)
+      x
+    }
+
     case foreachBlock:ForEachBlock =>
       executeForEachBlock(executionResult, foreachBlock)
 
@@ -461,7 +464,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       exprTypeResult.flatMap { exprType =>
         if (exprType === YesNoType) {
 
-          expr.evaluate(executionResult).flatMap(_.map(VariableType.convert[OpenlawBoolean](_)).sequence).flatMap { option =>
+          val x = expr.evaluate(executionResult).flatMap(_.map(VariableType.convert[OpenlawBoolean](_)).sequence).flatMap { option =>
             if (option.exists(x => x === true)) {
               executionResult.remainingElements.prependAll(subBlock.elems)
               Success(executionResult)
@@ -470,9 +473,12 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
                 executionResult.remainingElements.prependAll(elems)
                 executionResult
               }).getOrElse(executionResult)
-              expr.validate(executionResult).map(_ => executionResult)
+              val y = expr.validate(executionResult)
+              val t = y.map(_ => executionResult)
+              t
             }
           }
+          x
         }
         else
         {

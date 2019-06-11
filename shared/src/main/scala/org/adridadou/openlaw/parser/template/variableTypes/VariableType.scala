@@ -223,7 +223,7 @@ abstract class VariableType(val name: String) {
       case Parameters(parameterMap) =>
         parameterMap.toMap.get("value") match {
           case Some(parameter) =>
-            attempt(construct(parameter, executionResult)).flatten
+            construct(parameter, executionResult)
           case None => Success(None)
         }
       case _ =>

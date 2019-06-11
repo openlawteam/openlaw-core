@@ -1,5 +1,6 @@
 package org.adridadou.openlaw.parser.template.expressions
 
+import cats.implicits._
 import org.adridadou.openlaw.parser.template.{Compare, TemplateExecutionResult, VariableName}
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 
@@ -14,12 +15,12 @@ trait BinaryExpression extends Expression {
     } yield leftMissing ++ rightMissing
 
   override def validate(executionResult: TemplateExecutionResult): Result[Unit] = {
-    for {
+    val x = (for {
       leftType <- left.expressionType(executionResult)
       rightType <- right.expressionType(executionResult)
     } yield {
 
-      if (!leftType.isCompatibleType(rightType, Compare)) {
+      val x = if (!leftType.isCompatibleType(rightType, Compare)) {
         Failure("left and right expression need to be of the same type to be computed." + leftType.name + " & " + rightType.name + " in " + left.toString + " & " + right.toString)
       } else {
         (for {
@@ -32,7 +33,9 @@ trait BinaryExpression extends Expression {
             Success(())
         }
       }
-    }
+      x
+    })
+      x.flatten
   }
 
   override def variables(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =
