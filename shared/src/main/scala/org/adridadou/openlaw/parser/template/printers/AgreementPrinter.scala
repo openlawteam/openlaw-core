@@ -90,16 +90,16 @@ object SectionHelper {
 
   def generateReferenceValue(lvl: Int, sections: Seq[Int], overrideSymbol: Option[SectionSymbol]): Result[String] = {
     val numberInList = calculateNumberInList(lvl, sections)
-    SectionFormats.get(lvl - 1).toResult(s"we handle only ${SectionFormats.size} levels for now").map { defaultFormat =>
-      formatSectionValue(numberInList, overrideSymbol.getOrElse(defaultFormat._1), "%s")
+    SectionFormats.get(lvl - 1).toResult(s"we handle only ${SectionFormats.size} levels for now").map { case (symbol, _, _, _, _) =>
+      formatSectionValue(numberInList, overrideSymbol.getOrElse(symbol), "%s")
     }
   }
 
   def generateListNumber(lvl: Int, sections: Seq[Int], overrideSymbol: Option[SectionSymbol], overrideFormat: Option[SectionFormat]): Result[String] = {
     val numberInList = calculateNumberInList(lvl, sections)
-    SectionFormats.get(lvl - 1).toResult(s"we handle only ${SectionFormats.size} levels for now").map { defaultFormat =>
-      val sectionSymbol = overrideSymbol.getOrElse(defaultFormat._1)
-      val sectionFormat = overrideFormat.getOrElse(defaultFormat._3)
+    SectionFormats.get(lvl - 1).toResult(s"we handle only ${SectionFormats.size} levels for now").map { case (symbol, _, format, _, _) =>
+      val sectionSymbol = overrideSymbol.getOrElse(symbol)
+      val sectionFormat = overrideFormat.getOrElse(format)
       formatSectionValue(numberInList, sectionSymbol, sectionFormat.formatString)
     }
   }

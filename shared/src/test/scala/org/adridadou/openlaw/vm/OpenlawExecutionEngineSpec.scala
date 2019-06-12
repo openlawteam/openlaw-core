@@ -71,11 +71,11 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
                   contract address: "0x531E0957391dAbF46f8a9609d799fFD067bDbbC0";
                   interface: $abi;
                   event type name: "Approval";
-                  conditional filter: this.owner = Employer Ethereum Address)]]
+                  conditional filter: this.event.owner = Employer Ethereum Address)]]
 
       [[some address:EthAddress]]
 
-      {{Contract Creation Event.owner = some address => hello world}}
+      {{Contract Creation Event.event.owner = some address => hello world}}
       """)
 
     engine.execute(template, TemplateParameters()) match {
@@ -1288,6 +1288,28 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       case Left(ex) =>
         ex.message shouldBe "type mismatch while building the default value for type Text. the constructor result type should be OpenlawString but instead is OpenlawBigDecimal"
     }
+  }
+
+  it should "be able to define options for Period type" in {
+    val text="""[[test:Period(options: "1 day", "1 week", "2 months")]]"""
+
+    val template = compile(text)
+
+    val Right(result) = engine.execute(template, TemplateParameters())
+
+    val Some(variable) = result.getVariable("test")
+
+    variable.validate(result) shouldBe Success.unit
+  }
+
+  it should "still fail if the defined options are invalid" in {
+    val text="""[[test:Period(options: "1 day", "1 week", "2 monthsfehwfw")]]"""
+
+    val template = compile(text)
+
+    val Failure(_, message) = engine.execute(template, TemplateParameters())
+
+    message shouldBe "options element error! should be of type Period but \"2 monthsfehwfw\" is Text instead"
   }
 
   private def compile(text:String):CompiledTemplate = parser.compileTemplate(text) match {

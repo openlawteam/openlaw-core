@@ -84,4 +84,13 @@ case class EventFilterDefinition(
       case _ => Success(None)
     }
   }
+
+  override def identifier(executionResult:TemplateExecutionResult): ActionIdentifier = ActionIdentifier(
+    contractAddress.evaluate(executionResult)
+      .map(EthAddressType.convert)
+      .map(_.withLeading0x).getOrElse("") +
+    interface.evaluateT[OpenlawString](executionResult).getOrElse("")+
+    eventType.evaluateT[OpenlawString](executionResult).getOrElse("") +
+    conditionalFilter.toString
+  )
 }

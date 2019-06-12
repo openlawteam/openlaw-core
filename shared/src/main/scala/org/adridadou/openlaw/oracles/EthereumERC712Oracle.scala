@@ -2,7 +2,7 @@ package org.adridadou.openlaw.oracles
 
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
-import org.adridadou.openlaw.parser.template.VariableName
+import org.adridadou.openlaw.parser.template.{ActionIdentifier, VariableName}
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.vm.{OpenlawVm, OpenlawVmEvent, OpenlawVmInitEvent}
 import slogging.LazyLogging
@@ -14,30 +14,33 @@ import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 case class EthereumERC712Oracle(crypto:CryptoService) extends OpenlawOracle[PreparedERC712SmartContractCallEvent] with LazyLogging {
 
-  override def incoming(vm: OpenlawVm, event: PreparedERC712SmartContractCallEvent): Result[OpenlawVm] = {
-    vm.getAllVariables(EthereumCallType)
-      .find { case (_, variable) => variable.name === event.name }
-      .map { case (executionResult, variable) =>
-        val x = variable.evaluateT[EthereumSmartContractCall](executionResult).map(x => x.map((_, variable.name, executionResult)))
-        x.flatMap { option =>
-
-          option.map { case (call, name, executionResult) =>
-            for {
+  override def incoming(vm: OpenlawVm, event: PreparedERC712SmartContractCallEvent): Result[OpenlawVm] =
+    vm
+      .getAllVariableValues[EthereumSmartContractCall](EthereumCallType)
+      .flatMap { values =>
+        values
+          .toList
+          .find { case (call, executionResult) => call.identifier(executionResult) === event.identifier }
+          .map { case (call, executionResult) =>
+            val x = for {
               fromOption <- call.getFrom(executionResult)
               to <- call.getContractAddress(executionResult)
             } yield {
               for {
                 from <- fromOption if from === event.signee
                 to <- Some(to) if to === event.receiveAddress
-              } yield name
+              } yield call.identifier(executionResult)
             }
-            .filter(_ === event.name)
-            .map { name => vm.setInitExecution(name, PreparedERC712SmartContractCallExecution(name, event.signedCall)) }
-          }.sequence
-        }
-      }.sequence.map(_.flatten.flatten)
-      .flatMap(_.map(Success(_)).getOrElse(vm.allNextActions.flatMap(actions => Failure(s"action not found for ${event.name.name}. available ${actions.map(_.name.name).mkString(",")}"))))
-  }
+            x
+          }
+          .sequence
+          .map(_.flatten)
+          .flatMap { option =>
+            option
+              .map { name => Success(vm.setInitExecution(name, PreparedERC712SmartContractCallExecution(name, event.signedCall))) }
+              .getOrElse(Failure(s"action not found for ${event.typeIdentifier}"))
+          }
+      }
 
   override def shouldExecute(event: OpenlawVmEvent): Boolean = event match {
     case _:PreparedERC712SmartContractCallEvent => true
@@ -61,6 +64,7 @@ object PreparedERC712SmartContractCallExecution{
 
 final case class PreparedERC712SmartContractCallEvent(
                                                        name:VariableName,
+                                                       identifier:ActionIdentifier,
                                                        signee:EthereumAddress,
                                                        signedCall:EthereumSignature,
                                                        receiveAddress:EthereumAddress) extends OpenlawVmInitEvent {
@@ -69,7 +73,7 @@ final case class PreparedERC712SmartContractCallEvent(
 }
 
 final case class PreparedERC712SmartContractCallExecution(
-                                                           name:VariableName,
+                                                           identifier:ActionIdentifier,
                                                            signedCall:EthereumSignature) extends OpenlawExecutionInit {
   override def typeIdentifier: String = className[PreparedERC712SmartContractCallExecution]
   override def serialize: String = this.asJson.noSpaces

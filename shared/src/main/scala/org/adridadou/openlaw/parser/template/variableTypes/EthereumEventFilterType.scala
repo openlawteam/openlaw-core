@@ -6,7 +6,7 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.parser._
 import io.circe.syntax._
 import org.adridadou.openlaw.OpenlawValue
-import org.adridadou.openlaw.oracles.EthereumEventFilterExecution
+import org.adridadou.openlaw.oracles.{CryptoService, EthereumEventFilterExecution}
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
@@ -20,7 +20,8 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
 
   private val propertyDef:Map[String,EthereumEventPropertyDef] = Map[String, EthereumEventPropertyDef](
     "executionDate" -> EthereumEventPropertyDef(typeDef = DateTimeType, evts => Success(evts.headOption.map(_.executionDate))),
-    "tx" -> EthereumEventPropertyDef(typeDef = EthTxHashType, evts => Success(evts.headOption.map(_.event.hash)))
+    "tx" -> EthereumEventPropertyDef(typeDef = EthTxHashType, evts => Success(evts.headOption.map(_.event.hash))),
+    "received" -> EthereumEventPropertyDef(typeDef = YesNoType, evts => Success(Some(evts.nonEmpty)))
   )
 
   override def cast(value: String, executionResult: TemplateExecutionResult): Result[EventFilterDefinition] =
@@ -64,37 +65,55 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
       }
 
   override def keysType(keys: Seq[String], expr: Expression, executionResult: TemplateExecutionResult): Result[VariableType] =
-    keys match {
-      case Seq(key) =>
-        propertyDef(key, expr, executionResult).map(_.typeDef)
+    keys.toList match {
+      case key::Nil =>
+        propertyDef.get(key) map { e => Success(e.typeDef) } getOrElse Failure(s"unknown key $key for $name")
+      case "event"::head::Nil =>
+        propertyDef(head, expr, executionResult).map(_.typeDef)
       case _ => super.keysType(keys, expr, executionResult)
     }
 
-  override def validateKeys(name:VariableName, keys: Seq[String], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] = keys match {
-    case Seq(key) =>
-      propertyDef(key, expression, executionResult).map(_ => Unit)
+  override def validateKeys(name:VariableName, keys: Seq[String], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] = keys.toList match {
+    case key::Nil =>
+      propertyDef.get(key) map { _ => Success.unit } getOrElse Failure(s"unknown key $key for $name")
+    case "event"::head::Nil =>
+      propertyDef(head, name, executionResult).map(_ => Unit)
     case _ =>
       super.validateKeys(name, keys, expression, executionResult)
   }
 
   override def access(value: OpenlawValue, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = {
+    val actionDefinition = VariableType.convert[EventFilterDefinition](value)
+    val identifier = actionDefinition.identifier(executionResult)
     keys.toList match {
       case Nil => Success(Some(value))
+      case key::Nil =>
+        propertyDef.get(key) match {
+          case Some(pd) =>
+            for {
+              executions <- getExecutions(identifier, executionResult)
+              result <- pd.data(executions)
+            } yield result
+          case None =>
+            Failure(s"unknown key $key for $name")
+        }
       case head::tail if tail.isEmpty =>
         for {
           property <- propertyDef(head, name, executionResult)
           executions <- getExecutions(name, executionResult)
           result <- property.data(executions)
         } yield result
-
+      case "event"::head::Nil =>
+        propertyDef(head, name, executionResult)
+          .flatMap(_.data(getExecutions(identifier, executionResult)))
       case _ => Failure(s"Ethereum event only support one level of properties. invalid property access ${keys.mkString(".")}")
     }
   }
 
-  private def getExecutions(name:VariableName, executionResult: TemplateExecutionResult):Result[List[EthereumEventFilterExecution]] = {
+  private def getExecutions(identifier:ActionIdentifier, executionResult: TemplateExecutionResult):Result[List[EthereumEventFilterExecution]] = {
     val x = executionResult
       .executions
-      .get(name)
+      .get(identifier)
       .map(_.executionMap.values.toList.map(VariableType.convert[EthereumEventFilterExecution]))
       .getOrElse(Nil)
       .sequence

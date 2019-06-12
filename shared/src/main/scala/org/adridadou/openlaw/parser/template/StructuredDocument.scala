@@ -43,7 +43,7 @@ trait TemplateExecutionResult {
   def executedVariables:Seq[VariableName]
   def agreements:Seq[StructuredAgreement]
   def variableSectionList:Seq[String]
-  def executions:Map[VariableName, Executions]
+  def executions:Map[ActionIdentifier, Executions]
   def info:OLInformation
   def hasSigned(email: Email):Boolean =
     if(signatureProofs.contains(email)) true else parentExecution.exists(_.hasSigned(email))
@@ -353,7 +353,7 @@ case class SerializableTemplateExecutionResult(id:TemplateExecutionResultId,
                                                templateDefinition: Option[TemplateDefinition] = None,
                                                subExecutionIds:Map[VariableName, TemplateExecutionResultId],
                                                templateExecutions:Map[TemplateExecutionResultId, SerializableTemplateExecutionResult],
-                                               executions:Map[VariableName, Executions],
+                                               executions:Map[ActionIdentifier, Executions],
                                                parentExecutionId:Option[TemplateExecutionResultId],
                                                agreements:Seq[StructuredAgreement],
                                                variableSectionList:Seq[String],
@@ -370,7 +370,7 @@ case class SerializableTemplateExecutionResult(id:TemplateExecutionResultId,
                                                processedSections:Seq[(Section, Int)],
                                                clock:Clock) extends TemplateExecutionResult {
 
-  override def subExecutions: Map[VariableName, TemplateExecutionResult] = subExecutionIds.flatMap({case (name, executionId) => templateExecutions.get(executionId).map(name -> _)})
+  override def subExecutions: Map[VariableName, TemplateExecutionResult] = subExecutionIds.flatMap({case (identifier, executionId) => templateExecutions.get(executionId).map(identifier -> _)})
   override def parentExecution: Option[TemplateExecutionResult] = parentExecutionId.flatMap(templateExecutions.get)
 }
 
@@ -380,7 +380,7 @@ case class OpenlawExecutionState(
                                     parameters:TemplateParameters,
                                     embedded:Boolean,
                                     info:OLInformation,
-                                    executions:Map[VariableName,Executions],
+                                    executions:Map[ActionIdentifier,Executions],
                                     signatureProofs:Map[Email, OpenlawSignatureProof] = Map(),
                                     template:CompiledTemplate,
                                     forEachQueue:mutable.Buffer[Any] = mutable.Buffer(),
@@ -864,7 +864,9 @@ case object ExecutionReady extends TemplateExecutionState
 final case class ExecutionFailed(err:Failure[_]) extends TemplateExecutionState
 final case class ExecutionWaitForTemplate(variableName:VariableName, template:TemplateSourceIdentifier, willBeUsedForEmbedded:Boolean) extends TemplateExecutionState
 
-case class ActionInfo(action:ActionValue, name:VariableName, executionResult: TemplateExecutionResult)
+case class ActionInfo(action:ActionValue, executionResult: TemplateExecutionResult) {
+  def identifier:ActionIdentifier = action.identifier(executionResult)
+}
 
 object TemplateExecutionResultId {
   implicit val templateExecutionResultIdEq:Eq[TemplateExecutionResultId] = Eq.fromUniversalEquals
@@ -890,3 +892,13 @@ case class ValidationResult(
                              validationExpressionErrors:Seq[String]) {
   def successful:Boolean = identities.nonEmpty && missingInputs.isEmpty && missingIdentities.isEmpty && validationExpressionErrors.isEmpty
 }
+
+object ActionIdentifier {
+  implicit val actionIdentifierEnc:Encoder[ActionIdentifier] = deriveEncoder
+  implicit val actionIdentifierDec:Decoder[ActionIdentifier] = deriveDecoder
+  implicit val actionIdentifierKeyEnc:KeyEncoder[ActionIdentifier] = (key: ActionIdentifier) => key.identifier
+  implicit val actionIdentifierKeyDec:KeyDecoder[ActionIdentifier] = (key: String) => Some(ActionIdentifier(key))
+  implicit val actionIdentifierEq:Eq[ActionIdentifier] = Eq.fromUniversalEquals
+}
+
+case class ActionIdentifier(identifier:String)

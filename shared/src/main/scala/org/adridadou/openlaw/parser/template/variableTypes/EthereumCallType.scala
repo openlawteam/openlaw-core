@@ -5,6 +5,7 @@ import io.circe._
 import io.circe.syntax._
 import io.circe.parser._
 import io.circe.generic.semiauto._
+import cats.implicits._
 import org.adridadou.openlaw.{OpenlawString, OpenlawValue}
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
@@ -84,14 +85,15 @@ case object EthereumCallType extends VariableType("EthereumCall") with ActionTyp
       case Nil => Success(Some(value))
       case prop::Nil => propertyDef.get(prop) match {
         case Some(propDef) =>
-            executionResult
-              .executions
-              .get(name)
-              .map(_.executionMap.values.toList)
-              .getOrElse(List.empty)
-              .map(VariableType.convert[EthereumSmartContractExecution])
-              .sequence
-              .map(seq => propDef.data(seq))
+          val identifier = VariableType.convert[EthereumSmartContractCall](value).identifier(executionResult)
+          executionResult
+            .executions
+            .get(identifier)
+            .map(_.executionMap.values.toList)
+            .getOrElse(List.empty)
+            .map(VariableType.convert[EthereumSmartContractExecution])
+            .sequence
+            .map(seq => propDef.data(seq))
         case None => Failure(s"unknown property $prop for EthereumCall type")
       }
       case _ =>

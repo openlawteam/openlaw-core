@@ -93,7 +93,7 @@ case class EthereumSmartContractCall(
       signatureParameterValue <- signatureParameter
       signatureRSVParameterValue <- signatureRSVParameter
       result <- {
-        val z = signatureParameterValue
+        signatureParameterValue
           .evaluate(executionResult)
           .flatMap {
             case Some(value) =>
@@ -101,7 +101,7 @@ case class EthereumSmartContractCall(
             case None =>
               signatureRSVParameterValue.getRsv(executionResult).map(_.map(rsv => Seq(rsv.r, rsv.s, rsv.v)))
           }
-        z.sequence
+          .sequence
       }
     } yield result).getOrElse(Success(Seq()))
 
@@ -148,6 +148,19 @@ case class EthereumSmartContractCall(
       }.sequence
      }
    } yield result
+  }
+
+  override def identifier(executionResult: TemplateExecutionResult): ActionIdentifier = {
+    ActionIdentifier(address.evaluate(executionResult)
+      .map(EthAddressType.convert)
+      .map(_.withLeading0x).getOrElse("") +
+    abi.evaluateT[OpenlawString](executionResult).getOrElse("") +
+    network.evaluateT[OpenlawString](executionResult).getOrElse("") +
+    functionName.evaluateT[OpenlawString](executionResult).getOrElse("") +
+    arguments.flatMap(_.evaluate(executionResult)).mkString(",") +
+    from.flatMap(_.evaluate(executionResult))
+      .map(EthAddressType.convert)
+      .map(_.withLeading0x).getOrElse(""))
   }
 }
 

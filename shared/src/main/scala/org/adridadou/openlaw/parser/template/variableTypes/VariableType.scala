@@ -25,6 +25,7 @@ trait NoShowInForm
 
 trait ActionValue {
   def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions:Seq[OpenlawExecution]): Result[Option[LocalDateTime]]
+  def identifier(executionResult:TemplateExecutionResult):ActionIdentifier
 }
 
 trait ActionType extends NoShowInForm {

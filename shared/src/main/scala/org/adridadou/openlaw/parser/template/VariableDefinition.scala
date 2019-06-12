@@ -5,7 +5,7 @@ import org.adridadou.openlaw.parser.template.variableTypes._
 import cats.implicits._
 import io.circe.{Decoder, Encoder, KeyDecoder, KeyEncoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
-import org.adridadou.openlaw.{OpenlawString, OpenlawValue}
+import org.adridadou.openlaw.OpenlawValue
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 import play.api.libs.json.{JsString, Reads, Writes}
@@ -252,9 +252,9 @@ case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[
     val currentType = varType(executionResult)
 
     currentType match {
-      case DefinedChoiceType(choices, typeName) =>
+      case choiceType:DefinedChoiceType =>
         // may use ResultNel to accumulate this errors
-        exprs.map(validateOption(_, choices, typeName, executionResult)).headOption.getOrElse(Success(()))
+        exprs.map(validateOption(_, choiceType, executionResult)).headOption.getOrElse(Success(()))
       case _ =>
         exprs
           .map { expr => expr.expressionType(executionResult).map(x => expr -> x) }
@@ -280,6 +280,35 @@ case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[
         case None =>
           Success(())
       }
+=======
+            .flatMap({
+              case expr @ StringConstant(value,_) =>
+                attempt(currentType.cast(value, executionResult)) match {
+                  case Success(_) => None
+                  case Failure(_,_) => Some(expr)
+                }
+              case expr => Some(expr)
+            }).find(_.expressionType(executionResult) =!= currentType)
+          .map(expr => Failure(s"options element error! should be of type ${varType(executionResult).name} but ${expr.toString} is ${expr.expressionType(executionResult).name} instead"))
+          .getOrElse(Success(()))
+    }
+  }
+
+  private def validateOption(expr:Expression, choiceType:DefinedChoiceType, executionResult: TemplateExecutionResult): Result[Unit] = {
+    expr match {
+      case StringConstant(str, _) =>
+        choiceType.choices.values.find(_ === str) match {
+          case Some(_) =>
+            Success.unit
+          case None =>
+            Failure(s"the value $str is not part of the Choice type ${choiceType.typeName}")
+        }
+      case _ if expr.expressionType(executionResult) === choiceType =>
+        Success.unit
+      case _ =>
+        Failure(s"the options need to be of type Text to possibly be of type ${expr.expressionType(executionResult)}")
+    }
+>>>>>>> master
   }
 
   override def variables(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =

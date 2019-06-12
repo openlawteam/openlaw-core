@@ -3,6 +3,7 @@ package org.adridadou.openlaw.parser.template.variableTypes
 import cats.implicits._
 import VariableType._
 import org.adridadou.openlaw.parser.template.formatters.Formatter
+import cats.implicits._
 import org.adridadou.openlaw.{OpenlawBigDecimal, OpenlawValue}
 import org.adridadou.openlaw.parser.template.expressions.{Expression, ValueExpression}
 import org.adridadou.openlaw.parser.template._

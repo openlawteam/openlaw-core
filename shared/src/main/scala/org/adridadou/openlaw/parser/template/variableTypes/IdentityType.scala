@@ -122,4 +122,6 @@ case class SignatureAction(email:Email) extends ActionValue {
       Success(Some(LocalDateTime.now))
     }
   }
+
+  override def identifier(executionResult: TemplateExecutionResult): ActionIdentifier = ActionIdentifier(email.email)
 }
