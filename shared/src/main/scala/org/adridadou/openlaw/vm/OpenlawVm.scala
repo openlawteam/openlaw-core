@@ -192,10 +192,12 @@ case class OpenlawVm(contractDefinition: ContractDefinition, profileAddress:Opti
       .sequence
       .map(_.getOrElse(List()))
 
-  def allNextActions: Result[Seq[ActionInfo]] = allActions
-    .flatMap { seq =>
-      seq
-        .map { info => info.action.nextActionSchedule(info.executionResult, executions(info.identifier)).map(_.map(nextDate => (info, nextDate))) }
+  def allNextActions: Result[Seq[ActionInfo]] =
+    allActions.flatMap { actions =>
+      actions
+        .map { info =>
+          info.identifier.flatMap { id => info.action.nextActionSchedule(info.executionResult, executions(id)).map(_.map(nextDate => (info, nextDate))) }
+        }
         .toList
         .sequence
         .map(_.flatten)
@@ -205,7 +207,13 @@ case class OpenlawVm(contractDefinition: ContractDefinition, profileAddress:Opti
   def executionState:ContractExecutionState = state.executionState
 
   def nextActionSchedule: Result[Option[LocalDateTime]] =
-    nextAction.flatMap(_.flatMap(info => info.action.nextActionSchedule(info.executionResult, executions(info.identifier)).sequence).sequence)
+    nextAction.flatMap { option =>
+      option.flatMap { info =>
+        info.identifier.flatMap { id =>
+          info.action.nextActionSchedule(info.executionResult, executions(id))
+        }.sequence
+      }.sequence
+    }
 
   def newSignature(identity:Identity, fullName:String, signature:OpenlawSignatureEvent):OpenlawVm = {
     val email = identity.email
@@ -297,17 +305,22 @@ case class OpenlawVm(contractDefinition: ContractDefinition, profileAddress:Opti
 
   def content(templateId: TemplateId): String = state.contents(templateId)
 
-  def getAllExecutedVariables(varType: VariableType):Seq[(TemplateExecutionResult, VariableDefinition)] =
+  def getAllExecutedVariables(varType: VariableType): Result[Seq[(TemplateExecutionResult, VariableDefinition)]] =
     state
       .executionResult
       .map(_.getAllExecutedVariables)
       .getOrElse(Seq())
-      .map { case (result, variable) => (result, variable.aliasOrVariable(result)) }
-      .flatMap {
-        case (result, variable:VariableDefinition) =>
-          if(variable.varType(result) === varType) Some((result, variable)) else None
-        case (_, _) => None
+      .map { case (result, variable) => variable.aliasOrVariable(result).map(expr => (result, expr)) }
+      .map { result =>
+        result.map {
+          case (result, variable: VariableDefinition) =>
+            if (variable.varType(result) === varType) Some((result, variable)) else None
+          case (_, _) => None
+        }
       }
+      .toList
+      .sequence
+      .map(_.flatten)
 
   def getAllVariables(varType: VariableType):Seq[(TemplateExecutionResult, VariableDefinition)] =
     state.executionResult.map(_.getVariables(varType)).getOrElse(Seq())

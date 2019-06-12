@@ -150,17 +150,24 @@ case class EthereumSmartContractCall(
    } yield result
   }
 
-  override def identifier(executionResult: TemplateExecutionResult): ActionIdentifier = {
-    ActionIdentifier(address.evaluate(executionResult)
-      .map(EthAddressType.convert)
-      .map(_.withLeading0x).getOrElse("") +
-    abi.evaluateT[OpenlawString](executionResult).getOrElse("") +
-    network.evaluateT[OpenlawString](executionResult).getOrElse("") +
-    functionName.evaluateT[OpenlawString](executionResult).getOrElse("") +
-    arguments.flatMap(_.evaluate(executionResult)).mkString(",") +
-    from.flatMap(_.evaluate(executionResult))
-      .map(EthAddressType.convert)
-      .map(_.withLeading0x).getOrElse(""))
+  override def identifier(executionResult: TemplateExecutionResult): Result[ActionIdentifier] = {
+    for {
+      address <- address.evaluate(executionResult).flatMap(_.map(EthAddressType.convert).sequence)
+      arguments <- arguments.toList.map(_.evaluate(executionResult)).sequence.map(_.mkString(","))
+      from <- from.map(_.evaluate(executionResult).flatMap(_.map(EthAddressType.convert).sequence)).sequence.map(_.flatten)
+      abi <- abi.evaluateT[OpenlawString](executionResult)
+      network <- network.evaluateT[OpenlawString](executionResult)
+      functionName <- functionName.evaluateT[OpenlawString](executionResult)
+    } yield {
+      ActionIdentifier(
+        address.map(_.withLeading0x).getOrElse("") +
+        abi.getOrElse("") +
+        network.getOrElse("") +
+        functionName.getOrElse("") +
+        arguments +
+        from.map(_.withLeading0x).getOrElse("")
+      )
+    }
   }
 }
 

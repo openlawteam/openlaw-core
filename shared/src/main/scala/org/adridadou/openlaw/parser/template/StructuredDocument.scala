@@ -203,7 +203,7 @@ trait TemplateExecutionResult {
               case _ =>
                 Success(None)
             })
-            .map(x => x.map(action => ActionInfo(action, variableName, executionResult)).toList)
+            .map(x => x.map(action => ActionInfo(action, executionResult)).toList)
           }
           .toList
           .sequence
@@ -865,7 +865,7 @@ final case class ExecutionFailed(err:Failure[_]) extends TemplateExecutionState
 final case class ExecutionWaitForTemplate(variableName:VariableName, template:TemplateSourceIdentifier, willBeUsedForEmbedded:Boolean) extends TemplateExecutionState
 
 case class ActionInfo(action:ActionValue, executionResult: TemplateExecutionResult) {
-  def identifier:ActionIdentifier = action.identifier(executionResult)
+  def identifier:Result[ActionIdentifier] = action.identifier(executionResult)
 }
 
 object TemplateExecutionResultId {

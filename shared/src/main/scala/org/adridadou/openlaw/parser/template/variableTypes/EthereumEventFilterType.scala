@@ -82,33 +82,38 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
       super.validateKeys(name, keys, expression, executionResult)
   }
 
-  override def access(value: OpenlawValue, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = {
-    val actionDefinition = VariableType.convert[EventFilterDefinition](value)
-    val identifier = actionDefinition.identifier(executionResult)
-    keys.toList match {
-      case Nil => Success(Some(value))
-      case key::Nil =>
-        propertyDef.get(key) match {
-          case Some(pd) =>
-            for {
-              executions <- getExecutions(identifier, executionResult)
-              result <- pd.data(executions)
-            } yield result
-          case None =>
-            Failure(s"unknown key $key for $name")
-        }
-      case head::tail if tail.isEmpty =>
-        for {
-          property <- propertyDef(head, name, executionResult)
-          executions <- getExecutions(name, executionResult)
-          result <- property.data(executions)
-        } yield result
-      case "event"::head::Nil =>
-        propertyDef(head, name, executionResult)
-          .flatMap(_.data(getExecutions(identifier, executionResult)))
-      case _ => Failure(s"Ethereum event only support one level of properties. invalid property access ${keys.mkString(".")}")
-    }
-  }
+  override def access(value: OpenlawValue, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] =
+    (for {
+      actionDefinition <- VariableType.convert[EventFilterDefinition](value)
+      identifier <- actionDefinition.identifier(executionResult)
+    } yield {
+      keys.toList match {
+        case Nil => Success(Some(value))
+        case key :: Nil =>
+          propertyDef.get(key) match {
+            case Some(pd) =>
+              for {
+                executions <- getExecutions(identifier, executionResult)
+                result <- pd.data(executions)
+              } yield result
+            case None =>
+              Failure(s"unknown key $key for $name")
+          }
+        case head :: tail if tail.isEmpty =>
+          for {
+            property <- propertyDef(head, name, executionResult)
+            executions <- getExecutions(identifier, executionResult)
+            result <- property.data(executions)
+          } yield result
+        case "event" :: head :: Nil =>
+          for {
+            pd <- propertyDef(head, name, executionResult)
+            executions <- getExecutions(identifier, executionResult)
+            data <- pd.data(executions)
+          } yield data
+        case _ => Failure(s"Ethereum event only support one level of properties. invalid property access ${keys.mkString(".")}")
+      }
+    }).flatten
 
   private def getExecutions(identifier:ActionIdentifier, executionResult: TemplateExecutionResult):Result[List[EthereumEventFilterExecution]] = {
     val x = executionResult

@@ -20,25 +20,29 @@ case class EthereumERC712Oracle(crypto:CryptoService) extends OpenlawOracle[Prep
       .flatMap { values =>
         values
           .toList
-          .find { case (call, executionResult) => call.identifier(executionResult) === event.identifier }
-          .map { case (call, executionResult) =>
-            val x = for {
-              fromOption <- call.getFrom(executionResult)
-              to <- call.getContractAddress(executionResult)
-            } yield {
-              for {
-                from <- fromOption if from === event.signee
-                to <- Some(to) if to === event.receiveAddress
-              } yield call.identifier(executionResult)
-            }
-            x
-          }
+          .map { case (call, executionResult) => call.identifier(executionResult).map((call, executionResult, _)) }
           .sequence
-          .map(_.flatten)
-          .flatMap { option =>
-            option
-              .map { name => Success(vm.setInitExecution(name, PreparedERC712SmartContractCallExecution(name, event.signedCall))) }
-              .getOrElse(Failure(s"action not found for ${event.typeIdentifier}"))
+          .flatMap { list =>
+            list
+              .find { case (_, _, id) => id === event.identifier }
+              .map { case (call, executionResult, id) =>
+                for {
+                  fromOption <- call.getFrom(executionResult)
+                  to <- call.getContractAddress(executionResult)
+                } yield {
+                  for {
+                    from <- fromOption if from === event.signee
+                    to <- Some(to) if to === event.receiveAddress
+                  } yield id
+                }
+              }
+              .sequence
+              .map(_.flatten)
+              .flatMap { option =>
+                option
+                  .map { name => Success(vm.setInitExecution(name, PreparedERC712SmartContractCallExecution(name, event.signedCall))) }
+                  .getOrElse(Failure(s"action not found for ${event.typeIdentifier}"))
+              }
           }
       }
 

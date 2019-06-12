@@ -85,15 +85,19 @@ case object EthereumCallType extends VariableType("EthereumCall") with ActionTyp
       case Nil => Success(Some(value))
       case prop::Nil => propertyDef.get(prop) match {
         case Some(propDef) =>
-          val identifier = VariableType.convert[EthereumSmartContractCall](value).identifier(executionResult)
-          executionResult
-            .executions
-            .get(identifier)
-            .map(_.executionMap.values.toList)
-            .getOrElse(List.empty)
-            .map(VariableType.convert[EthereumSmartContractExecution])
-            .sequence
-            .map(seq => propDef.data(seq))
+          (for {
+            call <- VariableType.convert[EthereumSmartContractCall](value)
+            identifier <- call.identifier(executionResult)
+          } yield {
+            executionResult
+              .executions
+              .get(identifier)
+              .map(_.executionMap.values.toList)
+              .getOrElse(List.empty)
+              .map(VariableType.convert[EthereumSmartContractExecution])
+              .sequence
+              .map(seq => propDef.data(seq))
+          }).flatten
         case None => Failure(s"unknown property $prop for EthereumCall type")
       }
       case _ =>

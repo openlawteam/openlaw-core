@@ -157,7 +157,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
 
     vm.allNextActions.right.value.size shouldBe 1
 
-    vm.getAllExecutedVariables(EthereumCallType).size shouldBe 1
+    vm.getAllExecutedVariables(EthereumCallType).right.value.size shouldBe 1
 
     vm.nextActionSchedule.right.value shouldBe Some(startDate)
 
@@ -165,8 +165,8 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     vm.allNextActions.right.value.size shouldBe 1
 
     val action = vm.allNextActions.right.value.head
-    vm.getAllExecutedVariables(EthereumCallType).size shouldBe 1
-    vm.newExecution(action.identifier, execution)
+    vm.getAllExecutedVariables(EthereumCallType).right.value.size shouldBe 1
+    vm.newExecution(action.identifier.right.value, execution)
 
     vm.nextActionSchedule.right.value shouldBe Some(LocalDateTime
       .now(clock)
@@ -174,9 +174,9 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     )
 
     vm.allNextActions.right.value.size shouldBe 2
-    vm.getAllExecutedVariables(EthereumCallType).size shouldBe 2
+    vm.getAllExecutedVariables(EthereumCallType).right.value.size shouldBe 2
 
-    vm.newExecution(action.identifier, EthereumSmartContractExecution(
+    vm.newExecution(action.identifier.right.value, EthereumSmartContractExecution(
       LocalDateTime.now(), LocalDateTime.now(), FailedExecution, EthereumHash.empty
     ))
 
@@ -268,7 +268,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
 
     val values = Map(VariableName("owner") -> EthAddressType.internalFormat(EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0").right.value).right.value, VariableName("value") -> NumberType.internalFormat(BigDecimal(2939)).right.value)
     val identifier = vm.executionResult.map(_.allActions.right.value).getOrElse(Seq()).head.identifier
-    val event = EthereumEventFilterEvent(identifier, EthereumHash.empty, EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0").right.value, "OpenlawSignatureEvent", values, LocalDateTime.now)
+    val event = EthereumEventFilterEvent(identifier.right.value, EthereumHash.empty, EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0").right.value, "OpenlawSignatureEvent", values, LocalDateTime.now)
 
     val ethereumEventFilterOracle = EthereumEventFilterOracle(parser, TestCryptoService)
     ethereumEventFilterOracle.incoming(vm, event) match {
@@ -298,7 +298,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
 
     val values = Map(VariableName("owner") -> EthAddressType.internalFormat(EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0").right.value).right.value, VariableName("value") -> NumberType.internalFormat(BigDecimal(2939)).right.value)
     val identifier = vm.executionResult.map(_.allActions.right.value).getOrElse(Seq()).head.identifier
-    val event = EthereumEventFilterEvent(identifier, EthereumHash.empty, EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0").right.value, "OpenlawSignatureEvent", values, LocalDateTime.now)
+    val event = EthereumEventFilterEvent(identifier.right.value, EthereumHash.empty, EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0").right.value, "OpenlawSignatureEvent", values, LocalDateTime.now)
 
     val ethereumEventFilterOracle = EthereumEventFilterOracle(parser, TestCryptoService)
     ethereumEventFilterOracle.incoming(vm, event) match {
@@ -322,7 +322,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     val templateId = TemplateId(TestCryptoService.sha256(template))
     val definition = ContractDefinition(creatorId = UserId("hello@world.com"), mainTemplate = templateId, templates = Map(), parameters = TemplateParameters())
 
-    val vm = vmProvider.create(definition, Some(EthereumAddress("0x531e0957391daff46f8a9609d799ffd067bdbbc0")), OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq())
+    val vm = vmProvider.create(definition, Some(EthereumAddress("0x531e0957391daff46f8a9609d799ffd067bdbbc0").right.value), OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq())
     vm(LoadTemplate(template))
 
     vm.executionResult match {
@@ -334,8 +334,8 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
 
   it should "add init execution if we sign with ERC-712" in {
 
-    val address = EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0")
-    val contractAddress = EthereumAddress("0x531e0957391dabf46f8a9609d799ffd067bdbbc0")
+    val address = EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0").right.value
+    val contractAddress = EthereumAddress("0x531e0957391dabf46f8a9609d799ffd067bdbbc0").right.value
     val abi = """[{"constant":false,"inputs":[{"name":"signature","type":"bytes"}],"name":"callSignature","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"}]"""
     val template = s"""
                       |[[Signature: EthereumCall(
@@ -351,10 +351,10 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
 
     (for {
       _ <- vm.applyEvent(LoadTemplate(template))
-      _ <- vm.applyEvent(PreparedERC712SmartContractCallEvent(VariableName("Signature"), vm.executionResult.map(_.allActions).getOrElse(Seq()).head.identifier, address, EthereumSignature("0x123456789"), contractAddress))
+      _ <- vm.applyEvent(PreparedERC712SmartContractCallEvent(VariableName("Signature"), vm.executionResult.map(_.allActions.right.value).getOrElse(Seq()).head.identifier.right.value, address, EthereumSignature("0x123456789").right.value, contractAddress))
     } yield vm ) match {
       case Success(_) =>
-        vm.initExecution[PreparedERC712SmartContractCallExecution](vm.executionResult.map(_.allActions).getOrElse(Seq()).head.identifier) shouldBe Some(PreparedERC712SmartContractCallExecution(vm.executionResult.map(_.allActions).getOrElse(Seq()).head.identifier, EthereumSignature("0x1234567809")))
+        vm.initExecution[PreparedERC712SmartContractCallExecution](vm.executionResult.map(_.allActions.right.value).getOrElse(Seq()).head.identifier.right.value) shouldBe Some(PreparedERC712SmartContractCallExecution(vm.executionResult.map(_.allActions.right.value).getOrElse(Seq()).head.identifier.right.value, EthereumSignature("0x1234567809").right.value))
       case Failure(ex, message) =>
         fail(message, ex)
     }
@@ -379,7 +379,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
 
     val values = Map(VariableName("owner") -> EthAddressType.internalFormat(EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0").right.value).right.value, VariableName("value") -> NumberType.internalFormat(BigDecimal(1000)).right.value)
     val identifier = vm.executionResult.map(_.allActions.right.value).getOrElse(Seq()).head.identifier
-    val event = EthereumEventFilterEvent(identifier, EthereumHash.empty, EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0").right.value, "OpenlawSignatureEvent", values, LocalDateTime.now)
+    val event = EthereumEventFilterEvent(identifier.right.value, EthereumHash.empty, EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0").right.value, "OpenlawSignatureEvent", values, LocalDateTime.now)
 
     val ethereumEventFilterOracle = EthereumEventFilterOracle(parser, TestCryptoService)
     (for {

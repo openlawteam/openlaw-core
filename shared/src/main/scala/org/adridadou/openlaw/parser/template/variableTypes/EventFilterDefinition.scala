@@ -85,12 +85,17 @@ case class EventFilterDefinition(
     }
   }
 
-  override def identifier(executionResult:TemplateExecutionResult): ActionIdentifier = ActionIdentifier(
-    contractAddress.evaluate(executionResult)
-      .map(EthAddressType.convert)
-      .map(_.withLeading0x).getOrElse("") +
-    interface.evaluateT[OpenlawString](executionResult).getOrElse("")+
-    eventType.evaluateT[OpenlawString](executionResult).getOrElse("") +
-    conditionalFilter.toString
-  )
+  override def identifier(executionResult:TemplateExecutionResult): Result[ActionIdentifier] =
+    for {
+      contractAddress <- contractAddress.evaluate(executionResult).flatMap(_.map(EthAddressType.convert).sequence)
+      interface <- interface.evaluateT[OpenlawString](executionResult)
+      eventType <- eventType.evaluateT[OpenlawString](executionResult)
+    } yield {
+      ActionIdentifier(
+        contractAddress.map(_.withLeading0x).getOrElse("") +
+        interface.getOrElse("") +
+        eventType.getOrElse("") +
+        conditionalFilter.toString
+      )
+    }
 }

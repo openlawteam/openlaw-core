@@ -257,6 +257,14 @@ case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[
         exprs.map(validateOption(_, choiceType, executionResult)).headOption.getOrElse(Success(()))
       case _ =>
         exprs
+          .flatMap {
+            case expr@StringConstant(value, _) =>
+              currentType.cast(value, executionResult) match {
+                case Success(_) => None
+                case Failure(_, _) => Some(expr)
+              }
+            case expr => Some(expr)
+          }
           .map { expr => expr.expressionType(executionResult).map(x => expr -> x) }
           .toList
           .sequence
@@ -269,46 +277,22 @@ case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[
     }
   }
 
-  private def validateOption(expr:Expression, choices:Choices, typeName:String, executionResult: TemplateExecutionResult): Result[Unit] = {
-    expr
-      .evaluate(executionResult)
-      .flatMap {
-        case Some(OpenlawString(str)) =>
-          choices.values.find(_ === str).map(_ => Success(())).getOrElse(Failure(s"the value $str is not part of the Choice type $typeName"))
-        case Some(_) =>
-          Failure(s"the options need to be of type Text to possibly be of type ${expr.expressionType(executionResult)}")
-        case None =>
-          Success(())
-      }
-=======
-            .flatMap({
-              case expr @ StringConstant(value,_) =>
-                attempt(currentType.cast(value, executionResult)) match {
-                  case Success(_) => None
-                  case Failure(_,_) => Some(expr)
-                }
-              case expr => Some(expr)
-            }).find(_.expressionType(executionResult) =!= currentType)
-          .map(expr => Failure(s"options element error! should be of type ${varType(executionResult).name} but ${expr.toString} is ${expr.expressionType(executionResult).name} instead"))
-          .getOrElse(Success(()))
-    }
-  }
-
   private def validateOption(expr:Expression, choiceType:DefinedChoiceType, executionResult: TemplateExecutionResult): Result[Unit] = {
-    expr match {
-      case StringConstant(str, _) =>
-        choiceType.choices.values.find(_ === str) match {
-          case Some(_) =>
-            Success.unit
-          case None =>
-            Failure(s"the value $str is not part of the Choice type ${choiceType.typeName}")
-        }
-      case _ if expr.expressionType(executionResult) === choiceType =>
-        Success.unit
-      case _ =>
-        Failure(s"the options need to be of type Text to possibly be of type ${expr.expressionType(executionResult)}")
+    expr.expressionType(executionResult).flatMap { exprType =>
+      expr match {
+        case StringConstant(str, _) =>
+          choiceType.choices.values.find(_ === str) match {
+            case Some(_) =>
+              Success.unit
+            case None =>
+              Failure(s"the value $str is not part of the Choice type ${choiceType.typeName}")
+          }
+        case _ if exprType === choiceType =>
+          Success.unit
+        case _ =>
+          Failure(s"the options need to be of type Text to possibly be of type ${expr.expressionType(executionResult)}")
+      }
     }
->>>>>>> master
   }
 
   override def variables(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =

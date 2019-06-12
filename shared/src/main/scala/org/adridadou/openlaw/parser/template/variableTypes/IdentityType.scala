@@ -123,5 +123,5 @@ case class SignatureAction(email:Email) extends ActionValue {
     }
   }
 
-  override def identifier(executionResult: TemplateExecutionResult): ActionIdentifier = ActionIdentifier(email.email)
+  override def identifier(executionResult: TemplateExecutionResult): Result[ActionIdentifier] = Success(ActionIdentifier(email.email))
 }
