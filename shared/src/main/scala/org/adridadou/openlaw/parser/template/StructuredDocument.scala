@@ -434,7 +434,7 @@ case class OpenlawExecutionState(
   def validateExecution:ValidationResult = {
     val variables = getAllExecutedVariables
       .flatMap({case (result, name) => result.getVariable(name).map(variable => (result, variable))})
-      .filter({case (_, variable) => variable.varType(this) match {
+      .filter({case (result, variable) => variable.varType(result) match {
         case _:NoShowInForm => false
         case _ => true
       }})

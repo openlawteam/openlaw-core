@@ -137,20 +137,25 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
         |
         |[[My Variable]] - [[Other one]]
         |
-        |[[_:Clause("A Clause")]]
+        |[[my clause:Clause("A Clause")]]
       """.stripMargin
 
-    val text2 = "it is just another template [[My Variable 2:Text]]"
+    val text2 =
+      """
+        |**Choice of Law and Venue.** The parties agree that this Agreement is to be governed by and construed under the law of the State of [[State of Governing Law]] without regard to its conflicts of law provisions. The parties further agree that all disputes shall be resolved exclusively in state or federal court in [[County of Venue]], [[State of Venue]].
+        |
+        |it is just another template [[My Variable 2:Text]]""".stripMargin
     val compiledTemplate = compile(text)
     val otherCompiledTemplate = compile(text2)
     val parameters = TemplateParameters("My Variable 2" -> "hello", "Other one" -> "334")
     engine.execute(compiledTemplate, parameters, Map()) match {
       case Right(result) =>
-        result.state shouldBe ExecutionWaitForTemplate(VariableName("@@anonymous_1@@"),TemplateSourceIdentifier(TemplateTitle("a clause")), willBeUsedForEmbedded = true)
+        result.state shouldBe ExecutionWaitForTemplate(VariableName("my clause"),TemplateSourceIdentifier(TemplateTitle("a clause")), willBeUsedForEmbedded = true)
         engine.resumeExecution(result, Map(TemplateSourceIdentifier(TemplateTitle("A Clause")) -> otherCompiledTemplate)) match {
           case Right(newResult) =>
             newResult.state shouldBe ExecutionFinished
             newResult.subExecutions.size shouldBe 1
+            parser.forReview(newResult.agreements.head) shouldBe "<p class=\"no-section\"><br /></p><p class=\"no-section\">[[My Variable]] - 334</p><p class=\"no-section\"><br /><strong>Choice of Law and Venue.</strong> The parties agree that this Agreement is to be governed by and construed under the law of the State of [[State of Governing Law]] without regard to its conflicts of law provisions. The parties further agree that all disputes shall be resolved exclusively in state or federal court in [[County of Venue]], [[State of Venue]].</p><p class=\"no-section\">it is just another template hello<br />      </p>"
           case Left(ex) =>
             fail(ex)
         }
