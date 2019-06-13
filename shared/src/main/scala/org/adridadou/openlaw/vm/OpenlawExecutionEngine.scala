@@ -44,18 +44,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       signatureProofs = signatureProofs
     )
 
-    resumeExecution(executionResult, templates).flatMap(newResult => {
-      mainTemplate match {
-        case agreement:CompiledAgreement if newResult.agreements.isEmpty =>
-          attempt(executionResult.structuredMainTemplate(agreement))
-            .map { t =>
-              newResult.agreementsInternal.append(t)
-              newResult
-            }
-        case _ =>
-          Success(newResult)
-      }
-    })
+    resumeExecution(executionResult, templates)
   }
 
   /**
@@ -73,7 +62,19 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
               case f => f
             }
           case None =>
-            Success(executionResult)
+            if(executionResult.agreements.isEmpty) {
+              executionResult.template match {
+                case agreement:CompiledAgreement =>
+                  attempt(executionResult.structuredMainTemplate(agreement))
+                    .map { t =>
+                      executionResult.agreementsInternal.append(t)
+                      executionResult
+                    }
+                case _ => Success(executionResult)
+              }
+            } else {
+              Success(executionResult)
+            }
         }
 
       case ExecutionWaitForTemplate(variableName, identifier, willBeUsedForEmbedded) =>
