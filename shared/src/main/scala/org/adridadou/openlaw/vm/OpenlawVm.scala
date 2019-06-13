@@ -150,10 +150,10 @@ case class OpenlawVm(contractDefinition: ContractDefinition, profileAddress:Opti
               .map(VariableType.convert[CollectionValue])
               .map(_.list).getOrElse(Seq())
               .map(VariableType.convert[Identity])
-          case structureType:DefinedStructureType if structureType.structure.typeDefinition.values.exists(_ === IdentityType) =>
+          case structureType:DefinedStructureType if structureType.structure.types.values.exists(_ === IdentityType) =>
             val values = variable.evaluate(result).map(VariableType.convert[OpenlawMap[VariableName, OpenlawValue]](_).underlying).getOrElse(Map())
 
-            structureType.structure.typeDefinition
+            structureType.structure.types
               .flatMap({
                 case (name, varType) if varType === IdentityType =>
                   values.get(name).map(VariableType.convert[Identity])

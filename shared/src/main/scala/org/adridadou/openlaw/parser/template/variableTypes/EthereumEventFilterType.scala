@@ -6,7 +6,7 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.parser._
 import io.circe.syntax._
 import org.adridadou.openlaw.OpenlawValue
-import org.adridadou.openlaw.oracles.{CryptoService, EthereumEventFilterExecution}
+import org.adridadou.openlaw.oracles.EthereumEventFilterExecution
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
@@ -121,11 +121,11 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
   private def generateStructureType(name: VariableName, eventFilter: EventFilterDefinition, executionResult: TemplateExecutionResult): Result[VariableType] = {
     eventFilter.abiOpenlawVariables(executionResult).map(varDefinitions => {
       val typeDefinitions =
-        varDefinitions
-          .collect { case VariableDefinition(n, Some(typeDef), _, _, _, _) => n -> executionResult.findVariableType(typeDef) }
-          .collect { case (n, Some(variableType)) => n -> variableType }
+        varDefinitions.map(definition => definition.name -> definition)
 
-      val structure = Structure(typeDefinitions.toMap, typeDefinitions.map { case(k, _) => k })
+      val types = varDefinitions.map(definition => definition.name -> definition.varType(executionResult))
+
+      val structure = Structure(typeDefinition = typeDefinitions.toMap, types = types.toMap, names = typeDefinitions.map { case(k, _) => k })
       AbstractStructureType.generateType(name, structure)
     })
   }

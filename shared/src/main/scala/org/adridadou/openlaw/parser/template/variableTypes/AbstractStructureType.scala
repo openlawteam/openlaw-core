@@ -17,16 +17,19 @@ object Structure {
 }
 
 
-case class Structure(typeDefinition: Map[VariableName, VariableType], names:Seq[VariableName]) extends OpenlawNativeValue
+case class Structure(typeDefinition: Map[VariableName, VariableDefinition], names:Seq[VariableName], types:Map[VariableName, VariableType]) extends OpenlawNativeValue
 
 case object AbstractStructureType extends VariableType(name = "Structure") with TypeGenerator[Structure] {
   override def construct(param:Parameter, executionResult: TemplateExecutionResult): Result[Option[Structure]] = param match {
     case Parameters(values) =>
       VariableType.sequence(values
-        .map({case (key,value) => getField(key,value, executionResult)})).map(_.flatten)
-        .map(fieldMap => Some(
-            Structure(typeDefinition = fieldMap.toMap, names = values.map({case (key,_) => VariableName(key)}))
-          ))
+        .map({case (key,value) => getField(key, value, executionResult).map(VariableName(key) -> _)}))
+        .map(fields => {
+          val types = fields.map({case (key,definition) => key -> definition.varType(executionResult)})
+          Some(
+            Structure(types = types.toMap, typeDefinition = fields.toMap, names = values.map({case (key,_) => VariableName(key)}))
+          )
+        })
     case parameter =>
       Failure(s"structure must have one or more expressions as constructor parameters, instead received ${parameter.getClass}")
   }
@@ -46,12 +49,13 @@ case object AbstractStructureType extends VariableType(name = "Structure") with 
   override def generateType(name: VariableName, structure: Structure): VariableType =
     DefinedStructureType(structure, name.name)
 
-  private def getField(name:String, value:Parameter, executionResult: TemplateExecutionResult): Result[Option[(VariableName, VariableType)]] = value match {
+  private def getField(name:String, value:Parameter, executionResult: TemplateExecutionResult): Result[VariableDefinition] = value match {
     case OneValueParameter(VariableName(typeName)) =>
-      Success(executionResult
-        .findVariableType(VariableTypeDefinition(typeName))
-        .map(VariableName(name) -> _))
-    case _ =>
+      Success(VariableDefinition(name = VariableName(name), variableTypeDefinition = Some(VariableTypeDefinition(name = typeName))))
+    case OneValueParameter(definition:VariableDefinition) =>
+      Success(definition.copy(name = VariableName(name)))
+    case param =>
+      println(param)
       Failure("error in the constructor for Structured Type")
   }
 }
@@ -87,10 +91,10 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
         (for {
           result <- values.get(headName)
           keyType <- structure.typeDefinition.get(headName)
-        } yield keyType.access(result, name, tail, executionResult) ) match {
+        } yield keyType.varType(executionResult).access(result, name, tail, executionResult) ) match {
           case Some(result) => result
           case None if structure.names.contains(headName) =>
-            Success(Some(structure.typeDefinition(headName).missingValueFormat(headName)))
+            Success(Some(structure.typeDefinition(headName).varType(executionResult).missingValueFormat(headName)))
           case None =>
             Failure(s"properties '${keys.mkString(".")}' could not be resolved for the structured type $typeName. available properties ${structure.names.map(name => s"'${name.name}'").mkString(",")}")
         }
@@ -106,8 +110,8 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
       case head::_ =>
         val name = VariableName(head)
         structure.typeDefinition.get(name) match {
-          case Some(varType) =>
-            varType.keysType(keys, expression, executionResult)
+          case Some(varDefinition) =>
+            varDefinition.varType(executionResult).keysType(keys, expression, executionResult)
           case None =>
             throw new RuntimeException(s"property '${keys.mkString(".")}' could not be resolved in structure value '$head'")
         }
@@ -123,7 +127,7 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
         case Some(variableType:NoShowInForm) =>
           Failure(s"invalid type in structure ${variableType.name} only types that should be shown in the input form are allowed (Text, YesNo, Address ...)")
         case Some(variableType) =>
-          variableType.validateKeys(name, tail, expression, executionResult)
+          variableType.varType(executionResult).validateKeys(name, tail, expression, executionResult)
         case None =>
           Failure(s"property '${tail.mkString(".")}' could not be resolved in structure value '$head'")
       }
@@ -139,7 +143,7 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
 
   override def internalFormat(value: OpenlawValue): String = {
     val values = VariableType.convert[OpenlawMap[VariableName, OpenlawValue]](value).underlying
-    structure.typeDefinition
+    structure.types
       .flatMap({case (fieldName,fieldType) => values.get(fieldName).map(value => fieldName.name -> fieldType.internalFormat(value))})
       .asJson.noSpaces
   }

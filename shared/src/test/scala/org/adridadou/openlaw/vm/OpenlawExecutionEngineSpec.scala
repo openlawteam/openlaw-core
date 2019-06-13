@@ -1319,4 +1319,22 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
       ex.printStackTrace()
       fail(ex)
   }
+
+  it should "be possible to add descriptions to properties of a Structure" in {
+    val text =
+      """
+        |[[Person: Structure(
+        |Name: Text;
+        |Address: Address;
+        |Member: YesNo "Is this person a member?"
+        |)]]
+      """.stripMargin
+
+    val template = compile(text)
+
+    engine.execute(template, TemplateParameters()) match {
+      case Success(executionResult) =>
+      case Failure(ex, message) => fail(message ,ex)
+    }
+  }
 }
