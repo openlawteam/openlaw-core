@@ -151,7 +151,7 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
           )
           tailRecurse(xs, conditionalBlockDepth, inSection, { elems => continue(frag +: elems) })
 
-        case section@SectionElement(value, level, resetNumbering, _, _, _) =>
+        case section@SectionElement(_, level, _, _, _, _) =>
           // partition out all content that will be within the newly defined sections
           val higherLevel = level - 1
           val (content, remaining) = partitionAt(xs) { case SectionElement(_, thisLevel, _, _, _, _) if thisLevel === higherLevel => true }
@@ -169,11 +169,11 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
 
         case VariableElement(name, variableType, content, dependencies) =>
           // Do not highlight identity variables
-          val highlightType = variableType.map(_ =!= IdentityType).getOrElse(true)
+          val highlightType = variableType.forall(_ =!= IdentityType)
 
           // Only add styling to highlight variable if there are no hidden variables that are dependencies for this one
           val frags = if (highlightType && preview && dependencies.forall(variable => !hiddenVariables.contains(variable))) {
-            val nameClass = name.replace(" ", "-")
+            val nameClass = name.name.replace(" ", "-")
             Seq(span(`class` := s"markdown-variable markdown-variable-$nameClass")(recurse(content, conditionalBlockDepth, inSection)))
           } else {
             recurse(content, conditionalBlockDepth, inSection)
