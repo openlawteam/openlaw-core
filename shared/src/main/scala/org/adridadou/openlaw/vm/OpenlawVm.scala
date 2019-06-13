@@ -161,7 +161,7 @@ case class OpenlawVm(contractDefinition: ContractDefinition, profileAddress:Opti
                       .toList
                       .sequence
                   }
-              case structureType:DefinedStructureType if structureType.structure.typeDefinition.values.exists(_ === IdentityType) =>
+              case structureType:DefinedStructureType if structureType.structure.types.values.exists(_ === IdentityType) =>
                 variable
                   .evaluate(result)
                   .flatMap(_.map(VariableType.convert[OpenlawMap[VariableName, OpenlawValue]]).sequence)
@@ -169,7 +169,7 @@ case class OpenlawVm(contractDefinition: ContractDefinition, profileAddress:Opti
                   .flatMap { values =>
                     structureType
                       .structure
-                      .typeDefinition
+                      .types
                       .map {
                         case (name, varType) if varType === IdentityType =>
                           values.get(name).map(VariableType.convert[Identity]).sequence

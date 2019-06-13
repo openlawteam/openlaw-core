@@ -20,7 +20,7 @@ trait AgreementPrinter[T] {
   def conditionalTextEnd():AgreementPrinter[T]
   def conditionalTextStartWithElse():AgreementPrinter[T]
   def conditionalTextEndWithElse():AgreementPrinter[T]
-  def variableStart(variableName:String):AgreementPrinter[T]
+  def variableStart(variableName:VariableName):AgreementPrinter[T]
   def variableEnd():AgreementPrinter[T]
   def sectionStart(section:SectionElement):AgreementPrinter[T]
   def sectionHeader(section:SectionElement):AgreementPrinter[T]

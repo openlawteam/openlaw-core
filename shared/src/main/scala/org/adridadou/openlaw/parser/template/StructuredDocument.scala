@@ -120,7 +120,7 @@ trait TemplateExecutionResult {
           case collectionType:CollectionType =>
             collectionType.typeParameter === varType
           case structuredType:DefinedStructureType =>
-            structuredType.structure.typeDefinition.values.exists(_ === varType)
+            structuredType.structure.typeDefinition.values.exists(_.varType(this) === varType)
           case variableType => variableType === varType
         }}).map((this, _)) ++ subExecutions.values.flatMap(_.getVariables(varType))
 
@@ -167,7 +167,7 @@ trait TemplateExecutionResult {
               }
               .flatten
               .map(_.sequence.flatten)
-          case structureType: DefinedStructureType if structureType.structure.typeDefinition.values.exists(_ === IdentityType) =>
+          case structureType: DefinedStructureType if structureType.structure.typeDefinition.values.exists(_.varType(result) === IdentityType) =>
             variable
               .evaluate(result)
               .flatMap(_.map(VariableType.convert[OpenlawMap[VariableName, OpenlawValue]](_)).sequence)
@@ -176,7 +176,7 @@ trait TemplateExecutionResult {
                 structureType
                   .structure
                   .names
-                  .filter(name => structureType.structure.typeDefinition(name) === IdentityType)
+                  .filter(name => structureType.structure.typeDefinition(name).varType(result) === IdentityType)
                   .map(name => VariableType.convert[Identity](values(name)))
                   .toList
                   .sequence
@@ -321,7 +321,6 @@ trait TemplateExecutionResult {
             parameters = TemplateParameters(name.name -> internalFormat),
             sectionLevelStack = mutable.Buffer(),
             template = CompiledAgreement(header = TemplateHeader()),
-            anonymousVariableCounter = new AtomicInteger(0),
             clock = clock,
             parentExecution = Some(this),
             executions = this.executions,
@@ -384,7 +383,8 @@ case class OpenlawExecutionState(
                                     signatureProofs:Map[Email, OpenlawSignatureProof] = Map(),
                                     template:CompiledTemplate,
                                     forEachQueue:mutable.Buffer[Any] = mutable.Buffer(),
-                                    anonymousVariableCounter:AtomicInteger,
+                                    anonymousVariableCounter:AtomicInteger = new AtomicInteger(0),
+                                    processedAnonymousVariableCounter:AtomicInteger = new AtomicInteger(0),
                                     variablesInternal:mutable.Buffer[VariableDefinition] = mutable.Buffer(),
                                     aliasesInternal:mutable.Buffer[VariableAliasing] = mutable.Buffer(),
                                     executedVariablesInternal:mutable.Buffer[VariableName] = mutable.Buffer(),
@@ -478,7 +478,7 @@ case class OpenlawExecutionState(
   def validateExecution: Result[ValidationResult] = {
     val variables = getAllExecutedVariables
       .flatMap({case (result, name) => result.getVariable(name).map(variable => (result, variable))})
-      .filter({case (_, variable) => variable.varType(this) match {
+      .filter({case (result, variable) => variable.varType(result) match {
         case _:NoShowInForm => false
         case _ => true
       }})
@@ -487,7 +487,7 @@ case class OpenlawExecutionState(
       variable.varType(result) match {
         case IdentityType => true
         case collectionType:CollectionType if collectionType.typeParameter === IdentityType => true
-        case structureType:DefinedStructureType if structureType.structure.typeDefinition.values.exists(_ === IdentityType) => true
+        case structureType:DefinedStructureType if structureType.structure.typeDefinition.values.exists(_.varType(this) === IdentityType) => true
         case _ => false
       }
     }).map({case (_, variable) => variable})
@@ -508,10 +508,10 @@ case class OpenlawExecutionState(
                 (Seq(variable.name), Seq())
             }
 
-          case structureType: DefinedStructureType if structureType.structure.typeDefinition.values.exists(_ === IdentityType) =>
+          case structureType: DefinedStructureType if structureType.structure.typeDefinition.values.exists(_.varType(this) === IdentityType) =>
             result.getVariableValue[OpenlawMap[VariableName, OpenlawValue]](variable.name).map { values =>
               val identityProperties = structureType.structure.typeDefinition
-                .filter({ case (_, propertyType) => propertyType === IdentityType })
+                .filter({ case (_, propertyType) => propertyType.varType(this) === IdentityType })
                 .map({ case (propertyName, _) => propertyName }).toSeq
 
               if (identityProperties.forall(values.getOrElse(Map()).contains)) {
@@ -616,13 +616,11 @@ case class OpenlawExecutionState(
   }
 
   def createAnonymousVariable():VariableName = {
-    this.parentExecutionInternal.map(_.createAnonymousVariable()) match {
-      case Some(name) => name
-      case None =>
-        val currentCounter = anonymousVariableCounter.incrementAndGet()
-        VariableName(s"@@anonymous_$currentCounter@@")
-    }
+    val currentCounter = anonymousVariableCounter.incrementAndGet()
+    VariableName(generateAnonymousName(currentCounter))
   }
+
+  def generateAnonymousName(counter:Int):String = s"@@anonymous_$counter@@"
 
   def getTemplateIdentifier:Option[TemplateSourceIdentifier] = state match {
     case ExecutionWaitForTemplate(_, identifier, _) =>
@@ -654,7 +652,6 @@ case class OpenlawExecutionState(
             embedded = embedded,
             sectionLevelStack = if (embedded) this.sectionLevelStack else mutable.Buffer(),
             template = template,
-            anonymousVariableCounter = new AtomicInteger(anonymousVariableCounter.get()),
             clock = clock,
             parentExecution = Some(this),
             parentExecutionInternal = Some(this),
@@ -801,7 +798,7 @@ final case class FreeText(elem: TextElement) extends AgreementElement {
 final case class Link(label:String, url:String) extends AgreementElement {
   override def serialize: Json = this.asJson
 }
-final case class VariableElement(name: String, variableType: Option[VariableType], content:List[AgreementElement], dependencies: Seq[String]) extends AgreementElement {
+final case class VariableElement(name: VariableName, variableType: Option[VariableType], content:List[AgreementElement], dependencies: Seq[String]) extends AgreementElement {
   override def serialize: Json = this.asJson
 }
 final case class SectionElement(value: String, lvl:Int, number:Int, resetNumbering:Option[Int], overriddenSymbol: Option[SectionSymbol], overriddenFormat: Option[SectionFormat]) extends AgreementElement {

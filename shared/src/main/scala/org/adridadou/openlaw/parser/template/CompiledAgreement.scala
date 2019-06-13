@@ -122,12 +122,15 @@ case class CompiledAgreement(
       case RightThreeQuarters => Success(renderedElements :+ FreeText(RightThreeQuarters))
       case annotation: HeaderAnnotation => Success(renderedElements :+ annotation)
       case annotation: NoteAnnotation => Success(renderedElements :+ annotation)
+      case variableDefinition:VariableDefinition if variableDefinition.isAnonymous =>
+        val nbAnonymous = executionResult.processedAnonymousVariableCounter.getAndIncrement()
+        getAgreementElementsFromElement(renderedElements, variableDefinition.copy(name = VariableName(executionResult.generateAnonymousName(nbAnonymous + 1))), executionResult)
       case variableDefinition:VariableDefinition if !variableDefinition.isHidden =>
         executionResult.getAliasOrVariableType(variableDefinition.name) match {
           case Right(variableType @ SectionType) =>
            getDependencies(variableDefinition.name, executionResult).flatMap { dependencies =>
              generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult).map { list =>
-               renderedElements :+ VariableElement(variableDefinition.name.name, Some(variableType), list, dependencies)
+               renderedElements :+ VariableElement(variableDefinition.name, Some(variableType), list, dependencies)
              }
            }
           case Right(ClauseType) =>
@@ -143,7 +146,7 @@ case class CompiledAgreement(
           case Right(variableType) =>
            getDependencies(variableDefinition.name, executionResult).flatMap { dependencies =>
              generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult).map { list =>
-               renderedElements :+ VariableElement(variableDefinition.name.name, Some(variableType), list, dependencies)
+               renderedElements :+ VariableElement(variableDefinition.name, Some(variableType), list, dependencies)
              }
            }
           case Left(x) =>
@@ -262,7 +265,7 @@ case class CompiledAgreement(
         val definition = executionResult.getVariable(name).map(_.varType(executionResult))
         getDependencies(name, executionResult).flatMap { seq =>
           generateVariable(name, keys, formatter, executionResult).map { variable =>
-            renderedElements.:+(VariableElement(name.name, definition, variable, seq))
+            renderedElements.:+(VariableElement(name, definition, variable, seq))
           }
         }
       case _ =>

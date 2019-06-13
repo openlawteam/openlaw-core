@@ -28,30 +28,34 @@ trait VariableExecutionEngine {
             .map { option =>
               option
                 .getOrElse(Seq())
-                .filter(newVariable => executionResult.getVariable(newVariable.name).isEmpty).toList
+                .filter(newVariable => executionResult.getVariable(newVariable).isEmpty).toList
             }
             .flatMap { missingVariables =>
 
-              (if (currentVariable.varType(executionResult) === EthereumEventFilterType) {
-                missingVariables.filter(_.name =!= "this")
+              if (currentVariable.varType(executionResult) === EthereumEventFilterType) {
+                handleMissingVariables(missingVariables.filter(_.name =!= "this"), executionResult, currentVariable, executed)
               } else {
-                missingVariables
-              }) match {
-                case Nil =>
-                  variable.verifyConstructor(executionResult).flatMap { _ =>
-                    if (executed) {
-                      executeVariable(executionResult, currentVariable)
-                    } else {
-                      Success(executionResult)
-                    }
-                  }
-                case list if list.length === 1 =>
-                  Failure(s"error while processing the new variable ${variable.name}. The variable ${list.map(v => "\"" + v.name + "\"").mkString(",")} is used in the constructor but has not been defined")
-                case list =>
-                  Failure(s"error while processing the new variable ${variable.name}. The variables ${list.map(v => "\"" + v.name + "\"").mkString(",")} are used in the constructor but have not been defined")
+                handleMissingVariables(missingVariables, executionResult, currentVariable, executed)
               }
             }
         }
+    }
+  }
+
+  private def handleMissingVariables(missingVariables:List[VariableName], executionResult:OpenlawExecutionState, variable:VariableDefinition, executed:Boolean):Result[OpenlawExecutionState] = {
+    missingVariables match {
+      case Nil =>
+        variable.verifyConstructor(executionResult).flatMap { _ =>
+          if (executed) {
+            executeVariable(executionResult, variable)
+          } else {
+            Success(executionResult)
+          }
+        }
+      case elem :: Nil =>
+        Failure(s"""error while processing the new variable ${variable.name}. The variable "${elem.name}" is used in the constructor but has not been defined""")
+      case list =>
+        Failure(s"error while processing the new variable ${variable.name}. The variables ${list.map(v => "\"" + v.name + "\"").mkString(",")} are used in the constructor but have not been defined")
     }
   }
 

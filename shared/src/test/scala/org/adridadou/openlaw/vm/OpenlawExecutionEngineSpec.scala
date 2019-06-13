@@ -144,7 +144,11 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         |[[_:Clause("A Clause")]]
       """.stripMargin
 
-    val text2 = "it is just another template [[My Variable 2:Text]]"
+    val text2 =
+      """
+        |**Choice of Law and Venue.** The parties agree that this Agreement is to be governed by and construed under the law of the State of [[State of Governing Law]] without regard to its conflicts of law provisions. The parties further agree that all disputes shall be resolved exclusively in state or federal court in [[County of Venue]], [[State of Venue]].
+        |
+        |it is just another template [[My Variable 2:Text]]""".stripMargin
     val compiledTemplate = compile(text)
     val otherCompiledTemplate = compile(text2)
     val parameters = TemplateParameters("My Variable 2" -> "hello", "Other one" -> "334")
@@ -155,6 +159,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
           case Right(newResult) =>
             newResult.state shouldBe ExecutionFinished
             newResult.subExecutions.size shouldBe 1
+            parser.forReview(newResult.agreements.head) shouldBe "<p class=\"no-section\"><br /></p><p class=\"no-section\">[[My Variable]] - 334</p><p class=\"no-section\"><br /><strong>Choice of Law and Venue.</strong> The parties agree that this Agreement is to be governed by and construed under the law of the State of [[State of Governing Law]] without regard to its conflicts of law provisions. The parties further agree that all disputes shall be resolved exclusively in state or federal court in [[County of Venue]], [[State of Venue]].</p><p class=\"no-section\">it is just another template hello<br />      </p>"
           case Left(ex) =>
             fail(ex)
         }
@@ -611,7 +616,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     engine.execute(mainTemplate, TemplateParameters("employees" -> internalValue), Map(TemplateSourceIdentifier(TemplateTitle("template")) -> subTemplate,TemplateSourceIdentifier(TemplateTitle("template2")) -> subTemplate2)) match {
       case Right(result) =>
         result.agreements.size shouldBe 2
-        result.getExecutedVariables.map(_.name).toSet shouldBe Set("employees", "@@anonymous_1@@", "@@anonymous_3@@", "@@anonymous_5@@", "@@anonymous_7@@", "@@anonymous_9@@","@@anonymous_11@@")
+        result.getExecutedVariables.map(_.name).toSet shouldBe Set("employees", "@@anonymous_1@@", "@@anonymous_3@@")
       case Left(ex) =>
         fail(ex.message, ex)
     }
@@ -1317,5 +1322,23 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     case Left(ex) =>
       ex.printStackTrace()
       fail(ex)
+  }
+
+  it should "be possible to add descriptions to properties of a Structure" in {
+    val text =
+      """
+        |[[Person: Structure(
+        |Name: Text;
+        |Address: Address;
+        |Member: YesNo "Is this person a member?"
+        |)]]
+      """.stripMargin
+
+    val template = compile(text)
+
+    engine.execute(template, TemplateParameters()) match {
+      case Success(executionResult) =>
+      case Failure(ex, message) => fail(message ,ex)
+    }
   }
 }

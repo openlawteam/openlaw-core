@@ -73,12 +73,10 @@ case class EthereumEventFilterOracle(parser: OpenlawTemplateLanguageParserServic
 
   private def generateStructureType(name: VariableName, eventFilter:EventFilterDefinition, executionResult: TemplateExecutionResult): Result[VariableType] = {
     eventFilter.abiOpenlawVariables(executionResult).map(varDefinitions => {
-      val typeDefinitions =
-        varDefinitions
-          .collect { case VariableDefinition(n, Some(typeDef), _, _, _, _) => n -> executionResult.findVariableType(typeDef) }
-          .collect { case (n, Some(variableType)) => n -> variableType }
+      val definitions = varDefinitions.map(definition => definition.name -> definition)
+      val types = varDefinitions.map(definition => definition.name -> definition.varType(executionResult))
 
-      val structure = Structure(typeDefinitions.toMap, typeDefinitions.map { case(k, _) => k })
+      val structure = Structure(typeDefinition = definitions.toMap, types = types.toMap, names = definitions.map { case(k, _) => k })
       AbstractStructureType.generateType(name, structure)
     })
   }
