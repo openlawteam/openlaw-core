@@ -114,10 +114,13 @@ case class CompiledAgreement(
       case RightThreeQuarters => renderedElements :+ FreeText(RightThreeQuarters)
       case annotation: HeaderAnnotation => renderedElements :+ annotation
       case annotation: NoteAnnotation => renderedElements :+ annotation
+      case variableDefinition:VariableDefinition if variableDefinition.isAnonymous =>
+        val nbAnonymous = executionResult.processedAnonymousVariableCounter.getAndIncrement()
+        getAgreementElementsFromElement(renderedElements, variableDefinition.copy(name = VariableName(executionResult.generateAnonymousName(nbAnonymous + 1))), executionResult)
       case variableDefinition:VariableDefinition if !variableDefinition.isHidden =>
         executionResult.getAliasOrVariableType(variableDefinition.name) match {
           case Right(variableType @ SectionType) =>
-            renderedElements :+ VariableElement(variableDefinition.name.name, Some(variableType), generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult), getDependencies(variableDefinition.name, executionResult))
+            renderedElements :+ VariableElement(variableDefinition.name, Some(variableType), generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult), getDependencies(variableDefinition.name, executionResult))
           case Right(ClauseType) =>
             executionResult.subExecutionsInternal.get(variableDefinition.name) match {
               case Some(subExecution) =>
@@ -129,7 +132,7 @@ case class CompiledAgreement(
           case Right(_:NoShowInForm) =>
             renderedElements
           case Right(variableType) =>
-            renderedElements :+ VariableElement(variableDefinition.name.name, Some(variableType), generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult), getDependencies(variableDefinition.name, executionResult))
+            renderedElements :+ VariableElement(variableDefinition.name, Some(variableType), generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult), getDependencies(variableDefinition.name, executionResult))
           case Left(_) =>
             renderedElements
         }
@@ -201,7 +204,7 @@ case class CompiledAgreement(
 
       case VariableMember(name, keys, formatter) =>
         val definition = executionResult.getVariable(name).map(_.varType(executionResult))
-        renderedElements.:+(VariableElement(name.name, definition, generateVariable(name, keys, formatter, executionResult), getDependencies(name, executionResult)))
+        renderedElements.:+(VariableElement(name, definition, generateVariable(name, keys, formatter, executionResult), getDependencies(name, executionResult)))
       case _ =>
         renderedElements
     }

@@ -137,7 +137,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
         |
         |[[My Variable]] - [[Other one]]
         |
-        |[[my clause:Clause("A Clause")]]
+        |[[_:Clause("A Clause")]]
       """.stripMargin
 
     val text2 =
@@ -150,7 +150,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
     val parameters = TemplateParameters("My Variable 2" -> "hello", "Other one" -> "334")
     engine.execute(compiledTemplate, parameters, Map()) match {
       case Right(result) =>
-        result.state shouldBe ExecutionWaitForTemplate(VariableName("my clause"),TemplateSourceIdentifier(TemplateTitle("a clause")), willBeUsedForEmbedded = true)
+        result.state shouldBe ExecutionWaitForTemplate(VariableName("@@anonymous_1@@"),TemplateSourceIdentifier(TemplateTitle("a clause")), willBeUsedForEmbedded = true)
         engine.resumeExecution(result, Map(TemplateSourceIdentifier(TemplateTitle("A Clause")) -> otherCompiledTemplate)) match {
           case Right(newResult) =>
             newResult.state shouldBe ExecutionFinished
@@ -612,7 +612,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
     engine.execute(mainTemplate, TemplateParameters("employees" -> internalValue), Map(TemplateSourceIdentifier(TemplateTitle("template")) -> subTemplate,TemplateSourceIdentifier(TemplateTitle("template2")) -> subTemplate2)) match {
       case Right(result) =>
         result.agreements.size shouldBe 2
-        result.getExecutedVariables.map(_.name).toSet shouldBe Set("employees", "@@anonymous_1@@", "@@anonymous_3@@", "@@anonymous_5@@", "@@anonymous_7@@", "@@anonymous_9@@","@@anonymous_11@@")
+        result.getExecutedVariables.map(_.name).toSet shouldBe Set("employees", "@@anonymous_1@@", "@@anonymous_3@@")
       case Left(ex) =>
         fail(ex.message, ex)
     }

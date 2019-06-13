@@ -278,7 +278,6 @@ trait TemplateExecutionResult {
           parameters = TemplateParameters(name.name -> varType.internalFormat(value)),
           sectionLevelStack = mutable.Buffer(),
           template = CompiledAgreement(header = TemplateHeader()),
-          anonymousVariableCounter = new AtomicInteger(0),
           clock = clock,
           parentExecution = Some(this),
           executions = this.executions,
@@ -340,7 +339,8 @@ case class OpenlawExecutionState(
                                     signatureProofs:Map[Email, OpenlawSignatureProof] = Map(),
                                     template:CompiledTemplate,
                                     forEachQueue:mutable.Buffer[Any] = mutable.Buffer(),
-                                    anonymousVariableCounter:AtomicInteger,
+                                    anonymousVariableCounter:AtomicInteger = new AtomicInteger(0),
+                                    processedAnonymousVariableCounter:AtomicInteger = new AtomicInteger(0),
                                     variablesInternal:mutable.Buffer[VariableDefinition] = mutable.Buffer(),
                                     aliasesInternal:mutable.Buffer[VariableAliasing] = mutable.Buffer(),
                                     executedVariablesInternal:mutable.Buffer[VariableName] = mutable.Buffer(),
@@ -561,13 +561,11 @@ case class OpenlawExecutionState(
   }
 
   def createAnonymousVariable():VariableName = {
-    this.parentExecutionInternal.map(_.createAnonymousVariable()) match {
-      case Some(name) => name
-      case None =>
-        val currentCounter = anonymousVariableCounter.incrementAndGet()
-        VariableName(s"@@anonymous_$currentCounter@@")
-    }
+    val currentCounter = anonymousVariableCounter.incrementAndGet()
+    VariableName(generateAnonymousName(currentCounter))
   }
+
+  def generateAnonymousName(counter:Int):String = s"@@anonymous_$counter@@"
 
   def getTemplateIdentifier:Option[TemplateSourceIdentifier] = state match {
     case ExecutionWaitForTemplate(_, identifier, _) =>
@@ -596,7 +594,6 @@ case class OpenlawExecutionState(
           embedded = embedded,
           sectionLevelStack = if (embedded) this.sectionLevelStack else mutable.Buffer(),
           template = template,
-          anonymousVariableCounter = new AtomicInteger(anonymousVariableCounter.get()),
           clock = clock,
           parentExecution = Some(this),
           parentExecutionInternal = Some(this),
@@ -743,7 +740,7 @@ final case class FreeText(elem: TextElement) extends AgreementElement {
 final case class Link(label:String, url:String) extends AgreementElement {
   override def serialize: Json = this.asJson
 }
-final case class VariableElement(name: String, variableType: Option[VariableType], content:List[AgreementElement], dependencies: Seq[String]) extends AgreementElement {
+final case class VariableElement(name: VariableName, variableType: Option[VariableType], content:List[AgreementElement], dependencies: Seq[String]) extends AgreementElement {
   override def serialize: Json = this.asJson
 }
 final case class SectionElement(value: String, lvl:Int, number:Int, resetNumbering:Option[Int], overriddenSymbol: Option[SectionSymbol], overriddenFormat: Option[SectionFormat]) extends AgreementElement {
