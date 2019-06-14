@@ -13,6 +13,7 @@ case class TemplateParameters(params:Map[VariableName, String] = Map()) {
   def apply(name:VariableName):String = params(name)
 
   def +(param:(VariableName, String)):TemplateParameters = this.copy(params+param)
+  def ++(additionalParams:Map[VariableName, String]):TemplateParameters = this.copy(params ++ additionalParams)
 }
 
 object TemplateParameters {
