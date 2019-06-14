@@ -189,7 +189,6 @@ trait TemplateExecutionResult {
   def getAllExecutedVariables:Seq[(TemplateExecutionResult, VariableName)] =
     executedVariables.distinct.map(name => (this, name)) ++ subExecutions.values.flatMap(_.getAllExecutedVariables)
 
-
   @tailrec
   final def getAllVariables:Seq[(TemplateExecutionResult, VariableDefinition)] = {
     parentExecution match {
@@ -338,7 +337,6 @@ case class OpenlawExecutionState(
                                     executions:Map[ActionIdentifier,Executions],
                                     signatureProofs:Map[Email, OpenlawSignatureProof] = Map(),
                                     template:CompiledTemplate,
-                                    forEachQueue:mutable.Buffer[Any] = mutable.Buffer(),
                                     anonymousVariableCounter:AtomicInteger = new AtomicInteger(0),
                                     processedAnonymousVariableCounter:AtomicInteger = new AtomicInteger(0),
                                     variablesInternal:mutable.Buffer[VariableDefinition] = mutable.Buffer(),
@@ -348,7 +346,7 @@ case class OpenlawExecutionState(
                                     variableSectionListInternal:mutable.Buffer[String] = mutable.Buffer(),
                                     agreementsInternal:mutable.Buffer[StructuredAgreement] = mutable.Buffer(),
                                     subExecutionsInternal:mutable.Map[VariableName, OpenlawExecutionState] = mutable.Map(),
-                                    forEachExecutions:mutable.Buffer[OpenlawExecutionState] = mutable.Buffer(),
+                                    forEachExecutions:mutable.Buffer[TemplateExecutionResultId] = mutable.Buffer(),
                                     finishedEmbeddedExecutions:mutable.Buffer[OpenlawExecutionState] = mutable.Buffer(),
                                     state:TemplateExecutionState = ExecutionReady,
                                     remainingElements:mutable.Buffer[TemplatePart] = mutable.Buffer(),
@@ -577,20 +575,19 @@ case class OpenlawExecutionState(
     getTemplateIdentifier flatMap templates.get
 
   def startForEachExecution(variableName:VariableName, template:CompiledTemplate, name:VariableName, value:OpenlawValue, varType:VariableType): Result[OpenlawExecutionState] = {
-    startSubExecution(variableName, template, embedded = true).map(result => {
-      val newResult = result.copy(parameters = parameters + (name -> varType.internalFormat(value)))
-      this.forEachExecutions append newResult
-      newResult
+    startSubExecution(variableName, template, embedded = true, Map(name -> varType.internalFormat(value))).map(result => {
+      this.forEachExecutions append result.id
+      result
     })
   }
 
-  def startSubExecution(variableName:VariableName, template:CompiledTemplate, embedded:Boolean): Result[OpenlawExecutionState] = {
+  def startSubExecution(variableName:VariableName, template:CompiledTemplate, embedded:Boolean, overrideParameters:Map[VariableName, String] = Map()): Result[OpenlawExecutionState] = {
     getVariableValue[TemplateDefinition](variableName).map(templateDefinition => {
       detectCyclicDependency(templateDefinition).map(_ => {
         val newExecution = OpenlawExecutionState(
           id = TemplateExecutionResultId(createAnonymousVariable().name),
           info = info,
-          parameters = parameters,
+          parameters = parameters ++ overrideParameters,
           embedded = embedded,
           sectionLevelStack = if (embedded) this.sectionLevelStack else mutable.Buffer(),
           template = template,
@@ -639,6 +636,15 @@ case class OpenlawExecutionState(
 
   def structuredInternal(agreement: CompiledAgreement): StructuredAgreement =
     agreement.structuredInternal(this, templateDefinition.flatMap(_.path))
+
+
+  def findExecutionResultInternal(executionResultId: TemplateExecutionResultId): Option[OpenlawExecutionState] = {
+    if(id === executionResultId) {
+      Some(this)
+    } else {
+      subExecutionsInternal.values.flatMap(_.findExecutionResultInternal(executionResultId)).headOption
+    }
+  }
 
 }
 
