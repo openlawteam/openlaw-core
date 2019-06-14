@@ -1372,4 +1372,27 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
 
     missingInputs shouldBe Seq(VariableName("Email"))
   }
+
+  it should "format small numbers properly" in {
+    val text =
+      """
+        [[my number:Number]]
+      """.stripMargin
+
+    val template = compile(text)
+
+    engine.execute(template, TemplateParameters("my number" -> "0.000000042")) match {
+      case Success(executionResult) =>
+        println(parser.forReview(executionResult.agreements.head))
+        parser.forReview(executionResult.agreements.head) shouldBe "<p class=\"no-section\"><br />        0.000000042<br />      </p>"
+      case Failure(ex, message) => fail(message ,ex)
+    }
+
+    engine.execute(template, TemplateParameters("my number" -> "4200000000")) match {
+      case Success(executionResult) =>
+        println(parser.forReview(executionResult.agreements.head))
+        parser.forReview(executionResult.agreements.head) shouldBe "<p class=\"no-section\"><br />        4,200,000,000<br />      </p>"
+      case Failure(ex, message) => fail(message ,ex)
+    }
+  }
 }
