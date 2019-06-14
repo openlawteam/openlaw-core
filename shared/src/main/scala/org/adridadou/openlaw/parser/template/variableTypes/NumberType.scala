@@ -23,7 +23,7 @@ case object NumberType extends VariableType("Number") {
           if (constructorType =!= this) {
             Failure(s"the constructor type should be $name but is ${constructorType.name}")
           } else {
-            expr.evaluateT[OpenlawBigDecimal](executionResult).map(_.map(OpenlawBigDecimal(_)))
+            expr.evaluateT[OpenlawBigDecimal](executionResult).map(_.map(OpenlawBigDecimal))
           }
         }
     case _ =>
@@ -96,22 +96,25 @@ case object NumberType extends VariableType("Number") {
 
 trait NumberFormatter {
   def formatNumber(bd:BigDecimal):String = {
-    bd.bigDecimal.toPlainString.replaceAll("(\\d)(?=(\\d{3})+$)", "$1,")
+    val regex = "(\\d)(?=(\\d{3})+$)"
+    val fullNumber = bd.bigDecimal.toPlainString
+    val split = fullNumber.split("\\.")
+    val intNumber = split(0)
+    val decimalNumber = split.lift(1)
+    val formattedIntNumber = intNumber.replaceAll(regex, "$1,")
+
+    decimalNumber.map(d => formattedIntNumber + "." + d).getOrElse(formattedIntNumber)
   }
 }
 
 case object NoTrailingZerosFormatter extends Formatter with NumberFormatter {
   override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] =
-    VariableType.convert[OpenlawBigDecimal](value).map(_.bigDecimal.stripTrailingZeros()) map {
-      case bd => Seq(FreeText(Text(formatNumber(bd))))
-    }
+    VariableType.convert[OpenlawBigDecimal](value).map(_.bigDecimal.stripTrailingZeros()).map(bd => Seq(FreeText(Text(formatNumber(bd)))))
 }
 
 case object RawNumberFormatter extends Formatter with NumberFormatter {
   override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] =
-    VariableType.convert[OpenlawBigDecimal](value).map(_.bigDecimal.stripTrailingZeros().toPlainString) map {
-      case str => Seq(FreeText(Text(str)))
-    }
+    VariableType.convert[OpenlawBigDecimal](value).map(_.bigDecimal.stripTrailingZeros().toPlainString).map(str => Seq(FreeText(Text(str))))
 }
 
 case class Rounding(expr:Expression) extends Formatter with NumberFormatter {

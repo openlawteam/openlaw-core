@@ -1319,9 +1319,8 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
   private def compile(text:String):CompiledTemplate = parser.compileTemplate(text) match {
     case Right(template) => template
-    case Left(ex) =>
-      ex.printStackTrace()
-      fail(ex)
+    case Failure(ex, message) =>
+      fail(message, ex)
   }
 
   it should "be possible to add descriptions to properties of a Structure" in {
@@ -1338,6 +1337,65 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
     engine.execute(template, TemplateParameters()) match {
       case Success(executionResult) =>
+        val Some(structure:DefinedStructureType) = executionResult.findVariableType(VariableTypeDefinition("Person"))
+        val field = structure.structure.typeDefinition(VariableName("Member"))
+        field.description shouldBe Some("Is this person a member?")
+        field.varType(executionResult) shouldBe YesNoType
+      case Failure(ex, message) => fail(message ,ex)
+    }
+  }
+
+  it should "print table properly even in a conditional" in {
+    val template = compile(
+      """
+        |{{conditional =>
+        || Optionee | Title | Address | Ethereum Address | Option Type | Number of Shares | Exercise Price | Vesting Commencement Date | Vesting Method | State of Residence |
+        || --------- | --------- | --------- | --------- | --------- | --------- | --------- | --------- |
+        || [[Optionee 1 Name]] | [[Optionee 1 Title]] | [[Optionee 1 Address: Address]] | [[Optionee 1 Ethereum Address]] | [[Optionee 1 Option Type]] | [[Optionee 1 Shares: Number]] | [[Option Exercise Price: Number]] | [[Optionee 1 Vesting Commencement Date]] | [[Optionee 1 Vesting Method]] | [[Optionee 1 State]] |}}
+      """.stripMargin)
+
+    val Right(result) = engine.execute(template, TemplateParameters("conditional" -> "true"))
+
+    println(parser.forReview(result.agreements.head))
+
+    parser.forReview(result.agreements.head) shouldBe "<p class=\"no-section\"><br /><table class=\"markdown-table\"><tr class=\"markdown-table-row\"><th class=\"markdown-table-header\">Optionee</th><th class=\"markdown-table-header\">Title</th><th class=\"markdown-table-header\">Address</th><th class=\"markdown-table-header\">Ethereum Address</th><th class=\"markdown-table-header\">Option Type</th><th class=\"markdown-table-header\">Number of Shares</th><th class=\"markdown-table-header\">Exercise Price</th><th class=\"markdown-table-header\">Vesting Commencement Date</th><th class=\"markdown-table-header\">Vesting Method</th><th class=\"markdown-table-header\">State of Residence</th></tr><tr class=\"markdown-table-row\"><td class=\"markdown-table-data\">[[Optionee 1 Name]]</td><td class=\"markdown-table-data\">[[Optionee 1 Title]]</td><td class=\"markdown-table-data\">[[Optionee 1 Address]]</td><td class=\"markdown-table-data\">[[Optionee 1 Ethereum Address]]</td><td class=\"markdown-table-data\">[[Optionee 1 Option Type]]</td><td class=\"markdown-table-data\">[[Optionee 1 Shares]]</td><td class=\"markdown-table-data\">[[Option Exercise Price]]</td><td class=\"markdown-table-data\">[[Optionee 1 Vesting Commencement Date]]</td><td class=\"markdown-table-data\">[[Optionee 1 Vesting Method]]</td><td class=\"markdown-table-data\">[[Optionee 1 State]]</td></tr></table><br />      </p>"
+  }
+
+  it should "see when a value has been defined for a collection while validating" in {
+    val template = compile(
+      """\centered **Test Agreement - collection**
+        |
+        |[[Collection Var: Collection<Text>]] {{#for each Item: Collection Var => [[Item]]}}
+        |
+        |[[Email: Identity]]
+      """.stripMargin)
+
+    val Right(result) = engine.execute(template, TemplateParameters("Collection Var" -> "{\"values\":{\"0\":\"hello\",\"1\":\"worldooij\",\"2\":\"myoijioj\",\"3\":\"friend\"},\"size\":4}"))
+
+    val Right(missingInputs) = result.allMissingInput
+
+    missingInputs shouldBe Seq(VariableName("Email"))
+  }
+
+  it should "format small numbers properly" in {
+    val text =
+      """
+        [[my number:Number]]
+      """.stripMargin
+
+    val template = compile(text)
+
+    engine.execute(template, TemplateParameters("my number" -> "0.000000042")) match {
+      case Success(executionResult) =>
+        println(parser.forReview(executionResult.agreements.head))
+        parser.forReview(executionResult.agreements.head) shouldBe "<p class=\"no-section\"><br />        0.000000042<br />      </p>"
+      case Failure(ex, message) => fail(message ,ex)
+    }
+
+    engine.execute(template, TemplateParameters("my number" -> "4200000000")) match {
+      case Success(executionResult) =>
+        println(parser.forReview(executionResult.agreements.head))
+        parser.forReview(executionResult.agreements.head) shouldBe "<p class=\"no-section\"><br />        4,200,000,000<br />      </p>"
       case Failure(ex, message) => fail(message ,ex)
     }
   }
