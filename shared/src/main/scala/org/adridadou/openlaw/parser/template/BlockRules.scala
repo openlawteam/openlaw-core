@@ -180,7 +180,7 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   }
 
   def tableText: Rule1[TemplatePart] = rule {
-    capture(noneOf(pipe + nl)) ~> ((s: String) => Text(s))
+    capture(normalCharNoReturn) ~> ((s: String) => Text(s))
   }
 
   // the table parsing construct below may return empty whitespace at the end of the cell, this trims it and accumulates text nodes
@@ -207,12 +207,16 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
     tableWithHeaderAndRow | tableWithoutHeader | tableWithoutRow
   }
 
+  def EndOfBlock:Rule0 = rule {
+    nl | &(closeB) | EOI
+  }
+
   def tableWithHeaderAndRow:Rule1[Seq[Table]] = rule {
-    tableHeader ~ nl ~ whitespace ~ oneOrMore(tableRow ~ (nl | EOI)) ~> ((headers: Seq[Seq[TemplatePart]], rows: Seq[Seq[Seq[TemplatePart]]]) => Seq(Table(headers.map(_.toList).toList, rows.map(_.map(_.toList).toList).toList)))
+    tableHeader ~ nl ~ whitespace ~ oneOrMore(tableRow ~ EndOfBlock) ~> ((headers: Seq[Seq[TemplatePart]], rows: Seq[Seq[Seq[TemplatePart]]]) => Seq(Table(headers.map(_.toList).toList, rows.map(_.map(_.toList).toList).toList)))
   }
 
   def tableWithoutHeader:Rule1[Seq[Table]] = rule {
-    oneOrMore(tableRow ~ whitespace ~ (nl | EOI)) ~ whitespace ~> ((rows: Seq[Seq[Seq[TemplatePart]]]) => Seq(Table(List(), rows.map(_.map(_.toList).toList).toList)))
+    oneOrMore(tableRow ~ EndOfBlock) ~> ((rows: Seq[Seq[Seq[TemplatePart]]]) => Seq(Table(List(), rows.map(_.map(_.toList).toList).toList)))
   }
 
   def tableWithoutRow:Rule1[Seq[Table]] = rule {
