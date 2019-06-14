@@ -1315,9 +1315,8 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
 
   private def compile(text:String):CompiledTemplate = parser.compileTemplate(text) match {
     case Right(template) => template
-    case Left(ex) =>
-      ex.printStackTrace()
-      fail(ex)
+    case Failure(ex, message) =>
+      fail(message, ex)
   }
 
   it should "be possible to add descriptions to properties of a Structure" in {
@@ -1334,7 +1333,27 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
 
     engine.execute(template, TemplateParameters()) match {
       case Success(executionResult) =>
+        val Some(structure:DefinedStructureType) = executionResult.findVariableType(VariableTypeDefinition("Person"))
+        val field = structure.structure.typeDefinition(VariableName("Member"))
+        field.description shouldBe Some("Is this person a member?")
+        field.varType(executionResult) shouldBe YesNoType
       case Failure(ex, message) => fail(message ,ex)
     }
+  }
+
+  it should "see when a value has been defined for a collection while validating" in {
+    val template = compile(
+      """\centered **Test Agreement - collection**
+        |
+        |[[Collection Var: Collection<Text>]] {{#for each Item: Collection Var => [[Item]]}}
+        |
+        |[[Email: Identity]]
+      """.stripMargin)
+
+    val Right(result) = engine.execute(template, TemplateParameters("Collection Var" -> "{\"values\":{\"0\":\"hello\",\"1\":\"worldooij\",\"2\":\"myoijioj\",\"3\":\"friend\"},\"size\":4}"))
+
+    val Right(missingInputs) = result.allMissingInput
+
+    missingInputs shouldBe Seq(VariableName("Email"))
   }
 }
