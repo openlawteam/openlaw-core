@@ -2,6 +2,7 @@ package org.adridadou.openlaw.parser.template.variableTypes
 
 import java.time.format.{DateTimeFormatter, TextStyle}
 import java.time._
+import java.time.temporal.ChronoUnit
 import java.util.Locale
 
 import org.adridadou.openlaw.parser.template._
@@ -26,6 +27,11 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => O
       attempt(expr.evaluate(executionResult).map(value => castOrConvert(VariableType.convert[OpenlawString](value), executionResult)))
     case _ =>
       Failure("constructor only handles single value")
+  }
+
+  override def operationWith(rightType: VariableType, operation: ValueOperation): VariableType = (rightType, operation) match {
+    case (_: DateTypeTrait, Minus) => PeriodType
+    case _ => this
   }
 
   override def plus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult:TemplateExecutionResult): Option[OpenlawDateTime] = for {
@@ -53,18 +59,19 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => O
     .plusMonths(p.months)
     .plusYears(p.years)
 
-  override def minus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult:TemplateExecutionResult): Option[OpenlawDateTime] = for {
+  override def minus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult:TemplateExecutionResult): Option[OpenlawValue] = for {
     left <- optLeft
     right <- optRight
   } yield {
     right match {
       case period:Period => minus(VariableType.convert[OpenlawDateTime](left), period)
+      case date:OpenlawDateTime => minus(VariableType.convert[OpenlawDateTime](left), date)
       case OpenlawString(str) =>
         attempt(PeriodType.cast(str, executionResult)) match {
           case Success(period) => minus(VariableType.convert[OpenlawDateTime](left), period)
           case Failure(_,_) => throw new RuntimeException(s"you can only make a substraction between a date and a period. You are making an addition between a ${left.getClass.getSimpleName} and ${right.getClass.getSimpleName}")
         }
-      case _ => throw new RuntimeException(s"you can only make a substraction between a date and a period. You are making an addition between a ${left.getClass.getSimpleName} and ${right.getClass.getSimpleName}")
+      case _ => throw new RuntimeException(s"you can only make a substraction between a date and a date/period. You are making an substraction between a ${left.getClass.getSimpleName} and ${right.getClass.getSimpleName}")
     }
   }
 
@@ -77,6 +84,39 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => O
     .minusWeeks(p.weeks)
     .minusMonths(p.months)
     .minusYears(p.years)
+
+  private def minus(d1: OpenlawDateTime, d2: OpenlawDateTime): Period = {
+    val (from, to) = d2.compareTo(d1) match {
+      case 1 => (d1.underlying, d2.underlying)
+      case _ => (d2.underlying, d1.underlying)
+    }
+    var tempDateTime = LocalDateTime.from(from)
+
+    val years = tempDateTime.until(to, ChronoUnit.YEARS)
+    tempDateTime = tempDateTime.plusYears(years)
+
+    val months = tempDateTime.until(to, ChronoUnit.MONTHS)
+    tempDateTime = tempDateTime.plusMonths(months)
+
+    val days = tempDateTime.until(to, ChronoUnit.DAYS)
+    tempDateTime = tempDateTime.plusDays(days)
+
+    val hours = tempDateTime.until(to, ChronoUnit.HOURS)
+    tempDateTime = tempDateTime.plusHours(hours)
+
+    val minutes = tempDateTime.until(to, ChronoUnit.MINUTES)
+    tempDateTime = tempDateTime.plusMinutes(minutes)
+
+    val seconds = tempDateTime.until(to, ChronoUnit.SECONDS)
+
+    Period(
+      years = years.toInt,
+      months = months.toInt,
+      days = days.toInt,
+      hours = hours.toInt,
+      minutes = minutes.toInt,
+      seconds = seconds.toInt)
+  }
 
   private def castOrConvert(value:String, executionResult:TemplateExecutionResult):OpenlawDateTime = attempt(cast(value, executionResult)) match {
     case Success(date) => date
@@ -96,7 +136,7 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => O
 
   override def isCompatibleType(otherType: VariableType, operation: ValueOperation): Boolean = operation match {
     case Plus => otherType === PeriodType || otherType === TextType || otherType === LargeTextType
-    case Minus => otherType === PeriodType || otherType === TextType || otherType === LargeTextType
+    case Minus => otherType === PeriodType || otherType === TextType || otherType === LargeTextType || otherType === DateType || otherType === DateTimeType
     case _ => false
   }
 }
