@@ -36,6 +36,7 @@ lazy val commonSettings = Seq(
   scalaVersion := scalaV,
   wartremoverErrors ++= rules,
   scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions"),
+  javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
 )
 
 lazy val publishSettings = Seq(
