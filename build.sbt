@@ -31,12 +31,11 @@ lazy val repositories = Seq(
 )
 
 lazy val commonSettings = Seq(
-  scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature"),
   organization := "org.openlaw",
   name := "openlaw-core",
   scalaVersion := scalaV,
   wartremoverErrors ++= rules,
-  scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions")
+  scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions"),
 )
 
 lazy val publishSettings = Seq(
