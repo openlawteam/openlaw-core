@@ -1,6 +1,6 @@
 package org.adridadou.openlaw.vm
 
-import java.time.Clock
+import java.time.{Clock, LocalDateTime}
 
 import org.adridadou.openlaw.result.Implicits.failureCause2Exception
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
@@ -1394,5 +1394,49 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
         parser.forReview(executionResult.agreements.head) shouldBe "<p class=\"no-section\"><br />        4,200,000,000<br />      </p>"
       case Failure(ex, message) => fail(message ,ex)
     }
+  }
+
+  it should "be able to create a period from 2 dates" in {
+    val text=
+      """
+        |[[from:DateTime]]
+        |[[to:DateTime]]
+        |
+        |[[@period = to - from]]
+        |
+        |[[period]]
+      """.stripMargin
+
+    val template = compile(text)
+
+    val fromDate = LocalDateTime.now()
+      .withYear(2019)
+      .withDayOfYear(56)
+      .withHour(0)
+      .withMinute(0)
+      .withSecond(0)
+      .withNano(0)
+    val toDate = LocalDateTime.now()
+      .withYear(2019)
+      .withDayOfYear(65)
+      .withHour(2)
+      .withMinute(45)
+      .withSecond(0)
+      .withNano(0)
+    val Right(result) = engine.execute(template, TemplateParameters(
+      "from" -> DateTimeType.internalFormat(OpenlawDateTime(fromDate)),
+      "to" -> DateTimeType.internalFormat(OpenlawDateTime(toDate))
+    ))
+
+    val period = VariableName("period").evaluateT[Period](result)
+    period shouldBe Some(variableTypes.Period(days = 9, hours = 2, minutes = 45))
+
+    // flip date order - should not matter
+    val Right(result2) = engine.execute(template, TemplateParameters(
+      "from" -> DateTimeType.internalFormat(OpenlawDateTime(toDate)),
+      "to" -> DateTimeType.internalFormat(OpenlawDateTime(fromDate))
+    ))
+
+    VariableName("period").evaluateT[Period](result2) shouldBe period
   }
 }
