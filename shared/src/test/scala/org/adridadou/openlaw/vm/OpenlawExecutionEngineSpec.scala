@@ -1439,4 +1439,37 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
 
     VariableName("period").evaluateT[Period](result2) shouldBe period
   }
+
+  it should "be able to divide a period by a number" in {
+    val text=
+      """
+        |[[period:Period]]
+        |[[divisor:Number]]
+        |
+        |[[@newPeriod = period / divisor]]
+        |
+        |[[newPeriod]]
+      """.stripMargin
+
+    val template = compile(text)
+
+    val Right(result) = engine.execute(template, TemplateParameters(
+      "period" -> PeriodType.internalFormat(variableTypes.Period(
+        years = 1,
+        months = 2,
+        weeks = 3,
+        days = 4,
+        hours = 5,
+        minutes = 6)),
+      "divisor" -> "2"
+    ))
+
+    VariableName("newPeriod").evaluateT[Period](result) shouldBe Some(variableTypes.Period(
+      months = 7,
+      weeks = 1,
+      days = 5,
+      hours = 2,
+      minutes = 33
+    ))
+  }
 }

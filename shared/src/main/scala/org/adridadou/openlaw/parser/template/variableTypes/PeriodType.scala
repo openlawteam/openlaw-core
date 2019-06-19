@@ -3,7 +3,7 @@ package org.adridadou.openlaw.parser.template.variableTypes
 import org.parboiled2._
 import VariableType._
 import cats.implicits._
-import org.adridadou.openlaw.{OpenlawDateTime, OpenlawNativeValue, OpenlawValue}
+import org.adridadou.openlaw.{OpenlawBigDecimal, OpenlawDateTime, OpenlawNativeValue, OpenlawValue}
 import org.adridadou.openlaw.parser.template._
 
 import scala.language.implicitConversions
@@ -29,6 +29,13 @@ case object PeriodType extends VariableType("Period") {
 
   private def minus(left:Period, right:Period):Period = left.minus(right)
 
+  override def divide(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Option[Period] = for {
+    left <- optLeft
+    right <-optRight
+  } yield divide(convert[Period](left), convert[OpenlawBigDecimal](right))
+
+  private def divide(left:Period, right:OpenlawBigDecimal):Period = left
+
   override def cast(value: String, executionResult:TemplateExecutionResult): Period =
     cast(value)
 
@@ -46,6 +53,7 @@ case object PeriodType extends VariableType("Period") {
   override def isCompatibleType(otherType: VariableType, operation: ValueOperation): Boolean = operation match {
     case Plus => otherType === PeriodType || otherType === DateType || otherType === DateTimeType
     case Minus => otherType === PeriodType || otherType === DateType || otherType === DateTimeType
+    case Divide => otherType === NumberType
     case _ => false
   }
 
@@ -64,7 +72,10 @@ case object PeriodType extends VariableType("Period") {
 
   def thisType: VariableType = PeriodType
 
-  override def operationWith(rightType: VariableType, operation: ValueOperation): VariableType = rightType
+  override def operationWith(rightType: VariableType, operation: ValueOperation): VariableType = (rightType, operation) match {
+    case (NumberType, Divide) => PeriodType
+    case _ => rightType
+  }
 }
 
 class PeriodTypeParser(val input: ParserInput) extends Parser {
