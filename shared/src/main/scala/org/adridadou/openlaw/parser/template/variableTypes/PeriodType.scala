@@ -5,8 +5,10 @@ import VariableType._
 import cats.implicits._
 import org.adridadou.openlaw.{OpenlawBigDecimal, OpenlawDateTime, OpenlawNativeValue, OpenlawValue}
 import org.adridadou.openlaw.parser.template._
+import org.adridadou.openlaw.parser.template.expressions.ValueExpression
 
 import scala.language.implicitConversions
+import scala.math.BigDecimal
 
 case object PeriodType extends VariableType("Period") {
 
@@ -31,10 +33,10 @@ case object PeriodType extends VariableType("Period") {
 
   override def divide(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Option[Period] = for {
     left <- optLeft
-    right <-optRight
+    right <-optRight if convert[OpenlawBigDecimal](right) =!= BigDecimal(0)
   } yield divide(convert[Period](left), convert[OpenlawBigDecimal](right))
 
-  private def divide(left:Period, right:OpenlawBigDecimal):Period = left
+  private def divide(left:Period, right:OpenlawBigDecimal):Period = left.divide(right)
 
   override def cast(value: String, executionResult:TemplateExecutionResult): Period =
     cast(value)
@@ -63,6 +65,7 @@ case object PeriodType extends VariableType("Period") {
       ( if( period.months > 0 ) s"${period.months}" + " months " else "") +
       ( if( period.weeks > 0 ) s"${period.weeks}" + " weeks " else "") +
       ( if( period.days > 0 ) s"${period.days}" + " days " else "") +
+      ( if( period.hours > 0 ) s"${period.hours}" + " hours " else "") +
       ( if( period.minutes > 0 ) s"${period.minutes}" + " minutes " else "") +
       ( if( period.seconds > 0 ) s"${period.seconds}" + " seconds " else "")
     result
@@ -75,6 +78,19 @@ case object PeriodType extends VariableType("Period") {
   override def operationWith(rightType: VariableType, operation: ValueOperation): VariableType = (rightType, operation) match {
     case (NumberType, Divide) => PeriodType
     case _ => rightType
+  }
+
+  override def validateOperation(expr: ValueExpression, executionResult: TemplateExecutionResult): Option[String] = {
+    expr.operation match {
+      case Divide =>
+        (expr.left.evaluate(executionResult), expr.right.evaluate(executionResult)) match {
+          case (_, Some(value:OpenlawBigDecimal)) if value.underlying === BigDecimal(0) => Some(s"error while evaluating the expression '$expr': division by zero!")
+          case (Some(period: Period), _) if period.months > 0 => Some(s"error while evaluating the expression '$expr': cannot divide months")
+          case _ => None
+        }
+      case _ =>
+        None
+    }
   }
 }
 
@@ -131,6 +147,29 @@ case class ParsingError(msg:String) extends RuntimeException
 case class Period(seconds:Int = 0, minutes:Int = 0, hours:Int = 0, days:Int = 0, weeks:Int = 0, months:Int = 0, years:Int = 0) extends OpenlawNativeValue {
   def minus(right:Period):Period = Period(seconds - right.seconds, minutes - right.minutes, hours - right.hours, days - right.days, weeks - right.weeks, months - right.months, years - right.years)
   def plus(right:Period):Period = Period(seconds + right.seconds, minutes + right.minutes, hours + right.hours, days + right.days, weeks + right.weeks, months + right.months, years + right.years)
+  def divide(right: OpenlawBigDecimal): Period = {
+    var totalSeconds = toSeconds / right.underlying.toLongExact
+
+    val divYears = totalSeconds / (365 * 24 * 60 * 60)
+    totalSeconds -= divYears * (365 * 24 * 60 * 60)
+    val divWeeks = totalSeconds / (7 * 24 * 60 * 60)
+    totalSeconds -= divWeeks * (7 * 24 * 60 * 60)
+    val divDays = totalSeconds / (24 * 60 * 60)
+    totalSeconds -= divDays * (24 * 60 * 60)
+    val divHours = totalSeconds / (60 * 60)
+    totalSeconds -= divHours * (60 * 60)
+    val divMinutes = totalSeconds / 60
+    totalSeconds -= divMinutes * 60
+
+    Period(
+      years = divYears.toInt,
+      weeks = divWeeks.toInt,
+      days = divDays.toInt,
+      hours = divHours.toInt,
+      minutes = divMinutes.toInt,
+      seconds = totalSeconds.toInt
+    )
+  }
   override def toString:String = (if( years > 0 ) s"$years years " else "") +
       ( if( months > 0 ) s"$months months " else "") +
       ( if( weeks > 0 ) s"$weeks weeks " else "") +
@@ -138,4 +177,8 @@ case class Period(seconds:Int = 0, minutes:Int = 0, hours:Int = 0, days:Int = 0,
       ( if( hours > 0 ) s"$hours hours " else "") +
       ( if( minutes > 0 ) s"$minutes minutes " else "") +
       ( if( seconds > 0 ) s"$seconds seconds" else "")
+
+  private def toSeconds: Long = {
+    seconds.toLong + 60 * (minutes.toLong + 60 * (hours.toLong + 24 * (days.toLong + 7 * weeks.toLong + 365 * years.toLong)))
+  }
 }

@@ -1429,7 +1429,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
     ))
 
     val period = VariableName("period").evaluateT[Period](result)
-    period shouldBe Some(variableTypes.Period(days = 9, hours = 2, minutes = 45))
+    period shouldBe Some(variableTypes.Period(weeks = 1, days = 2, hours = 2, minutes = 45))
 
     // flip date order - should not matter
     val Right(result2) = engine.execute(template, TemplateParameters(
@@ -1456,20 +1456,38 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
     val Right(result) = engine.execute(template, TemplateParameters(
       "period" -> PeriodType.internalFormat(variableTypes.Period(
         years = 1,
-        months = 2,
-        weeks = 3,
-        days = 4,
-        hours = 5,
-        minutes = 6)),
+        weeks = 2,
+        days = 3,
+        hours = 4,
+        minutes = 5,
+        seconds = 6)),
       "divisor" -> "2"
     ))
 
     VariableName("newPeriod").evaluateT[Period](result) shouldBe Some(variableTypes.Period(
-      months = 7,
-      weeks = 1,
-      days = 5,
+      weeks = 27,
+      days = 2,
       hours = 2,
-      minutes = 33
+      minutes = 2,
+      seconds = 33
     ))
+
+    engine.execute(template, TemplateParameters(
+      "period" -> PeriodType.internalFormat(variableTypes.Period(years = 1)),
+      "divisor" -> "0")) match {
+      case Right(_) =>
+        fail("should fail when dividing by zero")
+      case Left(ex) =>
+        ex.message shouldBe "error while evaluating the expression 'period/divisor': division by zero!"
+    }
+
+    engine.execute(template, TemplateParameters(
+      "period" -> PeriodType.internalFormat(variableTypes.Period(years = 1, months = 1, weeks = 1)),
+      "divisor" -> "2")) match {
+      case Right(_) =>
+        fail("should fail when dividing a period containing a month")
+      case Left(ex) =>
+        ex.message shouldBe "error while evaluating the expression 'period/divisor': cannot divide months"
+    }
   }
 }
