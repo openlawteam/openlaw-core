@@ -2,9 +2,12 @@ package org.adridadou.openlaw.parser.template.variableTypes
 
 import java.time.format.{DateTimeFormatter, TextStyle}
 import java.time._
+import java.time.temporal.ChronoUnit
 import java.util.Locale
 
-import org.adridadou.openlaw.parser.template._
+import org.adridadou.openlaw.parser.template.{AgreementElement, FormatterDefinition, FreeText, Minus, OneValueParameter, Parameter, Plus, TemplateExecutionResult, Text, ValueOperation}
+
+//import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.formatters.Formatter
 import cats.implicits._
 import org.adridadou.openlaw.{OpenlawDateTime, OpenlawInt, OpenlawString, OpenlawValue}
@@ -36,7 +39,7 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => R
 
   override def plus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult:TemplateExecutionResult): Result[Option[OpenlawDateTime]] =
     combine(optLeft, optRight) {
-      case (left, period:Period) => VariableType.convert[OpenlawDateTime](left).map(x => plus(x, period))
+      case (left, period: Period) => VariableType.convert[OpenlawDateTime](left).map(x => plus(x, period))
       case (left, OpenlawString(str)) =>
         PeriodType
           .cast(str, executionResult)
@@ -44,6 +47,11 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => R
           .toResult
           .flatMap { period => VariableType.convert[OpenlawDateTime](left).map(x => plus(x, period)) }
     }
+
+  override def operationWith(rightType: VariableType, operation: ValueOperation): VariableType = (rightType, operation) match {
+    case (_: DateTypeTrait, Minus) => PeriodType
+    case _ => this
+  }
 
   def plus(d:OpenlawDateTime, p:Period):OpenlawDateTime = d
     .underlying
@@ -55,13 +63,14 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => R
     .plusMonths(p.months)
     .plusYears(p.years)
 
-  override def minus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult:TemplateExecutionResult): Result[Option[OpenlawDateTime]] =
+  override def minus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult:TemplateExecutionResult): Result[Option[OpenlawValue]] =
     combine(optLeft, optRight) {
       case (left, period:Period) => VariableType.convert[OpenlawDateTime](left).map(x => minus(x, period))
+      case (left, date:OpenlawDateTime) => VariableType.convert[OpenlawDateTime](left).map(x => minus(x, date))
       case (left, OpenlawString(str)) =>
         PeriodType
           .cast(str, executionResult)
-          .addMessageToFailure(s"you can only make an subtraction between a date and a period. You are making an addition between a ${left.getClass.getSimpleName} and ${str.getClass.getSimpleName}")
+          .addMessageToFailure(s"you can only make an subtraction between a date and a date/period. You are making an addition between a ${left.getClass.getSimpleName} and ${str.getClass.getSimpleName}")
           .toResult
           .flatMap(period => VariableType.convert[OpenlawDateTime](left).map(x => minus(x, period)))
     }
@@ -75,6 +84,39 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => R
     .minusWeeks(p.weeks)
     .minusMonths(p.months)
     .minusYears(p.years)
+
+  private def minus(d1: OpenlawDateTime, d2: OpenlawDateTime): Period = {
+    val (from, to) = d2.compareTo(d1) match {
+      case 1 => (d1.underlying, d2.underlying)
+      case _ => (d2.underlying, d1.underlying)
+    }
+    var tempDateTime = LocalDateTime.from(from)
+
+    val years = tempDateTime.until(to, ChronoUnit.YEARS)
+    tempDateTime = tempDateTime.plusYears(years)
+
+    val months = tempDateTime.until(to, ChronoUnit.MONTHS)
+    tempDateTime = tempDateTime.plusMonths(months)
+
+    val days = tempDateTime.until(to, ChronoUnit.DAYS)
+    tempDateTime = tempDateTime.plusDays(days)
+
+    val hours = tempDateTime.until(to, ChronoUnit.HOURS)
+    tempDateTime = tempDateTime.plusHours(hours)
+
+    val minutes = tempDateTime.until(to, ChronoUnit.MINUTES)
+    tempDateTime = tempDateTime.plusMinutes(minutes)
+
+    val seconds = tempDateTime.until(to, ChronoUnit.SECONDS)
+
+    Period(
+      years = years.toInt,
+      months = months.toInt,
+      days = days.toInt,
+      hours = hours.toInt,
+      minutes = minutes.toInt,
+      seconds = seconds.toInt)
+  }
 
   private def castOrConvert(value:String, executionResult:TemplateExecutionResult): Result[OpenlawDateTime] = cast(value, executionResult) recoverWith {
     case _ => converter(value, executionResult.clock)
@@ -93,7 +135,7 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => R
 
   override def isCompatibleType(otherType: VariableType, operation: ValueOperation): Boolean = operation match {
     case Plus => otherType === PeriodType || otherType === TextType || otherType === LargeTextType
-    case Minus => otherType === PeriodType || otherType === TextType || otherType === LargeTextType
+    case Minus => otherType === PeriodType || otherType === TextType || otherType === LargeTextType || otherType === DateType || otherType === DateTimeType
     case _ => false
   }
 }

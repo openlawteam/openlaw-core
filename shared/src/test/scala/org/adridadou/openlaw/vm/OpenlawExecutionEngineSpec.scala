@@ -1,12 +1,13 @@
 package org.adridadou.openlaw.vm
 
-import java.time.Clock
+import java.time.{Clock, LocalDateTime}
 
 import org.adridadou.openlaw.result.Implicits.failureCause2Exception
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.result.{Failure, Success}
+import org.adridadou.openlaw.result.Implicits.RichResult
 import org.adridadou.openlaw.values.{TemplateParameters, TemplateTitle}
 import org.scalatest.{FlatSpec, Matchers, OptionValues}
 import org.scalatest.EitherValues._
@@ -1398,5 +1399,49 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         parser.forReview(executionResult.agreements.head) shouldBe "<p class=\"no-section\"><br />        4,200,000,000<br />      </p>"
       case Failure(ex, message) => fail(message ,ex)
     }
+  }
+
+  it should "be able to create a period from 2 dates" in {
+    val text=
+      """
+        |[[from:DateTime]]
+        |[[to:DateTime]]
+        |
+        |[[@period = to - from]]
+        |
+        |[[period]]
+      """.stripMargin
+
+    val template = compile(text)
+
+    val fromDate = LocalDateTime.now()
+      .withYear(2019)
+      .withDayOfYear(56)
+      .withHour(0)
+      .withMinute(0)
+      .withSecond(0)
+      .withNano(0)
+    val toDate = LocalDateTime.now()
+      .withYear(2019)
+      .withDayOfYear(65)
+      .withHour(2)
+      .withMinute(45)
+      .withSecond(0)
+      .withNano(0)
+    val Right(result) = engine.execute(template, TemplateParameters(
+      "from" -> DateTimeType.internalFormat(OpenlawDateTime(fromDate)).getOrThrow(),
+      "to" -> DateTimeType.internalFormat(OpenlawDateTime(toDate)).getOrThrow()
+    ))
+
+    val period = VariableName("period").evaluateT[Period](result).getOrThrow()
+    period shouldBe Some(variableTypes.Period(days = 9, hours = 2, minutes = 45))
+
+    // flip date order - should not matter
+    val Right(result2) = engine.execute(template, TemplateParameters(
+      "from" -> DateTimeType.internalFormat(OpenlawDateTime(toDate)).getOrThrow(),
+      "to" -> DateTimeType.internalFormat(OpenlawDateTime(fromDate)).getOrThrow()
+    ))
+
+    VariableName("period").evaluateT[Period](result2).getOrThrow() shouldBe period
   }
 }
