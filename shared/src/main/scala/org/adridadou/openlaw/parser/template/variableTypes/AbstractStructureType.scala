@@ -55,7 +55,6 @@ case object AbstractStructureType extends VariableType(name = "Structure") with 
     case OneValueParameter(definition:VariableDefinition) =>
       Success(definition.copy(name = VariableName(name)))
     case param =>
-      println(param)
       Failure("error in the constructor for Structured Type")
   }
 }

@@ -1352,8 +1352,6 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
 
     val Right(result) = engine.execute(template, TemplateParameters("conditional" -> "true"))
 
-    println(parser.forReview(result.agreements.head))
-
     parser.forReview(result.agreements.head) shouldBe "<p class=\"no-section\"><br /><table class=\"markdown-table\"><tr class=\"markdown-table-row\"><th class=\"markdown-table-header\">Optionee</th><th class=\"markdown-table-header\">Title</th><th class=\"markdown-table-header\">Address</th><th class=\"markdown-table-header\">Ethereum Address</th><th class=\"markdown-table-header\">Option Type</th><th class=\"markdown-table-header\">Number of Shares</th><th class=\"markdown-table-header\">Exercise Price</th><th class=\"markdown-table-header\">Vesting Commencement Date</th><th class=\"markdown-table-header\">Vesting Method</th><th class=\"markdown-table-header\">State of Residence</th></tr><tr class=\"markdown-table-row\"><td class=\"markdown-table-data\">[[Optionee 1 Name]]</td><td class=\"markdown-table-data\">[[Optionee 1 Title]]</td><td class=\"markdown-table-data\">[[Optionee 1 Address]]</td><td class=\"markdown-table-data\">[[Optionee 1 Ethereum Address]]</td><td class=\"markdown-table-data\">[[Optionee 1 Option Type]]</td><td class=\"markdown-table-data\">[[Optionee 1 Shares]]</td><td class=\"markdown-table-data\">[[Option Exercise Price]]</td><td class=\"markdown-table-data\">[[Optionee 1 Vesting Commencement Date]]</td><td class=\"markdown-table-data\">[[Optionee 1 Vesting Method]]</td><td class=\"markdown-table-data\">[[Optionee 1 State]]</td></tr></table><br />      </p>"
   }
 
@@ -1366,11 +1364,13 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
         |[[Email: Identity]]
       """.stripMargin)
 
-    val Right(result) = engine.execute(template, TemplateParameters("Collection Var" -> "{\"values\":{\"0\":\"hello\",\"1\":\"worldooij\",\"2\":\"myoijioj\",\"3\":\"friend\"},\"size\":4}"))
+    engine.execute(template, TemplateParameters("Collection Var" -> "{\"values\":{\"0\":\"hello\",\"1\":\"worldooij\",\"2\":\"myoijioj\",\"3\":\"friend\"},\"size\":4}")) match {
+      case Success(result) =>
+        val Right(missingInputs) = result.allMissingInput
 
-    val Right(missingInputs) = result.allMissingInput
-
-    missingInputs shouldBe Seq(VariableName("Email"))
+        missingInputs shouldBe Seq(VariableName("Email"))
+      case Failure(ex, message) => fail(message, ex)
+    }
   }
 
   it should "format small numbers properly" in {
@@ -1383,16 +1383,38 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
 
     engine.execute(template, TemplateParameters("my number" -> "0.000000042")) match {
       case Success(executionResult) =>
-        println(parser.forReview(executionResult.agreements.head))
         parser.forReview(executionResult.agreements.head) shouldBe "<p class=\"no-section\"><br />        0.000000042<br />      </p>"
       case Failure(ex, message) => fail(message ,ex)
     }
 
     engine.execute(template, TemplateParameters("my number" -> "4200000000")) match {
       case Success(executionResult) =>
-        println(parser.forReview(executionResult.agreements.head))
         parser.forReview(executionResult.agreements.head) shouldBe "<p class=\"no-section\"><br />        4,200,000,000<br />      </p>"
       case Failure(ex, message) => fail(message ,ex)
+    }
+  }
+
+  it should "not try to check for variables in other execution results if the variable is anonymous" in {
+
+    val template =
+      compile("""
+        |[[my test:Collection<Text>]]
+        |
+        |{{#for each test: my test =>
+        |^ [[test]]
+        |}}
+      """.stripMargin)
+
+    val collectionType = AbstractCollectionType.createParameterInstance(TextType)
+
+    engine.execute(template, TemplateParameters("my test" -> collectionType.internalFormat(CollectionValue(
+      size = 4,
+      values = Map(0 -> "param 0", 1 -> "param 1",2 -> "param 2",3 -> "param 3"),
+      collectionType = collectionType
+    )))) match {
+      case Success(result) =>
+        parser.forReview(result.agreements.head) shouldBe "<p class=\"no-section\"><br /></p><ul class=\"list-lvl-1\"><li><p>1.  param 0<br /></p></li><li><p>2.  param 1<br /></p></li><li><p>3.  param 2<br /></p></li><li><p>4.  param 3<br /><br />      </p></li></ul>"
+      case Failure(ex, message) => fail(message, ex)
     }
   }
 
