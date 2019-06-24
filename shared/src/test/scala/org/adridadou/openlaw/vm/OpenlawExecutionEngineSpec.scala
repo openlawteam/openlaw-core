@@ -1417,11 +1417,13 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
         |[[Email: Identity]]
       """.stripMargin)
 
-    val Right(result) = engine.execute(template, TemplateParameters("Collection Var" -> "{\"values\":{\"0\":\"hello\",\"1\":\"worldooij\",\"2\":\"myoijioj\",\"3\":\"friend\"},\"size\":4}"))
+    engine.execute(template, TemplateParameters("Collection Var" -> "{\"values\":{\"0\":\"hello\",\"1\":\"worldooij\",\"2\":\"myoijioj\",\"3\":\"friend\"},\"size\":4}")) match {
+      case Success(result) =>
+        val Right(missingInputs) = result.allMissingInput
 
-    val Right(missingInputs) = result.allMissingInput
-
-    missingInputs shouldBe Seq(VariableName("Email"))
+        missingInputs shouldBe Seq(VariableName("Email"))
+      case Failure(ex, message) => fail(message, ex)
+    }
   }
 
   it should "format small numbers properly" in {
@@ -1442,6 +1444,30 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
       case Success(executionResult) =>
         parser.forReview(executionResult.agreements.head) shouldBe "<p class=\"no-section\"><br />        4,200,000,000<br />      </p>"
       case Failure(ex, message) => fail(message ,ex)
+    }
+  }
+
+  it should "not try to check for variables in other execution results if the variable is anonymous" in {
+
+    val template =
+      compile("""
+        |[[my test:Collection<Text>]]
+        |
+        |{{#for each test: my test =>
+        |^ [[test]]
+        |}}
+      """.stripMargin)
+
+    val collectionType = AbstractCollectionType.createParameterInstance(TextType)
+
+    engine.execute(template, TemplateParameters("my test" -> collectionType.internalFormat(CollectionValue(
+      size = 4,
+      values = Map(0 -> "param 0", 1 -> "param 1",2 -> "param 2",3 -> "param 3"),
+      collectionType = collectionType
+    )))) match {
+      case Success(result) =>
+        parser.forReview(result.agreements.head) shouldBe "<p class=\"no-section\"><br /></p><ul class=\"list-lvl-1\"><li><p>1.  param 0<br /></p></li><li><p>2.  param 1<br /></p></li><li><p>3.  param 2<br /></p></li><li><p>4.  param 3<br /><br />      </p></li></ul>"
+      case Failure(ex, message) => fail(message, ex)
     }
   }
 

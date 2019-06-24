@@ -50,7 +50,7 @@ case class VariableMember(name:VariableName, keys:Seq[String], formatter:Option[
 case class VariableName(name:String) extends Expression {
   def isAnonymous: Boolean = name.trim === "_"
 
-  override def validate(executionResult:TemplateExecutionResult): Result[Unit] = Success(())
+  override def validate(executionResult:TemplateExecutionResult): Result[Unit] = Success.unit
 
   override def expressionType(executionResult:TemplateExecutionResult): VariableType = {
     executionResult.getVariable(name) match {
@@ -60,14 +60,13 @@ case class VariableName(name:String) extends Expression {
     }
   }
 
-  override def evaluate(executionResult:TemplateExecutionResult):Option[OpenlawValue] = {
+  override def evaluate(executionResult:TemplateExecutionResult):Option[OpenlawValue] =
     executionResult.getVariable(name) match {
       case Some(variable) =>
         variable.evaluate(executionResult)
       case None =>
         executionResult.getAlias(name).flatMap(_.evaluate(executionResult))
     }
-  }
 
   override def variables(executionResult:TemplateExecutionResult):Seq[VariableName] =
     executionResult.getExpression(this) match {
