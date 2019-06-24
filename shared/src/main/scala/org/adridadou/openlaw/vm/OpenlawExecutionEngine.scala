@@ -302,9 +302,9 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
 
   private def validateSubExecution(result:OpenlawExecutionState, currentTemplateDefinition:TemplateDefinition, variable:VariableDefinition): Result[OpenlawExecutionState] = {
     val otherType = result.getVariable(variable.name).map(_.varType(result)).getOrElse(variable.varType(result))
-    if(otherType =!= variable.varType(result)) {
+    if(otherType =!= variable.varType(result) && !variable.name.name.startsWith("@@anonymous_")) {
       val typeString = variable.variableTypeDefinition.map(_.name).getOrElse("<undefined>")
-      Failure(s"Variable definition mismatch. variable ${variable.name} is defined as $typeString in ${currentTemplateDefinition.name.name} but was ${otherType.name} in ${result.templateDefinition.map(_.name.name.title).getOrElse("the main template")}")
+      Failure(s"Variable definition mismatch. variable ${variable.name} ${variable.name.isAnonymous} is defined as $typeString in ${currentTemplateDefinition.name.name} but was ${otherType.name} in ${result.templateDefinition.map(_.name.name.title).getOrElse("the main template")}")
     } else {
       result.parentExecutionInternal.map(parent => validateSubExecution(parent, currentTemplateDefinition, variable)).getOrElse(Success(result))
     }
