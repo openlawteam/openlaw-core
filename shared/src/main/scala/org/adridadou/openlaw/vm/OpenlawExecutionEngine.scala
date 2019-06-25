@@ -37,7 +37,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       template = mainTemplate,
       executions = executions,
       anonymousVariableCounter = new AtomicInteger(0),
-      embedded = false,
+      executionType = TemplateExecution,
       variableRedefinition = mainTemplate.redefinition,
       remainingElements = mutable.Buffer(mainTemplate.block.elems:_*),
       clock = mainTemplate.clock,
@@ -110,6 +110,9 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
               attempt(getRoot(parent).agreementsInternal.append(executionResult.structuredInternal(agreement)))
             case _ =>
           }
+        } else if(executionResult.executionType === ClauseExecution) {
+          parent.variablesInternal.appendAll(executionResult.variablesInternal)
+          parent.executedVariablesInternal.appendAll(executionResult.executedVariablesInternal)
         }
 
         validateSubExecution(executionResult, definition).map(_ => {
