@@ -95,8 +95,8 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => R
     val years = tempDateTime.until(to, ChronoUnit.YEARS)
     tempDateTime = tempDateTime.plusYears(years)
 
-    val months = tempDateTime.until(to, ChronoUnit.MONTHS)
-    tempDateTime = tempDateTime.plusMonths(months)
+    val weeks = tempDateTime.until(to, ChronoUnit.WEEKS)
+    tempDateTime = tempDateTime.plusWeeks(weeks)
 
     val days = tempDateTime.until(to, ChronoUnit.DAYS)
     tempDateTime = tempDateTime.plusDays(days)
@@ -111,7 +111,7 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => R
 
     Period(
       years = years.toInt,
-      months = months.toInt,
+      weeks = weeks.toInt,
       days = days.toInt,
       hours = hours.toInt,
       minutes = minutes.toInt,
