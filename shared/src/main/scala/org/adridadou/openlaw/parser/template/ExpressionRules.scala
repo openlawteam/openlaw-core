@@ -10,6 +10,8 @@ import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawValue}
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.parboiled2.Rule1
 import org.adridadou.openlaw.parser.template.expressions._
+import org.adridadou.openlaw.result.{Failure, Result, Success}
+import org.adridadou.openlaw.result.Implicits.RichResult
 
 import scala.reflect.ClassTag
 
@@ -19,32 +21,33 @@ import scala.reflect.ClassTag
 trait ExpressionRules extends JsonRules {
 
   def ExpressionRule: Rule1[Expression] = rule {
-    Term ~ ws ~ zeroOrMore( operation ~ ws ~ Term ~ ws ~> ((op, expr) => PartialOperation(op,expr)) ) ~> ((left:Expression, others:Seq[PartialOperation]) => others.foldLeft(left)({
-      case (expr, op) => createOperation(expr,op)
-    }))
-  }
+      Term ~ ws ~ zeroOrMore(operation ~ ws ~ Term ~ ws ~> ((op, expr) => PartialOperation(op, expr))) ~> ((left: Expression, others: Seq[PartialOperation]) => others.foldLeft(left)({
+        case (expr, op) => createOperation(expr, op).getOrThrow() // TODO: Convert this to use fail()
+      }))
+    }
+    //.recoverMerge { case failure => fail(failure.message) }
 
   def Term:Rule1[Expression] = rule {
     ws ~ Factor ~ ws ~ zeroOrMore(
       operation ~ ws ~ Factor ~ ws ~> ((op, expr) => PartialOperation(op,expr))
     ) ~> ((left:Expression, others:Seq[PartialOperation]) => others.foldLeft(left)({
-      case (expr, op) => createOperation(expr,op)
+      case (expr, op) => createOperation(expr,op).getOrThrow() // TODO: Convert this to use fail()
     }))
   }
 
-  private def createOperation(left:Expression, op:PartialOperation):Expression = op.op match {
-    case "+" => ValueExpression(left, op.expr, Plus)
-    case "-" => ValueExpression(left, op.expr, Minus)
-    case "/" => ValueExpression(left, op.expr, Divide)
-    case "*" => ValueExpression(left, op.expr, Multiple)
-    case "||" => BooleanExpression(left, op.expr, Or)
-    case "&&" => BooleanExpression(left, op.expr, And)
-    case ">" => ComparaisonExpression(left, op.expr, GreaterThan)
-    case "<" => ComparaisonExpression(left, op.expr, LesserThan)
-    case ">=" => ComparaisonExpression(left, op.expr, GreaterOrEqual)
-    case "<=" => ComparaisonExpression(left, op.expr, LesserOrEqual)
-    case "=" => ComparaisonExpression(left, op.expr, Equals)
-    case _ => throw new RuntimeException(s"unknown operation ${op.op}")
+  private def createOperation(left:Expression, op:PartialOperation): Result[Expression] = op.op match {
+    case "+" => Success(ValueExpression(left, op.expr, Plus))
+    case "-" => Success(ValueExpression(left, op.expr, Minus))
+    case "/" => Success(ValueExpression(left, op.expr, Divide))
+    case "*" => Success(ValueExpression(left, op.expr, Multiple))
+    case "||" => Success(BooleanExpression(left, op.expr, Or))
+    case "&&" => Success(BooleanExpression(left, op.expr, And))
+    case ">" => Success(ComparaisonExpression(left, op.expr, GreaterThan))
+    case "<" => Success(ComparaisonExpression(left, op.expr, LesserThan))
+    case ">=" => Success(ComparaisonExpression(left, op.expr, GreaterOrEqual))
+    case "<=" => Success(ComparaisonExpression(left, op.expr, LesserOrEqual))
+    case "=" => Success(ComparaisonExpression(left, op.expr, Equals))
+    case _ => Failure(s"unknown operation ${op.op}")
   }
 
   def Factor:Rule1[Expression] = rule {constant | conditionalVariableDefinition | variableMemberInner | variableName | Parens | UnaryMinus | UnaryNot }
@@ -245,32 +248,32 @@ object Parameter {
 
 sealed trait Parameter extends OpenlawNativeValue {
   def serialize:Json
-  def variables(executionResult: TemplateExecutionResult):Seq[VariableName]
+  def variables(executionResult: TemplateExecutionResult): Result[Seq[VariableName]]
 }
 final case class OneValueParameter(expr:Expression) extends Parameter {
-  override def variables(executionResult: TemplateExecutionResult): Seq[VariableName] =
+  override def variables(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =
     expr.variables(executionResult)
 
   override def serialize: Json = this.asJson
 }
 final case class ListParameter(exprs:Seq[Expression]) extends Parameter {
-  override def variables(executionResult: TemplateExecutionResult): Seq[VariableName] =
-    exprs.flatMap(_.variables(executionResult)).distinct
+  override def variables(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =
+    exprs.toList.map(_.variables(executionResult)).sequence.map(_.flatten.distinct)
 
   override def serialize: Json = this.asJson
 }
 
 final case class Parameters(parameterMap:Seq[(String, Parameter)]) extends Parameter {
-  override def variables(executionResult: TemplateExecutionResult): Seq[VariableName] =
-    parameterMap.flatMap({case (_,param) => param.variables(executionResult)}).distinct
+  override def variables(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =
+    parameterMap.toList.map { case (_,param) => param.variables(executionResult) }.sequence.map(_.flatten.distinct)
 
   override def serialize: Json = this.asJson
 }
 
 final case class MappingParameter(mappingInternal: Map[String, Expression]) extends Parameter {
   def mapping:Map[VariableName, Expression] = mappingInternal.map({case (key,value) => VariableName(key) -> value})
-  override def variables(executionResult: TemplateExecutionResult): Seq[VariableName] =
-    mapping.values.flatMap(_.variables(executionResult)).toSeq.distinct
+  override def variables(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =
+    mapping.values.toList.map(_.variables(executionResult)).sequence.map(_.flatten.distinct)
 
   override def serialize: Json = this.asJson
 }

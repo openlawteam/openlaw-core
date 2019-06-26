@@ -7,12 +7,16 @@ import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.result.{Failure, Success}
+import org.adridadou.openlaw.result.Implicits.RichResult
 import org.adridadou.openlaw.values.{TemplateParameters, TemplateTitle}
 import org.scalatest.{FlatSpec, Matchers, OptionValues}
+import org.scalatest.EitherValues._
+import org.scalatest.OptionValues._
 import play.api.libs.json.Json
+import io.circe.parser._
 import org.adridadou.openlaw._
 
-class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValues {
+class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
   val parser = new OpenlawTemplateLanguageParserService(Clock.systemDefaultZone())
   val engine = new OpenlawExecutionEngine()
@@ -81,6 +85,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
         text shouldBe "<p class=\"no-section\"><br />                  [[Employer Ethereum Address]]<br /><br />                </p><p class=\"no-section\"><br /><br />    </p><p class=\"no-section\">[[some address]]<br /><br />    </p><p class=\"no-section\"><br />      </p>"
 
       case Failure(ex, message) =>
+        ex.printStackTrace()
         fail(message, ex)
     }
   }
@@ -451,7 +456,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
   it should "print a period properly" in {
     val mainTemplate =
       compile("""[[var:Period]]""".stripMargin)
-    engine.execute(mainTemplate, TemplateParameters("var" -> PeriodType.internalFormat(PeriodType.cast("3 minute 10 seconds"))), Map()) match {
+    engine.execute(mainTemplate, TemplateParameters("var" -> PeriodType.internalFormat(PeriodType.cast("3 minute 10 seconds").right.value).right.value), Map()) match {
       case Right(result) =>
         parser.forReview(result.agreements.head,ParagraphEdits()) shouldBe """<p class="no-section">3 minutes 10 seconds</p>"""
       case Left(ex) =>
@@ -470,7 +475,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
         """.stripMargin)
 
     val collectionType = AbstractCollectionType.createParameterInstance(TextType)
-    engine.execute(mainTemplate, TemplateParameters("title" -> "this is a test", "My Collection" -> collectionType.internalFormat(CollectionValue(size = 3, values = Map(0 -> "test1", 1 -> "test2", 2 -> "test3"), collectionType = collectionType))), Map()) match {
+    engine.execute(mainTemplate, TemplateParameters("title" -> "this is a test", "My Collection" -> collectionType.internalFormat(CollectionValue(size = 3, values = Map(0 -> "test1", 1 -> "test2", 2 -> "test3"), collectionType = collectionType)).right.value), Map()) match {
       case Right(result) =>
         result.state shouldBe ExecutionFinished
         val text = parser.forReview(result.agreements.head,ParagraphEdits())
@@ -495,7 +500,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
 
     val collectionType = AbstractCollectionType.createParameterInstance(TextType)
 
-    engine.execute(mainTemplate, TemplateParameters("number" -> "10", "title" -> "this is a test", "My Collection" -> collectionType.internalFormat(CollectionValue(size = 3, values = Map(0 -> "test1", 1 -> "test2", 2 -> "test3"), collectionType = collectionType))), Map()) match {
+    engine.execute(mainTemplate, TemplateParameters("number" -> "10", "title" -> "this is a test", "My Collection" -> collectionType.internalFormat(CollectionValue(size = 3, values = Map(0 -> "test1", 1 -> "test2", 2 -> "test3"), collectionType = collectionType)).right.value), Map()) match {
       case Right(result) =>
         result.state shouldBe ExecutionFinished
         result.getAllExecutedVariables.map({case (_, variable) => variable.name}).toSet should contain theSameElementsAs Set("@@anonymous_1@@","@@anonymous_5@@","@@anonymous_3@@", "title", "number", "My Collection")
@@ -519,9 +524,9 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
         result.state shouldBe ExecutionFinished
         result.getAllExecutedVariables.map({case (_, variable) => variable.name}).toSet should contain theSameElementsAs Set("Someone")
 
-        val map = result.getVariableValue[OpenlawMap[VariableName, OpenlawValue]](VariableName("Someone")).value.underlying
-        map.get(VariableName("name")).value.toString shouldBe "David"
-        map.get(VariableName("number")).map { case OpenlawBigDecimal(v) => v }.value shouldBe BigDecimal(23)
+        val map = result.getVariableValue[OpenlawMap[VariableName, OpenlawValue]](VariableName("Someone")).right.value.value.underlying
+        map.get(VariableName("name")).value.toString shouldBe ("David")
+        map.get(VariableName("number")).map { case OpenlawBigDecimal(value) => value }.value shouldBe (BigDecimal(23))
       case Left(ex) =>
         fail(ex)
     }
@@ -611,7 +616,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
       """bla bla""".stripMargin)
 
     val colType = AbstractCollectionType.createParameterInstance(TextType)
-    val internalValue = colType.internalFormat(CollectionValue(2, Map(0 -> "hello", 1 -> "world"), colType))
+    val internalValue = colType.internalFormat(CollectionValue(2, Map(0 -> "hello", 1 -> "world"), colType)).right.value
     engine.execute(mainTemplate, TemplateParameters("employees" -> internalValue), Map(TemplateSourceIdentifier(TemplateTitle("template")) -> subTemplate,TemplateSourceIdentifier(TemplateTitle("template2")) -> subTemplate2)) match {
       case Right(result) =>
         result.agreements.size shouldBe 2
@@ -677,7 +682,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
       """.stripMargin)
 
     val collectionType = AbstractCollectionType.createParameterInstance(TextType)
-    engine.execute(template, TemplateParameters("Directors" -> collectionType.internalFormat(CollectionValue(size = 3, values = Map(0 -> "test1", 1 -> "test2", 2 -> "test3"), collectionType = collectionType))), Map()) match {
+    engine.execute(template, TemplateParameters("Directors" -> collectionType.internalFormat(CollectionValue(size = 3, values = Map(0 -> "test1", 1 -> "test2", 2 -> "test3"), collectionType = collectionType)).right.value), Map()) match {
       case Right(result) =>
         result.state shouldBe ExecutionFinished
         val text = parser.forReview(result.agreements.head,ParagraphEdits())
@@ -767,7 +772,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
 
     val collectionType = AbstractCollectionType.createParameterInstance(TextType)
 
-    engine.execute(template, TemplateParameters("text" -> collectionType.internalFormat(CollectionValue(size = 3, values = Map(0 -> "hello", 1 -> "world", 2 -> "me"), collectionType = collectionType))), Map()) match {
+    engine.execute(template, TemplateParameters("text" -> collectionType.internalFormat(CollectionValue(size = 3, values = Map(0 -> "hello", 1 -> "world", 2 -> "me"), collectionType = collectionType)).right.value), Map()) match {
       case Right(result) =>
         result.state shouldBe ExecutionFinished
         val text = parser.forReview(result.agreements.head,ParagraphEdits())
@@ -808,7 +813,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
         val Some(variable) = result.getVariable("var")
         variable.varType(result).getTypeClass shouldBe classOf[OpenlawString]
 
-        variable.evaluate(result).value.toString shouldBe "hello"
+        variable.evaluate(result).right.value.value.toString shouldBe ("hello")
 
       case Left(ex) =>
         fail(ex)
@@ -1270,7 +1275,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
 
     val template = compile(text)
     val collectionType = AbstractCollectionType.createParameterInstance(TextType)
-    val paramValue = collectionType.internalFormat(CollectionValue(size = 3, values = Map(0 -> "text1", 1 -> "text2", 2 -> "text3"), collectionType))
+    val paramValue = collectionType.internalFormat(CollectionValue(size = 3, values = Map(0 -> "text1", 1 -> "text2", 2 -> "text3"), collectionType)).right.value
 
     engine.execute(template, TemplateParameters("texts" -> paramValue)) match {
       case Right(result) =>
@@ -1414,7 +1419,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
       size = 4,
       values = Map(0 -> "param 0", 1 -> "param 1",2 -> "param 2",3 -> "param 3"),
       collectionType = collectionType
-    )))) match {
+    )).getOrThrow())) match {
       case Success(result) =>
         parser.forReview(result.agreements.head) shouldBe "<p class=\"no-section\"><br /></p><ul class=\"list-lvl-1\"><li><p>1.  param 0<br /></p></li><li><p>2.  param 1<br /></p></li><li><p>3.  param 2<br /></p></li><li><p>4.  param 3<br /><br />      </p></li></ul>"
       case Failure(ex, message) => fail(message, ex)
@@ -1449,20 +1454,20 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
       .withSecond(0)
       .withNano(0)
     val Right(result) = engine.execute(template, TemplateParameters(
-      "from" -> DateTimeType.internalFormat(OpenlawDateTime(fromDate)),
-      "to" -> DateTimeType.internalFormat(OpenlawDateTime(toDate))
+      "from" -> DateTimeType.internalFormat(OpenlawDateTime(fromDate)).getOrThrow(),
+      "to" -> DateTimeType.internalFormat(OpenlawDateTime(toDate)).getOrThrow()
     ))
 
-    val period = VariableName("period").evaluateT[Period](result)
+    val period = VariableName("period").evaluateT[Period](result).getOrThrow()
     period shouldBe Some(variableTypes.Period(weeks = 1, days = 2, hours = 2, minutes = 45))
 
     // flip date order - should not matter
     val Right(result2) = engine.execute(template, TemplateParameters(
-      "from" -> DateTimeType.internalFormat(OpenlawDateTime(toDate)),
-      "to" -> DateTimeType.internalFormat(OpenlawDateTime(fromDate))
+      "from" -> DateTimeType.internalFormat(OpenlawDateTime(toDate)).getOrThrow(),
+      "to" -> DateTimeType.internalFormat(OpenlawDateTime(fromDate)).getOrThrow()
     ))
 
-    VariableName("period").evaluateT[Period](result2) shouldBe period
+    VariableName("period").evaluateT[Period](result2).getOrThrow() shouldBe period
   }
 
   it should "be able to divide a period by a number" in {
@@ -1485,11 +1490,11 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
         days = 3,
         hours = 4,
         minutes = 5,
-        seconds = 6)),
+        seconds = 6)).getOrThrow(),
       "divisor" -> "2"
     ))
 
-    VariableName("newPeriod").evaluateT[Period](result) shouldBe Some(variableTypes.Period(
+    VariableName("newPeriod").evaluateT[Period](result).getOrThrow() shouldBe Some(variableTypes.Period(
       weeks = 27,
       days = 2,
       hours = 2,
@@ -1498,7 +1503,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
     ))
 
     engine.execute(template, TemplateParameters(
-      "period" -> PeriodType.internalFormat(variableTypes.Period(years = 1)),
+      "period" -> PeriodType.internalFormat(variableTypes.Period(years = 1)).getOrThrow(),
       "divisor" -> "0")) match {
       case Right(_) =>
         fail("should fail when dividing by zero")
@@ -1507,7 +1512,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers with OptionValue
     }
 
     engine.execute(template, TemplateParameters(
-      "period" -> PeriodType.internalFormat(variableTypes.Period(years = 1, months = 1, weeks = 1)),
+      "period" -> PeriodType.internalFormat(variableTypes.Period(years = 1, months = 1, weeks = 1)).getOrThrow(),
       "divisor" -> "2")) match {
       case Right(_) =>
         fail("should fail when dividing a period containing a month")

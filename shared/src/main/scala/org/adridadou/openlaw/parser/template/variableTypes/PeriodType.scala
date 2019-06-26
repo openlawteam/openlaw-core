@@ -2,9 +2,12 @@ package org.adridadou.openlaw.parser.template.variableTypes
 
 import org.parboiled2._
 import VariableType._
+import cats._
+import cats.data.EitherT
 import cats.implicits._
+import org.adridadou.openlaw.parser.template.{Divide, Minus, Plus, TemplateExecutionResult, ValueOperation}
 import org.adridadou.openlaw.{OpenlawBigDecimal, OpenlawDateTime, OpenlawNativeValue, OpenlawValue}
-import org.adridadou.openlaw.parser.template._
+import org.adridadou.openlaw.result.{Failure, Result, Success}
 import org.adridadou.openlaw.parser.template.expressions.ValueExpression
 
 import scala.language.implicitConversions
@@ -12,43 +15,43 @@ import scala.math.BigDecimal
 
 case object PeriodType extends VariableType("Period") {
 
-  override def plus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult:TemplateExecutionResult): Option[OpenlawValue] = for {
-    left <- optLeft
-    right <-optRight
-  } yield {
-    right match {
-      case period:Period => plus(convert[Period](left), period)
-      case date:OpenlawDateTime => DateTimeType.plus(date, convert[Period](left))
+  override def plus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult:TemplateExecutionResult): Result[Option[OpenlawValue]] =
+    combine(optLeft, optRight) {
+      case (left, period:Period) => convert[Period](left).map(plus(_, period))
+      case (left, date: OpenlawDateTime) => convert[Period](left).map(DateTimeType.plus(date, _))
     }
-  }
 
-  private def plus(left:Period, right:Period):Period = left.plus(right)
+  private def plus(left:Period, right:Period): Period = left.plus(right)
 
-  override def minus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult:TemplateExecutionResult): Option[Period] = for(
-    left <- optLeft;
-    right <-optRight
-  ) yield minus(convert[Period](left), convert[Period](right))
+  override def minus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult:TemplateExecutionResult): Result[Option[Period]] =
+    combineConverted[Period, Period](optLeft, optRight) {
+      case (left, right) => Success(minus(left, right))
+    }
 
   private def minus(left:Period, right:Period):Period = left.minus(right)
 
-  override def divide(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Option[Period] = for {
-    left <- optLeft
-    right <-optRight if convert[OpenlawBigDecimal](right) =!= BigDecimal(0)
-  } yield divide(convert[Period](left), convert[OpenlawBigDecimal](right))
+  override def divide(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Result[Option[Period]] =
+    combineConverted[Period, OpenlawBigDecimal, Period](optLeft, optRight) {
+      case (left, right) if right =!= BigDecimal(0) => Success(divide(left, right))
+    }
 
   private def divide(left:Period, right:OpenlawBigDecimal):Period = left.divide(right)
 
-  override def cast(value: String, executionResult:TemplateExecutionResult): Period =
+  override def cast(value: String, executionResult:TemplateExecutionResult): Result[Period] =
     cast(value)
 
-  def cast(value: String): Period = {
+  def cast(value: String): Result[Period] = {
     val parser = new PeriodTypeParser(value)
     parser.root.run().toEither match {
-      case Right(res) => res
+      case Right(res) =>
+        Success(res)
       case Left(ex:ParseError) =>
-        throw new RuntimeException(parser.formatError(ex))
+        Failure(parser.formatError(ex))
+      case Left(ex: Exception) =>
+        Failure(ex)
+
       case Left(ex) =>
-        throw ex
+        throw ex // Do not try to handle fatal error
     }
   }
 
@@ -59,16 +62,17 @@ case object PeriodType extends VariableType("Period") {
     case _ => false
   }
 
-  override def internalFormat(value: OpenlawValue): String = {
-    val period = convert[Period](value)
-    val result = ( if( period.years > 0 ) s"${period.years}" + " years " else "") +
-      ( if( period.months > 0 ) s"${period.months}" + " months " else "") +
-      ( if( period.weeks > 0 ) s"${period.weeks}" + " weeks " else "") +
-      ( if( period.days > 0 ) s"${period.days}" + " days " else "") +
-      ( if( period.hours > 0 ) s"${period.hours}" + " hours " else "") +
-      ( if( period.minutes > 0 ) s"${period.minutes}" + " minutes " else "") +
-      ( if( period.seconds > 0 ) s"${period.seconds}" + " seconds " else "")
-    result
+  override def internalFormat(value: OpenlawValue): Result[String] = {
+    convert[Period](value).map { period =>
+      val result = (if (period.years > 0) s"${period.years}" + " years " else "") +
+        (if (period.months > 0) s"${period.months}" + " months " else "") +
+        (if (period.weeks > 0) s"${period.weeks}" + " weeks " else "") +
+        (if (period.days > 0) s"${period.days}" + " days " else "") +
+        (if (period.hours > 0) s"${period.hours}" + " hours " else "") +
+        (if (period.minutes > 0) s"${period.minutes}" + " minutes " else "") +
+        (if (period.seconds > 0) s"${period.seconds}" + " seconds " else "")
+      result
+    }
   }
 
   override def getTypeClass: Class[_ <: Period] = classOf[Period]
@@ -80,16 +84,21 @@ case object PeriodType extends VariableType("Period") {
     case _ => rightType
   }
 
-  override def validateOperation(expr: ValueExpression, executionResult: TemplateExecutionResult): Option[String] = {
+  override def validateOperation(expr: ValueExpression, executionResult: TemplateExecutionResult): Result[Unit] = {
     expr.operation match {
       case Divide =>
-        (expr.left.evaluate(executionResult), expr.right.evaluate(executionResult)) match {
-          case (_, Some(value:OpenlawBigDecimal)) if value.underlying === BigDecimal(0) => Some(s"error while evaluating the expression '$expr': division by zero!")
-          case (Some(period: Period), _) if period.months > 0 => Some(s"error while evaluating the expression '$expr': cannot divide months")
-          case _ => None
-        }
+        (for {
+          leftOption <- expr.left.evaluate(executionResult)
+          rightOption <- expr.right.evaluate(executionResult)
+        } yield {
+          (leftOption, rightOption) match {
+            case (_, Some(value:OpenlawBigDecimal)) if value.underlying === BigDecimal(0) => Failure(s"error while evaluating the expression '$expr': division by zero!")
+            case (Some(period: Period), _) if period.months > 0 => Failure(s"error while evaluating the expression '$expr': cannot divide months")
+            case _ => Success(None)
+          }
+        }).flatten.map(_ => ())
       case _ =>
-        None
+        Success(None)
     }
   }
 }
@@ -107,6 +116,7 @@ class PeriodTypeParser(val input: ParserInput) extends Parser {
   def periodEntry:Rule1[(Int, String)] = rule {
     digits ~ zeroOrMore(' ') ~ capture(oneOrMore(CharPredicate.Alpha)) ~> ((num:Int, str:String) => (num, str))
   }
+
   def root:Rule1[Period] = rule {
     oneOrMore(zeroOrMore(' ') ~ periodEntry ~ zeroOrMore(' ')) ~ EOI ~> ((values:Seq[(Int, String)]) => values.map({
         case (digit, periodType) => periodType.trim match {

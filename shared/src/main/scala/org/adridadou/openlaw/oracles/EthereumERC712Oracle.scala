@@ -14,18 +14,37 @@ import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 case class EthereumERC712Oracle(crypto:CryptoService) extends OpenlawOracle[PreparedERC712SmartContractCallEvent] with LazyLogging {
 
-  override def incoming(vm: OpenlawVm, event: PreparedERC712SmartContractCallEvent): Result[OpenlawVm] = {
+  override def incoming(vm: OpenlawVm, event: PreparedERC712SmartContractCallEvent): Result[OpenlawVm] =
     vm
       .getAllVariableValues[EthereumSmartContractCall](EthereumCallType)
-      .find({ case (call, executionResult) => call.identifier(executionResult) === event.identifier })
-      .flatMap({ case (call, executionResult) => for {
-        from <- call.getFrom(executionResult) if from === event.signee
-        to <- Some(call.getContractAddress(executionResult)) if to === event.receiveAddress
-      } yield call.identifier(executionResult)})
-      .filter(_ === event.identifier)
-      .map { name => Success(vm.setInitExecution(name, PreparedERC712SmartContractCallExecution(name, event.signedCall))) }
-      .getOrElse(Failure(s"action not found for ${event.typeIdentifier}"))
-  }
+      .flatMap { values =>
+        values
+          .toList
+          .map { case (call, executionResult) => call.identifier(executionResult).map((call, executionResult, _)) }
+          .sequence
+          .flatMap { list =>
+            list
+              .find { case (_, _, id) => id === event.identifier }
+              .map { case (call, executionResult, id) =>
+                for {
+                  fromOption <- call.getFrom(executionResult)
+                  to <- call.getContractAddress(executionResult)
+                } yield {
+                  for {
+                    from <- fromOption if from === event.signee
+                    to <- Some(to) if to === event.receiveAddress
+                  } yield id
+                }
+              }
+              .sequence
+              .map(_.flatten)
+              .flatMap { option =>
+                option
+                  .map { name => Success(vm.setInitExecution(name, PreparedERC712SmartContractCallExecution(name, event.signedCall))) }
+                  .getOrElse(Failure(s"action not found for ${event.typeIdentifier}"))
+              }
+          }
+      }
 
   override def shouldExecute(event: OpenlawVmEvent): Boolean = event match {
     case _:PreparedERC712SmartContractCallEvent => true
