@@ -9,11 +9,10 @@ import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.result.{Failure, Success}
 import org.adridadou.openlaw.result.Implicits.RichResult
 import org.adridadou.openlaw.values.{TemplateParameters, TemplateTitle}
-import org.scalatest.{FlatSpec, Matchers, OptionValues}
+import org.scalatest.{FlatSpec, Matchers}
 import org.scalatest.EitherValues._
 import org.scalatest.OptionValues._
 import play.api.libs.json.Json
-import io.circe.parser._
 import org.adridadou.openlaw._
 
 class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
@@ -525,8 +524,8 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         result.getAllExecutedVariables.map({case (_, variable) => variable.name}).toSet should contain theSameElementsAs Set("Someone")
 
         val map = result.getVariableValue[OpenlawMap[VariableName, OpenlawValue]](VariableName("Someone")).right.value.value.underlying
-        map.get(VariableName("name")).value.toString shouldBe ("David")
-        map.get(VariableName("number")).map { case OpenlawBigDecimal(value) => value }.value shouldBe (BigDecimal(23))
+        map.get(VariableName("name")).value.toString shouldBe "David"
+        map.get(VariableName("number")).map { case OpenlawBigDecimal(value) => value }.value shouldBe BigDecimal(23)
       case Left(ex) =>
         fail(ex)
     }
@@ -813,7 +812,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         val Some(variable) = result.getVariable("var")
         variable.varType(result).getTypeClass shouldBe classOf[OpenlawString]
 
-        variable.evaluate(result).right.value.value.toString shouldBe ("hello")
+        variable.evaluate(result).right.value.value.toString shouldBe "hello"
 
       case Left(ex) =>
         fail(ex)
