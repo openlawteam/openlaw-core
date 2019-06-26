@@ -16,13 +16,13 @@ case class VariableAliasing(name:VariableName, expr:Expression) extends Expressi
   def validate(executionResult: TemplateExecutionResult): Result[Unit] =
     expr.validate(executionResult)
 
-  override def expressionType(executionResult: TemplateExecutionResult): VariableType =
+  override def expressionType(executionResult: TemplateExecutionResult): Result[VariableType] =
     expr.expressionType(executionResult)
 
-  override def evaluate(executionResult: TemplateExecutionResult): Option[OpenlawValue] =
+  override def evaluate(executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] =
     expr.evaluate(executionResult)
 
-  override def variables(executionResult: TemplateExecutionResult): Seq[VariableName] =
+  override def variables(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =
     expr.variables(executionResult)
 
   override def missingInput(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =

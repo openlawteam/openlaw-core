@@ -21,14 +21,23 @@ trait VariableExecutionEngine {
           }
 
           addNewVariable(executionResult, currentVariable)
-          val missingVariables = currentVariable.defaultValue.map(_.variables(executionResult)).getOrElse(Seq())
-            .filter(newVariable => executionResult.getVariable(newVariable).isEmpty).toList
+          currentVariable
+            .defaultValue
+            .map(_.variables(executionResult))
+            .sequence
+            .map { option =>
+              option
+                .getOrElse(Seq())
+                .filter(newVariable => executionResult.getVariable(newVariable).isEmpty).toList
+            }
+            .flatMap { missingVariables =>
 
-          if(currentVariable.varType(executionResult) === EthereumEventFilterType) {
-            handleMissingVariables(missingVariables.filter(_.name =!= "this"), executionResult, currentVariable, executed)
-          } else {
-            handleMissingVariables(missingVariables, executionResult, currentVariable, executed)
-          }
+              if (currentVariable.varType(executionResult) === EthereumEventFilterType) {
+                handleMissingVariables(missingVariables.filter(_.name =!= "this"), executionResult, currentVariable, executed)
+              } else {
+                handleMissingVariables(missingVariables, executionResult, currentVariable, executed)
+              }
+            }
         }
     }
   }
@@ -43,7 +52,7 @@ trait VariableExecutionEngine {
             Success(executionResult)
           }
         }
-      case elem::Nil =>
+      case elem :: Nil =>
         Failure(s"""error while processing the new variable ${variable.name}. The variable "${elem.name}" is used in the constructor but has not been defined""")
       case list =>
         Failure(s"error while processing the new variable ${variable.name}. The variables ${list.map(v => "\"" + v.name + "\"").mkString(",")} are used in the constructor but have not been defined")
@@ -95,13 +104,17 @@ trait VariableExecutionEngine {
         startSubExecution(variable, executionResult, willBeUsedForEmbedded = true)
       case _ =>
         val currentVariable = executionResult.getVariable(variable.name).getOrElse(variable)
-        executionResult.executedVariablesInternal appendAll currentVariable.variables(executionResult)
-        Success(executionResult)
+        currentVariable
+          .variables(executionResult)
+          .map { list =>
+            executionResult.executedVariablesInternal appendAll list
+            executionResult
+          }
     }
   }
 
   private def startSubExecution(variable: VariableDefinition, executionResult: OpenlawExecutionState, willBeUsedForEmbedded:Boolean): Result[OpenlawExecutionState] = {
-    variable.evaluate(executionResult) match {
+    variable.evaluate(executionResult) flatMap {
       case Some(definition:TemplateDefinition) =>
         Success(executionResult.copy(state = ExecutionWaitForTemplate(variable.name, definition.name, willBeUsedForEmbedded)))
       case Some(_) =>
@@ -179,49 +192,56 @@ trait VariableExecutionEngine {
       }
     }.getOrElse(Success(()))
 
-  protected def redefineAlias(executionResult: OpenlawExecutionState, alias: VariableAliasing, definedAlias: VariableAliasing, executed: Boolean): Result[OpenlawExecutionState] = {
-    val newType = alias.expressionType(executionResult)
-    val oldType = definedAlias.expressionType(executionResult)
-
-    if(newType === oldType) {
-      executionResult.aliasesInternal.prepend(alias)
-      if(executed) {
-        executionResult.executedVariablesInternal appendAll alias.variables(executionResult)
-      }
-      val unknownVariables = alias
-        .variables(executionResult)
-        .filter(variable => executionResult.getVariable(variable.name).isEmpty)
-        .filter(variable => executionResult.getAlias(variable.name).isEmpty)
-
-      if(unknownVariables.isEmpty) {
-        alias.validate(executionResult).map { _ =>
+  protected def redefineAlias(executionResult: OpenlawExecutionState, alias: VariableAliasing, definedAlias: VariableAliasing, executed: Boolean): Result[OpenlawExecutionState] =
+    for {
+      newType <- alias.expressionType(executionResult)
+      oldType <- definedAlias.expressionType(executionResult)
+      variables <- alias.variables(executionResult)
+      result <- {
+        if (newType === oldType) {
           executionResult.aliasesInternal.prepend(alias)
-          executionResult
-        }
-      } else {
-        Failure(s"alias expression uses undefined variables ${unknownVariables.map(_.name).mkString(",")}")
-      }
-
-    } else {
-      Failure(s"type mismatch. alias type was ${oldType.name} but is now ${newType.name}")
-    }
-  }
-
-  private def defineNewAlias(executionResult: OpenlawExecutionState, alias:VariableAliasing, executed:Boolean): Result[OpenlawExecutionState] = {
-    val result = alias.variables(executionResult)
-      .filter(variable => executionResult.getVariable(variable).isEmpty)
-      .filter(variable => executionResult.getAlias(variable).isEmpty).toList match {
-        case Nil =>
-          alias.validate(executionResult).flatMap { _ =>
-            executionResult.aliasesInternal.prepend(alias)
-            if (executed) {
-              executionResult.executedVariablesInternal appendAll alias.expr.variables(executionResult)
-            }
-            alias.expr.validate(executionResult).map(_ => executionResult)
+          if (executed) {
+            executionResult.executedVariablesInternal appendAll variables
           }
-        case variables =>
-          Failure(s"alias expression uses undefined variables ${variables.map(_.name).mkString(",")}")
+
+          val unknownVariables = variables
+            .filter(variable => executionResult.getVariable(variable.name).isEmpty)
+            .filter(variable => executionResult.getAlias(variable.name).isEmpty)
+
+          if (unknownVariables.isEmpty) {
+            alias.validate(executionResult).map { _ =>
+              executionResult.aliasesInternal.prepend(alias)
+              executionResult
+            }
+          } else {
+            Failure(s"alias expression uses undefined variables ${unknownVariables.map(_.name).mkString(",")}")
+          }
+
+        } else {
+          Failure(s"type mismatch. alias type was ${oldType.name} but is now ${newType.name}")
+        }
       }
-    result
-  }
+    } yield result
+
+  private def defineNewAlias(executionResult: OpenlawExecutionState, alias:VariableAliasing, executed:Boolean): Result[OpenlawExecutionState] =
+    alias
+      .variables(executionResult)
+      .flatMap { variables =>
+        variables
+          .filter(variable => executionResult.getVariable(variable).isEmpty)
+          .filter(variable => executionResult.getAlias(variable).isEmpty).toList match {
+          case Nil =>
+            alias.validate(executionResult).flatMap { _ =>
+              executionResult.aliasesInternal.prepend(alias)
+              alias.expr.variables(executionResult).flatMap { variables =>
+                if (executed) {
+                  executionResult.executedVariablesInternal appendAll variables
+                }
+                alias.expr.validate(executionResult).map(_ => executionResult)
+              }
+            }
+          case variables =>
+            Failure(s"alias expression uses undefined variables ${variables.map(_.name).mkString(",")}")
+        }
+      }
 }

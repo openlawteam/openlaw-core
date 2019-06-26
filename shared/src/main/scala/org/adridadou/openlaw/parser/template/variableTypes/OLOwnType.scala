@@ -11,9 +11,9 @@ import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 case object OLOwnType extends VariableType("OLInfo") with NoShowInForm {
 
-  override def cast(value: String, executionResult: TemplateExecutionResult): OLInformation = handleEither(decode[OLInformation](value))
+  override def cast(value: String, executionResult: TemplateExecutionResult): Result[OLInformation] = handleEither(decode[OLInformation](value))
 
-  override def internalFormat(value: OpenlawValue): String = VariableType.convert[OLInformation](value).asJson.noSpaces
+  override def internalFormat(value: OpenlawValue): Result[String] = VariableType.convert[OLInformation](value).map(_.asJson.noSpaces)
 
   override def thisType: VariableType = OLOwnType
   override def getTypeClass = classOf[OLInformation]

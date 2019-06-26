@@ -11,12 +11,12 @@ import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 object AddressType extends VariableType(name = "Address") {
 
-  override def cast(value: String, executionResult: TemplateExecutionResult): Address =
+  override def cast(value: String, executionResult: TemplateExecutionResult): Result[Address] =
     cast(value)
 
-  def cast(value: String): Address = decode[Address](value) match {
-      case Right(address) => address
-      case Left(ex) => throw new RuntimeException(ex)
+  def cast(value: String): Result[Address] = decode[Address](value) match {
+      case Right(address) => Success(address)
+      case Left(ex) => Failure(ex)
     }
 
   override def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Result[Option[Address]] =
@@ -24,7 +24,7 @@ object AddressType extends VariableType(name = "Address") {
 
   override def defaultFormatter: Formatter = AddressFormatter
 
-  override def internalFormat(value: OpenlawValue): String = VariableType.convert[Address](value).asJson.noSpaces
+  override def internalFormat(value: OpenlawValue): Result[String] = VariableType.convert[Address](value).map(_.asJson.noSpaces)
 
   override def keysType(keys: Seq[String], expr: Expression, executionResult: TemplateExecutionResult): Result[VariableType] = keys.toList match {
     case _::tail if tail.isEmpty => Success(TextType)
@@ -34,7 +34,7 @@ object AddressType extends VariableType(name = "Address") {
 
   override def access(value: OpenlawValue, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = {
     keys.toList match {
-      case head::tail if tail.isEmpty => accessProperty(getAddress(value, executionResult), head).map(Some(_))
+      case head::tail if tail.isEmpty => getAddress(value, executionResult).flatMap(value => accessProperty(value, head).map(Some(_)))
       case _::_ => Failure(s"Address has only one level of properties. invalid property access ${keys.mkString(".")}")
       case _ => Success(Some(value))
     }
@@ -50,10 +50,10 @@ object AddressType extends VariableType(name = "Address") {
 
   def thisType: VariableType = AddressType
 
-  private def getAddress(value:Any, executionResult: TemplateExecutionResult):Address = value match {
+  private def getAddress(value:Any, executionResult: TemplateExecutionResult): Result[Address] = value match {
     case json: String => cast(json, executionResult)
-    case address:Address => address
-    case _ => throw new RuntimeException(s"invalid type ${value.getClass.getSimpleName} for Address")
+    case address:Address => Success(address)
+    case _ => Failure(s"invalid type ${value.getClass.getSimpleName} for Address")
   }
 
   private def checkProperty(key:String): Result[Unit] = accessProperty(Address(), key) match {

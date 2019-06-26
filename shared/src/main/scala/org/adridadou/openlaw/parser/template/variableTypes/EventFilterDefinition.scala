@@ -8,7 +8,7 @@ import org.adridadou.openlaw.parser.abi.AbiParser.AbiType
 import org.adridadou.openlaw.parser.abi.{AbiEntry, AbiParam, AbiParser}
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
-import org.adridadou.openlaw.result.{Failure, Result, attempt}
+import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 import org.adridadou.openlaw.result.Implicits.RichOption
 
 case class EventFilterDefinition(
@@ -18,16 +18,16 @@ case class EventFilterDefinition(
   conditionalFilter: Expression) extends ActionValue with OpenlawNativeValue {
 
   def abiEntries(executionResult: TemplateExecutionResult): Result[List[AbiEntry]] = for {
-    interfaceAny <- attempt(interface.evaluate(executionResult)).flatMap(_.toResult(s"expression '$interface' failed to evaluate"))
-    interfaceString <- attempt(VariableType.convert[OpenlawString](interfaceAny))
+    interfaceAny <- interface.evaluate(executionResult).flatMap(_.toResult(s"expression '$interface' failed to evaluate"))
+    interfaceString <- VariableType.convert[OpenlawString](interfaceAny)
     entries <- AbiParser.parse(interfaceString)
   } yield entries
 
   def abiClasses(executionResult: TemplateExecutionResult): Result[List[Class[_]]] = {
     for {
       entries <- abiEntries(executionResult)
-      eventTypeAny <- eventType.evaluate(executionResult).toResult("could not evaluate eventType")
-      eventTypeString <- attempt(VariableType.convert[OpenlawString](eventTypeAny))
+      eventTypeAny <- eventType.evaluate(executionResult).flatMap(_.toResult("could not evaluate eventType"))
+      eventTypeString <- VariableType.convert[OpenlawString](eventTypeAny)
       entry <- findNameEntry(eventTypeString, entries)
       variables <- convertVariablesScalaTypes(entry)
     } yield variables
@@ -36,8 +36,8 @@ case class EventFilterDefinition(
   def abiOpenlawVariables(executionResult: TemplateExecutionResult): Result[List[VariableDefinition]] =
     for {
       entries <- abiEntries(executionResult)
-      eventTypeAny <- eventType.evaluate(executionResult).toResult("could not evaluate eventType")
-      eventTypeString <- attempt(VariableType.convert[OpenlawString](eventTypeAny))
+      eventTypeAny <- eventType.evaluate(executionResult).flatMap(_.toResult("could not evaluate eventType"))
+      eventTypeString <- VariableType.convert[OpenlawString](eventTypeAny)
       entry <- findNameEntry(eventTypeString, entries)
       variables <- convertVariablesOpenlawType(entry)
     } yield variables
@@ -45,8 +45,8 @@ case class EventFilterDefinition(
   def abiScalaVariables(executionResult: TemplateExecutionResult): Result[List[Class[_]]] =
     for {
       entries <- abiEntries(executionResult)
-      eventTypeAny <- eventType.evaluate(executionResult).toResult("could not evaluate eventType")
-      eventTypeString <- attempt(VariableType.convert[OpenlawString](eventTypeAny))
+      eventTypeAny <- eventType.evaluate(executionResult).flatMap(_.toResult("could not evaluate eventType"))
+      eventTypeString <- VariableType.convert[OpenlawString](eventTypeAny)
       entry <- findNameEntry(eventTypeString, entries)
       variables <- convertVariablesScalaTypes(entry)
     } yield variables
@@ -54,7 +54,7 @@ case class EventFilterDefinition(
   def findNameEntry(targetName: String, entries: List[AbiEntry]): Result[AbiEntry] =
     entries
       .collect { case entry @ AbiEntry(Some(name), _, _, _, _, _, _, _, _) => (name, entry) }
-      .find { case (entryName, entry) => entryName === targetName }
+      .find { case (entryName, _) => entryName === targetName }
       .map { case (_, entry) => entry }
       .toResult(s"no entry found for event named $targetName")
 
@@ -78,19 +78,24 @@ case class EventFilterDefinition(
   def convertVariableScalaTypes(param: AbiParam): Result[Class[_]] =
     attempt(AbiType.withName(param.`type`)).map { variableType => variableType.scalaType }
 
-  def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions: Seq[OpenlawExecution]): Option[LocalDateTime] = {
+  def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions: Seq[OpenlawExecution]): Result[Option[LocalDateTime]] = {
     pastExecutions match {
-      case Seq() => Some(LocalDateTime.now)
-      case _ => None
+      case Seq() => Success(Some(LocalDateTime.now))
+      case _ => Success(None)
     }
   }
 
-  override def identifier(executionResult:TemplateExecutionResult): ActionIdentifier = ActionIdentifier(
-    contractAddress.evaluate(executionResult)
-      .map(EthAddressType.convert)
-      .map(_.withLeading0x).getOrElse("") +
-    interface.evaluateT[OpenlawString](executionResult).getOrElse("")+
-    eventType.evaluateT[OpenlawString](executionResult).getOrElse("") +
-    conditionalFilter.toString
-  )
+  override def identifier(executionResult:TemplateExecutionResult): Result[ActionIdentifier] =
+    for {
+      contractAddress <- contractAddress.evaluate(executionResult).flatMap(_.map(EthAddressType.convert).sequence)
+      interface <- interface.evaluateT[OpenlawString](executionResult)
+      eventType <- eventType.evaluateT[OpenlawString](executionResult)
+    } yield {
+      ActionIdentifier(
+        contractAddress.map(_.withLeading0x).getOrElse("") +
+        interface.getOrElse("") +
+        eventType.getOrElse("") +
+        conditionalFilter.toString
+      )
+    }
 }

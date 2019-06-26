@@ -33,28 +33,41 @@ case class EthereumEventFilterExecution(executionDate: LocalDateTime, executionS
 case class EthereumEventFilterOracle(parser: OpenlawTemplateLanguageParserService, crypto:CryptoService) extends OpenlawOracle[EthereumEventFilterEvent] with LazyLogging {
 
   override def incoming(vm: OpenlawVm, event: EthereumEventFilterEvent): Result[OpenlawVm] = {
-    vm
-      .getAllVariableValues[EventFilterDefinition](EthereumEventFilterType)
-      .find { case (eventFilterDefinition, executionResult) => eventFilterDefinition.identifier(executionResult) === event.identifier }.map {
-      case (eventFilterDefinition, executionResult) =>
-        val name = VariableName("this")
-        val result = for {
-          structureType <- generateStructureType(name, eventFilterDefinition, executionResult)
-          child <- executionResult.startEphemeralExecution(name, structureType.cast(event.values.asJson.noSpaces, executionResult), structureType)
-        } yield {
-          (eventFilterDefinition.contractAddress.evaluate(child), eventFilterDefinition.eventType.evaluate(child), eventFilterDefinition.conditionalFilter.evaluate(child)) match {
-            case (Some(OpenlawString(address)), Some(OpenlawString(eventType)), Some(OpenlawBoolean(true))) if address === event.smartContractAddress.withLeading0x && eventType === event.eventType =>
-              val execution = EthereumEventFilterExecution(event.executionDate, SuccessfulExecution, event)
-              Success(vm.newExecution(event.identifier, execution))
-            case _ =>
-              Success(vm)
-          }
+    vm.getAllVariableValues[EventFilterDefinition](EthereumEventFilterType).flatMap { values =>
+      values
+        .toList
+        .map { case (eventFilterDefinition, executionResult) => eventFilterDefinition.identifier(executionResult).map((eventFilterDefinition, executionResult, _)) }
+        .sequence
+        .flatMap { list =>
+          list
+            .find { case (_, _, id) => id === event.identifier }
+            .map {
+              case (eventFilterDefinition, executionResult, _) =>
+                val name = VariableName("this")
+                val result = for {
+                  structureType <- generateStructureType(name, eventFilterDefinition, executionResult)
+                  cast <- structureType.cast(event.values.asJson.noSpaces, executionResult)
+                  child <- executionResult.startEphemeralExecution(name, cast, structureType)
+                  addressOption <- eventFilterDefinition.contractAddress.evaluate(child)
+                  eventTypeOption <- eventFilterDefinition.eventType.evaluate(child)
+                  conditionalOption <- eventFilterDefinition.conditionalFilter.evaluate(child)
+                } yield {
+                  (addressOption, eventTypeOption, conditionalOption) match {
+                    case (Some(OpenlawString(address)), Some(OpenlawString(eventType)), Some(OpenlawBoolean(true))) if address === event.smartContractAddress.withLeading0x && eventType === event.eventType =>
+                      val execution = EthereumEventFilterExecution(event.executionDate, SuccessfulExecution, event)
+                      Success(vm.newExecution(event.identifier, execution))
+                    case _ =>
+                      Success(vm)
+                  }
+                }
+                result.flatten
+              case _ => Success(vm)
+            } match {
+              case Some(newVm) => newVm
+              case None =>
+                Success(vm)
+            }
         }
-        result.flatten
-    } match {
-      case Some(newVm) => newVm
-      case None =>
-        Success(vm)
     }
   }
 

@@ -13,8 +13,8 @@ case object ClauseType extends VariableType("Clause") with NoShowInForm {
   override def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = TemplateType
     .construct(constructorParams, executionResult)
 
-  override def cast(value: String, executionResult: TemplateExecutionResult): TemplateDefinition = TemplateType.cast(value, executionResult)
-  override def internalFormat(value: OpenlawValue): String = TemplateType.internalFormat(value)
+  override def cast(value: String, executionResult: TemplateExecutionResult): Result[TemplateDefinition] = TemplateType.cast(value, executionResult)
+  override def internalFormat(value: OpenlawValue): Result[String] = TemplateType.internalFormat(value)
   override def defaultFormatter: Formatter = new NoopFormatter
 
   def thisType: VariableType = ClauseType

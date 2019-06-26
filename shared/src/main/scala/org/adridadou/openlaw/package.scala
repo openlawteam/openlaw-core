@@ -16,7 +16,6 @@ package object openlaw {
   trait OpenlawNativeValue extends OpenlawValue {
     type T = this.type
     val underlying: T = this
-
   }
 
   object OpenlawString {
