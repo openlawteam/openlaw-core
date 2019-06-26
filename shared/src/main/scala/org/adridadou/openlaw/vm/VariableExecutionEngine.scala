@@ -99,9 +99,9 @@ trait VariableExecutionEngine {
     executionResult.getVariable(variable.name).map(_.varType(executionResult)) match {
       case Some(TemplateType) =>
         executionResult.executedVariablesInternal append variable.name
-        startSubExecution(variable, executionResult, willBeUsedForEmbedded = false)
+        startSubExecution(variable, executionResult, executionType = TemplateExecution)
       case Some(ClauseType) =>
-        startSubExecution(variable, executionResult, willBeUsedForEmbedded = true)
+        startSubExecution(variable, executionResult, executionType = ClauseExecution)
       case _ =>
         val currentVariable = executionResult.getVariable(variable.name).getOrElse(variable)
         currentVariable
@@ -113,10 +113,10 @@ trait VariableExecutionEngine {
     }
   }
 
-  private def startSubExecution(variable: VariableDefinition, executionResult: OpenlawExecutionState, willBeUsedForEmbedded:Boolean): Result[OpenlawExecutionState] = {
+  private def startSubExecution(variable: VariableDefinition, executionResult: OpenlawExecutionState, executionType:ExecutionType): Result[OpenlawExecutionState] = {
     variable.evaluate(executionResult) flatMap {
       case Some(definition:TemplateDefinition) =>
-        Success(executionResult.copy(state = ExecutionWaitForTemplate(variable.name, definition.name, willBeUsedForEmbedded)))
+        Success(executionResult.copy(state = ExecutionWaitForTemplate(variable.name, definition.name, executionType)))
       case Some(_) =>
         Failure("the variable didn't return a template definition!")
       case None =>

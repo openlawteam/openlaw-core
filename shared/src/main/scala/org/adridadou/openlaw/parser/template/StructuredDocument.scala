@@ -38,7 +38,7 @@ trait TemplateExecutionResult {
   def variableTypes:Seq[VariableType]
   def variableSections:Map[String, Seq[VariableName]]
   def parameters:TemplateParameters
-  def embedded:Boolean
+  def executionType:ExecutionType
   def processedSections:Seq[(Section, Int)]
   def executedVariables:Seq[VariableName]
   def agreements:Seq[StructuredAgreement]
@@ -220,6 +220,11 @@ trait TemplateExecutionResult {
       parentExecution.flatMap(_.getTemplateDefinitionForVariable(name))
   }
 
+  def embedded = executionType match {
+    case TemplateExecution => false
+    case _ => true
+  }
+
   def allProcessedSections:Seq[(Section, Int)] = (embedded, parentExecution)  match {
     case (true, Some(parent)) => parent.allProcessedSections ++ processedSections
     case _ => processedSections
@@ -316,7 +321,7 @@ trait TemplateExecutionResult {
           val result = OpenlawExecutionState(
             id = TemplateExecutionResultId(UUID.randomUUID().toString),
             info = info,
-            embedded = true,
+            executionType = BlockExecution,
             parameters = TemplateParameters(name.name -> internalFormat),
             sectionLevelStack = mutable.Buffer(),
             template = CompiledAgreement(header = TemplateHeader()),
@@ -364,7 +369,7 @@ case class SerializableTemplateExecutionResult(id:TemplateExecutionResultId,
                                                variableTypes:Seq[VariableType],
                                                variableSections:Map[String, Seq[VariableName]],
                                                parameters:TemplateParameters,
-                                               embedded:Boolean,
+                                               executionType:ExecutionType,
                                                processedSections:Seq[(Section, Int)],
                                                clock:Clock) extends TemplateExecutionResult {
 
@@ -372,11 +377,19 @@ case class SerializableTemplateExecutionResult(id:TemplateExecutionResultId,
   override def parentExecution: Option[TemplateExecutionResult] = parentExecutionId.flatMap(templateExecutions.get)
 }
 
+object ExecutionType {
+  implicit val executionTypeEq:Eq[ExecutionType] = Eq.fromUniversalEquals
+}
+
+sealed trait ExecutionType
+case object TemplateExecution extends ExecutionType
+case object ClauseExecution extends ExecutionType
+case object BlockExecution extends ExecutionType
 
 case class OpenlawExecutionState(
                                     id:TemplateExecutionResultId,
                                     parameters:TemplateParameters,
-                                    embedded:Boolean,
+                                    executionType:ExecutionType,
                                     info:OLInformation,
                                     executions:Map[ActionIdentifier,Executions],
                                     signatureProofs:Map[Email, OpenlawSignatureProof] = Map(),
@@ -573,7 +586,7 @@ case class OpenlawExecutionState(
       variableTypes = variableTypes,
       variableSections = variableSections,
       parameters = parameters,
-      embedded = embedded,
+      executionType = executionType,
       processedSections = processedSections,
       clock = clock
     )
@@ -632,13 +645,18 @@ case class OpenlawExecutionState(
   def startForEachExecution(variableName:VariableName, template:CompiledTemplate, name:VariableName, value:OpenlawValue, varType:VariableType): Result[OpenlawExecutionState] =
     for {
       internalFormat <- varType.internalFormat(value)
-      result <- startSubExecution(variableName, template, embedded = true, Map(name -> internalFormat))
+      result <- startSubExecution(variableName, template, executionType = BlockExecution, Map(name -> internalFormat))
     } yield {
       this.forEachExecutions append result.id
       result
     }
 
-  def startSubExecution(variableName:VariableName, template:CompiledTemplate, embedded:Boolean, overrideParameters:Map[VariableName, String] = Map()): Result[OpenlawExecutionState] =
+  private def getSectionLevelStack(executionType:ExecutionType):mutable.Buffer[Int] = executionType match {
+    case TemplateExecution => mutable.Buffer()
+    case _ => this.sectionLevelStack
+  }
+
+  def startSubExecution(variableName:VariableName, template:CompiledTemplate, executionType:ExecutionType, overrideParameters:Map[VariableName, String] = Map()): Result[OpenlawExecutionState] =
     getVariableValue[TemplateDefinition](variableName).flatMap { templateDefinitionOption =>
       templateDefinitionOption.map { templateDefinition =>
         detectCyclicDependency(templateDefinition).map(_ => {
@@ -646,8 +664,8 @@ case class OpenlawExecutionState(
             id = TemplateExecutionResultId(createAnonymousVariable().name),
             info = info,
             parameters = parameters ++ overrideParameters,
-            embedded = embedded,
-            sectionLevelStack = if (embedded) this.sectionLevelStack else mutable.Buffer(),
+            executionType = executionType,
+            sectionLevelStack = getSectionLevelStack(executionType),
             template = template,
             clock = clock,
             parentExecution = Some(this),
@@ -864,7 +882,7 @@ sealed trait TemplateExecutionState
 case object ExecutionFinished extends TemplateExecutionState
 case object ExecutionReady extends TemplateExecutionState
 final case class ExecutionFailed(err:Failure[_]) extends TemplateExecutionState
-final case class ExecutionWaitForTemplate(variableName:VariableName, template:TemplateSourceIdentifier, willBeUsedForEmbedded:Boolean) extends TemplateExecutionState
+final case class ExecutionWaitForTemplate(variableName:VariableName, template:TemplateSourceIdentifier, executionType:ExecutionType) extends TemplateExecutionState
 
 case class ActionInfo(action:ActionValue, executionResult: TemplateExecutionResult) {
   def identifier:Result[ActionIdentifier] = action.identifier(executionResult)

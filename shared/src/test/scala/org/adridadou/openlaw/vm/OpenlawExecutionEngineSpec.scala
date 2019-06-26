@@ -9,11 +9,10 @@ import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.result.{Failure, Success}
 import org.adridadou.openlaw.result.Implicits.RichResult
 import org.adridadou.openlaw.values.{TemplateParameters, TemplateTitle}
-import org.scalatest.{FlatSpec, Matchers, OptionValues}
+import org.scalatest.{FlatSpec, Matchers}
 import org.scalatest.EitherValues._
 import org.scalatest.OptionValues._
 import play.api.libs.json.Json
-import io.circe.parser._
 import org.adridadou.openlaw._
 
 class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
@@ -111,7 +110,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     val parameters = TemplateParameters("My Variable 2" -> "hello", "Other one" -> "334")
     engine.execute(compiledTemplate, parameters, Map()) match {
       case Right(result) =>
-        result.state shouldBe ExecutionWaitForTemplate(VariableName("@@anonymous_3@@"), TemplateSourceIdentifier(TemplateTitle("Another Template")), willBeUsedForEmbedded = false)
+        result.state shouldBe ExecutionWaitForTemplate(VariableName("@@anonymous_3@@"), TemplateSourceIdentifier(TemplateTitle("Another Template")), executionType = TemplateExecution)
         result.variables.map(_.name.name) shouldBe Seq("My Variable","@@anonymous_1@@", "@@anonymous_2@@", "Other one", "@@anonymous_3@@")
 
         engine.resumeExecution(result, Map(TemplateSourceIdentifier(TemplateTitle("another Template")) -> otherCompiledTemplate)) match {
@@ -153,13 +152,16 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     val compiledTemplate = compile(text)
     val otherCompiledTemplate = compile(text2)
     val parameters = TemplateParameters("My Variable 2" -> "hello", "Other one" -> "334")
+
     engine.execute(compiledTemplate, parameters, Map()) match {
       case Right(result) =>
-        result.state shouldBe ExecutionWaitForTemplate(VariableName("@@anonymous_1@@"),TemplateSourceIdentifier(TemplateTitle("a clause")), willBeUsedForEmbedded = true)
+        result.state shouldBe ExecutionWaitForTemplate(VariableName("@@anonymous_1@@"),TemplateSourceIdentifier(TemplateTitle("a clause")), executionType = ClauseExecution)
         engine.resumeExecution(result, Map(TemplateSourceIdentifier(TemplateTitle("A Clause")) -> otherCompiledTemplate)) match {
           case Right(newResult) =>
             newResult.state shouldBe ExecutionFinished
             newResult.subExecutions.size shouldBe 1
+            newResult.variables.map(_.name) should contain allElementsOf Seq(VariableName("My Variable"), VariableName("Other one"), VariableName("State of Governing Law"), VariableName("County of Venue"), VariableName("State of Venue"))
+            newResult.executedVariables should contain allElementsOf Seq(VariableName("My Variable"), VariableName("Other one"), VariableName("State of Governing Law"), VariableName("County of Venue"), VariableName("State of Venue"))
             parser.forReview(newResult.agreements.head) shouldBe "<p class=\"no-section\"><br /></p><p class=\"no-section\">[[My Variable]] - 334</p><p class=\"no-section\"><br /><strong>Choice of Law and Venue.</strong> The parties agree that this Agreement is to be governed by and construed under the law of the State of [[State of Governing Law]] without regard to its conflicts of law provisions. The parties further agree that all disputes shall be resolved exclusively in state or federal court in [[County of Venue]], [[State of Venue]].</p><p class=\"no-section\">it is just another template hello<br />      </p>"
           case Left(ex) =>
             fail(ex)
@@ -189,7 +191,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     val parameters = TemplateParameters()
     engine.execute(compiledTemplate, parameters, Map()) match {
       case Right(result) =>
-        result.state shouldBe ExecutionWaitForTemplate(VariableName("My Template"), TemplateSourceIdentifier(TemplateTitle("Another Template")), willBeUsedForEmbedded = false)
+        result.state shouldBe ExecutionWaitForTemplate(VariableName("My Template"), TemplateSourceIdentifier(TemplateTitle("Another Template")), executionType = TemplateExecution)
         result.variables.map(_.name.name) shouldBe Seq("My Variable", "Other one", "My Template")
 
         engine.resumeExecution(result, Map(TemplateSourceIdentifier(TemplateTitle("Another Template")) -> otherCompiledTemplate, TemplateSourceIdentifier(TemplateTitle("My Template")) -> compiledTemplate)) match {
@@ -223,7 +225,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     val parameters = TemplateParameters()
     engine.execute(compiledTemplate, parameters, Map()) match {
       case Right(result) =>
-        result.state shouldBe ExecutionWaitForTemplate(VariableName("My Template"), TemplateSourceIdentifier(TemplateTitle("Another Template")), willBeUsedForEmbedded = false)
+        result.state shouldBe ExecutionWaitForTemplate(VariableName("My Template"), TemplateSourceIdentifier(TemplateTitle("Another Template")), executionType = TemplateExecution)
         result.variables.map(_.name.name) shouldBe Seq("My Variable", "Other one", "My Template")
 
         engine.resumeExecution(result, Map(TemplateSourceIdentifier(TemplateTitle("Another Template")) -> otherCompiledTemplate, TemplateSourceIdentifier(TemplateTitle("My Template")) -> compiledTemplate)) match {
@@ -522,8 +524,8 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         result.getAllExecutedVariables.map({case (_, variable) => variable.name}).toSet should contain theSameElementsAs Set("Someone")
 
         val map = result.getVariableValue[OpenlawMap[VariableName, OpenlawValue]](VariableName("Someone")).right.value.value.underlying
-        map.get(VariableName("name")).value.toString shouldBe ("David")
-        map.get(VariableName("number")).map { case OpenlawBigDecimal(value) => value }.value shouldBe (BigDecimal(23))
+        map.get(VariableName("name")).value.toString shouldBe "David"
+        map.get(VariableName("number")).map { case OpenlawBigDecimal(value) => value }.value shouldBe BigDecimal(23)
       case Left(ex) =>
         fail(ex)
     }
@@ -810,7 +812,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         val Some(variable) = result.getVariable("var")
         variable.varType(result).getTypeClass shouldBe classOf[OpenlawString]
 
-        variable.evaluate(result).right.value.value.toString shouldBe ("hello")
+        variable.evaluate(result).right.value.value.toString shouldBe "hello"
 
       case Left(ex) =>
         fail(ex)

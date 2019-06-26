@@ -11,12 +11,12 @@ lazy val repo     = "openlaw-core"
 licenses += ("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0"))
 
 lazy val scalaV = "2.12.8"
-lazy val scalaJavaTimeV = "2.0.0-RC2"
+lazy val scalaJavaTimeV = "2.0.0-RC3"
 lazy val catsV = "1.6.1"
-lazy val parboiledV = "2.1.6"
+lazy val parboiledV = "2.1.7"
 lazy val circeV = "0.11.1"
-lazy val playJsonV = "2.7.3"
-lazy val scalaTagsV = "0.6.8"
+lazy val playJsonV = "2.7.4"
+lazy val scalaTagsV = "0.7.0"
 lazy val sLoggingV = "0.6.1"
 lazy val enumeratumV = "1.5.13"
 lazy val scalaCheckV = "1.14.0"
@@ -116,7 +116,7 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
   ).jsSettings(
     libraryDependencies ++= Seq(
       "io.github.cquiroz"       %%% "scala-java-time"      % scalaJavaTimeV,
-      "io.github.cquiroz"       %%% "scala-java-time-tzdb" % "2.0.0-RC2_2019a",
+      "io.github.cquiroz"       %%% "scala-java-time-tzdb" % "2.0.0-RC3_2019a",
       "org.parboiled"           %%% "parboiled"            % parboiledV,
       "biz.enef"                %%% "slogging"             % sLoggingV,
       "org.typelevel"           %%% "cats-core"            % catsV,
@@ -124,7 +124,7 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       "io.circe"                %%% "circe-core"           % circeV,
       "io.circe"                %%% "circe-generic"        % circeV,
       "io.circe"                %%% "circe-parser"         % circeV,
-      "io.circe"                %%% "circe-java8"         % circeV,
+      "io.circe"                %%% "circe-java8"          % circeV,
       "com.typesafe.play"       %%% "play-json"            % playJsonV,
       "com.beachape"            %%% "enumeratum"           % enumeratumV,
       "com.lihaoyi"             %%% "scalatags"            % scalaTagsV,
@@ -153,9 +153,6 @@ lazy val openlawCoreJvm = openlawCore.jvm
 lazy val openlawCoreJs = openlawCore.js
 
 git.useGitDescribe := true
-
-
-
 
 val root = (project in file("."))
   .dependsOn(openlawCoreJvm, openlawCoreJs)
