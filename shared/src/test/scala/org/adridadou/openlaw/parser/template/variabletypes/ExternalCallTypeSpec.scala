@@ -56,7 +56,7 @@ class ExternalCallTypeSpec extends FlatSpec with Matchers {
     }
   }
 
-  it should "" in {
+  it should "access the parameters defined in the output abi" in {
     val templateContent =
       """<%
         |[[numberA:Number]]
