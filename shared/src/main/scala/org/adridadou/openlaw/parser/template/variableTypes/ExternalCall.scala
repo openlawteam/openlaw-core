@@ -12,7 +12,7 @@ import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.variableTypes.LocalDateTimeHelper._
 import org.adridadou.openlaw.parser.template.variableTypes.VariableType._
-import org.adridadou.openlaw.result.{Failure, Success}
+import org.adridadou.openlaw.result.{Failure, Result, Success}
 import org.adridadou.openlaw.vm.OpenlawExecutionEngine
 
 object IntegratedServiceDefinition {
@@ -64,61 +64,79 @@ case class ExternalCall(serviceName: Expression,
                         endDate: Option[Expression],
                         every: Option[Expression]) extends ActionValue with OpenlawNativeValue {
 
-  override def identifier(executionResult: TemplateExecutionResult): ActionIdentifier = {
+  override def identifier(executionResult: TemplateExecutionResult): Result[ActionIdentifier] = {
     val value = serviceName.evaluateT[OpenlawString](executionResult).getOrElse("") + "#" +
-    parameters.toSeq
-      .sortBy({case (key,_) => key.name})
-        .map({case (key, v) => v.evaluate(executionResult).map(key.name + "->" + _).getOrElse("")})
+      parameters.toSeq
+        .sortBy({ case (key, _) => key.name })
+        .map({ case (key, v) => v.evaluate(executionResult).map(key.name + "->" + _).getOrElse("") })
         .mkString("#")
 
-      ActionIdentifier(value)
+    Success(ActionIdentifier(value))
   }
 
-  def getServiceName(executionResult: TemplateExecutionResult): String =
+  def getServiceName(executionResult: TemplateExecutionResult): Result[String] =
     getString(serviceName, executionResult)
 
-  def getParameters(executionResult: TemplateExecutionResult): Map[VariableName, OpenlawValue] =
-    parameters.flatMap({
-      case (name, expr) => expr.evaluate(executionResult).map(name -> _)
-    })
+  def getParameters(executionResult: TemplateExecutionResult): Result[Map[VariableName, OpenlawValue]] =
+    parameters
+      .map { case (name, expr) => expr.evaluate(executionResult).map(name -> _) }
+      .toList
+      .sequence
+      .map(_.collect { case (name, Some(value)) => name -> value }.toMap)
 
-  def getStartDate(executionResult: TemplateExecutionResult): Option[LocalDateTime] =
-    startDate.map(getDate(_, executionResult).underlying)
+  def getStartDate(executionResult: TemplateExecutionResult): Result[Option[LocalDateTime]] =
+    startDate.map(getDate(_, executionResult).map(_.underlying)).sequence
 
-  def getEndDate(executionResult: TemplateExecutionResult): Option[LocalDateTime] =
-    endDate.map(getDate(_, executionResult).underlying)
+  def getEndDate(executionResult: TemplateExecutionResult): Result[Option[LocalDateTime]] =
+    endDate.map(getDate(_, executionResult).map(_.underlying)).sequence
 
-  def getEvery(executionResult: TemplateExecutionResult): Option[Period] =
-    every.map(getPeriod(_, executionResult))
+  def getEvery(executionResult: TemplateExecutionResult): Result[Option[Period]] =
+    every.map(getPeriod(_, executionResult)).sequence
 
-  override def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions: Seq[OpenlawExecution]): Option[LocalDateTime] = {
-    val executions = pastExecutions.map(VariableType.convert[ExternalCallExecution])
-    val callToReRun = executions
-      .map(VariableType.convert[ExternalCallExecution])
-      .find(execution => execution.executionStatus match {
-        case FailedExecution =>
-          execution.executionDate
-            .isBefore(LocalDateTime.now(executionResult.clock).minus(5, ChronoUnit.MINUTES))
-        case _ =>
-          false
-      }).map(_.scheduledDate)
+  override def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions: Seq[OpenlawExecution]): Result[Option[LocalDateTime]] = {
 
-    callToReRun orElse {
-      executions.map(_.scheduledDate).toList match {
-        case Nil =>
-          Some(getStartDate(executionResult).getOrElse(LocalDateTime.now(executionResult.clock)))
-        case list =>
-          val lastDate = list.maxBy(_.toEpochSecond(ZoneOffset.UTC))
-          getEvery(executionResult).flatMap(schedulePeriod => {
-            DateTimeType
-              .plus(Some(lastDate), Some(schedulePeriod), executionResult)
-              .map(VariableType.convert[OpenlawDateTime](_).underlying)
-              .filter(nextDate => getEndDate(executionResult).forall(date => nextDate.isBefore(date) || nextDate === date))
-          })
+    for {
+      executions <- pastExecutions.toList.map(VariableType.convert[ExternalCallExecution]).sequence
+      result <- {
+        val callToRerun: Option[LocalDateTime] = executions
+          .find { execution =>
+            execution.executionStatus match {
+              case FailedExecution =>
+                execution.executionDate
+                  .isBefore(LocalDateTime.now(executionResult.clock).minus(5, ChronoUnit.MINUTES))
+              case _ =>
+                false
+            }
+          }
+          .map(_.scheduledDate)
+
+        callToRerun.map(Success(_)).orElse {
+          executions.map(_.scheduledDate) match {
+            case Nil =>
+              Some(getStartDate(executionResult).map(_.getOrElse(LocalDateTime.now(executionResult.clock))))
+            case list =>
+              val lastDate = list.maxBy(_.toEpochSecond(ZoneOffset.UTC))
+              (for {
+                schedulePeriodOption <- getEvery(executionResult)
+                endDate <- getEndDate(executionResult)
+              } yield {
+                schedulePeriodOption.map { schedulePeriod =>
+                  DateTimeType
+                    .plus(Some(OpenlawDateTime(lastDate)), Some(schedulePeriod), executionResult)
+                    .flatMap { p =>
+                      p
+                        .map(VariableType.convert[OpenlawDateTime](_).map(_.underlying))
+                        .sequence
+                        .map(pOption => pOption.filter(nextDate => endDate.forall(date => nextDate.isBefore(date) || nextDate === date)))
+                    }
+                }
+                  .flatMap(_.sequence)
+              }).sequence.map(_.flatten)
+          }
+        }.sequence
       }
-    }
+    } yield result
   }
-
 }
 
 object ExternalCall {

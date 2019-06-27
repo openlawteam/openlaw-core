@@ -11,7 +11,7 @@ import slogging.LazyLogging
 import io.circe.syntax._
 import cats.implicits._
 import LocalDateTimeHelper._
-import org.adridadou.openlaw.OpenlawValue
+import org.adridadou.openlaw.{OpenlawMap, OpenlawValue}
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 
@@ -24,23 +24,32 @@ case class ExternalCallOracle(crypto: CryptoService) extends OpenlawOracle[Exter
       handleEvent(vm, event)
   }
 
-  private def handleEvent(vm: OpenlawVm, event: ExternalCallEvent): Result[OpenlawVm] = {
+  private def handleEvent(vm: OpenlawVm, event: ExternalCallEvent): Result[OpenlawVm] =
     //TODO check signatures
-    vm.allActions.find(info => info.identifier === event.identifier).map { actionInfo =>
-        vm.executions[ExternalCallExecution](event.identifier).find(_.requestIdentifier === event.requestIdentifier) match {
-          case Some(execution) =>
-            Success(vm.newExecution(event.identifier, event.toExecution(execution.scheduledDate)))
-          case None =>
-            getScheduledDate(actionInfo, vm, event) match {
-              case Some(scheduleDate) =>
-                Success(vm.newExecution(event.identifier, event.toExecution(scheduleDate)))
-              case None =>
-                logger.warn(s"the external call ${event.requestIdentifier} has not been scheduled yet")
-                Success(vm)
-            }
-        }
-      }.getOrElse(Failure(s"action not found for event ${event.typeIdentifier}"))
-  }
+    vm.allActions.flatMap { seq =>
+      seq
+          .toList
+          .map(info => info.identifier.map(identifier => (identifier, info)))
+          .sequence
+          .flatMap { seq =>
+            seq
+              .find { case (identifier, _) => identifier === event.identifier }
+              .map { case (_, actionInfo) =>
+                vm.executions[ExternalCallExecution](event.identifier).find(_.requestIdentifier === event.requestIdentifier) match {
+                  case Some(execution) =>
+                    Success(vm.newExecution(event.identifier, event.toExecution(execution.scheduledDate)))
+                  case None =>
+                    getScheduledDate(actionInfo, vm, event) flatMap {
+                      case Some(scheduleDate) =>
+                        Success(vm.newExecution(event.identifier, event.toExecution(scheduleDate)))
+                      case None =>
+                        logger.warn(s"the external call ${event.requestIdentifier} has not been scheduled yet")
+                        Success(vm)
+                    }
+                }
+              }.getOrElse(Failure(s"action not found for event ${event.typeIdentifier}"))
+          }
+    }
 
   private def handleFailedEvent(vm: OpenlawVm, event: FailedExternalCallEvent): Result[OpenlawVm] = {
     val failedExecution = FailedExternalCallExecution(
@@ -131,8 +140,8 @@ final case class SuccessfulExternalCallEvent(identifier: ActionIdentifier,
 
   override def serialize: String = this.asJson.noSpaces
 
-  def results(structure:DefinedStructureType, executionResult:TemplateExecutionResult): Map[VariableName, OpenlawValue] =
-    structure.cast(result, executionResult).underlying
+  def results(structure:DefinedStructureType, executionResult:TemplateExecutionResult): Result[OpenlawMap[VariableName, OpenlawValue]] =
+    structure.cast(result, executionResult)
 
   override def toExecution(scheduledDate:LocalDateTime): ExternalCallExecution = SuccessfulExternalCallExecution(
     scheduledDate = scheduledDate,
