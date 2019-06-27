@@ -8,7 +8,7 @@ import io.circe.parser._
 import io.circe.syntax._
 import org.adridadou.openlaw.{OpenlawBigDecimal, oracles}
 import org.adridadou.openlaw.oracles.{LoadTemplate, OpenlawSignatureOracle, UserId}
-import org.adridadou.openlaw.parser.template.{ActionIdentifier, ExecutionFinished, ExpressionParserService, OpenlawTemplateLanguageParserService, VariableDefinition, VariableName, VariableTypeDefinition, variableTypes}
+import org.adridadou.openlaw.parser.template.{ActionIdentifier, ExecutionFinished, ExpressionParserService, OpenlawTemplateLanguageParserService, VariableDefinition, VariableName, variableTypes}
 import org.adridadou.openlaw.result.{Failure, Success}
 import org.adridadou.openlaw.values.{ContractDefinition, ContractId, TemplateId, TemplateParameters}
 import org.adridadou.openlaw.vm.{ContractCreated, OpenlawVmProvider, TestAccount, TestCryptoService}

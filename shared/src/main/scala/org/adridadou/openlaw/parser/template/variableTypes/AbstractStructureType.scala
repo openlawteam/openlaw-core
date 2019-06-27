@@ -104,20 +104,19 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
 
   override def getTypeClass: Class[OpenlawMap[VariableName, OpenlawValue]] = classOf[OpenlawMap[VariableName, OpenlawValue]]
 
-  override def keysType(keys: Seq[String], expression: Expression, executionResult: TemplateExecutionResult): Result[VariableType] = {
+  override def keysType(keys: Seq[String], expression: Expression, executionResult: TemplateExecutionResult): Result[VariableType] =
     keys.toList match {
       case Nil =>
         Success(AbstractStructureType)
-      case head::_ =>
+      case head::tail =>
         val name = VariableName(head)
         structure.typeDefinition.get(name) match {
           case Some(varDefinition) =>
-            varDefinition.varType(executionResult).keysType(keys, expression, executionResult)
+            varDefinition.varType(executionResult).keysType(tail, expression, executionResult)
           case None =>
             throw new RuntimeException(s"property '${keys.mkString(".")}' could not be resolved in structure value '$head'")
         }
     }
-  }
 
   override def validateKeys(name:VariableName, keys: Seq[String], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] = keys.toList match {
     case Nil =>
