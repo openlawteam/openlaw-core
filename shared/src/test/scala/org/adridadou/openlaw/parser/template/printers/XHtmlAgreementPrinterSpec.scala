@@ -21,7 +21,7 @@ class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues
   private def structureAgreement(text:String, p:Map[String, String] = Map(), templates:Map[TemplateSourceIdentifier, CompiledTemplate] = Map()):Result[StructuredAgreement] = compiledTemplate(text).flatMap({
     case agreement:CompiledAgreement =>
       val params = p.map({case (k,v) => VariableName(k) -> v})
-      engine.execute(agreement, TemplateParameters(params), templates).map(agreement.structuredMainTemplate)
+      engine.execute(agreement, TemplateParameters(params), templates).flatMap(agreement.structuredMainTemplate)
     case _ =>
       Failure("was expecting agreement")
   })

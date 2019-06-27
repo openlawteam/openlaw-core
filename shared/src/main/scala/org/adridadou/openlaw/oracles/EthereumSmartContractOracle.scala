@@ -24,20 +24,32 @@ case class EthereumSmartContractOracle() extends OpenlawOracle[EthereumSmartCont
   }
 
   private def handleEvent(vm:OpenlawVm, event:EthereumSmartContractCallEvent): Result[OpenlawVm] = {
-    vm.allActions.find(info => info.identifier === event.identifier).map { actionInfo =>
-      vm.executions[EthereumSmartContractExecution](event.identifier).find(_.tx === event.hash) match {
-        case Some(execution) =>
-          Success(vm.newExecution(event.identifier, createNewExecution(vm, toOpenlawExecutionStatus(event), event, execution.scheduledDate)))
-        case None =>
-          getScheduledDate(actionInfo, vm, event) match {
-            case Some(scheduleDate) =>
-              Success(vm.newExecution(event.identifier, createNewExecution(vm, toOpenlawExecutionStatus(event), event, scheduleDate)))
-            case None =>
-              logger.warn(s"the transaction ${event.hash.toString} has not been added yet")
-              Success(vm)
-          }
+    vm
+      .allActions
+      .flatMap { actions =>
+        actions
+          .toList
+          .map { info => info.identifier.map((info, _)) }
+          .sequence
+          .flatMap { list =>
+            list
+              .find { case (_, id) => id === event.identifier }
+              .map { case (actionInfo, _) =>
+                vm.executions[EthereumSmartContractExecution](event.identifier).find(_.tx === event.hash) match {
+                  case Some(execution) =>
+                    Success(vm.newExecution(event.identifier, createNewExecution(vm, toOpenlawExecutionStatus(event), event, execution.scheduledDate)))
+                  case None =>
+                    getScheduledDate(actionInfo, vm, event) flatMap {
+                      case Some(scheduleDate) =>
+                        Success(vm.newExecution(event.identifier, createNewExecution(vm, toOpenlawExecutionStatus(event), event, scheduleDate)))
+                      case None =>
+                        logger.warn(s"the transaction ${event.hash.toString} has not been added yet")
+                        Success(vm)
+                    }
+                }
+              }.getOrElse(Failure(s"action not found for event ${event.typeIdentifier}"))
+            }
       }
-    }.getOrElse(Failure(s"action not found for event ${event.typeIdentifier}"))
   }
 
   private def handleFailedEvent(vm: OpenlawVm, event: FailedEthereumSmartContractCallEvent): Result[OpenlawVm] = {
@@ -65,14 +77,15 @@ case class EthereumSmartContractOracle() extends OpenlawOracle[EthereumSmartCont
       executionStatus = executionStatus,
       tx = event.hash)
 
-  private def getScheduledDate(info:ActionInfo, vm:OpenlawVm, event:EthereumSmartContractCallEvent):Option[LocalDateTime] = {
-    vm.executions[EthereumSmartContractExecution](info.identifier).find(_.tx === event.hash) match {
-      case Some(execution) =>
-        Some(execution.scheduledDate)
-      case None =>
-        info.action.nextActionSchedule(info.executionResult, vm.executions(info.identifier))
+  private def getScheduledDate(info:ActionInfo, vm:OpenlawVm, event:EthereumSmartContractCallEvent): Result[Option[LocalDateTime]] =
+    info.identifier.flatMap { id =>
+      vm.executions[EthereumSmartContractExecution](id).find(_.tx === event.hash) match {
+        case Some(execution) =>
+          Success(Some(execution.scheduledDate))
+        case None =>
+          info.action.nextActionSchedule(info.executionResult, vm.executions(id))
+      }
     }
-  }
 
   override def shouldExecute(event: OpenlawVmEvent): Boolean = event match {
     case _:EthereumSmartContractCallEvent => true

@@ -52,12 +52,14 @@ case class ExternalCallOracle(crypto: CryptoService) extends OpenlawOracle[Exter
     Success(vm.newExecution(event.identifier, failedExecution))
   }
 
-  private def getScheduledDate(info: ActionInfo, vm: OpenlawVm, event: ExternalCallEvent): Option[LocalDateTime] = {
-    vm.executions[ExternalCallExecution](info.identifier).find(_.requestIdentifier === event.requestIdentifier) match {
-      case Some(execution) =>
-        Some(execution.scheduledDate)
-      case None =>
-        info.action.nextActionSchedule(info.executionResult, vm.executions(event.identifier))
+  private def getScheduledDate(info: ActionInfo, vm: OpenlawVm, event: ExternalCallEvent): Result[Option[LocalDateTime]] = {
+    info.identifier.flatMap { id =>
+      vm.executions[ExternalCallExecution](id).find(_.requestIdentifier === event.requestIdentifier) match {
+        case Some(execution) =>
+          Success(Some(execution.scheduledDate))
+        case None =>
+          info.action.nextActionSchedule(info.executionResult, vm.executions(id))
+      }
     }
   }
 

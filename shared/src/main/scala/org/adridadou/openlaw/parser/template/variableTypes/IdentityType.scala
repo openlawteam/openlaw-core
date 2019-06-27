@@ -16,11 +16,10 @@ import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 case object IdentityType extends VariableType(name = "Identity") {
 
-  override def cast(value: String, executionResult: TemplateExecutionResult): Identity =
+  override def cast(value: String, executionResult: TemplateExecutionResult): Result[Identity] =
     decode[Identity](value) match {
-      case Right(identity) => identity
-      case Left(_) =>
-        Identity(Email(value))
+      case Right(identity) => Success(identity)
+      case Left(_) => Email(value).map(Identity(_))
     }
 
   override def defaultFormatter: Formatter = new NoopFormatter
@@ -34,16 +33,16 @@ case object IdentityType extends VariableType(name = "Identity") {
 
   override def missingValueFormat(name: VariableName): Seq[AgreementElement] = Seq(FreeText(Text("")))
 
-  override def internalFormat(value: OpenlawValue): String = VariableType.convert[Identity](value).asJson.noSpaces
+  override def internalFormat(value: OpenlawValue): Result[String] = VariableType.convert[Identity](value).map(_.asJson.noSpaces)
 
-  override def getFormatter(formatterDefinition: FormatterDefinition, executionResult: TemplateExecutionResult):Formatter = formatterDefinition.name.trim().toLowerCase() match {
-    case "signature" => new SignatureFormatter
-    case _ => throw new RuntimeException(s"unknown formatter $name")
+  override def getFormatter(formatterDefinition: FormatterDefinition, executionResult: TemplateExecutionResult): Result[Formatter] = formatterDefinition.name.trim().toLowerCase() match {
+    case "signature" => Success(new SignatureFormatter)
+    case _ => Failure(s"unknown formatter $name")
   }
 
   override def access(value: OpenlawValue, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = {
     keys.toList match {
-      case head::tail if tail.isEmpty => accessProperty(Some(VariableType.convert[Identity](value)), head).map(Some(_))
+      case head::tail if tail.isEmpty => VariableType.convert[Identity](value).flatMap(id => accessProperty(Some(id), head).map(Some(_)))
       case _::_ => Failure(s"Identity has only one level of properties. invalid property access ${keys.mkString(".")}") // TODO: Is this correct?
       case _ => Success(Some(value))
     }
@@ -112,20 +111,17 @@ object Email {
     case None => Failure("invalid Email $email")
   }
 
-  def apply(email:String):Email = validate(email) match {
-    case Right(e) => e
-    case Left(ex) => throw new RuntimeException(ex.e)
-  }
+  def apply(email:String): Result[Email] = validate(email)
 }
 
 case class SignatureAction(email:Email) extends ActionValue {
-  override def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions: Seq[OpenlawExecution]): Option[LocalDateTime] = {
+  override def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions: Seq[OpenlawExecution]): Result[Option[LocalDateTime]] = {
     if(executionResult.hasSigned(email)) {
-      None
+      Success(None)
     } else {
-      Some(LocalDateTime.now)
+      Success(Some(LocalDateTime.now))
     }
   }
 
-  override def identifier(executionResult: TemplateExecutionResult): ActionIdentifier = ActionIdentifier(email.email)
+  override def identifier(executionResult: TemplateExecutionResult): Result[ActionIdentifier] = Success(ActionIdentifier(email.email))
 }

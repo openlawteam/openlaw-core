@@ -1,5 +1,6 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
+import cats.implicits._
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.parser.decode
@@ -15,9 +16,9 @@ case object SectionType extends VariableType(name = "Section") with NoShowInForm
   private implicit val enc: Encoder[SectionInfo] = deriveEncoder[SectionInfo]
   private implicit val dec: Decoder[SectionInfo] = deriveDecoder[SectionInfo]
 
-  override def cast(value: String, executionResult: TemplateExecutionResult): SectionInfo = handleEither(decode[SectionInfo](value))
+  override def cast(value: String, executionResult: TemplateExecutionResult): Result[SectionInfo] = handleEither(decode[SectionInfo](value))
 
-  override def internalFormat(value: OpenlawValue): String = VariableType.convert[OpenlawString](value)
+  override def internalFormat(value: OpenlawValue): Result[String] = VariableType.convert[OpenlawString](value)
 
   override def defaultFormatter: Formatter = new SectionFormatter
 
@@ -30,10 +31,13 @@ case object SectionType extends VariableType(name = "Section") with NoShowInForm
     constructorParams match {
       case Parameters(seq) =>
         val map = seq.toMap
-        Success(for {
+        (for {
           numbering <- map.get("numbering")
-          referenceValue <- map.get("reference value")
-        } yield SectionInfo(None, getOneValueConstant(numbering), getOneValueConstant(referenceValue)))
+          reference <- map.get("reference value")
+        } yield for {
+          numberingValue <- getOneValueConstant(numbering)
+          referenceValue <- getOneValueConstant(reference)
+        } yield SectionInfo(None, numberingValue, referenceValue)).sequence
       case _ =>
         Failure("""Section requires parameters, not a unique value or a list""")
     }
@@ -41,17 +45,17 @@ case object SectionType extends VariableType(name = "Section") with NoShowInForm
 
   def thisType: VariableType = SectionType
 
-  private def getOneValueConstant(value:Parameter):String = value match {
+  private def getOneValueConstant(value:Parameter): Result[String] = value match {
     case OneValueParameter(StringConstant(v, _)) =>
-      v
+      Success(v)
     case _ =>
-      throw new RuntimeException("""Section requires "numbering" argument.""")
+      Failure("""Section requires "numbering" argument.""")
   }
 }
 
 class SectionFormatter extends Formatter {
   override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] =
-    attempt(VariableType.convert[SectionInfo](value)) map {
+    VariableType.convert[SectionInfo](value) map {
       case SectionInfo(_, _, referenceValue) => Seq(FreeText(Text(referenceValue)))
     }
 }
