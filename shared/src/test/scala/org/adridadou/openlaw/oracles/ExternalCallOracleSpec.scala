@@ -6,6 +6,7 @@ import org.adridadou.openlaw.parser.template.variableTypes.RequestIdentifier
 import org.adridadou.openlaw.{OpenlawMap, OpenlawValue}
 import org.adridadou.openlaw.parser.template.{ActionIdentifier, OpenlawTemplateLanguageParserService, VariableName, VariableTypeDefinition}
 import org.adridadou.openlaw.result.{Failure, Success}
+import org.adridadou.openlaw.result.Implicits.RichResult
 import org.adridadou.openlaw.values.{ContractDefinition, TemplateId, TemplateParameters}
 import org.adridadou.openlaw.vm.{OpenlawExecutionEngine, OpenlawVmProvider, TestAccount, TestCryptoService}
 import org.scalatest.check.Checkers
@@ -42,7 +43,7 @@ class ExternalCallOracleSpec extends FlatSpec with Matchers with Checkers {
   private val pendingExecutionCallEvent = PendingExternalCallEvent(ActionIdentifier("pendingExternalCall"),
     requestIdentifier, LocalDateTime.parse("2018-12-12T00:00:00"))
   private val successExecutionCallEvent = SuccessfulExternalCallEvent(ActionIdentifier("successExternalCall"),
-    requestIdentifier, LocalDateTime.parse("2018-12-12T00:00:00"), structure.internalFormat(structureValues))
+    requestIdentifier, LocalDateTime.parse("2018-12-12T00:00:00"), structure.internalFormat(structureValues).getOrThrow())
 
   private val template =
     """

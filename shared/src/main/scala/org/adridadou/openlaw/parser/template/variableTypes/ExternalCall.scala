@@ -64,15 +64,18 @@ case class ExternalCall(serviceName: Expression,
                         endDate: Option[Expression],
                         every: Option[Expression]) extends ActionValue with OpenlawNativeValue {
 
-  override def identifier(executionResult: TemplateExecutionResult): Result[ActionIdentifier] = {
-    val value = serviceName.evaluateT[OpenlawString](executionResult).getOrElse("") + "#" +
-      parameters.toSeq
-        .sortBy({ case (key, _) => key.name })
-        .map({ case (key, v) => v.evaluate(executionResult).map(key.name + "->" + _).getOrElse("") })
-        .mkString("#")
-
-    Success(ActionIdentifier(value))
-  }
+  override def identifier(executionResult: TemplateExecutionResult): Result[ActionIdentifier] =
+    serviceName.evaluateT[OpenlawString](executionResult).flatMap { valueOption =>
+      parameters
+        .toList
+        .sortBy { case (key, _) => key.name }
+        .map { case (key, v) => v.evaluate(executionResult).map(option => option.map(key.name + "->" + _).getOrElse("")) }
+        .sequence
+        .map { values =>
+          val value = valueOption.getOrElse("") + "#" + values.mkString("#")
+          ActionIdentifier(value)
+        }
+    }
 
   def getServiceName(executionResult: TemplateExecutionResult): Result[String] =
     getString(serviceName, executionResult)

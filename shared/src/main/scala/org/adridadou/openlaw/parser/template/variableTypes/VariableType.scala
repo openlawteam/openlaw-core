@@ -27,7 +27,7 @@ trait NoShowInForm
 trait ActionValue {
   def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions:Seq[OpenlawExecution]): Result[Option[LocalDateTime]]
   def identifier(executionResult:TemplateExecutionResult):Result[ActionIdentifier]
-  def executions(executionResult: TemplateExecutionResult):Result[Executions] =
+  def executions(executionResult: TemplateExecutionResult):Result[Option[Executions]] =
     identifier(executionResult).map(executionResult.executions.get(_))
 }
 
@@ -240,8 +240,8 @@ abstract class VariableType(val name: String) {
     (implicit ct1: ClassTag[U], ct2: ClassTag[V])
   : Result[Option[Y]] = {
     (for {
-      left <- EitherT(optLeft.map(convert[U]))
-      right <- EitherT(optRight.map(convert[V]))
+      left <- EitherT(optLeft.map(VariableType.convert[U]))
+      right <- EitherT(optRight.map(VariableType.convert[V]))
     } yield {
       if (operation.isDefinedAt(left -> right)) operation(left -> right)
       else Failure(s"no matching case in partial function for arguments $left and $right")

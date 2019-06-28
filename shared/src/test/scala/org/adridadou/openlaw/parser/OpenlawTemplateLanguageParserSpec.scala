@@ -7,7 +7,7 @@ import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.result.{Failure, Result, Success}
-import org.adridadou.openlaw.result.Implicits.{failureCause2Exception, RichResultNel}
+import org.adridadou.openlaw.result.Implicits.{failureCause2Exception, RichResult, RichResultNel}
 import org.adridadou.openlaw.values.TemplateParameters
 import org.adridadou.openlaw.vm.OpenlawExecutionEngine
 import org.scalatest._
@@ -1597,10 +1597,10 @@ here""".stripMargin
           Map(ServiceName("FakeServiceInput") -> IntegratedServiceDefinition(inputStructureType, outputStructureType)))
 
         newExecutionResult.getVariables(ExternalCallType).size shouldBe 1
-        val allActions = executionResult.allActions
+        val allActions = executionResult.allActions.getOrThrow()
         allActions.size shouldBe 1
 
-        val call = executionResult.getVariableValues[ExternalCall](ExternalCallType).head
+        val call = executionResult.getVariableValues[ExternalCall](ExternalCallType).getOrThrow().head
         call.serviceName.asInstanceOf[StringConstant].value shouldBe "FakeServiceInput"
         call.parameters.map(_.toString) shouldBe List("(param1,var1)", "(param2,var2)")
         call.startDate.map(_.toString) shouldBe Some("\"2018-12-12 00:00:00\"")

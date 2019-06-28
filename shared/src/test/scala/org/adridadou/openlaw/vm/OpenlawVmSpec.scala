@@ -7,6 +7,7 @@ import org.adridadou.openlaw.oracles._
 import org.adridadou.openlaw.parser.template.{ActionIdentifier, ExecutionFinished, ExpressionParserService, OpenlawTemplateLanguageParserService, VariableName, variableTypes}
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.result.{Failure, Success}
+import org.adridadou.openlaw.result.Implicits.RichResult
 import org.adridadou.openlaw.values.{ContractDefinition, ContractId, TemplateId, TemplateParameters}
 import org.scalatest.{FlatSpec, Matchers}
 import org.scalatest.OptionValues._
@@ -413,16 +414,16 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
       """.stripMargin
 
     val templateId = TemplateId(TestCryptoService.sha256(templateContent))
-    val email = Email("email@email.com")
+    val email = Email("email@email.com").getOrThrow()
     val identity = Identity(email)
     val definition = ContractDefinition(
       creatorId = UserId("hello@world.com"),
       mainTemplate = templateId,
       templates = Map(),
       parameters = TemplateParameters(
-        "identity" -> IdentityType.internalFormat(identity),
-        "param1" -> TextType.internalFormat("test value 1"),
-        "param2" -> TextType.internalFormat("test value 2")
+        "identity" -> IdentityType.internalFormat(identity).getOrThrow(),
+        "param1" -> TextType.internalFormat("test value 1").getOrThrow(),
+        "param2" -> TextType.internalFormat("test value 2").getOrThrow()
       )
     )
 
@@ -454,11 +455,11 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     val pendingExternalCallEvent = oracles.PendingExternalCallEvent(identifier, requestIdentifier, LocalDateTime.now)
     vm(pendingExternalCallEvent)
 
-    val externalResult = abi.definedOutput.internalFormat(OpenlawMap(Map(VariableName("computationResult") -> OpenlawString("Hello World"))))
+    val externalResult = abi.definedOutput.internalFormat(OpenlawMap(Map(VariableName("computationResult") -> OpenlawString("Hello World")))).getOrThrow()
     val successfulExternalCallEvent = oracles.SuccessfulExternalCallEvent(identifier, requestIdentifier, LocalDateTime.now, externalResult)
     vm(successfulExternalCallEvent)
 
-    vm.getAllExecutedVariables(ExternalCallType).size shouldBe 1
+    vm.getAllExecutedVariables(ExternalCallType).getOrThrow().size shouldBe 1
 
     val execution = variableTypes.SuccessfulExternalCallExecution(LocalDateTime.now, LocalDateTime.now, externalResult, requestIdentifier)
     vm.newExecution(identifier, execution)

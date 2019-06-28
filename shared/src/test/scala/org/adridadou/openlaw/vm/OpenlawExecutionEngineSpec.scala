@@ -1337,15 +1337,15 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         val Some(externalCall) = executionResult.getVariable("externalCall")
         val externalCallVarType = externalCall.varType(executionResult)
         externalCallVarType.getTypeClass shouldBe classOf[ExternalCall]
-        val Some(externalCallValue) = executionResult.getVariableValue[ExternalCall](VariableName("externalCall"))
-        externalCallValue.getServiceName(executionResult) shouldBe "SomeIntegratedService"
-        val arguments = externalCallValue.getParameters(executionResult)
+        val Some(externalCallValue) = executionResult.getVariableValue[ExternalCall](VariableName("externalCall")).getOrThrow()
+        externalCallValue.getServiceName(executionResult).getOrThrow() shouldBe "SomeIntegratedService"
+        val arguments = externalCallValue.getParameters(executionResult).getOrThrow()
         arguments.size shouldBe 2
         arguments(VariableName("param1")).underlying shouldBe "test1"
         arguments(VariableName("param2")).underlying shouldBe "test2"
-        externalCallValue.getStartDate(executionResult) shouldBe Some(LocalDateTime.parse("2018-12-12T00:00:00"))
-        externalCallValue.getEndDate(executionResult) shouldBe Some(LocalDateTime.parse("2048-12-12T00:00:00"))
-        externalCallValue.getEvery(executionResult) shouldBe Some(PeriodType.cast("1 hour 30 minute"))
+        externalCallValue.getStartDate(executionResult).getOrThrow() shouldBe Some(LocalDateTime.parse("2018-12-12T00:00:00"))
+        externalCallValue.getEndDate(executionResult).getOrThrow() shouldBe Some(LocalDateTime.parse("2048-12-12T00:00:00"))
+        externalCallValue.getEvery(executionResult).getOrThrow() shouldBe Some(PeriodType.cast("1 hour 30 minute").getOrThrow())
       case Left(ex) =>
         fail(ex.message, ex)
     }

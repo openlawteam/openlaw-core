@@ -10,6 +10,7 @@ import org.adridadou.openlaw.{OpenlawBigDecimal, oracles}
 import org.adridadou.openlaw.oracles.{LoadTemplate, OpenlawSignatureOracle, UserId}
 import org.adridadou.openlaw.parser.template.{ActionIdentifier, ExecutionFinished, ExpressionParserService, OpenlawTemplateLanguageParserService, VariableDefinition, VariableName, variableTypes}
 import org.adridadou.openlaw.result.{Failure, Success}
+import org.adridadou.openlaw.result.Implicits.RichResult
 import org.adridadou.openlaw.values.{ContractDefinition, ContractId, TemplateId, TemplateParameters}
 import org.adridadou.openlaw.vm.{ContractCreated, OpenlawVmProvider, TestAccount, TestCryptoService}
 import play.api.libs.json.Json
@@ -76,16 +77,16 @@ class ExternalCallTypeSpec extends FlatSpec with Matchers {
       """.stripMargin
 
     val templateId = TemplateId(TestCryptoService.sha256(templateContent))
-    val email = Email("email@email.com")
+    val email = Email("email@email.com").getOrThrow()
     val identity = Identity(email)
     val definition = ContractDefinition(
       creatorId = UserId("hello@world.com"),
       mainTemplate = templateId,
       templates = Map(),
       parameters = TemplateParameters(
-        "identity" -> IdentityType.internalFormat(identity),
-        "numberA" -> NumberType.internalFormat(BigDecimal(2)),
-        "numberB" -> NumberType.internalFormat(BigDecimal(2))
+        "identity" -> IdentityType.internalFormat(identity).getOrThrow(),
+        "numberA" -> NumberType.internalFormat(BigDecimal(2)).getOrThrow(),
+        "numberB" -> NumberType.internalFormat(BigDecimal(2)).getOrThrow()
       )
     )
 
@@ -122,16 +123,16 @@ class ExternalCallTypeSpec extends FlatSpec with Matchers {
     val successfulExternalCallEvent = vm.executionResult match {
       case Some(executionResult) =>
         oracles.SuccessfulExternalCallEvent(identifier, requestIdentifier, LocalDateTime.now,
-          abi.definedOutput.internalFormat(abi.definedOutput.cast(jsonResponse.toString, executionResult)))
+          abi.definedOutput.internalFormat(abi.definedOutput.cast(jsonResponse.toString, executionResult).getOrThrow()).getOrThrow())
       case None => fail("no execution result found!")
     }
 
     vm(successfulExternalCallEvent)
-    vm.getAllExecutedVariables(ExternalCallType).size shouldBe 1
+    vm.getAllExecutedVariables(ExternalCallType).getOrThrow().size shouldBe 1
 
     val execution = variableTypes.SuccessfulExternalCallExecution(LocalDateTime.now, LocalDateTime.now, jsonResponse.toString, requestIdentifier)
 
-    val Some((exec, varDef)) = vm.newExecution(identifier, execution).getAllExecutedVariables(ExternalCallType).headOption
+    val Some((exec, varDef)) = vm.newExecution(identifier, execution).getAllExecutedVariables(ExternalCallType).getOrThrow().headOption
 
     varDef.varType(exec).keysType(Seq("result", "sum"), varDef, exec) match {
       case Success(variableType) => variableType.name shouldBe "Number"
