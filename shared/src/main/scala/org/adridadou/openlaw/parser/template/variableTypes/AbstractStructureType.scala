@@ -2,8 +2,10 @@ package org.adridadou.openlaw.parser.template.variableTypes
 
 import cats.implicits._
 import io.circe.{Decoder, Encoder, HCursor, Json}
+import cats.kernel.Eq
 import org.adridadou.openlaw.parser.template._
 import play.api.libs.json.JsObject
+import io.circe._
 import io.circe.syntax._
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import org.adridadou.openlaw._
@@ -11,10 +13,11 @@ import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 
-
 object Structure {
   implicit val structureEnc:Encoder[Structure] = deriveEncoder[Structure]
   implicit val structureDec:Decoder[Structure] = deriveDecoder[Structure]
+
+  implicit val structureDecEq:Eq[Structure] = Eq.fromUniversalEquals
 }
 
 
@@ -47,7 +50,7 @@ case object AbstractStructureType extends VariableType(name = "Structure") with 
 
   def thisType: VariableType = AbstractStructureType
 
-  override def generateType(name: VariableName, structure: Structure): VariableType =
+  override def generateType(name: VariableName, structure: Structure): DefinedStructureType =
     DefinedStructureType(structure, name.name)
 
   private def getField(name:String, value:Parameter, executionResult: TemplateExecutionResult): Result[VariableDefinition] = value match {
@@ -104,20 +107,19 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
 
   override def getTypeClass: Class[OpenlawMap[VariableName, OpenlawValue]] = classOf[OpenlawMap[VariableName, OpenlawValue]]
 
-  override def keysType(keys: Seq[String], expression: Expression, executionResult: TemplateExecutionResult): Result[VariableType] = {
+  override def keysType(keys: Seq[String], expression: Expression, executionResult: TemplateExecutionResult): Result[VariableType] =
     keys.toList match {
       case Nil =>
         Success(AbstractStructureType)
-      case head::_ =>
+      case head::tail =>
         val name = VariableName(head)
         structure.typeDefinition.get(name) match {
           case Some(varDefinition) =>
-            varDefinition.varType(executionResult).keysType(keys, expression, executionResult)
+            varDefinition.varType(executionResult).keysType(tail, expression, executionResult)
           case None =>
             Failure(s"property '${keys.mkString(".")}' could not be resolved in structure value '$head'")
         }
     }
-  }
 
   override def validateKeys(name:VariableName, keys: Seq[String], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] = keys.toList match {
     case Nil =>

@@ -20,16 +20,22 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
   /**
     * Entry point for simple agreements
     */
+  def execute(mainTemplate:CompiledTemplate):Result[OpenlawExecutionState] =
+    execute(mainTemplate, TemplateParameters(), Map(), Map(), Map(), Map(), None, None)
+
+  /**
+    * Entry point for simple agreements
+    */
   def execute(mainTemplate:CompiledTemplate, parameters:TemplateParameters):Result[OpenlawExecutionState] =
-    execute(mainTemplate, parameters, Map())
+    execute(mainTemplate, parameters, Map(), Map(), Map(), Map(), None, None)
 
   /**
     * Entry point. This is where you start the execution of the main template
     */
-  def execute(mainTemplate:CompiledTemplate, parameters:TemplateParameters, templates:Map[TemplateSourceIdentifier, CompiledTemplate]):Result[OpenlawExecutionState] =
-    execute(mainTemplate, parameters, templates, Map(), Map(), None, None)
+  def execute(mainTemplate:CompiledTemplate, parameters:TemplateParameters, templates:Map[TemplateSourceIdentifier, CompiledTemplate], externalCallStructures:Map[ServiceName, IntegratedServiceDefinition] = Map()):Result[OpenlawExecutionState] =
+    execute(mainTemplate, parameters, templates, Map(), Map(), externalCallStructures, None, None)
 
-  def execute(mainTemplate:CompiledTemplate, parameters:TemplateParameters, templates:Map[TemplateSourceIdentifier, CompiledTemplate], signatureProofs:Map[Email, OpenlawSignatureProof], executions:Map[ActionIdentifier, Executions], id:Option[ContractId], profileAddress:Option[EthereumAddress]):Result[OpenlawExecutionState] = {
+  def execute(mainTemplate:CompiledTemplate, parameters:TemplateParameters, templates:Map[TemplateSourceIdentifier, CompiledTemplate], signatureProofs:Map[Email, OpenlawSignatureProof], executions:Map[ActionIdentifier, Executions], externalCallStructures:Map[ServiceName, IntegratedServiceDefinition], id:Option[ContractId], profileAddress:Option[EthereumAddress]):Result[OpenlawExecutionState] = {
     val executionResult = OpenlawExecutionState(
       parameters = parameters,
       id = TemplateExecutionResultId(s"@@anonymous_main_template_id@@"),
@@ -41,7 +47,8 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       variableRedefinition = mainTemplate.redefinition,
       remainingElements = mutable.Buffer(mainTemplate.block.elems:_*),
       clock = mainTemplate.clock,
-      signatureProofs = signatureProofs
+      signatureProofs = signatureProofs,
+      externalCallStructures = externalCallStructures
     )
 
     resumeExecution(executionResult, templates)

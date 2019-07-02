@@ -1298,6 +1298,59 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     }
   }
 
+  it should "allow specifying an external call" in {
+
+    val text =
+      """
+        |[[param1:Text]]
+        |[[param2:Text]]
+        |[[externalCall:ExternalCall(
+        |serviceName: "SomeIntegratedService";
+        |parameters:
+        | param1 -> param1,
+        | param2 -> param2;
+        |startDate: '2018-12-12 00:00:00';
+        |endDate: '2048-12-12 00:00:00';
+        |repeatEvery: '1 hour 30 minute')]]
+        |[[externalCall]]
+      """.stripMargin
+
+    val template = compile(text)
+
+    val Success(integratedService) = IntegratedServiceDefinition(
+      """
+        |[[Input:Structure(
+        |param1:Text;
+        |param2:Text
+        |)]]
+        |[[Output:Structure(
+        |computationResult:Text
+        |)]]
+      """.stripMargin)
+
+    engine.execute(template,
+      TemplateParameters("param1" -> "test1", "param2" -> "test2"),
+      Map(),
+      Map(ServiceName("SomeIntegratedService") -> integratedService)) match {
+      case Right(executionResult) =>
+        executionResult.getExecutedVariables.map(_.name).toSet shouldBe Set("param1", "param2", "externalCall")
+        val Some(externalCall) = executionResult.getVariable("externalCall")
+        val externalCallVarType = externalCall.varType(executionResult)
+        externalCallVarType.getTypeClass shouldBe classOf[ExternalCall]
+        val Some(externalCallValue) = executionResult.getVariableValue[ExternalCall](VariableName("externalCall")).getOrThrow()
+        externalCallValue.getServiceName(executionResult).getOrThrow() shouldBe "SomeIntegratedService"
+        val arguments = externalCallValue.getParameters(executionResult).getOrThrow()
+        arguments.size shouldBe 2
+        arguments(VariableName("param1")).underlying shouldBe "test1"
+        arguments(VariableName("param2")).underlying shouldBe "test2"
+        externalCallValue.getStartDate(executionResult).getOrThrow() shouldBe Some(LocalDateTime.parse("2018-12-12T00:00:00"))
+        externalCallValue.getEndDate(executionResult).getOrThrow() shouldBe Some(LocalDateTime.parse("2048-12-12T00:00:00"))
+        externalCallValue.getEvery(executionResult).getOrThrow() shouldBe Some(PeriodType.cast("1 hour 30 minute").getOrThrow())
+      case Left(ex) =>
+        fail(ex.message, ex)
+    }
+  }
+
   it should "be able to define options for Period type" in {
     val text="""[[test:Period(options: "1 day", "1 week", "2 months")]]"""
 
