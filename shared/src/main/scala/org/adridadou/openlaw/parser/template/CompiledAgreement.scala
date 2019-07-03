@@ -4,7 +4,7 @@ import java.time.Clock
 
 import cats.implicits._
 import org.adridadou.openlaw.parser.template
-import org.adridadou.openlaw.{OpenlawBigDecimal, OpenlawBoolean}
+import org.adridadou.openlaw.{OpenlawBigDecimal, OpenlawBoolean, OpenlawElements}
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 
@@ -294,7 +294,10 @@ case class CompiledAgreement(
                 varType
                   .access(value, name, keys, executionResult)
                   .flatMap { option =>
-                    option.map(value => keysType.format(formatter, value, executionResult).map(_.toList)).getOrElse(Success(List()))
+                    option.map {
+                      case elements: OpenlawElements => Success(elements.underlying.toList)
+                      case value => keysType.format(formatter, value, executionResult).map(_.toList)
+                    }.getOrElse(Success(List()))
                   }
               }
           }
