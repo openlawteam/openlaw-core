@@ -13,7 +13,7 @@ import org.scalatest.{FlatSpec, Matchers}
 import org.scalatest.EitherValues._
 import org.scalatest.OptionValues._
 import play.api.libs.json.Json
-import org.adridadou.openlaw._
+import org.adridadou.openlaw.{OpenlawMap, _}
 
 class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
@@ -1520,6 +1520,45 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     ))
 
     VariableName("period").evaluateT[Period](result2).getOrThrow() shouldBe period
+  }
+
+  it should "not write errors if you try to print structure" in {
+    val template = compile(
+      """
+        <%
+        |[[Contestant Emergency Contact: Structure(
+        |  Emergency Contact Name: Text;
+        |  Emergency Contact Age: Number;
+        |  Emergency Contact DOB: Date;
+        |  Emergency Contact Address: Address
+        |)]]
+        |
+        |# Structure type var
+        |[[Medical Contact: Contestant Emergency Contact]]
+        |%>
+        |Name: [[Medical Contact.Emergency Contact Name]]
+        |Age: [[Medical Contact.Emergency Contact Age]]
+        |DOB: [[Medical Contact.Emergency Contact DOB]]
+      """.stripMargin)
+
+
+
+    val Right(result) = engine.execute(template)
+    val Some(varType:DefinedStructureType) = result.findVariableType(VariableTypeDefinition("Contestant Emergency Contact"))
+
+    val Right(internalFormat) = varType.internalFormat(Map[VariableName, OpenlawValue](
+      VariableName("Emergency Contact Name") -> OpenlawString("David Roon"),
+      VariableName("Emergency Contact Age") -> OpenlawBigDecimal(BigDecimal("23"))))
+    engine.execute(template, TemplateParameters("Medical Contact" -> internalFormat)) match {
+      case Success(newResult) =>
+        println(parser.forReview(newResult.agreements.head))
+        parser.forReview(newResult.agreements.head) shouldBe "<p class=\"no-section\"><br />        <br />Name: David Roon<br />Age: 23<br />DOB: [[Medical Contact:Contestant Emergency Contact]]<br />      </p>"
+      case Failure(ex, message) =>
+        ex.printStackTrace()
+        fail(message, ex)
+    }
+
+
   }
 
   it should "be able to divide a period by a number" in {

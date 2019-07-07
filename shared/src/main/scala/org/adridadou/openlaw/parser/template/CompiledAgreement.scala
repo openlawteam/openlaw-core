@@ -3,7 +3,6 @@ package org.adridadou.openlaw.parser.template
 import java.time.Clock
 
 import cats.implicits._
-import org.adridadou.openlaw.parser.template
 import org.adridadou.openlaw.{OpenlawBigDecimal, OpenlawBoolean}
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.result.{Failure, Result, Success}
@@ -37,13 +36,14 @@ case class CompiledAgreement(
         paragraphs = paragraphs)
     }
 
-  private def cleanupParagraphs(paragraphs: List[Paragraph]): List[Paragraph] = paragraphs.map(paragraph =>
-    Paragraph(paragraph.elements.filter {
-      case FreeText(elem) => !TextElement.isEmpty(elem)
-      case _ => true
-    })).filter(paragraph => paragraph.elements.nonEmpty)
+  private def cleanupParagraphs(paragraphs: List[Paragraph]): List[Paragraph] =
+    paragraphs.map(paragraph =>
+      Paragraph(paragraph.elements.filter {
+        case FreeText(elem) => !TextElement.isEmpty(elem)
+        case _ => true
+      })).filter(paragraph => paragraph.elements.nonEmpty)
 
-  private def generateParagraphs(elements: Seq[AgreementElement]): List[Paragraph] = {
+  private def generateParagraphs(elements: Seq[AgreementElement]): List[Paragraph] =
     elements.foldLeft(ParagraphBuilder())({
       case (paragraphBuilder, element) => element match {
         case txt: FreeText =>
@@ -56,30 +56,29 @@ case class CompiledAgreement(
           paragraphBuilder.add(element)
       }
     }).build
-  }
 
-  def handleText(paragraphBuilder: ParagraphBuilder, ftxt: FreeText): ParagraphBuilder = {
+  def handleText(paragraphBuilder: ParagraphBuilder, ftxt: FreeText): ParagraphBuilder =
     getParagraphs(ftxt.elem).foldLeft(paragraphBuilder)((builder, element) => element match {
       case ParagraphSeparator =>
         builder.closeLastParagraph()
       case _ =>
         builder.add(FreeText(element))
     })
-  }
 
-  private def getParagraphs(te: TextElement): List[TextElement] = te match {
-    case Text(text) =>
-      val matches = endOfParagraph.findAllMatchIn(text).map(_.end)
-      val (lastValue, newParagraphs) = matches.foldLeft((0, List.empty[TextElement])) {
-        case ((lastIndex, p), endIndex) =>
-          (endIndex, p :+ Text(text.substring(lastIndex, endIndex - 2)) :+ ParagraphSeparator)
-      }
-      newParagraphs :+ Text(text.substring(lastValue, text.length))
-    case PageBreak =>  List(ParagraphSeparator, PageBreak, ParagraphSeparator)
-    case other =>  List(other)
-  }
+  private def getParagraphs(te: TextElement): List[TextElement] =
+    te match {
+      case Text(text) =>
+        val matches = endOfParagraph.findAllMatchIn(text).map(_.end)
+        val (lastValue, newParagraphs) = matches.foldLeft((0, List.empty[TextElement])) {
+          case ((lastIndex, p), endIndex) =>
+            (endIndex, p :+ Text(text.substring(lastIndex, endIndex - 2)) :+ ParagraphSeparator)
+        }
+        newParagraphs :+ Text(text.substring(lastValue, text.length))
+      case PageBreak =>  List(ParagraphSeparator, PageBreak, ParagraphSeparator)
+      case other =>  List(other)
+    }
 
-  @tailrec private def getAgreementElements(renderedElements:List[AgreementElement], elements:List[TemplatePart], executionResult: OpenlawExecutionState): Result[List[AgreementElement]] = {
+  @tailrec private def getAgreementElements(renderedElements:List[AgreementElement], elements:List[TemplatePart], executionResult: OpenlawExecutionState): Result[List[AgreementElement]] =
     elements match {
       case Nil =>
         Success(renderedElements)
@@ -89,9 +88,8 @@ case class CompiledAgreement(
           case f => f
         }
     }
-  }
 
-  private def getAgreementElementsFromElement(renderedElements:List[AgreementElement], element:TemplatePart, executionResult: OpenlawExecutionState): Result[List[AgreementElement]] = {
+  private def getAgreementElementsFromElement(renderedElements:List[AgreementElement], element:TemplatePart, executionResult: OpenlawExecutionState): Result[List[AgreementElement]] =
     element match {
       case t:Table =>
         for {
@@ -149,7 +147,7 @@ case class CompiledAgreement(
                renderedElements :+ VariableElement(variableDefinition.name, Some(variableType), list, dependencies)
              }
            }
-          case Left(x) =>
+          case Left(_) =>
             // TODO: Should ignore failure?
             Success(renderedElements)
         }
@@ -271,19 +269,18 @@ case class CompiledAgreement(
       case _ =>
         Success(renderedElements)
     }
-  }
 
-  private def getDependencies(name:VariableName, executionResult: TemplateExecutionResult): Result[Seq[String]] = executionResult.getAlias(name) match {
-    case Some(alias) =>
-      alias.variables(executionResult).map(_.map(_.name))
-    case None => executionResult.getVariable(name) match {
-      case Some(_) => Success(Seq(name.name))
-      case None => Success(Seq())
+  private def getDependencies(name:VariableName, executionResult: TemplateExecutionResult): Result[Seq[String]] =
+    executionResult.getAlias(name) match {
+      case Some(alias) =>
+        alias.variables(executionResult).map(_.map(_.name))
+      case None => executionResult.getVariable(name) match {
+        case Some(_) => Success(Seq(name.name))
+        case None => Success(Seq())
+      }
     }
-  }
 
-  private def generateVariable(name: VariableName, keys:Seq[String], formatter:Option[FormatterDefinition], executionResult: TemplateExecutionResult): Result[List[AgreementElement]] = {
-
+  private def generateVariable(name: VariableName, keys:Seq[String], formatter:Option[FormatterDefinition], executionResult: TemplateExecutionResult): Result[List[AgreementElement]] =
     executionResult.getAliasOrVariableType(name).flatMap { varType =>
       val option = executionResult.getExpression(name).flatMap { expression =>
         expression.evaluate(executionResult).flatMap { valueOpt =>
@@ -294,7 +291,8 @@ case class CompiledAgreement(
                 varType
                   .access(value, name, keys, executionResult)
                   .flatMap { option =>
-                    option.map(value => keysType.format(formatter, value, executionResult).map(_.toList)).getOrElse(Success(List()))
+                    option.map(value => keysType.format(formatter, value, executionResult).map(_.toList))
+                      .getOrElse(Success(List(FreeText(Text(s"[[${expression.toString}]]")))))
                   }
               }
           }
@@ -304,7 +302,6 @@ case class CompiledAgreement(
       }
       option.getOrElse(Success(varType.missingValueFormat(name).toList))
     }
-  }
 
   override def withRedefinition(redefinition: VariableRedefinition): CompiledAgreement = this.copy(redefinition = redefinition)
 }

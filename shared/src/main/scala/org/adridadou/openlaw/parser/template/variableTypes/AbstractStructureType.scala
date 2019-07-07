@@ -5,7 +5,6 @@ import io.circe.{Decoder, Encoder, HCursor, Json}
 import cats.kernel.Eq
 import org.adridadou.openlaw.parser.template._
 import play.api.libs.json.JsObject
-import io.circe._
 import io.circe.syntax._
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import org.adridadou.openlaw._
@@ -14,12 +13,10 @@ import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatte
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 object Structure {
-  implicit val structureEnc:Encoder[Structure] = deriveEncoder[Structure]
-  implicit val structureDec:Decoder[Structure] = deriveDecoder[Structure]
-
+  implicit val structureEnc:Encoder[Structure] = deriveEncoder
+  implicit val structureDec:Decoder[Structure] = deriveDecoder
   implicit val structureDecEq:Eq[Structure] = Eq.fromUniversalEquals
 }
-
 
 case class Structure(typeDefinition: Map[VariableName, VariableDefinition], names:Seq[VariableName], types:Map[VariableName, VariableType]) extends OpenlawNativeValue
 
@@ -58,7 +55,7 @@ case object AbstractStructureType extends VariableType(name = "Structure") with 
       Success(VariableDefinition(name = VariableName(name), variableTypeDefinition = Some(VariableTypeDefinition(name = typeName))))
     case OneValueParameter(definition:VariableDefinition) =>
       Success(definition.copy(name = VariableName(name)))
-    case param =>
+    case _ =>
       Failure("error in the constructor for Structured Type")
   }
 }
@@ -97,7 +94,7 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
           } yield keyType.varType(executionResult).access(result, name, tail, executionResult)) match {
             case Some(result) => result
             case None if structure.names.contains(headName) =>
-              Success(Some(structure.typeDefinition(headName).varType(executionResult).missingValueFormat(headName)))
+              Success(None)
             case None =>
               Failure(s"properties '${keys.mkString(".")}' could not be resolved for the structured type $typeName. available properties ${structure.names.map(name => s"'${name.name}'").mkString(",")}")
           }
@@ -147,7 +144,7 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
     .map(list => OpenlawMap(list.toMap))
   }
 
-  override def internalFormat(value: OpenlawValue): Result[String] = {
+  override def internalFormat(value: OpenlawValue): Result[String] =
     VariableType.convert[OpenlawMap[VariableName, OpenlawValue]](value).flatMap { values =>
       structure
         .types
@@ -157,7 +154,6 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
         .map(_.toMap)
         .map { _.asJson.noSpaces }
     }
-  }
 
   override def thisType: VariableType = this
 }
