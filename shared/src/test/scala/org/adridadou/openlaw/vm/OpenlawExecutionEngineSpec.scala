@@ -1572,4 +1572,40 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         ex.message shouldBe "error while evaluating the expression 'period/divisor': cannot divide months"
     }
   }
+
+
+  it should "handle missing values in a structure" in {
+    val template =
+      compile("""
+                 |\centered **Test Agreement - structure**
+ |
+ |# Structure definition
+ |[[Contestant Emergency Contact: Structure(
+ |  Emergency Contact Name: Text;
+ |  Emergency Contact Age: Number;
+ |  Emergency Contact DOB: Date;
+ |  Emergency Contact Address: Address
+ |)]]
+ |
+ |# Structure type var
+ |[[#Medical Contact: Contestant Emergency Contact]]
+ |
+ |**Emergency Contact**
+ |Name: [[Medical Contact.Emergency Contact Name]]
+ |Age: [[Medical Contact.Emergency Contact Age]]
+ |DOB: [[Medical Contact.Emergency Contact DOB]]
+ |Address: [[Medical Contact.Emergency Contact Address]]
+ |
+ |[[Email: Identity]]
+              """.stripMargin)
+
+    engine.execute(template, TemplateParameters("Medical Contact" -> "{\"Emergency Contact Name\": \"test\"}"), Map()) match {
+      case Right(result) =>
+        result.state shouldBe ExecutionFinished
+        val text = parser.forReview(result.agreements.head,ParagraphEdits())
+        text shouldBe "<p class=\"no-section\"><br /> <strong>Test Agreement - structure</strong></p><p class=\"no-section\"># Structure definition<br /></p><p class=\"no-section\"># Structure type var<br /></p><p class=\"no-section\"><strong>Emergency Contact</strong><br />Name: test<br />Age: [[Emergency Contact Age]]<br />DOB: [[Emergency Contact DOB]]<br />Address: [[Emergency Contact Address]]</p><p class=\"no-section\"><br />              </p>"
+      case Left(ex) =>
+        fail(ex)
+    }
+  }
 }
