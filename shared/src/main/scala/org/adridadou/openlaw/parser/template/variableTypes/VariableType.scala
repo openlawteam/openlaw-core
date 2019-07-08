@@ -357,6 +357,7 @@ object VariableType {
     EthereumCallType,
     EthereumEventFilterType,
     ExternalCallType,
+    ExternalSignatureType,
     IdentityType,
     LargeTextType,
     ImageType,

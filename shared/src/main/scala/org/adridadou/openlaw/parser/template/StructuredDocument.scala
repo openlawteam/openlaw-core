@@ -114,16 +114,16 @@ trait TemplateExecutionResult {
         builder.add(variable)
       }).variables
 
-  def getVariables(varType: VariableType):Seq[(TemplateExecutionResult, VariableDefinition)] =
+  def getVariables(varTypes: VariableType*):Seq[(TemplateExecutionResult, VariableDefinition)] =
     getVariables
       .filter(variable => {
         variable.varType(this) match {
           case collectionType:CollectionType =>
-            collectionType.typeParameter === varType
+            varTypes.contains(collectionType.typeParameter)
           case structuredType:DefinedStructureType =>
-            structuredType.structure.typeDefinition.values.exists(_.varType(this) === varType)
-          case variableType => variableType === varType
-        }}).map((this, _)) ++ subExecutions.values.flatMap(_.getVariables(varType))
+            structuredType.structure.typeDefinition.values.exists(s => varTypes.contains(s.varType(this)))
+          case variableType => varTypes.contains(variableType)
+        }}).map((this, _)) ++ subExecutions.values.flatMap(_.getVariables(varTypes:_*))
 
   def getVariableValues[U <: OpenlawValue](varType: VariableType)(implicit classTag:ClassTag[U]):Result[Seq[U#T]] =
     getVariables(varType)
@@ -235,7 +235,7 @@ trait TemplateExecutionResult {
     executedVariables.distinct.map(name => (this, name)) ++ subExecutions.values.flatMap(_.getAllExecutedVariables)
 
   @tailrec
-  final def getAllVariables:Seq[(TemplateExecutionResult, VariableDefinition)] = {
+  final def getAllVariables:Seq[(TemplateExecutionResult, VariableDefinition)] =
     parentExecution match {
       case Some(execution) =>
         execution.getAllVariables
@@ -244,9 +244,8 @@ trait TemplateExecutionResult {
     }
   }
 
-  private def getAllVariablesFromRoot:Seq[(TemplateExecutionResult, VariableDefinition)] = {
+  private def getAllVariablesFromRoot:Seq[(TemplateExecutionResult, VariableDefinition)] =
     getVariables.map(variable => (this, variable)) ++ subExecutions.values.flatMap(_.getAllVariablesFromRoot)
-  }
 
   def getVariableNames:Seq[VariableName] = getVariables.foldLeft(DistinctVariableBuilder())({case (builder, variable) => if(builder.names.contains(variable.name)) {
     builder
@@ -313,7 +312,7 @@ trait TemplateExecutionResult {
   def getAllExecutionResults:Seq[TemplateExecutionResult] =
     subExecutions.values.flatMap(_.getAllExecutionResults).toSeq ++ Seq(this)
 
-  def startEphemeralExecution(name:VariableName, value:OpenlawValue, varType:VariableType): Result[TemplateExecutionResult] = {
+  def startEphemeralExecution(name:VariableName, value:OpenlawValue, varType:VariableType): Result[TemplateExecutionResult] =
     this.getAliasOrVariableType(name) match {
       case Success(_) =>
         Failure(s"${name.name} has already been defined!")
@@ -341,13 +340,11 @@ trait TemplateExecutionResult {
           result
         }
     }
-  }
-
 }
 
 object SerializableTemplateExecutionResult {
-  implicit val serializableTemplateExecutionResultEnc:Encoder[SerializableTemplateExecutionResult] = deriveEncoder[SerializableTemplateExecutionResult]
-  implicit val serializableTemplateExecutionResultDec:Decoder[SerializableTemplateExecutionResult] = deriveDecoder[SerializableTemplateExecutionResult]
+  implicit val serializableTemplateExecutionResultEnc:Encoder[SerializableTemplateExecutionResult] = deriveEncoder
+  implicit val serializableTemplateExecutionResultDec:Decoder[SerializableTemplateExecutionResult] = deriveDecoder
   implicit val serializableTemplateExecutionResultEq:Eq[SerializableTemplateExecutionResult] = Eq.fromUniversalEquals
 
   implicit val clockEnc:Encoder[Clock] = (a: Clock) => Json.fromString(a.getZone.getId)
@@ -468,7 +465,7 @@ case class OpenlawExecutionState(
     case _ => processedSectionsInternal append (section -> number)
   }
 
-  def addSectionLevelStack(newSectionValues: Seq[Int]):Unit = {
+  def addSectionLevelStack(newSectionValues: Seq[Int]):Unit =
     if(embedded) {
       parentExecutionInternal match {
         case Some(parent) => parent.addSectionLevelStack(newSectionValues)
@@ -477,9 +474,8 @@ case class OpenlawExecutionState(
     } else {
       sectionLevelStack appendAll newSectionValues
     }
-  }
 
-  def allSectionLevelStack:Seq[Int] = {
+  def allSectionLevelStack:Seq[Int] =
     if(embedded) {
       parentExecutionInternal match {
         case Some(parent) => parent.allSectionLevelStack ++ sectionLevelStack
@@ -488,7 +484,6 @@ case class OpenlawExecutionState(
     } else {
       sectionLevelStack
     }
-  }
 
   def executionLevel:Int = executionLevel(parentExecution, 0)
 
@@ -897,8 +892,8 @@ case class ActionInfo(action:ActionValue, executionResult: TemplateExecutionResu
 
 object TemplateExecutionResultId {
   implicit val templateExecutionResultIdEq:Eq[TemplateExecutionResultId] = Eq.fromUniversalEquals
-  implicit val templateExecutionResultIdEnc:Encoder[TemplateExecutionResultId] = deriveEncoder[TemplateExecutionResultId]
-  implicit val templateExecutionResultIdDec:Decoder[TemplateExecutionResultId] = deriveDecoder[TemplateExecutionResultId]
+  implicit val templateExecutionResultIdEnc:Encoder[TemplateExecutionResultId] = deriveEncoder
+  implicit val templateExecutionResultIdDec:Decoder[TemplateExecutionResultId] = deriveDecoder
   implicit val templateExecutionResultIdKeyEnc:KeyEncoder[TemplateExecutionResultId] = (key: TemplateExecutionResultId) => key.id
   implicit val templateExecutionResultIdKeyDec:KeyDecoder[TemplateExecutionResultId] = (key: String) => Some(TemplateExecutionResultId(key))
 }

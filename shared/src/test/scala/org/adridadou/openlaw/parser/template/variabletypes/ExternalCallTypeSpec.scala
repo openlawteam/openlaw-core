@@ -24,13 +24,7 @@ class ExternalCallTypeSpec extends FlatSpec with Matchers {
   val serverAccount:TestAccount = TestAccount.newRandom
 
   "ServiceName" should "be decoded from json" in {
-    val json =
-      """
-        |{
-        | "serviceName": "this is a test"
-        |}
-      """.stripMargin
-
+    val json = ServiceName("this is a test").asJson.noSpaces
     decode[ServiceName](json) match {
       case Right(service) => service.serviceName shouldBe "this is a test"
       case Left(err) => fail(err)

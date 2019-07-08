@@ -37,14 +37,14 @@ object IntegratedServiceDefinition {
       })
   }
 
-  implicit val integratedServiceDefinitionEnc:Encoder[IntegratedServiceDefinition] = deriveEncoder[IntegratedServiceDefinition]
-  implicit val integratedServiceDefinitionDec:Decoder[IntegratedServiceDefinition] = deriveDecoder[IntegratedServiceDefinition]
+  implicit val integratedServiceDefinitionEnc:Encoder[IntegratedServiceDefinition] = deriveEncoder
+  implicit val integratedServiceDefinitionDec:Decoder[IntegratedServiceDefinition] = deriveDecoder
   implicit val integratedServiceDefinitionEq:Eq[IntegratedServiceDefinition] = Eq.fromUniversalEquals
 }
 
 object ServiceName {
   implicit val serviceNameEnc:Encoder[ServiceName] = (sn: ServiceName) => Json.fromString(sn.serviceName)
-  implicit val serviceNameDec:Decoder[ServiceName] = (c: HCursor) =>  for { name <- c.downField("serviceName").as[String] } yield ServiceName(name)
+  implicit val serviceNameDec:Decoder[ServiceName] = (c: HCursor) =>  c.as[String].map(ServiceName(_))
   implicit val serviceNameKeyEnc:KeyEncoder[ServiceName] = (key: ServiceName) => key.serviceName
   implicit val serviceNameKeyDec:KeyDecoder[ServiceName] = (key: String) => Some(ServiceName(key))
 
