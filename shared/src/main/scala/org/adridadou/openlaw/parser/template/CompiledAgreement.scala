@@ -4,6 +4,7 @@ import java.time.Clock
 
 import cats.implicits._
 import org.adridadou.openlaw.{OpenlawBigDecimal, OpenlawBoolean}
+import org.adridadou.openlaw.parser.template
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 
