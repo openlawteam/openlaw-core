@@ -10,13 +10,11 @@ import cats.implicits._
 import io.circe._
 import io.circe.syntax._
 import io.circe.generic.semiauto._
-import LocalDateTimeHelper._
 
 import scala.reflect.ClassTag
 import scala.util.Try
-import org.adridadou.openlaw.result.{Failure, Result, Success}
 import cats.data.EitherT
-import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
+import org.adridadou.openlaw.result.{Failure, Result, Success}
 import LocalDateTimeHelper._
 import org.adridadou.openlaw._
 import org.adridadou.openlaw.oracles.{EthereumEventFilterExecution, PreparedERC712SmartContractCallExecution}
@@ -133,8 +131,8 @@ final case class SuccessfulExternalCallExecution(scheduledDate:LocalDateTime, ex
 }
 
 object PendingExternalCallExecution {
-  implicit val pendingExternalCallExecutionEnc:Encoder[PendingExternalCallExecution] = deriveEncoder[PendingExternalCallExecution]
-  implicit val pendingExternalCallExecutionDec:Decoder[PendingExternalCallExecution] = deriveDecoder[PendingExternalCallExecution]
+  implicit val pendingExternalCallExecutionEnc:Encoder[PendingExternalCallExecution] = deriveEncoder
+  implicit val pendingExternalCallExecutionDec:Decoder[PendingExternalCallExecution] = deriveDecoder
 }
 
 final case class PendingExternalCallExecution(scheduledDate:LocalDateTime, executionDate:LocalDateTime, requestIdentifier: RequestIdentifier) extends ExternalCallExecution {
@@ -145,8 +143,8 @@ final case class PendingExternalCallExecution(scheduledDate:LocalDateTime, execu
 }
 
 object FailedExternalCallExecution {
-  implicit val failedExternalCallExecutionEnc:Encoder[FailedExternalCallExecution] = deriveEncoder[FailedExternalCallExecution]
-  implicit val failedExternalCallExecutionDec:Decoder[FailedExternalCallExecution] = deriveDecoder[FailedExternalCallExecution]
+  implicit val failedExternalCallExecutionEnc:Encoder[FailedExternalCallExecution] = deriveEncoder
+  implicit val failedExternalCallExecutionDec:Decoder[FailedExternalCallExecution] = deriveDecoder
 }
 
 final case class FailedExternalCallExecution(scheduledDate:LocalDateTime, executionDate:LocalDateTime, errorMessage: String, requestIdentifier: RequestIdentifier) extends ExternalCallExecution {

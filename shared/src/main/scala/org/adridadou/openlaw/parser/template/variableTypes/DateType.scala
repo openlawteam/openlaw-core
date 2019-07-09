@@ -7,11 +7,10 @@ import java.util.Locale
 
 import org.adridadou.openlaw.parser.template.{AgreementElement, FormatterDefinition, FreeText, Minus, OneValueParameter, Parameter, Plus, TemplateExecutionResult, Text, ValueOperation}
 
-//import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.formatters.Formatter
 import cats.implicits._
 import org.adridadou.openlaw.{OpenlawDateTime, OpenlawInt, OpenlawString, OpenlawValue}
-import org.adridadou.openlaw.result.{Failure, FailureMessage, Result, Success, attempt}
+import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 import org.adridadou.openlaw.result.Implicits.{RichResult, RichResultNel}
 
 abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => Result[OpenlawDateTime], formatter:Formatter) extends VariableType(varTypeName) {
