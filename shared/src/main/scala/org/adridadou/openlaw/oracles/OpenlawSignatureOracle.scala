@@ -9,6 +9,7 @@ import cats.Eq
 import io.circe._
 import io.circe.generic.semiauto._
 import io.circe.syntax._
+import org.adridadou.openlaw.parser.template.SignatureProof
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 import org.adridadou.openlaw.values.ContractId
 import org.adridadou.openlaw.vm.OpenlawVmEvent
@@ -16,7 +17,7 @@ import org.adridadou.openlaw.vm.OpenlawVmEvent
 case class OpenlawSignatureOracle(crypto:CryptoService, serverAccount:EthereumAddress, externalSignatureAccounts:Map[ServiceName, EthereumAddress] = Map()) {
 
   def isSignatureValid(data:EthereumData, signatureEvent: SignatureEvent): Result[Boolean] = signatureEvent match {
-    case event:OpenlawSignatureEvent =>
+    case event:SignatureEvent =>
       val signedData = EthereumData(crypto.sha256(event.email.email))
         .merge(EthereumData(crypto.sha256(data.data)))
 
@@ -35,8 +36,12 @@ case class OpenlawSignatureOracle(crypto:CryptoService, serverAccount:EthereumAd
 }
 
 trait SignatureEvent extends OpenlawVmEvent{
+  def proof: SignatureProof
+
   def getServiceName:Option[ServiceName]
   def email:Email
+  def fullName:String
+  def signature:EthereumSignature
 }
 
 object ExternalSignatureEvent {
@@ -48,6 +53,8 @@ case class ExternalSignatureEvent(contractId:ContractId, email:Email, fullName:S
   override def getServiceName: Option[ServiceName] = Some(serviceName)
   override def typeIdentifier: String = className[ExternalSignatureEvent]
   override def serialize: String = this.asJson.noSpaces
+
+  override def proof: SignatureProof = ExternalSignatureProof(contractId, fullName, signature)
 }
 
 object OpenlawSignatureEvent {

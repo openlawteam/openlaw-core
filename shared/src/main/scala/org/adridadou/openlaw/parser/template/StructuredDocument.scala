@@ -14,7 +14,7 @@ import org.adridadou.openlaw.values.{ContractId, TemplateParameters, TemplateTit
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.{OpenlawMap, OpenlawValue}
-import org.adridadou.openlaw.oracles.OpenlawSignatureProof
+import org.adridadou.openlaw.oracles.{ExternalSignatureProof, OpenlawSignatureProof}
 import org.adridadou.openlaw.result.{Failure, Result, ResultNel, Success}
 import org.adridadou.openlaw.result.Implicits.{RichResult, RichResultNel}
 import org.adridadou.openlaw.vm.Executions
@@ -29,7 +29,7 @@ trait TemplateExecutionResult {
   def clock:Clock
   def templateDefinition:Option[TemplateDefinition]
   def subExecutions:Map[VariableName, TemplateExecutionResult]
-  def signatureProofs:Map[Email, OpenlawSignatureProof]
+  def signatureProofs:Map[Email, SignatureProof]
   def parentExecution:Option[TemplateExecutionResult]
   def variables:Seq[VariableDefinition]
   def mapping:Map[VariableName, Expression]
@@ -159,19 +159,25 @@ trait TemplateExecutionResult {
       .map { case (result, variable) =>
         variable.varType(result) match {
           case IdentityType =>
-            variable.evaluate(result).flatMap(_.map(VariableType.convert[Identity]).sequence).map(_.toSeq)
+            variable.evaluateT[Identity](result).map(_.toSeq)
+          case ExternalSignatureType =>
+            variable.evaluateT[ExternalSignature](result)
+              .map(_.flatMap(_.identity).toSeq)
+
           case collectionType: CollectionType if collectionType.typeParameter === IdentityType =>
             variable
-              .evaluate(result)
-              .map { option =>
-                option.map(VariableType.convert[CollectionValue](_).flatMap(x => x.list.map(VariableType.convert[Identity]).toList.sequence)).sequence
-              }
-              .flatten
-              .map(_.sequence.flatten)
+              .evaluateT[CollectionValue](result)
+              .flatMap { _.map(x => x.list.map(VariableType.convert[Identity]).toList.sequence).getOrElse(Success(Seq())) }
+
+          case collectionType: CollectionType if collectionType.typeParameter === ExternalSignatureType =>
+            variable
+              .evaluateT[CollectionValue](result)
+              .flatMap{ _.map(x => x.list.map(VariableType.convert[ExternalSignature]).toList.sequence).getOrElse(Success(Seq())) }
+              .map(_.flatMap(_.identity))
+
           case structureType: DefinedStructureType if structureType.structure.typeDefinition.values.exists(_.varType(result) === IdentityType) =>
             variable
-              .evaluate(result)
-              .flatMap(_.map(VariableType.convert[OpenlawMap[VariableName, OpenlawValue]](_)).sequence)
+              .evaluateT[OpenlawMap[VariableName, OpenlawValue]](result)
               .map(_.getOrElse(Map()))
               .flatMap { values =>
                 structureType
@@ -181,6 +187,21 @@ trait TemplateExecutionResult {
                   .map(name => VariableType.convert[Identity](values(name)))
                   .toList
                   .sequence
+              }
+
+          case structureType: DefinedStructureType if structureType.structure.typeDefinition.values.exists(_.varType(result) === ExternalSignatureType) =>
+            variable
+              .evaluateT[OpenlawMap[VariableName, OpenlawValue]](result)
+              .map(_.getOrElse(Map()))
+              .flatMap { values =>
+                structureType
+                  .structure
+                  .names
+                  .filter(name => structureType.structure.typeDefinition(name).varType(result) === ExternalSignatureType)
+                  .map(name => VariableType.convert[ExternalSignature](values(name)))
+                  .toList
+                  .sequence
+                  .map(_.flatMap(_.identity))
               }
 
           case _ =>
@@ -361,7 +382,7 @@ case class SerializableTemplateExecutionResult(id:TemplateExecutionResultId,
                                                parentExecutionId:Option[TemplateExecutionResultId],
                                                agreements:Seq[StructuredAgreement],
                                                variableSectionList:Seq[String],
-                                               signatureProofs:Map[Email, OpenlawSignatureProof],
+                                               signatureProofs:Map[Email, SignatureProof],
                                                variables:Seq[VariableDefinition],
                                                executedVariables:Seq[VariableName],
                                                mapping:Map[VariableName, Expression],
@@ -394,7 +415,7 @@ case class OpenlawExecutionState(
                                     executionType:ExecutionType,
                                     info:OLInformation,
                                     executions:Map[ActionIdentifier,Executions],
-                                    signatureProofs:Map[Email, OpenlawSignatureProof] = Map(),
+                                    signatureProofs:Map[Email, SignatureProof] = Map(),
                                     template:CompiledTemplate,
                                     anonymousVariableCounter:AtomicInteger = new AtomicInteger(0),
                                     processedAnonymousVariableCounter:AtomicInteger = new AtomicInteger(0),
@@ -498,8 +519,9 @@ case class OpenlawExecutionState(
     val identities = variables.filter({ case (result, variable) =>
       variable.varType(result) match {
         case IdentityType => true
-        case collectionType:CollectionType if collectionType.typeParameter === IdentityType => true
-        case structureType:DefinedStructureType if structureType.structure.typeDefinition.values.exists(_.varType(this) === IdentityType) => true
+        case ExternalSignatureType => true
+        case collectionType:CollectionType if IdentityType.identityTypes.contains(collectionType.typeParameter) => true
+        case structureType:DefinedStructureType if structureType.structure.typeDefinition.values.exists(s => IdentityType.identityTypes.contains(s.varType(this))) => true
         case _ => false
       }
     }).map({case (_, variable) => variable})
@@ -509,8 +531,10 @@ case class OpenlawExecutionState(
         variable.varType(result) match {
           case IdentityType =>
             Success(resultFromMissingInput(variable.missingInput(result)))
+          case ExternalSignatureType =>
+            Success(resultFromMissingInput(variable.missingInput(result)))
 
-          case collectionType: CollectionType if collectionType.typeParameter === IdentityType =>
+          case collectionType: CollectionType if IdentityType.identityTypes.contains(collectionType.typeParameter) =>
             result.getVariableValue[CollectionValue](variable.name).map {
               case Some(value) if value.size =!= value.values.size =>
                 (Seq(variable.name), Seq())
@@ -520,10 +544,10 @@ case class OpenlawExecutionState(
                 (Seq(variable.name), Seq())
             }
 
-          case structureType: DefinedStructureType if structureType.structure.typeDefinition.values.exists(_.varType(this) === IdentityType) =>
+          case structureType: DefinedStructureType if structureType.structure.typeDefinition.values.exists(s => IdentityType.identityTypes.contains(s.varType(this))) =>
             result.getVariableValue[OpenlawMap[VariableName, OpenlawValue]](variable.name).map { values =>
               val identityProperties = structureType.structure.typeDefinition
-                .filter({ case (_, propertyType) => propertyType.varType(this) === IdentityType })
+                .filter({ case (_, propertyType) => IdentityType.identityTypes.contains(propertyType.varType(this))})
                 .map({ case (propertyName, _) => propertyName }).toSeq
 
               if (identityProperties.forall(values.getOrElse(Map()).contains)) {
@@ -900,9 +924,30 @@ object TemplateExecutionResultId {
 
 case class TemplateExecutionResultId(id:String)
 
+object SignatureProof {
+
+  def className[T]()(implicit cls:ClassTag[T]):String = cls.runtimeClass.getName
+
+  implicit val signatureProofEnc:Encoder[SignatureProof] = (a: SignatureProof) => Json.obj(
+    "type" -> Json.fromString(a.getClass.getName),
+    "value" -> a.serialize
+  )
+  implicit val signatureProofDec:Decoder[SignatureProof] = (c: HCursor) => {
+    c.downField("type").as[String].flatMap(classType => {
+      if (classType === className[OpenlawSignatureProof]) {
+        c.downField("value").as[OpenlawSignatureProof]
+      } else if (classType === className[ExternalSignatureProof]) {
+        c.downField("value").as[ExternalSignatureProof]
+      } else {
+        Left(DecodingFailure(s"unknown signature proof type $classType", List()))
+      }
+    })
+  }
+}
+
 trait SignatureProof {
   def validationLink: Link
-  def serialize: String
+  def serialize: Json
   val fullName:String
   val contractId:ContractId
 }

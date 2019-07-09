@@ -105,8 +105,8 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     val vm = vmProvider.create(definition, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address, Map(serviceName -> serviceAccount.address)), Seq())
 
     vm(LoadTemplate(template))
-
-    vm.allNextActions shouldBe Right(Seq())
+    vm.executionState shouldBe ContractCreated
+    vm.allNextActions.map(_.map(_.action)) shouldBe Right(Seq(SignatureAction(identity.email)))
 
     val badSignature = EthereumSignature(signByEmail(identity.email, vm.contractId.data, serverAccount).signature)
     val signature = EthereumSignature(signByEmail(identity.email, vm.contractId.data, serviceAccount).signature)
@@ -116,7 +116,9 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     vm(badSignatureEvent)
     vm.signature(identity.email) shouldBe None
     vm(signatureEvent)
-    vm.signature(identity.email) shouldBe None
+    vm.signature(identity.email).isDefined shouldBe true
+
+    vm.executionState shouldBe ContractRunning
   }
 
   it should "be able to update the state and reflect this in the vm" in {
