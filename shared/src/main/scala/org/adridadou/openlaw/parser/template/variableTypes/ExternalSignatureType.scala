@@ -1,8 +1,6 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
-import java.time.LocalDateTime
-
-import io.circe._
+import io.circe.{Decoder, Encoder}
 import io.circe.parser._
 import io.circe.syntax._
 import io.circe.generic.semiauto._
@@ -11,7 +9,7 @@ import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatte
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawString, OpenlawValue}
 
-case object ExternalSignatureType extends VariableType("ExternalSignature") with ActionType {
+case object ExternalSignatureType extends VariableType("ExternalSignature") {
 
   case class PropertyDef(typeDef: VariableType, data: Seq[ExternalCallExecution] => Option[OpenlawValue])
   override def cast(value: String, executionResult: TemplateExecutionResult): Result[ExternalSignature] =
@@ -45,8 +43,6 @@ case object ExternalSignatureType extends VariableType("ExternalSignature") with
   override def getTypeClass: Class[_ <: ExternalSignature] = classOf[ExternalSignature]
 
   def thisType: VariableType = ExternalSignatureType
-
-  override def actionValue(value: OpenlawValue): Result[ExternalSignature] = VariableType.convert[ExternalSignature](value)
 }
 
 object ExternalSignature {
@@ -54,19 +50,4 @@ object ExternalSignature {
   implicit val externalSignatureDec:Decoder[ExternalSignature] = deriveDecoder
 }
 
-case class ExternalSignature(identity:Option[Identity] = None, serviceName: ServiceName) extends ActionValue with OpenlawNativeValue {
-
-  override def identifier(executionResult: TemplateExecutionResult): Result[ActionIdentifier] = identity match {
-    case Some(id) => Success(ActionIdentifier(id.email.email))
-    case None => Success(ActionIdentifier("undefined"))
-  }
-
-  override def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions: Seq[OpenlawExecution]): Result[Option[LocalDateTime]] = {
-    identity match {
-      case Some(id) if executionResult.hasSigned(id.email) => Success(None)
-      case Some(_) => Success(Some(LocalDateTime.now))
-      case None => Success(Some(LocalDateTime.now))
-    }
-  }
-
-}
+case class ExternalSignature(identity:Option[Identity] = None, serviceName: ServiceName) extends OpenlawNativeValue
