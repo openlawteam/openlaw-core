@@ -62,12 +62,7 @@ case class IntegratedServiceDefinition(input:Structure, output:Structure) {
 }
 
 case class SignatureServiceDefinition() {
-  val definition =
-    """
-      |[[Input:Structure(signerEmail: Text; signerFullName: Text; contractContentBase64: Text; contractTitle: Text)]]
-      |
-      |[[Output:Structure(signerEmail: Text; signerFullName: Text; signature: Text)]]
-    """.stripMargin.trim
+  val definition = "[[Input:Structure(signerEmail: Text; signerFullName: Text; contractContentBase64: Text; contractTitle: Text)]] [[Output:Structure(signerEmail: Text; signerFullName: Text; signature: Text)]]"
   val abi = IntegratedServiceDefinition(definition).getOrThrow()
   def definedInput: DefinedStructureType = DefinedStructureType(abi.input, "Input")
   def definedOutput: DefinedStructureType = DefinedStructureType(abi.output, "Output")
@@ -77,6 +72,20 @@ object SignatureServiceDefinition {
   implicit val signatureServiceDefinitionEnc:Encoder[SignatureServiceDefinition] = deriveEncoder
   implicit val signatureServiceDefinitionDec:Decoder[SignatureServiceDefinition] = deriveDecoder
   implicit val signatureServiceDefinitionEq:Eq[SignatureServiceDefinition] = Eq.fromUniversalEquals
+}
+
+case class SignatureInput(signerEmail: Email, signerFullName: String, contractContentBase64: String, contractTitle: String)
+object SignatureInput {
+  implicit val signatureInputEnc:Encoder[SignatureInput] = deriveEncoder
+  implicit val signatureInputDec:Decoder[SignatureInput] = deriveDecoder
+  implicit val signatureInputEq:Eq[SignatureInput] = Eq.fromUniversalEquals
+}
+
+case class SignatureOutput(signerEmail: Email, signerFullName: String, signature: EthereumSignature)
+object SignatureOutput {
+  implicit val signatureOutputEnc:Encoder[SignatureOutput] = deriveEncoder
+  implicit val signatureOutputDec:Decoder[SignatureOutput] = deriveDecoder
+  implicit val signatureOutputEq:Eq[SignatureOutput] = Eq.fromUniversalEquals
 }
 
 case class ExternalCall(serviceName: Expression,
