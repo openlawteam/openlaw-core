@@ -13,6 +13,7 @@ import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.variableTypes.LocalDateTimeHelper._
 import org.adridadou.openlaw.parser.template.variableTypes.VariableType._
 import org.adridadou.openlaw.result.{Failure, Result, Success}
+import org.adridadou.openlaw.result.Implicits._
 import org.adridadou.openlaw.vm.OpenlawExecutionEngine
 
 object IntegratedServiceDefinition {
@@ -58,6 +59,24 @@ case class ServiceName(serviceName:String)
 case class IntegratedServiceDefinition(input:Structure, output:Structure) {
   def definedInput: DefinedStructureType = DefinedStructureType(input, "Input")
   def definedOutput: DefinedStructureType = DefinedStructureType(output, "Output")
+}
+
+case class SignatureServiceDefinition() {
+  val definition =
+    """
+      |[[Input:Structure(signerEmail: Text; signerFullName: Text; contractContentBase64: Text; contractTitle: Text)]]
+      |
+      |[[Output:Structure(signerEmail: Text; signerFullName: Text; signature: Text)]]
+    """.stripMargin.trim
+  val abi = IntegratedServiceDefinition(definition).getOrThrow()
+  def definedInput: DefinedStructureType = DefinedStructureType(abi.input, "Input")
+  def definedOutput: DefinedStructureType = DefinedStructureType(abi.output, "Output")
+}
+
+object SignatureServiceDefinition {
+  implicit val signatureServiceDefinitionEnc:Encoder[SignatureServiceDefinition] = deriveEncoder
+  implicit val signatureServiceDefinitionDec:Decoder[SignatureServiceDefinition] = deriveDecoder
+  implicit val signatureServiceDefinitionEq:Eq[SignatureServiceDefinition] = Eq.fromUniversalEquals
 }
 
 case class ExternalCall(serviceName: Expression,
