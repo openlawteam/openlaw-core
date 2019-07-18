@@ -102,16 +102,18 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
       parameters = TemplateParameters(Map(VariableName("Signatory") -> ExternalSignatureType.internalFormat(ExternalSignature(serviceName = serviceName, identity = Some(identity))).right.value))
     )
 
+    val contractId = definition.id(TestCryptoService)
+
     val vm = vmProvider.create(definition, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address, Map(serviceName -> serviceAccount.address)), Seq())
 
     vm(LoadTemplate(template))
     vm.executionState shouldBe ContractCreated
-    vm.allNextActions.map(_.map(_.action)) shouldBe Right(Seq(SignatureAction(identity.email)))
+    vm.allNextActions.map(_.map(_.action)) shouldBe Success(List(SignatureAction(identity.email, List(serviceName))))
 
     val badSignature = EthereumSignature(signByEmail(identity.email, vm.contractId.data, serverAccount).signature)
     val signature = EthereumSignature(signByEmail(identity.email, vm.contractId.data, serviceAccount).signature)
-    val badSignatureEvent = oracles.ExternalSignatureEvent(definition.id(TestCryptoService), identity.email, "", serviceName, badSignature)
-    val signatureEvent = oracles.ExternalSignatureEvent(definition.id(TestCryptoService), identity.email, "", serviceName, signature)
+    val badSignatureEvent = oracles.ExternalSignatureEvent(contractId, identity.email, "", serviceName, badSignature)
+    val signatureEvent = oracles.ExternalSignatureEvent(contractId, identity.email, "", serviceName, signature)
 
     vm(badSignatureEvent)
     vm.signature(identity.email) shouldBe None

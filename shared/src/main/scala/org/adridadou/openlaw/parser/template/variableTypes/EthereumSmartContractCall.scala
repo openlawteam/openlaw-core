@@ -3,7 +3,7 @@ package org.adridadou.openlaw.parser.template.variableTypes
 import java.time.{LocalDateTime, ZoneOffset}
 import java.time.temporal.ChronoUnit
 
-import org.adridadou.openlaw.{OpenlawDateTime, OpenlawNativeValue, OpenlawString, OpenlawValue}
+import org.adridadou.openlaw.{OpenlawDateTime, OpenlawNativeValue, OpenlawString}
 import org.adridadou.openlaw.parser.template._
 import VariableType._
 import org.adridadou.openlaw.parser.template.expressions.Expression

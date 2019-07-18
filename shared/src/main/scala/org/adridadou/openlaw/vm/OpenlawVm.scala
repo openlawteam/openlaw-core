@@ -232,10 +232,6 @@ case class OpenlawVm(contractDefinition: ContractDefinition, profileAddress:Opti
     executionResult.map(_.state).getOrElse(ExecutionReady)
 
   def allActions: Result[Seq[ActionInfo]] = executionState match {
-    case ContractRunning =>
-      executionResult.map(_.allActions()).getOrElse(Success(Seq()))
-    case ContractResumed =>
-      executionResult.map(_.allActions()).getOrElse(Success(Seq()))
     case ContractCreated =>
       executionResult
         .map(_.allIdentityEmails)
@@ -243,12 +239,30 @@ case class OpenlawVm(contractDefinition: ContractDefinition, profileAddress:Opti
         .map {
           _.getOrElse(Seq()).flatMap(email => generateSignatureAction(email))
         }
+    case ContractRunning =>
+      executionResult.map(_.allActions()).getOrElse(Success(Seq()))
+    case ContractResumed =>
+      executionResult.map(_.allActions()).getOrElse(Success(Seq()))
     case _ =>
       Success(Seq())
   }
 
-  private def generateSignatureAction(email:Email):Option[ActionInfo] =
-    this.executionResult.map(ActionInfo(SignatureAction(email), _))
+  private def generateSignatureAction(email:Email):Option[ActionInfo] = {
+    val services = (executedValues[ExternalSignature](ExternalSignatureType) match {
+      case Success(values) => values.filter(_.identity.exists(_.email === email)).map(_.serviceName)
+      case _ => Seq()
+    }) ++ (executedValues[Identity](IdentityType) match {
+      case Success(values) if values.exists(_.email === email) => Seq(ServiceName.openlawServiceName)
+      case _ => Seq()
+    })
+
+    this.executionResult.map(executionResult => {
+
+      executionResult.getAllExecutedVariables
+      ActionInfo(SignatureAction(email, services.toList), executionResult)
+    })
+  }
+
 
   def template(definition: TemplateSourceIdentifier):CompiledTemplate = state.templates(contractDefinition.templates(definition))
   def template(id:TemplateId):CompiledTemplate = state.templates(id)
@@ -283,6 +297,23 @@ case class OpenlawVm(contractDefinition: ContractDefinition, profileAddress:Opti
       .map(_.flatten)
 
   def parseExpression(expr:String): Result[Expression] = expressionParser.parseExpression(expr)
+
+  def executedValues[T](variableType:VariableType)(implicit classTag:ClassTag[T]): Result[Seq[T]] = {
+    val r = getAllExecutedVariables(variableType)
+      .flatMap(result => VariableType.sequence(result.filter({case (executionResult, variable) =>
+        variable.varType(executionResult) === variableType
+      }).map({case (executionResult, variable) =>
+        variable.evaluate(executionResult)
+      }).flatMap({
+        case Success(Some(v:T)) => Some(Success(v))
+        case Success(None) => None
+        case Success(Some(value)) => Some(Failure(s"conversion error. Was expecting ${classTag.runtimeClass.getName} but got ${value.getClass.getName}"))
+        case Failure(ex, message) => Some(Failure(ex, message))
+      })
+    ))
+
+    r
+  }
 
   def evaluate[T](variable:VariableName)(implicit classTag:ClassTag[T]): Result[T] =
     evaluate(variable.name)

@@ -127,14 +127,13 @@ object SignatureAction {
   implicit val signatureActionEq:Eq[SignatureAction] = Eq.fromUniversalEquals
 }
 
-case class SignatureAction(email:Email) extends ActionValue {
-  override def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions: Seq[OpenlawExecution]): Result[Option[LocalDateTime]] = {
+case class SignatureAction(email:Email, services:List[ServiceName] = List(ServiceName.openlawServiceName)) extends ActionValue {
+  override def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions: Seq[OpenlawExecution]): Result[Option[LocalDateTime]] =
     if(executionResult.hasSigned(email)) {
       Success(None)
     } else {
       Success(Some(LocalDateTime.now))
     }
-  }
 
   override def identifier(executionResult: TemplateExecutionResult): Result[ActionIdentifier] = Success(ActionIdentifier(email.email))
 }

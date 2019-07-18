@@ -49,6 +49,8 @@ object ServiceName {
   implicit val serviceNameKeyDec:KeyDecoder[ServiceName] = (key: String) => Some(ServiceName(key))
 
   implicit val serviceNameEq:Eq[ServiceName] = Eq.fromUniversalEquals
+
+  val openlawServiceName = ServiceName("Openlaw")
 }
 
 case class ServiceName(serviceName:String)
