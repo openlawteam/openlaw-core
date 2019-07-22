@@ -350,6 +350,12 @@ abstract class VariableType(val name: String) {
 
 object VariableType {
 
+  def handleEither[T](thisTry: Either[io.circe.Error, T]): Result[T] =
+    thisTry match {
+      case Right(v) => Success(v)
+      case Left(ex) => Failure(ex)
+    }
+
   def allTypes():Seq[VariableType] = Seq(
     AbstractCollectionType,
     OLOwnType,
