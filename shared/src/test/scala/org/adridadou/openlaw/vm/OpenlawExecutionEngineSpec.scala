@@ -1551,7 +1551,6 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       VariableName("Emergency Contact Age") -> OpenlawBigDecimal(BigDecimal("23"))))
     engine.execute(template, TemplateParameters("Medical Contact" -> internalFormat)) match {
       case Success(newResult) =>
-        println(parser.forReview(newResult.agreements.head))
         parser.forReview(newResult.agreements.head) shouldBe "<p class=\"no-section\"><br />        <br />Name: David Roon<br />Age: 23<br />DOB: [[Medical Contact:Contestant Emergency Contact]]<br />      </p>"
       case Failure(ex, message) =>
         ex.printStackTrace()
