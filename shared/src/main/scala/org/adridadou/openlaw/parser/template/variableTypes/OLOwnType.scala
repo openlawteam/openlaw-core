@@ -16,7 +16,7 @@ case object OLOwnType extends VariableType("OLInfo") with NoShowInForm {
   override def internalFormat(value: OpenlawValue): Result[String] = VariableType.convert[OLInformation](value).map(_.asJson.noSpaces)
 
   override def thisType: VariableType = OLOwnType
-  override def getTypeClass = classOf[OLInformation]
+  override def getTypeClass:Class[OLInformation] = classOf[OLInformation]
 
   override def keysType(keys: Seq[String], expr: Expression, executionResult: TemplateExecutionResult): Result[VariableType] = keys.toList match {
     case Nil => Success(OLOwnType)

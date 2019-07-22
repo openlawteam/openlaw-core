@@ -140,7 +140,6 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       "io.circe"                %% "circe-generic"       % circeV,
       "io.circe"                %% "circe-parser"        % circeV,
       "io.circe"                %% "circe-java8"         % circeV,
-      "com.typesafe.play"       %% "play-json"           % playJsonV,
       "org.parboiled"           %% "parboiled"           % parboiledV,
       "org.typelevel"           %% "cats-core"           % catsV,
       "org.typelevel"           %% "cats-free"           % catsV,
@@ -151,6 +150,7 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       //Test
       "org.scalacheck"          %% "scalacheck"          % scalaCheckV % Test,
       "org.scalatest"           %% "scalatest"           % scalaTestV  % Test,
+      "com.typesafe.play"       %% "play-json"           % playJsonV % Test
     )
   ).jsSettings(
     libraryDependencies ++= Seq(
@@ -158,7 +158,6 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       "io.circe"                %%% "circe-generic"        % circeV,
       "io.circe"                %%% "circe-parser"         % circeV,
       "io.circe"                %%% "circe-java8"          % circeV,
-      "com.typesafe.play"       %%% "play-json"            % playJsonV,
       "org.parboiled"           %%% "parboiled"            % parboiledV,
       "org.typelevel"           %%% "cats-core"            % catsV,
       "org.typelevel"           %%% "cats-free"            % catsV,
@@ -169,7 +168,8 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       "com.lihaoyi"             %%% "scalatags"            % scalaTagsV,
       //Test
       "org.scalacheck"          %%% "scalacheck"          % scalaCheckV % Test,
-      "org.scalatest"           %%% "scalatest"           % scalaTestV  % Test
+      "org.scalatest"           %%% "scalatest"           % scalaTestV  % Test,
+      "com.typesafe.play"       %%% "play-json"           % playJsonV % Test
     )
   )
   .settings(parallelExecution in Test := false)

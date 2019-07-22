@@ -525,7 +525,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
         val map = result.getVariableValue[OpenlawMap[VariableName, OpenlawValue]](VariableName("Someone")).right.value.value.underlying
         map.get(VariableName("name")).value.toString shouldBe "David"
-        map.get(VariableName("number")).map { case OpenlawBigDecimal(value) => value }.value shouldBe BigDecimal(23)
+        map.get(VariableName("number")).map { case OpenlawBigDecimal(v) => v }.value shouldBe BigDecimal(23)
       case Left(ex) =>
         fail(ex)
     }

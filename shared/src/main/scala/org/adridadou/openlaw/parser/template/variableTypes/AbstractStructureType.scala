@@ -4,7 +4,7 @@ import cats.implicits._
 import io.circe.{Decoder, Encoder, HCursor, Json}
 import cats.kernel.Eq
 import org.adridadou.openlaw.parser.template._
-import play.api.libs.json.JsObject
+import io.circe.parser._
 import io.circe.syntax._
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import org.adridadou.openlaw._
@@ -133,16 +133,13 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
       }
   }
 
-  override def cast(value: String, executionResult: TemplateExecutionResult): Result[OpenlawMap[VariableName, OpenlawValue]] = {
-    val json = play.api.libs.json.Json.parse(value)
-
-    structure.typeDefinition.flatMap {case (fieldName, fieldType) =>
-      (json.as[JsObject] \ fieldName.name).asOpt[String].map(value => fieldType.cast(value, executionResult).map(fieldName -> _))
-    }
-    .toList
-    .sequence
-    .map(list => OpenlawMap(list.toMap))
-  }
+  override def cast(value: String, executionResult: TemplateExecutionResult): Result[OpenlawMap[VariableName, OpenlawValue]] =
+    for {
+      values <- handleEither(decode[Map[String, String]](value))
+      list <- structure.typeDefinition.flatMap {case (fieldName, fieldType) =>
+        values.get(fieldName.name).map(value => fieldType.cast(value, executionResult).map(fieldName -> _))
+      }.toList.sequence
+    } yield OpenlawMap(list.toMap)
 
   override def internalFormat(value: OpenlawValue): Result[String] =
     VariableType.convert[OpenlawMap[VariableName, OpenlawValue]](value).flatMap { values =>
