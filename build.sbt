@@ -136,39 +136,52 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
   .in(file("shared"))
   .jvmSettings(
     libraryDependencies ++= Seq(
+      //circe is used to serialize / deserialize json
       "io.circe"                %% "circe-core"          % circeV,
       "io.circe"                %% "circe-generic"       % circeV,
       "io.circe"                %% "circe-parser"        % circeV,
       "io.circe"                %% "circe-java8"         % circeV,
+      //parser / interpreter library. Used for our markup language
       "org.parboiled"           %% "parboiled"           % parboiledV,
+      //cats is used for FP constructs
       "org.typelevel"           %% "cats-core"           % catsV,
       "org.typelevel"           %% "cats-free"           % catsV,
+      // scala.js compatible library to use time types
       "io.github.cquiroz"       %% "scala-java-time"     % scalaJavaTimeV,
+      // logging library that is compatible with scala.js
       "biz.enef"                %% "slogging-slf4j"      % sLoggingV,
       "com.beachape"            %% "enumeratum"          % enumeratumV,
       "com.lihaoyi"             %% "scalatags"           % scalaTagsV,
       //Test
       "org.scalacheck"          %% "scalacheck"          % scalaCheckV % Test,
       "org.scalatest"           %% "scalatest"           % scalaTestV  % Test,
+      //Play json is used in tests to make it easier to prepare json in the tests. It shouldn't be used in the library
       "com.typesafe.play"       %% "play-json"           % playJsonV % Test
     )
   ).jsSettings(
     libraryDependencies ++= Seq(
+      //circe is used to serialize / deserialize json
       "io.circe"                %%% "circe-core"           % circeV,
       "io.circe"                %%% "circe-generic"        % circeV,
       "io.circe"                %%% "circe-parser"         % circeV,
       "io.circe"                %%% "circe-java8"          % circeV,
+      //parser / interpreter library. Used for our markup language
       "org.parboiled"           %%% "parboiled"            % parboiledV,
+      //cats is used for FP constructs
       "org.typelevel"           %%% "cats-core"            % catsV,
       "org.typelevel"           %%% "cats-free"            % catsV,
+      // scala.js compatible library to use time types
       "io.github.cquiroz"       %%% "scala-java-time"      % scalaJavaTimeV,
+      // timezone handling is in a separate library because of its size and not everybody needs it. we do
       "io.github.cquiroz"       %%% "scala-java-time-tzdb" % "2.0.0-RC3_2019a",
+      // logging library that is compatible with scala.js
       "biz.enef"                %%% "slogging"             % sLoggingV,
       "com.beachape"            %%% "enumeratum"           % enumeratumV,
       "com.lihaoyi"             %%% "scalatags"            % scalaTagsV,
       //Test
       "org.scalacheck"          %%% "scalacheck"          % scalaCheckV % Test,
       "org.scalatest"           %%% "scalatest"           % scalaTestV  % Test,
+      //Play json is used in tests to make it easier to prepare json in the tests. It shouldn't be used in the library
       "com.typesafe.play"       %%% "play-json"           % playJsonV % Test
     )
   )
