@@ -83,8 +83,20 @@ object SignatureInput {
 
 case class SignatureOutput(signerEmail: Email, signerFullName: String, signature: EthereumSignature)
 object SignatureOutput {
-  implicit val signatureOutputEnc:Encoder[SignatureOutput] = deriveEncoder
-  implicit val signatureOutputDec:Decoder[SignatureOutput] = deriveDecoder
+  implicit val signatureOutputEnc:Encoder[SignatureOutput] =  Encoder.instance[SignatureOutput] { output =>
+    Json.obj(
+      "signerEmail" -> Json.fromString(output.signerEmail.email),
+      "signerFullName" -> Json.fromString(output.signerFullName),
+      "signature" -> Json.fromString(output.signature.toString),
+    )
+  }
+  implicit val signatureOutputDec:Decoder[SignatureOutput] = Decoder.instance[SignatureOutput] { c: HCursor =>
+    for {
+      signerEmail <- c.downField("signerEmail").as[Email]
+      signerFullName <- c.downField("signerFullName").as[String]
+      signature <- c.downField("signature").as[String]
+    } yield SignatureOutput(signerEmail, signerFullName, EthereumSignature(signature).getOrThrow())
+  }
   implicit val signatureOutputEq:Eq[SignatureOutput] = Eq.fromUniversalEquals
 }
 
