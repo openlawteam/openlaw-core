@@ -150,7 +150,9 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       "io.github.cquiroz"       %% "scala-java-time"     % scalaJavaTimeV,
       // logging library that is compatible with scala.js
       "biz.enef"                %% "slogging-slf4j"      % sLoggingV,
+      // enumeratum provides type-safe enumerations with improvements over stdlib enumerations
       "com.beachape"            %% "enumeratum"          % enumeratumV,
+      // scalatags is used for composition of XHTML documents in the document printers
       "com.lihaoyi"             %% "scalatags"           % scalaTagsV,
       //Test
       "org.scalacheck"          %% "scalacheck"          % scalaCheckV % Test,
@@ -176,7 +178,9 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       "io.github.cquiroz"       %%% "scala-java-time-tzdb" % "2.0.0-RC3_2019a",
       // logging library that is compatible with scala.js
       "biz.enef"                %%% "slogging"             % sLoggingV,
+      // enumeratum provides type-safe enumerations with improvements over stdlib enumerations
       "com.beachape"            %%% "enumeratum"           % enumeratumV,
+      // scalatags is used for composition of XHTML documents in the document printers
       "com.lihaoyi"             %%% "scalatags"            % scalaTagsV,
       //Test
       "org.scalacheck"          %%% "scalacheck"          % scalaCheckV % Test,
