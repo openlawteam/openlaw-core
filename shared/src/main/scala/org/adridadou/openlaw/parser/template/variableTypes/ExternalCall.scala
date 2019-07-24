@@ -62,7 +62,7 @@ case class IntegratedServiceDefinition(input:Structure, output:Structure) {
 }
 
 case class SignatureServiceDefinition() {
-  val definition = "[[Input:Structure(signerEmail: Text; signerFullName: Text; contractContentBase64: Text; contractTitle: Text)]] [[Output:Structure(signerEmail: Text; signerFullName: Text; signature: Text)]]"
+  val definition = "[[Input:Structure(signerEmail: Text; contractContentBase64: Text; contractTitle: Text)]] [[Output:Structure(signerEmail: Text; signature: Text)]]"
   val abi = IntegratedServiceDefinition(definition).getOrThrow()
   def definedInput: DefinedStructureType = DefinedStructureType(abi.input, "Input")
   def definedOutput: DefinedStructureType = DefinedStructureType(abi.output, "Output")
@@ -74,28 +74,26 @@ object SignatureServiceDefinition {
   implicit val signatureServiceDefinitionEq:Eq[SignatureServiceDefinition] = Eq.fromUniversalEquals
 }
 
-case class SignatureInput(signerEmail: Email, signerFullName: String, contractContentBase64: String, contractTitle: String)
+case class SignatureInput(signerEmail: Email, contractContentBase64: String, contractTitle: String)
 object SignatureInput {
   implicit val signatureInputEnc:Encoder[SignatureInput] = deriveEncoder
   implicit val signatureInputDec:Decoder[SignatureInput] = deriveDecoder
   implicit val signatureInputEq:Eq[SignatureInput] = Eq.fromUniversalEquals
 }
 
-case class SignatureOutput(signerEmail: Email, signerFullName: String, signature: EthereumSignature)
+case class SignatureOutput(signerEmail: Email, signature: EthereumSignature)
 object SignatureOutput {
   implicit val signatureOutputEnc:Encoder[SignatureOutput] =  Encoder.instance[SignatureOutput] { output =>
     Json.obj(
       "signerEmail" -> Json.fromString(output.signerEmail.email),
-      "signerFullName" -> Json.fromString(output.signerFullName),
       "signature" -> Json.fromString(output.signature.toString),
     )
   }
   implicit val signatureOutputDec:Decoder[SignatureOutput] = Decoder.instance[SignatureOutput] { c: HCursor =>
     for {
       signerEmail <- c.downField("signerEmail").as[Email]
-      signerFullName <- c.downField("signerFullName").as[String]
       signature <- c.downField("signature").as[String]
-    } yield SignatureOutput(signerEmail, signerFullName, EthereumSignature(signature).getOrThrow())
+    } yield SignatureOutput(signerEmail, EthereumSignature(signature).getOrThrow())
   }
   implicit val signatureOutputEq:Eq[SignatureOutput] = Eq.fromUniversalEquals
 }
