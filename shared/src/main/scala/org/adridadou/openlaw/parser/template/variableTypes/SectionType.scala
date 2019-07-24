@@ -7,7 +7,7 @@ import io.circe.parser.decode
 import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawString, OpenlawValue}
 import org.adridadou.openlaw.parser.template.formatters.Formatter
 import org.adridadou.openlaw.parser.template._
-import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
+import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success, attempt}
 
 case class SectionInfo(name: Option[String], numbering: String, value:String) extends OpenlawNativeValue
 
@@ -16,7 +16,7 @@ case object SectionType extends VariableType(name = "Section") with NoShowInForm
   private implicit val enc: Encoder[SectionInfo] = deriveEncoder[SectionInfo]
   private implicit val dec: Decoder[SectionInfo] = deriveDecoder[SectionInfo]
 
-  override def cast(value: String, executionResult: TemplateExecutionResult): Result[SectionInfo] = handleEither(decode[SectionInfo](value))
+  override def cast(value: String, executionResult: TemplateExecutionResult): Result[SectionInfo] = decode[SectionInfo](value).leftMap(FailureException(_))
 
   override def internalFormat(value: OpenlawValue): Result[String] = VariableType.convert[OpenlawString](value)
 

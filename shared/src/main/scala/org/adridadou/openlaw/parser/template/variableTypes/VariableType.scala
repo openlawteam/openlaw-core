@@ -309,12 +309,6 @@ abstract class VariableType(val name: String) {
       case scala.util.Failure(ex) => throw ex
     }
 
-  def handleEither[T](thisTry: Either[io.circe.Error, T]): Result[T] =
-    thisTry match {
-      case Right(v) => Success(v)
-      case Left(ex) => Failure(ex)
-    }
-
   def thisType:VariableType
 
   def getExpression(params:Map[String,Parameter], names:String*): Result[Expression] =
@@ -349,12 +343,6 @@ abstract class VariableType(val name: String) {
 }
 
 object VariableType {
-
-  def handleEither[T](thisTry: Either[io.circe.Error, T]): Result[T] =
-    thisTry match {
-      case Right(v) => Success(v)
-      case Left(ex) => Failure(ex)
-    }
 
   def allTypes():Seq[VariableType] = Seq(
     AbstractCollectionType,

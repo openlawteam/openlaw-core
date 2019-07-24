@@ -10,7 +10,7 @@ import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawString, OpenlawValue}
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
-import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
+import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success, attempt}
 import org.adridadou.openlaw.values._
 
 case class TemplateDefinition(name:TemplateSourceIdentifier, mappingInternal:Map[VariableName, Expression] = Map(), path:Option[TemplatePath] = None) extends OpenlawNativeValue {
@@ -207,7 +207,7 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
 
   override def getTypeClass: Class[_ <: TemplateDefinition ] = classOf[TemplateDefinition]
 
-  override def cast(value: String, executionResult: TemplateExecutionResult): Result[TemplateDefinition] = handleEither(decode[TemplateDefinition](value))
+  override def cast(value: String, executionResult: TemplateExecutionResult): Result[TemplateDefinition] = decode[TemplateDefinition](value).leftMap(FailureException(_))
   override def internalFormat(value: OpenlawValue): Result[String] = VariableType.convert[TemplateDefinition](value).map(_.asJson.noSpaces)
   override def defaultFormatter: Formatter = new NoopFormatter
 

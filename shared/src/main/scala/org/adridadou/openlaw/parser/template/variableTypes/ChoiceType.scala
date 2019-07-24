@@ -10,7 +10,7 @@ import org.adridadou.openlaw.parser.template._
 import cats.implicits._
 import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawString, OpenlawValue}
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
-import org.adridadou.openlaw.result.{Failure, Result, Success}
+import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success}
 
 case class Choices(values: Seq[String]) extends OpenlawNativeValue
 
@@ -45,7 +45,7 @@ case object ChoiceType extends VariableType("Choice") with TypeGenerator[Choices
 
   override def defaultFormatter: Formatter = new NoopFormatter
 
-  override def cast(value: String, executionResult: TemplateExecutionResult): Result[Choices] = handleEither(decode[Choices](value))
+  override def cast(value: String, executionResult: TemplateExecutionResult): Result[Choices] = decode[Choices](value).leftMap(FailureException(_))
 
   override def internalFormat(value: OpenlawValue): Result[String] = value match {
     case call:Choices => Success(call.asJson.noSpaces)

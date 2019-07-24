@@ -1,4 +1,6 @@
 package org.adridadou.openlaw.parser.template.variableTypes
+
+import cats.implicits._
 import org.adridadou.openlaw.parser.template.{TemplateExecutionResult, VariableName}
 import org.adridadou.openlaw.values.ContractId
 import io.circe.{Decoder, Encoder}
@@ -7,11 +9,11 @@ import io.circe.syntax._
 import io.circe.parser._
 import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawValue}
 import org.adridadou.openlaw.parser.template.expressions.Expression
-import org.adridadou.openlaw.result.{Failure, Result, Success}
+import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success}
 
 case object OLOwnType extends VariableType("OLInfo") with NoShowInForm {
 
-  override def cast(value: String, executionResult: TemplateExecutionResult): Result[OLInformation] = handleEither(decode[OLInformation](value))
+  override def cast(value: String, executionResult: TemplateExecutionResult): Result[OLInformation] = decode[OLInformation](value).leftMap(FailureException(_))
 
   override def internalFormat(value: OpenlawValue): Result[String] = VariableType.convert[OLInformation](value).map(_.asJson.noSpaces)
 

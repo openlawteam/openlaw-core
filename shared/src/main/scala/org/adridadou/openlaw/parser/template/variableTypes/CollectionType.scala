@@ -8,7 +8,7 @@ import io.circe.generic.semiauto._
 import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawValue}
 import org.adridadou.openlaw.parser.template.TemplateExecutionResult
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
-import org.adridadou.openlaw.result.{Failure, Result}
+import org.adridadou.openlaw.result.{Failure, FailureException, Result}
 
 case object AbstractCollectionType extends VariableType("Collection") with ParameterTypeProvider {
 
@@ -44,7 +44,7 @@ case class CollectionType(typeParameter:VariableType) extends VariableType("Coll
 
   override def cast(value: String, executionResult: TemplateExecutionResult): Result[CollectionValue] =
     for {
-      collectionValue <- handleEither(decode[CollectionTypeValue](value))
+      collectionValue <- decode[CollectionTypeValue](value).leftMap(FailureException(_))
       values <- collectionValue.values.map { case (key, v) => typeParameter.cast(v, executionResult).map(key -> _) }
         .toList
         .sequence

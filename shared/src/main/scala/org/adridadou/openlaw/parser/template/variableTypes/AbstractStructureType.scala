@@ -10,7 +10,7 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import org.adridadou.openlaw._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
-import org.adridadou.openlaw.result.{Failure, Result, Success}
+import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success}
 
 object Structure {
   implicit val structureEnc:Encoder[Structure] = deriveEncoder
@@ -135,7 +135,7 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
 
   override def cast(value: String, executionResult: TemplateExecutionResult): Result[OpenlawMap[VariableName, OpenlawValue]] =
     for {
-      values <- handleEither(decode[Map[String, String]](value))
+      values <- decode[Map[String, String]](value).leftMap(FailureException(_))
       list <- structure.typeDefinition.flatMap {case (fieldName, fieldType) =>
         values.get(fieldName.name).map(value => fieldType.cast(value, executionResult).map(fieldName -> _))
       }.toList.sequence
