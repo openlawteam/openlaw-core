@@ -7,6 +7,7 @@ import cats.implicits._
 import cats.kernel.Eq
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe._
+import org.adridadou.openlaw.oracles.CryptoService
 import org.adridadou.openlaw.{OpenlawDateTime, OpenlawNativeValue, OpenlawString, OpenlawValue, result}
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
@@ -14,6 +15,7 @@ import org.adridadou.openlaw.parser.template.variableTypes.LocalDateTimeHelper._
 import org.adridadou.openlaw.parser.template.variableTypes.VariableType._
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 import org.adridadou.openlaw.result.Implicits._
+import org.adridadou.openlaw.values.ContractId
 import org.adridadou.openlaw.vm.OpenlawExecutionEngine
 
 object IntegratedServiceDefinition {
@@ -96,6 +98,11 @@ object SignatureOutput {
     } yield SignatureOutput(signerEmail, EthereumSignature(signature).getOrThrow())
   }
   implicit val signatureOutputEq:Eq[SignatureOutput] = Eq.fromUniversalEquals
+
+  def prepareDataToSign(email: Email, contractId: ContractId, cryptoService: CryptoService): EthereumData = {
+    EthereumData(cryptoService.sha256(email.email))
+      .merge(EthereumData(cryptoService.sha256(contractId.data.data)))
+  }
 }
 
 case class ExternalCall(serviceName: Expression,

@@ -26,10 +26,12 @@ case class OpenlawSignatureOracle(crypto:CryptoService, serverAccount:EthereumAd
           case Some(account) => Success(account)
           case None => Failure(s"unknown service ${serviceName.serviceName}")
         }
-      }).getOrElse(Success(serverAccount)).flatMap(signatureServiceAccount =>
-        EthereumAddress(crypto.validateECSignature(signedData.data, event.signature.signature)).map { actualAddress =>
-          actualAddress === signatureServiceAccount
-        })
+      }).getOrElse(Success(serverAccount)).flatMap({ signatureServiceAccount =>
+          EthereumAddress(crypto.validateECSignature(signedData.data, event.signature.signature))
+            .map(derivedAddress => {
+              signatureServiceAccount.withLeading0x === derivedAddress.withLeading0x
+            })
+      })
 
     case _ => Success(false)
   }
