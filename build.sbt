@@ -132,7 +132,7 @@ val rules = Seq(Wart.ArrayEquals, Wart.OptionPartial, Wart.EitherProjectionParti
 
 lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
   .withoutSuffixFor(JVMPlatform)
-  .crossType(CrossType.Pure)
+  .crossType(CrossType.Pure) // the project does not have separate sources for JVM and JS
   .in(file("shared"))
   .jvmSettings(
     libraryDependencies ++= Seq(
