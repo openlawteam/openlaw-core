@@ -128,11 +128,11 @@ class ExternalCallTypeSpec extends FlatSpec with Matchers {
     }
 
     vm(successfulExternalCallEvent)
-    vm.getAllExecutedVariables(ExternalCallType).getOrThrow().size shouldBe 1
+    vm.getAllExecutedVariables(ExternalCallType).size shouldBe 1
 
     val execution = variableTypes.SuccessfulExternalCallExecution(LocalDateTime.now, LocalDateTime.now, jsonResponse.toString, requestIdentifier)
 
-    val Some((exec, varDef)) = vm.newExecution(identifier, execution).getAllExecutedVariables(ExternalCallType).getOrThrow().headOption
+    val Some((exec, varDef)) = vm.newExecution(identifier, execution).getAllExecutedVariables(ExternalCallType).headOption
 
     varDef.varType(exec).keysType(Seq("result", "sum"), varDef, exec) match {
       case Success(variableType) => variableType.name shouldBe "Number"

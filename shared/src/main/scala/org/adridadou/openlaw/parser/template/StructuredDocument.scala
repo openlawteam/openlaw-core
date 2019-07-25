@@ -15,7 +15,7 @@ import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.{OpenlawMap, OpenlawValue}
 import org.adridadou.openlaw.oracles.OpenlawSignatureProof
-import org.adridadou.openlaw.result.{Failure, FailureCause, Result, ResultNel, Success}
+import org.adridadou.openlaw.result.{Failure, Result, ResultNel, Success}
 import org.adridadou.openlaw.result.Implicits.{RichResult, RichResultNel}
 import org.adridadou.openlaw.vm.Executions
 
@@ -192,7 +192,7 @@ trait TemplateExecutionResult {
        .map(_.flatten)
   }
 
-  def allActions(): Result[Seq[ActionInfo]] =
+  def allActions: Result[Seq[ActionInfo]] =
     getAllExecutedVariables.map {
       case (executionResult, variableName) =>
         executionResult
@@ -221,7 +221,7 @@ trait TemplateExecutionResult {
       parentExecution.flatMap(_.getTemplateDefinitionForVariable(name))
   }
 
-  def embedded = executionType match {
+  def embedded: Boolean = executionType match {
     case TemplateExecution => false
     case _ => true
   }

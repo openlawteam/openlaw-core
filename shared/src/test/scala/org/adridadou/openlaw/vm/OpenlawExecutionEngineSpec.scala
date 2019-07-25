@@ -15,6 +15,8 @@ import org.scalatest.OptionValues._
 import play.api.libs.json.Json
 import org.adridadou.openlaw.{OpenlawMap, _}
 
+import scala.concurrent.Await
+
 class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
   val parser = new OpenlawTemplateLanguageParserService(Clock.systemDefaultZone())
