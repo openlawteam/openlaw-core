@@ -16,7 +16,7 @@ import slogging.LazyLogging
 import scala.reflect.ClassTag
 import io.circe.generic.semiauto._
 import LocalDateTimeHelper._
-import org.adridadou.openlaw._
+import org.adridadou.openlaw.{values, _}
 
 case class Signature(userId:UserId, signature:OpenlawSignatureEvent)
 
@@ -240,29 +240,27 @@ case class OpenlawVm(contractDefinition: ContractDefinition, profileAddress:Opti
           _.getOrElse(Seq()).flatMap(email => generateSignatureAction(email))
         }
     case ContractRunning =>
-      executionResult.map(_.allActions()).getOrElse(Success(Seq()))
+      executionResult.map(_.allActions).getOrElse(Success(Seq()))
     case ContractResumed =>
-      executionResult.map(_.allActions()).getOrElse(Success(Seq()))
+      executionResult.map(_.allActions).getOrElse(Success(Seq()))
     case _ =>
       Success(Seq())
   }
 
   private def generateSignatureAction(email:Email):Option[ActionInfo] = {
     val services = (executedValues[ExternalSignature](ExternalSignatureType) match {
-      case Success(values) => values.filter(_.identity.exists(_.email === email)).map(_.serviceName)
-      case _ => Seq()
+      case Seq() => Seq()
+      case values => values.filter(_.identity.exists(_.email === email)).map(_.serviceName)
     }) ++ (executedValues[Identity](IdentityType) match {
-      case Success(values) if values.exists(_.email === email) => Seq(ServiceName.openlawServiceName)
-      case _ => Seq()
+      case Seq() => Seq()
+      case values if values.exists(_.email === email) => Seq(ServiceName.openlawServiceName)
     })
 
     this.executionResult.map(executionResult => {
-
       executionResult.getAllExecutedVariables
       ActionInfo(SignatureAction(email, services.toList), executionResult)
     })
   }
-
 
   def template(definition: TemplateSourceIdentifier):CompiledTemplate = state.templates(contractDefinition.templates(definition))
   def template(id:TemplateId):CompiledTemplate = state.templates(id)
@@ -298,21 +296,20 @@ case class OpenlawVm(contractDefinition: ContractDefinition, profileAddress:Opti
 
   def parseExpression(expr:String): Result[Expression] = expressionParser.parseExpression(expr)
 
-  def executedValues[T](variableType:VariableType)(implicit classTag:ClassTag[T]): Result[Seq[T]] = {
-    val r = getAllExecutedVariables(variableType)
-      .flatMap(result => VariableType.sequence(result.filter({case (executionResult, variable) =>
-        variable.varType(executionResult) === variableType
-      }).map({case (executionResult, variable) =>
-        variable.evaluate(executionResult)
+  def executedValues[T](variableType:VariableType)(implicit classTag:ClassTag[T]): Seq[T] = {
+   getAllExecutedVariables(variableType)
+      .filter({
+        case (executionResult, variable) => variable.varType(executionResult) === variableType
+      }).map({
+        case (executionResult, variable) => variable.evaluate(executionResult)
       }).flatMap({
-        case Success(Some(v:T)) => Some(Success(v))
+        case Success(Some(v:T)) => Some(v)
+        case Success(Some(_)) => None
         case Success(None) => None
-        case Success(Some(value)) => Some(Failure(s"conversion error. Was expecting ${classTag.runtimeClass.getName} but got ${value.getClass.getName}"))
-        case Failure(ex, message) => Some(Failure(ex, message))
+        case Failure(err, msg) =>
+          logger.error(msg, err)
+          None
       })
-    ))
-
-    r
   }
 
   def evaluate[T](variable:VariableName)(implicit classTag:ClassTag[T]): Result[T] =

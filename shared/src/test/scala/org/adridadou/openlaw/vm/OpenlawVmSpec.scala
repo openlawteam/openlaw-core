@@ -304,7 +304,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     vm(LoadTemplate(template))
 
     val values = Map(VariableName("owner") -> EthAddressType.internalFormat(EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0").right.value).right.value, VariableName("value") -> NumberType.internalFormat(BigDecimal(2939)).right.value)
-    val identifier = vm.executionResult.map(_.allActions().right.value).getOrElse(Seq()).head.identifier.right.value
+    val identifier = vm.executionResult.map(_.allActions.right.value).getOrElse(Seq()).head.identifier.right.value
     val event = EthereumEventFilterEvent(identifier, EthereumHash.empty, EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0").right.value, "OpenlawSignatureEvent", values, LocalDateTime.now)
 
     val ethereumEventFilterOracle = EthereumEventFilterOracle(parser, TestCryptoService)
@@ -334,7 +334,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     vm(LoadTemplate(template))
 
     val values = Map(VariableName("owner") -> EthAddressType.internalFormat(EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0").right.value).right.value, VariableName("value") -> NumberType.internalFormat(BigDecimal(2939)).right.value)
-    val identifier = vm.executionResult.map(_.allActions().right.value).getOrElse(Seq()).head.identifier.right.value
+    val identifier = vm.executionResult.map(_.allActions.right.value).getOrElse(Seq()).head.identifier.right.value
     val event = EthereumEventFilterEvent(identifier, EthereumHash.empty, EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0").right.value, "OpenlawSignatureEvent", values, LocalDateTime.now)
 
     val ethereumEventFilterOracle = EthereumEventFilterOracle(parser, TestCryptoService)
@@ -388,10 +388,10 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
 
     (for {
       _ <- vm.applyEvent(LoadTemplate(template))
-      _ <- vm.applyEvent(PreparedERC712SmartContractCallEvent(VariableName("Signature"), vm.executionResult.map(_.allActions().right.value).getOrElse(Seq()).head.identifier.right.value, address, EthereumSignature("0x123456789").right.value, contractAddress))
+      _ <- vm.applyEvent(PreparedERC712SmartContractCallEvent(VariableName("Signature"), vm.executionResult.map(_.allActions.right.value).getOrElse(Seq()).head.identifier.right.value, address, EthereumSignature("0x123456789").right.value, contractAddress))
     } yield vm ) match {
       case Success(_) =>
-        vm.initExecution[PreparedERC712SmartContractCallExecution](vm.executionResult.map(_.allActions().right.value).getOrElse(Seq()).head.identifier.right.value).right.value shouldBe Some(PreparedERC712SmartContractCallExecution(vm.executionResult.map(_.allActions().right.value).getOrElse(Seq()).head.identifier.right.value, EthereumSignature("0x1234567809").right.value))
+        vm.initExecution[PreparedERC712SmartContractCallExecution](vm.executionResult.map(_.allActions.right.value).getOrElse(Seq()).head.identifier.right.value).right.value shouldBe Some(PreparedERC712SmartContractCallExecution(vm.executionResult.map(_.allActions.right.value).getOrElse(Seq()).head.identifier.right.value, EthereumSignature("0x1234567809").right.value))
       case Failure(ex, message) =>
         fail(message, ex)
     }
@@ -415,7 +415,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
 
 
     val values = Map(VariableName("owner") -> EthAddressType.internalFormat(EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0").right.value).right.value, VariableName("value") -> NumberType.internalFormat(BigDecimal(1000)).right.value)
-    val identifier = vm.executionResult.map(_.allActions().right.value).getOrElse(Seq()).head.identifier
+    val identifier = vm.executionResult.map(_.allActions.right.value).getOrElse(Seq()).head.identifier
     val event = EthereumEventFilterEvent(identifier.right.value, EthereumHash.empty, EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0").right.value, "OpenlawSignatureEvent", values, LocalDateTime.now)
 
     val ethereumEventFilterOracle = EthereumEventFilterOracle(parser, TestCryptoService)
