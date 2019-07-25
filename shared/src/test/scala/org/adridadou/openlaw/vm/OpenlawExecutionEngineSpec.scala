@@ -1648,4 +1648,17 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         fail(ex)
     }
   }
+
+  it should "be possible to set a default value for an identity" in {
+    val template =
+      compile("""[[my identity:Identity("some@email.com")]]""".stripMargin)
+
+    engine.execute(template) match {
+      case Success(result) =>
+        result.state shouldBe ExecutionFinished
+        result.getVariableValue[Identity](VariableName("my identity")) shouldBe Success(Some(Identity(Email("some@email.com").getOrThrow())))
+      case Failure(ex, message) =>
+        fail(message, ex)
+    }
+  }
 }
