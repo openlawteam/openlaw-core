@@ -2,9 +2,6 @@ package org.adridadou.openlaw.result
 
 import cats.implicits._
 import cats.data.NonEmptyList
-import cats.data.NonEmptyList.of
-import cats.data.Validated.Valid
-import play.api.libs.json._
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.Duration
@@ -16,19 +13,6 @@ object Implicits {
   implicit class RichNonEmptyList[T](val nel: NonEmptyList[T]) extends AnyVal {
     def mkString: String = mkString(", ")
     def mkString(sep: String): String = nel.toList.mkString(sep)
-  }
-
-  implicit class RichJsResult[T](val j: JsResult[T]) extends AnyVal {
-    def toResult: Result[T] = j.toResultNel.toResult
-    def toResultNel: ResultNel[T] = j match {
-      case JsSuccess(t, _) => Valid(t)
-      case JsError(errors) =>
-        val messages = errors.flatMap { case (path, es) => es.map(e => e.message -> path.toString) }
-        messages match {
-          case Seq() => Failure().toResultNel
-          case Seq(x, xs @ _*) => Failure(of[(String, String)](x, xs : _*))
-        }
-    }
   }
 
   implicit class RichTry[T](val t: Try[T]) extends AnyVal {

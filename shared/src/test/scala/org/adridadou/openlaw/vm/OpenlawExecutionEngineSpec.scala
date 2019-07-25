@@ -527,7 +527,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
         val map = result.getVariableValue[OpenlawMap[VariableName, OpenlawValue]](VariableName("Someone")).right.value.value.underlying
         map.get(VariableName("name")).value.toString shouldBe "David"
-        map.get(VariableName("number")).map { case OpenlawBigDecimal(value) => value }.value shouldBe BigDecimal(23)
+        map.get(VariableName("number")).map { case OpenlawBigDecimal(v) => v }.value shouldBe BigDecimal(23)
       case Left(ex) =>
         fail(ex)
     }
@@ -1553,7 +1553,6 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       VariableName("Emergency Contact Age") -> OpenlawBigDecimal(BigDecimal("23"))))
     engine.execute(template, TemplateParameters("Medical Contact" -> internalFormat)) match {
       case Success(newResult) =>
-        println(parser.forReview(newResult.agreements.head))
         parser.forReview(newResult.agreements.head) shouldBe "<p class=\"no-section\"><br />        <br />Name: David Roon<br />Age: 23<br />DOB: [[Medical Contact:Contestant Emergency Contact]]<br />      </p>"
       case Failure(ex, message) =>
         ex.printStackTrace()

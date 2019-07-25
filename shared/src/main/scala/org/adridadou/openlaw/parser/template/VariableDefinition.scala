@@ -1,14 +1,13 @@
 package org.adridadou.openlaw.parser.template
 
 import cats.Eq
-import org.adridadou.openlaw.parser.template.variableTypes._
 import cats.implicits._
 import io.circe.{Decoder, Encoder, HCursor, Json, KeyDecoder, KeyEncoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
+import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.OpenlawValue
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.result.{Failure, Result, Success}
-import play.api.libs.json.{JsString, Reads, Writes}
 
 import scala.reflect.ClassTag
 
@@ -146,8 +145,6 @@ object VariableName {
   implicit val variableNameKeyEnc: KeyEncoder[VariableName] = (key: VariableName) => key.name
   implicit val variableNameKeyDec: KeyDecoder[VariableName] = (key: String) => Some(VariableName(key))
   implicit val variableNameEq:Eq[VariableName] = Eq.fromUniversalEquals
-  implicit val variableNameJsonWriter:Writes[VariableName] = Writes {name => JsString(name.name)}
-  implicit val variableNameJsonReader:Reads[VariableName] = Reads {value => value.validate[String].map(VariableName.apply)}
 
   def apply(name:String):VariableName = new VariableName(name.trim)
 }

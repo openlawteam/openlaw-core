@@ -10,7 +10,7 @@ import org.adridadou.openlaw.{OpenlawString, OpenlawValue}
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
-import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
+import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success, attempt}
 
 object SignatureRSVParameter {
   implicit val signatureRSVParameterEnc: Encoder[SignatureRSVParameter] = deriveEncoder[SignatureRSVParameter]
@@ -53,7 +53,7 @@ case object EthereumCallType extends VariableType("EthereumCall") with ActionTyp
   )
 
   override def cast(value: String, executionResult: TemplateExecutionResult): Result[EthereumSmartContractCall] =
-    handleEither(decode[EthereumSmartContractCall](value))
+    decode[EthereumSmartContractCall](value).leftMap(FailureException(_))
 
   override def internalFormat(value: OpenlawValue): Result[String] = value match {
     case call:EthereumSmartContractCall => Success(call.asJson.noSpaces)

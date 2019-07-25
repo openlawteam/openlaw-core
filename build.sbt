@@ -87,50 +87,106 @@ lazy val releaseSettings = releaseProcess := Seq[ReleaseStep](
 
 val rules = Seq(Wart.ArrayEquals, Wart.OptionPartial, Wart.EitherProjectionPartial, Wart.Enumeration, Wart.ExplicitImplicitTypes, Wart.FinalVal, Wart.JavaConversions, Wart.JavaSerializable, Wart.LeakingSealed)
 
+/*
+      *** Library Dependencies. ***
+
+      Note that we are actively trying to reduce the scope of our dependencies.
+
+      If you are considering adding a new dependency to the application, please
+      take the following steps:
+
+        A.) Evaluate the new dependency thoroughly:
+
+          1) Does the dependency solve the use case in a way that it justifies
+          using it versus writing the code ourselves? What issues does it solve
+          for us?
+
+          2) Is it actively maintained? Are issues/PRs responded to in a timely
+          fashion?
+
+          3) Have you reviewed the dependencies' source code, checking that it
+          handles things in a reasonable way? (Does it have appropriate error
+          handling? Do you feel like we can understand and modify the code if we
+          need to fork it? Would you allow this code to be merged into our code
+          base if you saw it in a PR?).
+
+          4) How is the dependency licensed? Is it compatible with our OSS
+          requirements?
+
+          5) What alternative packages or approaches did you consider?
+
+        B.) Add the dependency below. You must now add a comment inline with the
+        dependency explaining what the dependency is used for (for one example,
+        so we know if we no longer need it in future!) Try to maintain
+        rough alphabetical order overall (but grouping related deps is also
+        helpful).
+
+        C.) Include a detailed description in your PR of your findings for the
+        above. You MUST explicitly answer all of the questions above!
+
+        D.) Make sure you get code review sign-off from the appropriate parties.
+        We maintain a list of dependency reviewers at `.github/CODEOWNERS`
+        (their name, not ours), which should automatically add them to the PR
+        when this file is modified.
+      */
+
 lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
   .withoutSuffixFor(JVMPlatform)
-  .crossType(CrossType.Pure) // [Pure, Full, Dummy], default: CrossType.Full
+  .crossType(CrossType.Pure) // the project does not have separate sources for JVM and JS
   .in(file("shared"))
   .jvmSettings(
     libraryDependencies ++= Seq(
-      "io.circe"                %% "circe-iteratee"      % "0.12.0",
-      "io.iteratee"             %% "iteratee-monix"      % "0.18.0",
-      "io.monix"                %% "monix-eval"          % "3.0.0-fbcb270",
-      "io.monix"                %% "monix-execution"     % "3.0.0-fbcb270",
+      //circe is used to serialize / deserialize json
       "io.circe"                %% "circe-core"          % circeV,
       "io.circe"                %% "circe-generic"       % circeV,
       "io.circe"                %% "circe-parser"        % circeV,
-      "io.circe"                %% "circe-java8"        % circeV,
-      "com.typesafe.play"       %% "play-json"           % playJsonV,
+      "io.circe"                %% "circe-java8"         % circeV,
+      //parser / interpreter library. Used for our markup language
       "org.parboiled"           %% "parboiled"           % parboiledV,
+      //cats is used for FP constructs
       "org.typelevel"           %% "cats-core"           % catsV,
       "org.typelevel"           %% "cats-free"           % catsV,
+      // scala.js compatible library to use time types
       "io.github.cquiroz"       %% "scala-java-time"     % scalaJavaTimeV,
+      // logging library that is compatible with scala.js
       "biz.enef"                %% "slogging-slf4j"      % sLoggingV,
+      // enumeratum provides type-safe enumerations with improvements over stdlib enumerations
       "com.beachape"            %% "enumeratum"          % enumeratumV,
+      // scalatags is used for composition of XHTML documents in the document printers
       "com.lihaoyi"             %% "scalatags"           % scalaTagsV,
       //Test
       "org.scalacheck"          %% "scalacheck"          % scalaCheckV % Test,
       "org.scalatest"           %% "scalatest"           % scalaTestV  % Test,
+      //Play json is used in tests to make it easier to prepare json in the tests. It shouldn't be used in the library
+      "com.typesafe.play"       %% "play-json"           % playJsonV % Test
     )
   ).jsSettings(
     libraryDependencies ++= Seq(
-      "io.github.cquiroz"       %%% "scala-java-time"      % scalaJavaTimeV,
-      "io.github.cquiroz"       %%% "scala-java-time-tzdb" % "2.0.0-RC3_2019a",
-      "org.parboiled"           %%% "parboiled"            % parboiledV,
-      "biz.enef"                %%% "slogging"             % sLoggingV,
-      "org.typelevel"           %%% "cats-core"            % catsV,
-      "org.typelevel"           %%% "cats-free"            % catsV,
+      //circe is used to serialize / deserialize json
       "io.circe"                %%% "circe-core"           % circeV,
       "io.circe"                %%% "circe-generic"        % circeV,
       "io.circe"                %%% "circe-parser"         % circeV,
       "io.circe"                %%% "circe-java8"          % circeV,
-      "com.typesafe.play"       %%% "play-json"            % playJsonV,
+      //parser / interpreter library. Used for our markup language
+      "org.parboiled"           %%% "parboiled"            % parboiledV,
+      //cats is used for FP constructs
+      "org.typelevel"           %%% "cats-core"            % catsV,
+      "org.typelevel"           %%% "cats-free"            % catsV,
+      // scala.js compatible library to use time types
+      "io.github.cquiroz"       %%% "scala-java-time"      % scalaJavaTimeV,
+      // timezone handling is in a separate library because of its size and not everybody needs it. we do
+      "io.github.cquiroz"       %%% "scala-java-time-tzdb" % "2.0.0-RC3_2019a",
+      // logging library that is compatible with scala.js
+      "biz.enef"                %%% "slogging"             % sLoggingV,
+      // enumeratum provides type-safe enumerations with improvements over stdlib enumerations
       "com.beachape"            %%% "enumeratum"           % enumeratumV,
+      // scalatags is used for composition of XHTML documents in the document printers
       "com.lihaoyi"             %%% "scalatags"            % scalaTagsV,
       //Test
       "org.scalacheck"          %%% "scalacheck"          % scalaCheckV % Test,
-      "org.scalatest"           %%% "scalatest"           % scalaTestV  % Test
+      "org.scalatest"           %%% "scalatest"           % scalaTestV  % Test,
+      //Play json is used in tests to make it easier to prepare json in the tests. It shouldn't be used in the library
+      "com.typesafe.play"       %%% "play-json"           % playJsonV % Test
     )
   )
   .settings(parallelExecution in Test := false)

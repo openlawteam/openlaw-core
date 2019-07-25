@@ -115,7 +115,7 @@ object Email {
 
   def validate(email:String): Result[Email] = emailRegex.findFirstMatchIn(email) match {
     case Some(_) => Success(new Email(email.trim.toLowerCase()))
-    case None => Failure("invalid Email $email")
+    case None => Failure(s"invalid Email $email")
   }
 
   def apply(email:String): Result[Email] = validate(email)
