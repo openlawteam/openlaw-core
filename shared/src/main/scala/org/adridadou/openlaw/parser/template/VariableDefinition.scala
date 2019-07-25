@@ -120,8 +120,8 @@ case class VariableName(name:String) extends Expression {
 }
 
 object FormatterDefinition {
-  implicit val formatterDefinitionEnc:Encoder[FormatterDefinition] = deriveEncoder[FormatterDefinition]
-  implicit val formatterDefinitionDec:Decoder[FormatterDefinition] = deriveDecoder[FormatterDefinition]
+  implicit val formatterDefinitionEnc:Encoder[FormatterDefinition] = deriveEncoder
+  implicit val formatterDefinitionDec:Decoder[FormatterDefinition] = deriveDecoder
 }
 
 case class FormatterDefinition(name:String, parameters:Option[Parameter])
@@ -136,8 +136,8 @@ object VariableDefinition {
   def apply(name:String, varType:VariableType):VariableDefinition =
     VariableDefinition(name = VariableName(name), Some(VariableTypeDefinition(varType.name)))
 
-  implicit val variableDefinitionEnc: Encoder[VariableDefinition] = deriveEncoder[VariableDefinition]
-  implicit val variableDefinitionDec: Decoder[VariableDefinition] = deriveDecoder[VariableDefinition]
+  implicit val variableDefinitionEnc: Encoder[VariableDefinition] = deriveEncoder
+  implicit val variableDefinitionDec: Decoder[VariableDefinition] = deriveDecoder
 }
 
 object VariableName {
