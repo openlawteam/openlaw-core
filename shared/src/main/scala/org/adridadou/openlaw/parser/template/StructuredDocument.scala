@@ -263,7 +263,6 @@ trait TemplateExecutionResult {
       case None =>
         getAllVariablesFromRoot
     }
-  }
 
   private def getAllVariablesFromRoot:Seq[(TemplateExecutionResult, VariableDefinition)] =
     getVariables.map(variable => (this, variable)) ++ subExecutions.values.flatMap(_.getAllVariablesFromRoot)
@@ -321,7 +320,6 @@ trait TemplateExecutionResult {
     getVariableValues[Validation](ValidationType).toResultNel andThen { values =>
       ResultNel(values.toList.map(x => x.validate(this))).toUnit
     }
-
 
   def getExecutedVariables:Seq[VariableName] = {
     val variableNames = getAllVariableNames

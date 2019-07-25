@@ -64,7 +64,7 @@ case class IntegratedServiceDefinition(input:Structure, output:Structure) {
 }
 
 case class SignatureServiceDefinition() {
-  val definition = "[[Input:Structure(signerEmail: Text; contractContentBase64: Text; contractTitle: Text)]] [[Output:Structure(signerEmail: Text; signature: Text)]]"
+  val definition = "[[Input:Structure(signerEmail: Text; contractContentBase64: Text; contractTitle: Text)]] [[Output:Structure(signerEmail: Text; signature: Text; recordLink: Text)]]"
   val abi = IntegratedServiceDefinition(definition).getOrThrow()
   def definedInput: DefinedStructureType = DefinedStructureType(abi.input, "Input")
   def definedOutput: DefinedStructureType = DefinedStructureType(abi.output, "Output")
@@ -83,19 +83,21 @@ object SignatureInput {
   implicit val signatureInputEq:Eq[SignatureInput] = Eq.fromUniversalEquals
 }
 
-case class SignatureOutput(signerEmail: Email, signature: EthereumSignature)
+case class SignatureOutput(signerEmail: Email, signature: EthereumSignature, recordLink: String)
 object SignatureOutput {
   implicit val signatureOutputEnc:Encoder[SignatureOutput] =  Encoder.instance[SignatureOutput] { output =>
     Json.obj(
       "signerEmail" -> Json.fromString(output.signerEmail.email),
       "signature" -> Json.fromString(output.signature.toString),
+      "recordLink" -> Json.fromString(output.recordLink),
     )
   }
   implicit val signatureOutputDec:Decoder[SignatureOutput] = Decoder.instance[SignatureOutput] { c: HCursor =>
     for {
       signerEmail <- c.downField("signerEmail").as[Email]
       signature <- c.downField("signature").as[String]
-    } yield SignatureOutput(signerEmail, EthereumSignature(signature).getOrThrow())
+      recordLink <- c.downField("recordLink").as[String]
+    } yield SignatureOutput(signerEmail, EthereumSignature(signature).getOrThrow(), recordLink)
   }
   implicit val signatureOutputEq:Eq[SignatureOutput] = Eq.fromUniversalEquals
 
