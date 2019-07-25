@@ -6,14 +6,15 @@ import io.circe.syntax._
 import io.circe.generic.semiauto._
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
-import org.adridadou.openlaw.result.{Failure, Result, Success}
+import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success}
 import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawString, OpenlawValue}
+import cats.implicits._
 
 case object ExternalSignatureType extends VariableType("ExternalSignature") {
 
   case class PropertyDef(typeDef: VariableType, data: Seq[ExternalCallExecution] => Option[OpenlawValue])
   override def cast(value: String, executionResult: TemplateExecutionResult): Result[ExternalSignature] =
-    handleEither(decode[ExternalSignature](value))
+    decode[ExternalSignature](value).leftMap(FailureException(_))
 
   override def internalFormat(value: OpenlawValue): Result[String] = value match {
     case externalSignature: ExternalSignature =>
