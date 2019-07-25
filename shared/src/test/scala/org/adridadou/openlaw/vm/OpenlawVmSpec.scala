@@ -158,7 +158,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
 
     vm.allNextActions.right.value.size shouldBe 1
 
-    vm.getAllExecutedVariables(EthereumCallType).right.value.size shouldBe 1
+    vm.getAllExecutedVariables(EthereumCallType).size shouldBe 1
 
     vm.nextActionSchedule.right.value shouldBe Some(startDate)
 
@@ -166,7 +166,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     vm.allNextActions.right.value.size shouldBe 1
 
     val action = vm.allNextActions.right.value.head
-    vm.getAllExecutedVariables(EthereumCallType).right.value.size shouldBe 1
+    vm.getAllExecutedVariables(EthereumCallType).size shouldBe 1
     vm.newExecution(action.identifier.right.value, execution)
 
     vm.nextActionSchedule.right.value shouldBe Some(LocalDateTime
@@ -175,7 +175,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     )
 
     vm.allNextActions.right.value.size shouldBe 2
-    vm.getAllExecutedVariables(EthereumCallType).right.value.size shouldBe 2
+    vm.getAllExecutedVariables(EthereumCallType).size shouldBe 2
 
     vm.newExecution(action.identifier.right.value, EthereumSmartContractExecution(
       LocalDateTime.now(), LocalDateTime.now(), FailedExecution, EthereumHash.empty
@@ -393,6 +393,41 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     }
   }
 
+  it should "evaluate ethereum event filter properly" in {
+    val abi = """[{"anonymous":false,"inputs":[{"indexed":false,"name":"value","type":"string"}],"name":"MyEvent","type":"event"}]"""
+
+    val templateContent =
+      s"""[[Id:Identity]]
+                 |[[Contract Creation Event: EthereumEventFilter(
+                 |contract address: "0x1234567889";
+                 |interface: $abi;
+                 |event type name: "MyEvent";
+                 |conditional filter: this.value = "test")]]""".stripMargin
+
+    val templateId = TemplateId(TestCryptoService.sha256(templateContent))
+    val email = Email("email@email.com").getOrThrow()
+    val identity = Identity(email)
+
+    val definition = ContractDefinition(
+      creatorId = UserId("hello@world.com"),
+      mainTemplate = templateId,
+      templates = Map(),
+      parameters = TemplateParameters(
+        "identity" -> IdentityType.internalFormat(identity).getOrThrow(),
+        "param1" -> TextType.internalFormat("test value 1").getOrThrow(),
+        "param2" -> TextType.internalFormat("test value 2").getOrThrow()
+      )
+    )
+
+    val contractId = definition.id(TestCryptoService)
+    val vm = vmProvider.create(definition, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq())
+
+    vm(LoadTemplate(templateContent))
+
+    val values = vm.getAllExecutedVariables(EthereumEventFilterType)
+    println(values.map(_._2))
+  }
+
   it should "execute an external call and display the result" in {
     val templateContent =
       """<%
@@ -459,7 +494,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     val successfulExternalCallEvent = oracles.SuccessfulExternalCallEvent(identifier, requestIdentifier, LocalDateTime.now, externalResult)
     vm(successfulExternalCallEvent)
 
-    vm.getAllExecutedVariables(ExternalCallType).getOrThrow().size shouldBe 1
+    vm.getAllExecutedVariables(ExternalCallType).size shouldBe 1
 
     val execution = variableTypes.SuccessfulExternalCallExecution(LocalDateTime.now, LocalDateTime.now, externalResult, requestIdentifier)
     vm.newExecution(identifier, execution)

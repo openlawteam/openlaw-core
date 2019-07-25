@@ -307,22 +307,17 @@ case class OpenlawVm(contractDefinition: ContractDefinition, profileAddress:Opti
 
   def content(templateId: TemplateId): String = state.contents(templateId)
 
-  def getAllExecutedVariables(varType: VariableType): Result[Seq[(TemplateExecutionResult, VariableDefinition)]] =
+  def getAllExecutedVariables(varType: VariableType): Seq[(TemplateExecutionResult, VariableDefinition)] =
     state
       .executionResult
       .map(_.getAllExecutedVariables)
       .getOrElse(Seq())
-      .map { case (result, variable) => variable.aliasOrVariable(result).map(expr => (result, expr)) }
-      .map { result =>
-        result.map {
-          case (result, variable: VariableDefinition) =>
-            if (variable.varType(result) === varType) Some((result, variable)) else None
+      .flatMap { case (result, variable) => variable.aliasOrVariable(result).map(expr => (result, expr)).toOption }
+      .flatMap {
+          case (r, variable: VariableDefinition) =>
+            if (variable.varType(r) === varType) Some((r, variable)) else None
           case (_, _) => None
-        }
       }
-      .toList
-      .sequence
-      .map(_.flatten)
 
   def getAllVariables(varType: VariableType):Seq[(TemplateExecutionResult, VariableDefinition)] =
     state.executionResult.map(_.getVariables(varType)).getOrElse(Seq())

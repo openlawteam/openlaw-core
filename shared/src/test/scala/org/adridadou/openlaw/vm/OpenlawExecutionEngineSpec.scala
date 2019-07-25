@@ -15,6 +15,8 @@ import org.scalatest.OptionValues._
 import play.api.libs.json.Json
 import org.adridadou.openlaw.{OpenlawMap, _}
 
+import scala.concurrent.Await
+
 class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
   val parser = new OpenlawTemplateLanguageParserService(Clock.systemDefaultZone())
@@ -1645,6 +1647,19 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         text shouldBe "<p class=\"no-section\"><br /> <strong>Test Agreement - structure</strong></p><p class=\"no-section\"># Structure definition<br /></p><p class=\"no-section\"># Structure type var<br /></p><p class=\"no-section\"><strong>Emergency Contact</strong><br />Name: test<br />Age: [[Medical Contact:Contestant Emergency Contact]]<br />DOB: [[Medical Contact:Contestant Emergency Contact]]<br />Address: [[Medical Contact:Contestant Emergency Contact]]</p><p class=\"no-section\"><br />              </p>"
       case Left(ex) =>
         fail(ex)
+    }
+  }
+
+  it should "be possible to set a default value for an identity" in {
+    val template =
+      compile("""[[my identity:Identity("some@email.com")]]""".stripMargin)
+
+    engine.execute(template) match {
+      case Success(result) =>
+        result.state shouldBe ExecutionFinished
+        result.getVariableValue[Identity](VariableName("my identity")) shouldBe Success(Some(Identity(Email("some@email.com").getOrThrow())))
+      case Failure(ex, message) =>
+        fail(message, ex)
     }
   }
 }

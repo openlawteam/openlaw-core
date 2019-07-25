@@ -8,7 +8,7 @@ import io.circe.parser._
 import io.circe.generic.semiauto._
 import Identity._
 import cats.Eq
-import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawValue}
+import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawString, OpenlawValue}
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter, SignatureFormatter}
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
@@ -29,7 +29,14 @@ case object IdentityType extends VariableType(name = "Identity") {
   override def getTypeClass: Class[_ <: Identity] = classOf[Identity]
 
   override def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] =
-    Failure("Identity type does not support constructor")
+    constructorParams match {
+      case OneValueParameter(expr) =>
+        expr.evaluateT[OpenlawString](executionResult).flatMap(optValue => optValue
+          .map(Email(_).map(e => Some(Identity(e))))
+          .getOrElse(Success(None)))
+      case _ => super.construct(constructorParams, executionResult)
+    }
+
 
   override def missingValueFormat(name: VariableName): Seq[AgreementElement] = Seq(FreeText(Text("")))
 
