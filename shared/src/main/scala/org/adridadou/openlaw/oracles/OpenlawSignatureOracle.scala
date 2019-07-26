@@ -9,31 +9,64 @@ import cats.Eq
 import io.circe._
 import io.circe.generic.semiauto._
 import io.circe.syntax._
-import org.adridadou.openlaw.result.{Result, Success}
+import org.adridadou.openlaw.parser.template.SignatureProof
+import org.adridadou.openlaw.result.{Failure, Result, Success}
 import org.adridadou.openlaw.values.ContractId
 import org.adridadou.openlaw.vm.OpenlawVmEvent
 
-case class OpenlawSignatureOracle(crypto:CryptoService, serverAccount:EthereumAddress) {
+case class OpenlawSignatureOracle(crypto:CryptoService, serverAccount:EthereumAddress, externalSignatureAccounts:Map[ServiceName, EthereumAddress] = Map()) {
 
-  def isSignatureValid(data:EthereumData, signatureEvent: OpenlawSignatureEvent): Result[Boolean] = signatureEvent match {
-    case event:OpenlawSignatureEvent =>
+  def isSignatureValid(data:EthereumData, signatureEvent: SignatureEvent): Result[Boolean] = signatureEvent match {
+    case event:SignatureEvent =>
       val signedData = EthereumData(crypto.sha256(event.email.email))
         .merge(EthereumData(crypto.sha256(data.data)))
 
-      EthereumAddress(crypto.validateECSignature(signedData.data, event.signature.signature)).map { actualAddress =>
-        actualAddress === serverAccount
-      }
+      event.getServiceName.map(serviceName => {
+        externalSignatureAccounts.get(serviceName) match {
+          case Some(account) => Success(account)
+          case None => Failure(s"unknown service ${serviceName.serviceName}")
+        }
+      }).getOrElse(Success(serverAccount)).flatMap({ signatureServiceAccount =>
+          EthereumAddress(crypto.validateECSignature(signedData.data, event.signature.signature))
+            .map(derivedAddress => {
+              signatureServiceAccount.withLeading0x === derivedAddress.withLeading0x
+            })
+      })
 
     case _ => Success(false)
   }
 }
 
-object OpenlawSignatureEvent {
-  implicit val openlawSignatureEventEnc: Encoder[OpenlawSignatureEvent] = deriveEncoder[OpenlawSignatureEvent]
-  implicit val openlawSignatureEventDec: Decoder[OpenlawSignatureEvent] = deriveDecoder[OpenlawSignatureEvent]
+trait SignatureEvent extends OpenlawVmEvent{
+  def proof: SignatureProof
+
+  def getServiceName:Option[ServiceName]
+  def email:Email
+  def fullName:String
+  def signature:EthereumSignature
 }
 
-case class OpenlawSignatureEvent(contractId:ContractId, email:Email, fullName:String, signature: EthereumSignature, ethereumHash:EthereumHash) extends OpenlawVmEvent {
+object ExternalSignatureEvent {
+  implicit val externalSignatureEventEnc: Encoder[ExternalSignatureEvent] = deriveEncoder
+  implicit val externalSignatureEventDec: Decoder[ExternalSignatureEvent] = deriveDecoder
+}
+
+case class ExternalSignatureEvent(contractId:ContractId, email:Email, fullName:String, serviceName:ServiceName, signature: EthereumSignature) extends SignatureEvent {
+  override def getServiceName: Option[ServiceName] = Some(serviceName)
+  override def typeIdentifier: String = className[ExternalSignatureEvent]
+  override def serialize: String = this.asJson.noSpaces
+
+  override def proof: SignatureProof = ExternalSignatureProof(contractId, fullName, signature)
+}
+
+object OpenlawSignatureEvent {
+  implicit val openlawSignatureEventEnc: Encoder[OpenlawSignatureEvent] = deriveEncoder
+  implicit val openlawSignatureEventDec: Decoder[OpenlawSignatureEvent] = deriveDecoder
+}
+
+case class OpenlawSignatureEvent(contractId:ContractId, email:Email, fullName:String, signature: EthereumSignature, ethereumHash:EthereumHash) extends SignatureEvent {
+
+  override def getServiceName: Option[ServiceName] = None
 
   override def typeIdentifier: String = className[OpenlawSignatureEvent]
   override def serialize: String = this.asJson.noSpaces

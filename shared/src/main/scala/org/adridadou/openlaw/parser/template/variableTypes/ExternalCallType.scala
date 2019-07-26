@@ -7,7 +7,7 @@ import org.adridadou.openlaw.{OpenlawString, OpenlawValue}
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
-import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success, attempt}
+import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success}
 
 case object ExternalCallType extends VariableType("ExternalCall") with ActionType {
 

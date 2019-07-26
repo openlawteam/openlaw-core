@@ -7,12 +7,15 @@ import cats.implicits._
 import cats.kernel.Eq
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe._
+import org.adridadou.openlaw.oracles.CryptoService
 import org.adridadou.openlaw.{OpenlawDateTime, OpenlawNativeValue, OpenlawString, OpenlawValue, result}
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.variableTypes.LocalDateTimeHelper._
 import org.adridadou.openlaw.parser.template.variableTypes.VariableType._
 import org.adridadou.openlaw.result.{Failure, Result, Success}
+import org.adridadou.openlaw.result.Implicits._
+import org.adridadou.openlaw.values.ContractId
 import org.adridadou.openlaw.vm.OpenlawExecutionEngine
 
 object IntegratedServiceDefinition {
@@ -37,18 +40,20 @@ object IntegratedServiceDefinition {
       })
   }
 
-  implicit val integratedServiceDefinitionEnc:Encoder[IntegratedServiceDefinition] = deriveEncoder[IntegratedServiceDefinition]
-  implicit val integratedServiceDefinitionDec:Decoder[IntegratedServiceDefinition] = deriveDecoder[IntegratedServiceDefinition]
+  implicit val integratedServiceDefinitionEnc:Encoder[IntegratedServiceDefinition] = deriveEncoder
+  implicit val integratedServiceDefinitionDec:Decoder[IntegratedServiceDefinition] = deriveDecoder
   implicit val integratedServiceDefinitionEq:Eq[IntegratedServiceDefinition] = Eq.fromUniversalEquals
 }
 
 object ServiceName {
   implicit val serviceNameEnc:Encoder[ServiceName] = (sn: ServiceName) => Json.fromString(sn.serviceName)
-  implicit val serviceNameDec:Decoder[ServiceName] = (c: HCursor) =>  for { name <- c.downField("serviceName").as[String] } yield ServiceName(name)
+  implicit val serviceNameDec:Decoder[ServiceName] = (c: HCursor) =>  c.as[String].map(ServiceName(_))
   implicit val serviceNameKeyEnc:KeyEncoder[ServiceName] = (key: ServiceName) => key.serviceName
   implicit val serviceNameKeyDec:KeyDecoder[ServiceName] = (key: String) => Some(ServiceName(key))
 
   implicit val serviceNameEq:Eq[ServiceName] = Eq.fromUniversalEquals
+
+  val openlawServiceName = ServiceName("Openlaw")
 }
 
 case class ServiceName(serviceName:String)
@@ -56,6 +61,50 @@ case class ServiceName(serviceName:String)
 case class IntegratedServiceDefinition(input:Structure, output:Structure) {
   def definedInput: DefinedStructureType = DefinedStructureType(input, "Input")
   def definedOutput: DefinedStructureType = DefinedStructureType(output, "Output")
+}
+
+case class SignatureServiceDefinition() {
+  val definition = "[[Input:Structure(signerEmail: Text; contractContentBase64: Text; contractTitle: Text)]] [[Output:Structure(signerEmail: Text; signature: Text; recordLink: Text)]]"
+  val abi = IntegratedServiceDefinition(definition).getOrThrow()
+  def definedInput: DefinedStructureType = DefinedStructureType(abi.input, "Input")
+  def definedOutput: DefinedStructureType = DefinedStructureType(abi.output, "Output")
+}
+
+object SignatureServiceDefinition {
+  implicit val signatureServiceDefinitionEnc:Encoder[SignatureServiceDefinition] = deriveEncoder
+  implicit val signatureServiceDefinitionDec:Decoder[SignatureServiceDefinition] = deriveDecoder
+  implicit val signatureServiceDefinitionEq:Eq[SignatureServiceDefinition] = Eq.fromUniversalEquals
+}
+
+case class SignatureInput(signerEmail: Email, contractContentBase64: String, contractTitle: String)
+object SignatureInput {
+  implicit val signatureInputEnc:Encoder[SignatureInput] = deriveEncoder
+  implicit val signatureInputDec:Decoder[SignatureInput] = deriveDecoder
+  implicit val signatureInputEq:Eq[SignatureInput] = Eq.fromUniversalEquals
+}
+
+case class SignatureOutput(signerEmail: Email, signature: EthereumSignature, recordLink: String)
+object SignatureOutput {
+  implicit val signatureOutputEnc:Encoder[SignatureOutput] =  Encoder.instance[SignatureOutput] { output =>
+    Json.obj(
+      "signerEmail" -> Json.fromString(output.signerEmail.email),
+      "signature" -> Json.fromString(output.signature.toString),
+      "recordLink" -> Json.fromString(output.recordLink),
+    )
+  }
+  implicit val signatureOutputDec:Decoder[SignatureOutput] = Decoder.instance[SignatureOutput] { c: HCursor =>
+    for {
+      signerEmail <- c.downField("signerEmail").as[Email]
+      signature <- c.downField("signature").as[String]
+      recordLink <- c.downField("recordLink").as[String]
+    } yield SignatureOutput(signerEmail, EthereumSignature(signature).getOrThrow(), recordLink)
+  }
+  implicit val signatureOutputEq:Eq[SignatureOutput] = Eq.fromUniversalEquals
+
+  def prepareDataToSign(email: Email, contractId: ContractId, cryptoService: CryptoService): EthereumData = {
+    EthereumData(cryptoService.sha256(email.email))
+      .merge(EthereumData(cryptoService.sha256(contractId.data.data)))
+  }
 }
 
 case class ExternalCall(serviceName: Expression,

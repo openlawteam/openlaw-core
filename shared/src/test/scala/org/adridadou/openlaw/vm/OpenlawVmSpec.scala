@@ -87,6 +87,42 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     vm1.signature(identity2.email) shouldBe None
   }
 
+  it should "be possible to sign the contract with an external signature" in {
+    val template = """this is a contract [[Signatory:ExternalSignature(service:"DocuSign")]]"""
+    val Right(identity: Identity) = Email("hello@world.com").map(Identity.withEmail)
+    val templateId = TemplateId(TestCryptoService.sha256(template))
+
+    val serviceAccount = TestAccount.newRandom
+    val serviceName = ServiceName("DocuSign")
+
+    val definition = ContractDefinition(
+      creatorId = UserId.SYSTEM_ID,
+      mainTemplate = templateId,
+      templates = Map(),
+      parameters = TemplateParameters(Map(VariableName("Signatory") -> ExternalSignatureType.internalFormat(ExternalSignature(serviceName = serviceName, identity = Some(identity))).right.value))
+    )
+
+    val contractId = definition.id(TestCryptoService)
+
+    val vm = vmProvider.create(definition, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address, Map(serviceName -> serviceAccount.address)), Seq())
+
+    vm(LoadTemplate(template))
+    vm.executionState shouldBe ContractCreated
+    vm.allNextActions.map(_.map(_.action)) shouldBe Success(List(SignatureAction(identity.email, List(serviceName))))
+
+    val badSignature = EthereumSignature(signByEmail(identity.email, vm.contractId.data, serverAccount).signature)
+    val signature = EthereumSignature(signByEmail(identity.email, vm.contractId.data, serviceAccount).signature)
+    val badSignatureEvent = oracles.ExternalSignatureEvent(contractId, identity.email, "", serviceName, badSignature)
+    val signatureEvent = oracles.ExternalSignatureEvent(contractId, identity.email, "", serviceName, signature)
+
+    vm(badSignatureEvent)
+    vm.signature(identity.email) shouldBe None
+    vm(signatureEvent)
+    vm.signature(identity.email).isDefined shouldBe true
+
+    vm.executionState shouldBe ContractRunning
+  }
+
   it should "be able to update the state and reflect this in the vm" in {
 
     val template =
@@ -507,19 +543,18 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     }
   }
 
-  def sign(identity: Identity, contractId: ContractId): EthereumSignature = {
-    signByEmail(identity.email, contractId.data)
-  }
+  def sign(identity: Identity, contractId: ContractId): EthereumSignature =
+    signByEmail(identity.email, contractId.data, serverAccount)
 
   def signForStopping(identity: Identity, contractId: ContractId): EthereumSignature = {
-    signByEmail(identity.email, contractId.stopContract(TestCryptoService))
+    signByEmail(identity.email, contractId.stopContract(TestCryptoService), serverAccount)
   }
 
   def signForResuming(identity:Identity, contractId: ContractId): EthereumSignature = {
-    signByEmail(identity.email, contractId.resumeContract(TestCryptoService))
+    signByEmail(identity.email, contractId.resumeContract(TestCryptoService), serverAccount)
   }
 
-  private def signByEmail(email:Email, data:EthereumData):EthereumSignature =
-    EthereumSignature(serverAccount.sign(EthereumData(TestCryptoService.sha256(email.email))
+  private def signByEmail(email:Email, data:EthereumData, account:TestAccount):EthereumSignature =
+    EthereumSignature(account.sign(EthereumData(TestCryptoService.sha256(email.email))
       .merge(EthereumData(TestCryptoService.sha256(data.data)))).signature)
 }

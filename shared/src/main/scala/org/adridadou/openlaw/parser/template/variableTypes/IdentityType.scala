@@ -16,6 +16,8 @@ import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 case object IdentityType extends VariableType(name = "Identity") {
 
+  val identityTypes: Seq[VariableType] = Seq(IdentityType, ExternalSignatureType)
+
   override def cast(value: String, executionResult: TemplateExecutionResult): Result[Identity] =
     decode[Identity](value) match {
       case Right(identity) => Success(identity)
@@ -83,8 +85,8 @@ case class Identity(email:Email) extends OpenlawNativeValue {
 case object Identity {
   def withEmail(email: Email): Identity = Identity(email = email)
 
-  implicit val identityEnc: Encoder[Identity] = deriveEncoder[Identity]
-  implicit val identityDec: Decoder[Identity] = deriveDecoder[Identity]
+  implicit val identityEnc: Encoder[Identity] = deriveEncoder
+  implicit val identityDec: Decoder[Identity] = deriveDecoder
 }
 
 case class Email(email:String) {
@@ -121,14 +123,17 @@ object Email {
   def apply(email:String): Result[Email] = validate(email)
 }
 
-case class SignatureAction(email:Email) extends ActionValue {
-  override def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions: Seq[OpenlawExecution]): Result[Option[LocalDateTime]] = {
+object SignatureAction {
+  implicit val signatureActionEq:Eq[SignatureAction] = Eq.fromUniversalEquals
+}
+
+case class SignatureAction(email:Email, services:List[ServiceName] = List(ServiceName.openlawServiceName)) extends ActionValue {
+  override def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions: Seq[OpenlawExecution]): Result[Option[LocalDateTime]] =
     if(executionResult.hasSigned(email)) {
       Success(None)
     } else {
       Success(Some(LocalDateTime.now))
     }
-  }
 
   override def identifier(executionResult: TemplateExecutionResult): Result[ActionIdentifier] = Success(ActionIdentifier(email.email))
 }

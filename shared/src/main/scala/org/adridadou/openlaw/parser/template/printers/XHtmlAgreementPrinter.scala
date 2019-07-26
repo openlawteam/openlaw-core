@@ -7,7 +7,6 @@ import cats.implicits._
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes.IdentityType
-import org.adridadou.openlaw.result.{Result, Success}
 import scalatags.Text.all._
 import slogging._
 
@@ -67,11 +66,11 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
   def printFragments(elements: Seq[AgreementElement]): Seq[Frag] =
     tailRecurse(elements, 0, false)
 
-  private final def recurse(elements: Seq[AgreementElement], conditionalBlockDepth: Int, inSection: Boolean, continue: (Seq[Frag]) => Seq[Frag] = identity): Seq[Frag] = {
+  private final def recurse(elements: Seq[AgreementElement], conditionalBlockDepth: Int, inSection: Boolean, continue: Seq[Frag] => Seq[Frag] = identity): Seq[Frag] = {
     tailRecurse(elements, conditionalBlockDepth, inSection, continue)
   }
 
-  @tailrec private final def tailRecurse(elements: Seq[AgreementElement], conditionalBlockDepth: Int, inSection: Boolean, continue: (Seq[Frag]) => Seq[Frag] = identity): Seq[Frag] = {
+  @tailrec private final def tailRecurse(elements: Seq[AgreementElement], conditionalBlockDepth: Int, inSection: Boolean, continue: Seq[Frag] => Seq[Frag] = identity): Seq[Frag] = {
 
     elements match {
       case Seq() =>
@@ -170,7 +169,7 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
 
         case VariableElement(name, variableType, content, dependencies) =>
           // Do not highlight identity variables
-          val highlightType = variableType.forall(_ =!= IdentityType)
+          val highlightType = variableType.forall(v => !IdentityType.identityTypes.contains(v))
 
           // Only add styling to highlight variable if there are no hidden variables that are dependencies for this one
           val frags = if (highlightType && preview && dependencies.forall(variable => !hiddenVariables.contains(variable))) {

@@ -357,6 +357,7 @@ object VariableType {
     EthereumCallType,
     EthereumEventFilterType,
     ExternalCallType,
+    ExternalSignatureType,
     IdentityType,
     LargeTextType,
     ImageType,
@@ -409,7 +410,7 @@ object VariableType {
       Failure(msg)
   }
 
-  def sequence[L,R](seq:Seq[Either[L,R]]):Either[L, Seq[R]] = seq.partition(_.isLeft) match {
+  def sequence[L,R](seq:Seq[Result[R]]):Result[Seq[R]] = seq.partition(_.isLeft) match {
     case (Nil,  values) => Right(for(Right(i) <- values.view) yield i)
     case (errs, _) => errs.headOption match {
       case Some(Left(err)) => Left(err)

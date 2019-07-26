@@ -8,7 +8,6 @@ import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.values.{ContractId, TemplateParameters}
 import cats.implicits._
 import org.adridadou.openlaw._
-import org.adridadou.openlaw.oracles.OpenlawSignatureProof
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.printers.SectionHelper
 
@@ -35,7 +34,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
   def execute(mainTemplate:CompiledTemplate, parameters:TemplateParameters, templates:Map[TemplateSourceIdentifier, CompiledTemplate], externalCallStructures:Map[ServiceName, IntegratedServiceDefinition] = Map()):Result[OpenlawExecutionState] =
     execute(mainTemplate, parameters, templates, Map(), Map(), externalCallStructures, None, None)
 
-  def execute(mainTemplate:CompiledTemplate, parameters:TemplateParameters, templates:Map[TemplateSourceIdentifier, CompiledTemplate], signatureProofs:Map[Email, OpenlawSignatureProof], executions:Map[ActionIdentifier, Executions], externalCallStructures:Map[ServiceName, IntegratedServiceDefinition], id:Option[ContractId], profileAddress:Option[EthereumAddress]):Result[OpenlawExecutionState] = {
+  def execute(mainTemplate:CompiledTemplate, parameters:TemplateParameters, templates:Map[TemplateSourceIdentifier, CompiledTemplate], signatureProofs:Map[Email, SignatureProof], executions:Map[ActionIdentifier, Executions], externalCallStructures:Map[ServiceName, IntegratedServiceDefinition], id:Option[ContractId], profileAddress:Option[EthereumAddress]):Result[OpenlawExecutionState] = {
     val executionResult = OpenlawExecutionState(
       parameters = parameters,
       id = TemplateExecutionResultId(s"@@anonymous_main_template_id@@"),

@@ -9,13 +9,25 @@ import io.circe.parser._
 import org.adridadou.openlaw.values.ContractId
 
 object OpenlawSignatureProof {
-  implicit val openlawSignatureProofEnc:Encoder[OpenlawSignatureProof] = deriveEncoder[OpenlawSignatureProof]
-  implicit val openlawSignatureProofDec:Decoder[OpenlawSignatureProof] = deriveDecoder[OpenlawSignatureProof]
+  implicit val openlawSignatureProofEnc:Encoder[OpenlawSignatureProof] = deriveEncoder
+  implicit val openlawSignatureProofDec:Decoder[OpenlawSignatureProof] = deriveDecoder
   def deserialize(json:String):Either[Error, OpenlawSignatureProof] = decode[OpenlawSignatureProof](json)
 }
 
+object ExternalSignatureProof {
+  implicit val openlawSignatureProofEnc:Encoder[ExternalSignatureProof] = deriveEncoder
+  implicit val openlawSignatureProofDec:Decoder[ExternalSignatureProof] = deriveDecoder
+  def deserialize(json:String):Either[Error, ExternalSignatureProof] = decode[ExternalSignatureProof](json)
+}
+
 case class OpenlawSignatureProof(contractId:ContractId, fullName:String, signature:EthereumSignature, txHash:EthereumHash) extends SignatureProof {
-  override def serialize: String = this.asJson.noSpaces
+  override def serialize: Json = this.asJson
+
+  override def validationLink: Link = Link("verify signature",s"/signature/validate?contractId=${contractId.id}&signature=${signature.toString}")
+}
+
+case class ExternalSignatureProof(contractId:ContractId, fullName:String, signature:EthereumSignature) extends SignatureProof {
+  override def serialize: Json = this.asJson
 
   override def validationLink: Link = Link("verify signature",s"/signature/validate?contractId=${contractId.id}&signature=${signature.toString}")
 }
