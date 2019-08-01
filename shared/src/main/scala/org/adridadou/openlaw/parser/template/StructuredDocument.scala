@@ -563,6 +563,22 @@ case class OpenlawExecutionState(
       .sequence
     }
 
+    val invalidExternalServiceNames = {
+      variables.map { case (result, variable) =>
+        variable.varType(result) match {
+          case ExternalSignatureType =>
+            result.getVariableValue[ExternalSignature](variable.name).map {
+              case Some(value) => value.serviceName.serviceName.isEmpty || externalCallStructures.exists({case (s,_) => s.serviceName.equalsIgnoreCase(value.serviceName.serviceName)})
+              case None =>
+
+            }
+
+          case ExternalCallType =>
+            Success(resultFromMissingInput(variable.missingInput(result)))
+        }
+      }
+    }
+
     missingIdentitiesResult.map { missingIdentitiesValue =>
 
       val identitiesErrors = missingIdentitiesValue.flatMap({
@@ -578,8 +594,8 @@ case class OpenlawExecutionState(
       val validationErrors = validate.leftMap(nel => nel.map(_.message).toList).swap.getOrElse(Nil)
 
       ValidationResult(
-        identities = identities,
-        missingInputs = missingInputs,
+        identities = identities.toList,
+        missingInputs = missingInputs.toList,
         missingIdentities = missingIdentities,
         validationExpressionErrors = validationErrors ++ additionalErrors ++ identitiesErrors
       )

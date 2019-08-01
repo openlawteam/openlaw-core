@@ -1610,4 +1610,39 @@ here""".stripMargin
         fail(ex)
     }
   }
+
+  it should "provide the missingInput fields for identity type" in {
+    val text =
+      """
+        |[[Signatory: Identity]]
+      """.stripMargin
+
+    executeTemplate(text) match {
+      case Right(executionResult) =>
+        executionResult.allMissingInput shouldBe Success(Seq(VariableName("Signatory")))
+      case Left(ex) =>
+        fail(ex)
+    }
+  }
+
+  it should "provide the missingInput fields for external signature type" in {
+    val text =
+      """
+        |[[Signatory: ExternalSignature(serviceName:"Test")]]
+        |Test simple template
+      """.stripMargin
+
+    executeTemplate(text) match {
+      case Right(executionResult) =>
+        val Success(validationResult) = executionResult.validateExecution
+        println("identities: " + validationResult.identities)
+        println("missingIdentities: " + validationResult.missingIdentities.toString())
+        println("missingInputs: " + validationResult.missingInputs.toList.map(v => v.name).toString)
+        println("validationExpressionErrors: " + validationResult.validationExpressionErrors.toString)
+        executionResult.allMissingInput shouldBe Success(Seq(VariableName("Signatory")))
+      case Left(ex) =>
+        fail(ex)
+    }
+  }
+
 }
