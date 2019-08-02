@@ -1611,7 +1611,7 @@ here""".stripMargin
     }
   }
 
-  it should "provide the missingInput fields for identity type" in {
+  it should "provide the missing input fields for identity type" in {
     val text =
       """
         |[[Signatory: Identity]]
@@ -1619,27 +1619,27 @@ here""".stripMargin
 
     executeTemplate(text) match {
       case Right(executionResult) =>
-        executionResult.allMissingInput shouldBe Success(Seq(VariableName("Signatory")))
+        val Success(validationResult) = executionResult.validateExecution
+        validationResult.missingIdentities shouldBe Seq(VariableName("Signatory"))
+        validationResult.missingInputs shouldBe Seq(VariableName("Signatory"))
       case Left(ex) =>
         fail(ex)
     }
   }
 
-  it should "provide the missingInput fields for external signature type" in {
+  it should "provide the missing input fields for external signature type" in {
     val text =
       """
-        |[[Signatory: ExternalSignature(serviceName:"Test")]]
+        |[[Signatory: ExternalSignature(serviceName:"")]]
         |Test simple template
       """.stripMargin
 
     executeTemplate(text) match {
       case Right(executionResult) =>
         val Success(validationResult) = executionResult.validateExecution
-        println("identities: " + validationResult.identities)
-        println("missingIdentities: " + validationResult.missingIdentities.toString())
-        println("missingInputs: " + validationResult.missingInputs.toList.map(v => v.name).toString)
-        println("validationExpressionErrors: " + validationResult.validationExpressionErrors.toString)
-        executionResult.allMissingInput shouldBe Success(Seq(VariableName("Signatory")))
+        validationResult.missingIdentities shouldBe Seq(VariableName("Signatory"))
+        validationResult.missingInputs shouldBe Seq(VariableName("Signatory"), VariableName("Signatory.serviceName"))
+//        executionResult.allMissingInput???
       case Left(ex) =>
         fail(ex)
     }

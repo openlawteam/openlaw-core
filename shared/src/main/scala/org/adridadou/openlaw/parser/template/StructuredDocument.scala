@@ -12,7 +12,7 @@ import io.circe.generic.semiauto._
 import io.circe.syntax._
 import org.adridadou.openlaw.values.{ContractId, TemplateParameters, TemplateTitle}
 import org.adridadou.openlaw.parser.template.expressions.Expression
-import org.adridadou.openlaw.parser.template.variableTypes._
+import org.adridadou.openlaw.parser.template.variableTypes.{ExternalCallType, _}
 import org.adridadou.openlaw.{OpenlawMap, OpenlawValue}
 import org.adridadou.openlaw.oracles.{ExternalSignatureProof, OpenlawSignatureProof}
 import org.adridadou.openlaw.result.{Failure, Result, ResultNel, Success}
@@ -507,6 +507,10 @@ case class OpenlawExecutionState(
   def executionLevel:Int = executionLevel(parentExecution, 0)
 
   def validateExecution: Result[ValidationResult] = {
+
+    def isValid(serviceName: String): Boolean =
+      externalCallStructures.exists({case (s,_) => s.serviceName.equalsIgnoreCase(serviceName)})
+
     val variables = getAllExecutedVariables
       .flatMap({case (result, name) => result.getVariable(name).map(variable => (result, variable))})
       .filter({case (result, variable) => variable.varType(result) match {
@@ -531,7 +535,6 @@ case class OpenlawExecutionState(
             Success(resultFromMissingInput(variable.missingInput(result)))
           case ExternalSignatureType =>
             Success(resultFromMissingInput(variable.missingInput(result)))
-
           case collectionType: CollectionType if IdentityType.identityTypes.contains(collectionType.typeParameter) =>
             result.getVariableValue[CollectionValue](variable.name).map {
               case Some(value) if value.size =!= value.values.size =>
@@ -563,21 +566,23 @@ case class OpenlawExecutionState(
       .sequence
     }
 
-    val invalidExternalServiceNames = {
-      variables.map { case (result, variable) =>
-        variable.varType(result) match {
-          case ExternalSignatureType =>
-            result.getVariableValue[ExternalSignature](variable.name).map {
-              case Some(value) => value.serviceName.serviceName.isEmpty || externalCallStructures.exists({case (s,_) => s.serviceName.equalsIgnoreCase(value.serviceName.serviceName)})
-              case None =>
-
-            }
-
-          case ExternalCallType =>
-            Success(resultFromMissingInput(variable.missingInput(result)))
-        }
+    val missingServiceNameInputs: Seq[VariableName] = variables.map { case (execResult, varDef) =>
+      varDef.varType(execResult) match {
+        case ExternalSignatureType =>
+          execResult.getVariableValue[ExternalSignature](varDef.name).map {
+            case Some(value) if isValid(value.serviceName.serviceName) => ""
+            case Some(_) => s"${varDef.name}.serviceName"
+            case None => s"${varDef.name}.serviceName"
+          }.getOrElse(s"${varDef.name}.serviceName")
+        case ExternalCallType =>
+          execResult.getVariableValue[ExternalCall](varDef.name).map {
+            case Some(value) if isValid(value.getServiceName(execResult).getOrElse("")) => ""
+            case Some(_) => s"${varDef.name}.serviceName"
+            case None => s"${varDef.name}.serviceName"
+          }.getOrElse(s"${varDef.name}.serviceName")
+        case _ => ""
       }
-    }
+    }.filter(_.nonEmpty).map(VariableName(_))
 
     missingIdentitiesResult.map { missingIdentitiesValue =>
 
@@ -595,7 +600,7 @@ case class OpenlawExecutionState(
 
       ValidationResult(
         identities = identities.toList,
-        missingInputs = missingInputs.toList,
+        missingInputs = (missingInputs ++ missingServiceNameInputs).toList,
         missingIdentities = missingIdentities,
         validationExpressionErrors = validationErrors ++ additionalErrors ++ identitiesErrors
       )
