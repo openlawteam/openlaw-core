@@ -20,10 +20,8 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => R
 
   def cast(value: String, executionResult:TemplateExecutionResult): Result[OpenlawDateTime] = DateConverter.cast(value, executionResult.clock)
 
-  def internalFormat(value: OpenlawValue): Result[String] = {
-    val offset = OffsetDateTime.now().getOffset
-    VariableType.convert[OpenlawDateTime](value).map(x => (x.toEpochSecond(offset) * 1000).toString)
-  }
+  def internalFormat(value: OpenlawValue): Result[String] =
+    VariableType.convert[OpenlawDateTime](value).map(x => (x.toEpochSecond(ZoneOffset.UTC) * 1000).toString)
 
   override def construct(constructorParams:Parameter, executionResult:TemplateExecutionResult): Result[Option[OpenlawDateTime]] = constructorParams match {
     case OneValueParameter(expr) =>
