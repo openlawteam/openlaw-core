@@ -1640,7 +1640,69 @@ here""".stripMargin
         val Success(validationResult) = executionResult.validateExecution
         validationResult.missingIdentities shouldBe Seq(VariableName("Signatory"))
         validationResult.missingInputs shouldBe Seq(VariableName("Signatory"), VariableName("Signatory.serviceName"))
-        executionResult.allMissingInput shouldBe Right(Seq(VariableName("Signatory")))
+        executionResult.allMissingInput shouldBe Right(Seq(VariableName("Signatory"), VariableName("Signatory.serviceName")))
+      case Left(ex) =>
+        fail(ex)
+    }
+  }
+
+  it should "provide the missing input fields for external call type" in {
+    val inputStructureText =
+      """
+        |[[FakeServiceInput:Structure(
+        |param1: Text;
+        |param2: Text)]]
+        |[[input:FakeServiceInput]]
+      """.stripMargin
+
+    val inputStructureType = executeTemplate(inputStructureText) match {
+      case Right(executionResult) =>
+        executionResult.findVariableType(VariableTypeDefinition("FakeServiceInput")) match {
+          case Some(structureType: DefinedStructureType) => structureType.structure
+          case Some(variableType) => fail(s"invalid variable type ${variableType.thisType}")
+          case None => fail("structure type is not the right type")
+        }
+      case Left(ex) =>
+        fail(ex)
+    }
+
+    val outputStructureText =
+      """
+        |[[FakeServiceOutput:Structure(
+        |result: Text)]]
+        |[[output:FakeServiceOutput]]
+      """.stripMargin
+
+    val outputStructureType = executeTemplate(outputStructureText) match {
+      case Right(executionResult) =>
+        executionResult.findVariableType(VariableTypeDefinition("FakeServiceOutput")) match {
+          case Some(structureType:DefinedStructureType) => structureType.structure
+          case Some(variableType) => fail(s"invalid variable type ${variableType.thisType}")
+          case None => fail("structure type is not the right type")
+        }
+      case Left(ex) =>
+        fail(ex)
+    }
+
+    val template =
+      """
+        |[[CustomCall:ExternalCall(
+        |serviceName: "";
+        |parameters:
+        | param1 -> '1',
+        | param2 -> '2';
+        |startDate: '2018-12-12 00:00:00')]]
+        |[[CustomCall]]
+        |Test Template
+      """.stripMargin
+
+    val externalCallStructures = Map(ServiceName("FakeServiceInput") -> IntegratedServiceDefinition(inputStructureType, outputStructureType))
+    executeTemplate(template, Map("param1" -> "5", "param2" -> "5"), Map(), externalCallStructures) match {
+      case Right(executionResult) =>
+        val Success(validationResult) = executionResult.validateExecution
+        validationResult.missingIdentities shouldBe Seq()
+        validationResult.missingInputs shouldBe Seq(VariableName("CustomCall.serviceName"))
+        executionResult.allMissingInput shouldBe Right(Seq(VariableName("CustomCall.serviceName")))
       case Left(ex) =>
         fail(ex)
     }

@@ -508,9 +508,6 @@ case class OpenlawExecutionState(
 
   def validateExecution: Result[ValidationResult] = {
 
-    def isValid(serviceName: String): Boolean =
-      externalCallStructures.exists({case (s,_) => s.serviceName.equalsIgnoreCase(serviceName)})
-
     val variables = getAllExecutedVariables
       .flatMap({case (result, name) => result.getVariable(name).map(variable => (result, variable))})
       .filter({case (result, variable) => variable.varType(result) match {
@@ -566,24 +563,6 @@ case class OpenlawExecutionState(
       .sequence
     }
 
-    val missingServiceNameInputs: Seq[VariableName] = variables.map { case (execResult, varDef) =>
-      varDef.varType(execResult) match {
-        case ExternalSignatureType =>
-          execResult.getVariableValue[ExternalSignature](varDef.name).map {
-            case Some(value) if isValid(value.serviceName.serviceName) => ""
-            case Some(_) => s"${varDef.name}.serviceName"
-            case None => s"${varDef.name}.serviceName"
-          }.getOrElse(s"${varDef.name}.serviceName")
-        case ExternalCallType =>
-          execResult.getVariableValue[ExternalCall](varDef.name).map {
-            case Some(value) if isValid(value.getServiceName(execResult).getOrElse("")) => ""
-            case Some(_) => s"${varDef.name}.serviceName"
-            case None => s"${varDef.name}.serviceName"
-          }.getOrElse(s"${varDef.name}.serviceName")
-        case _ => ""
-      }
-    }.filter(_.nonEmpty).map(VariableName(_))
-
     missingIdentitiesResult.map { missingIdentitiesValue =>
 
       val identitiesErrors = missingIdentitiesValue.flatMap({
@@ -600,7 +579,7 @@ case class OpenlawExecutionState(
 
       ValidationResult(
         identities = identities.toList,
-        missingInputs = (missingInputs ++ missingServiceNameInputs).toList,
+        missingInputs = missingInputs.toList,
         missingIdentities = missingIdentities,
         validationExpressionErrors = validationErrors ++ additionalErrors ++ identitiesErrors
       )
@@ -639,6 +618,32 @@ case class OpenlawExecutionState(
 
   private def getSubExecutions:Seq[OpenlawExecutionState] = subExecutionsInternal.values.toSeq
 
+  private def missingServiceNames(): Seq[VariableName] = {
+
+    def isValid(serviceName: String): Boolean =
+      externalCallStructures.exists({case (s,_) => s.serviceName.equalsIgnoreCase(serviceName)})
+
+    getAllExecutedVariables
+      .flatMap({ case (result, name) => result.getVariable(name).map(variable => (result, variable)) })
+      .map { case (execResult, varDef) =>
+        varDef.varType(execResult) match {
+          case ExternalSignatureType =>
+            execResult.getVariableValue[ExternalSignature](varDef.name).map {
+              case Some(value) if isValid(value.serviceName.serviceName) => ""
+              case Some(_) => s"${varDef.name}.serviceName"
+              case None => s"${varDef.name}.serviceName"
+            }.getOrElse(s"${varDef.name}.serviceName")
+          case ExternalCallType =>
+            execResult.getVariableValue[ExternalCall](varDef.name).map {
+              case Some(value) if isValid(value.getServiceName(execResult).getOrElse("")) => ""
+              case Some(_) => s"${varDef.name}.serviceName"
+              case None => s"${varDef.name}.serviceName"
+            }.getOrElse(s"${varDef.name}.serviceName")
+          case _ => ""
+        }
+      }.filter(_.nonEmpty).map(VariableName(_)).distinct
+  }
+
   private def resultFromMissingInput(seq:Result[Seq[VariableName]]): (Seq[VariableName], Seq[String]) = seq match {
     case Right(inputs) => (inputs, Seq())
     case Left(ex) => (Seq(), Seq(ex.message))
@@ -648,12 +653,14 @@ case class OpenlawExecutionState(
     parent.map(p => executionLevel(p.parentExecution, acc + 1)).getOrElse(acc)
 
   def allMissingInput: Result[Seq[VariableName]] = {
-    val missingInputs = getAllExecutedVariables.filter({
+    val variables = getAllExecutedVariables.filter({
       case (_, _:NoShowInForm) => false
       case _ => true
-    }).map({case (result, variable) => variable.missingInput(result)})
-
-    VariableType.sequence(missingInputs).map(_.flatten.distinct)
+    })
+    val missingInputs = variables.map({case (result, variable) => variable.missingInput(result)})
+    VariableType.sequence(missingInputs)
+      .map(_.flatten.distinct)
+      .map(seq => seq ++ missingServiceNames())
   }
 
   def registerNewType(variableType: VariableType): Result[OpenlawExecutionState] = {
