@@ -575,13 +575,15 @@ case class OpenlawExecutionState(
 
       val (missingInputs, additionalErrors) = resultFromMissingInput(allMissingInput)
 
+      val serviceNamesErrors = missingServiceNames().map(varName => s"Invalid or missing property <$varName>")
+
       val validationErrors = validate.leftMap(nel => nel.map(_.message).toList).swap.getOrElse(Nil)
 
       ValidationResult(
         identities = identities.toList,
         missingInputs = missingInputs.toList,
         missingIdentities = missingIdentities,
-        validationExpressionErrors = validationErrors ++ additionalErrors ++ identitiesErrors
+        validationExpressionErrors = validationErrors ++ additionalErrors ++ identitiesErrors ++ serviceNamesErrors
       )
     }
   }
@@ -641,7 +643,7 @@ case class OpenlawExecutionState(
             }.getOrElse(s"${varDef.name}.serviceName")
           case _ => ""
         }
-      }.filter(_.nonEmpty).map(VariableName(_)).distinct
+      }.filter(_.nonEmpty).map(VariableName(_))
   }
 
   private def resultFromMissingInput(seq:Result[Seq[VariableName]]): (Seq[VariableName], Seq[String]) = seq match {

@@ -1640,6 +1640,7 @@ here""".stripMargin
         val Success(validationResult) = executionResult.validateExecution
         validationResult.missingIdentities shouldBe Seq(VariableName("Signatory"))
         validationResult.missingInputs shouldBe Seq(VariableName("Signatory"), VariableName("Signatory.serviceName"))
+        validationResult.validationExpressionErrors shouldBe Seq("Invalid or missing property <Signatory.serviceName>")
         executionResult.allMissingInput shouldBe Right(Seq(VariableName("Signatory"), VariableName("Signatory.serviceName")))
       case Left(ex) =>
         fail(ex)
@@ -1702,6 +1703,7 @@ here""".stripMargin
         val Success(validationResult) = executionResult.validateExecution
         validationResult.missingIdentities shouldBe Seq()
         validationResult.missingInputs shouldBe Seq(VariableName("CustomCall.serviceName"))
+        validationResult.validationExpressionErrors shouldBe Seq("Invalid or missing property <CustomCall.serviceName>")
         executionResult.allMissingInput shouldBe Right(Seq(VariableName("CustomCall.serviceName")))
       case Left(ex) =>
         fail(ex)
