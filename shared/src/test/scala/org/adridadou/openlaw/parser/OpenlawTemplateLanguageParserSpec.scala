@@ -1622,6 +1622,7 @@ here""".stripMargin
         val Success(validationResult) = executionResult.validateExecution
         validationResult.missingIdentities shouldBe Seq(VariableName("Signatory"))
         validationResult.missingInputs shouldBe Seq(VariableName("Signatory"))
+        executionResult.allMissingInput shouldBe Right(Seq(VariableName("Signatory")))
       case Left(ex) =>
         fail(ex)
     }
@@ -1639,7 +1640,7 @@ here""".stripMargin
         val Success(validationResult) = executionResult.validateExecution
         validationResult.missingIdentities shouldBe Seq(VariableName("Signatory"))
         validationResult.missingInputs shouldBe Seq(VariableName("Signatory"), VariableName("Signatory.serviceName"))
-//        executionResult.allMissingInput???
+        executionResult.allMissingInput shouldBe Right(Seq(VariableName("Signatory")))
       case Left(ex) =>
         fail(ex)
     }
