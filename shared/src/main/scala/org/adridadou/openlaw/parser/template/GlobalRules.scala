@@ -22,6 +22,7 @@ trait GlobalRules extends Parser {
   val openCloseAnnotationNote = "\"\"\""
 
   val sectionChar = "^"
+  val sectionBreak = "\b"
 
   val variableSectionChar= "=="
 
@@ -46,13 +47,13 @@ trait GlobalRules extends Parser {
 
   def loosenChar: Rule0 = rule { !(pipe | centered | rightThreeQuarters | right | pagebreak | indent | em | under | openCloseAnnotationHeader | openCloseAnnotationNote) ~  ANY }
 
-  def normalChar: Rule0 = rule { !( pipe | centered | rightThreeQuarters | right | pagebreak | indent | em | under | openS | closeS | openB | closeB | openC | closeC | openA | closeA | sectionChar | variableSectionChar | openCloseAnnotationHeader | openCloseAnnotationNote) ~  ANY }
+  def normalChar: Rule0 = rule { !( pipe | centered | rightThreeQuarters | right | pagebreak | indent | em | under | openS | closeS | openB | closeB | openC | closeC | openA | closeA | sectionChar | sectionBreak | variableSectionChar | openCloseAnnotationHeader | openCloseAnnotationNote) ~  ANY }
 
-  def normalCharNoReturn: Rule0 = rule { !( nl | pipe | centered | rightThreeQuarters | right | pagebreak | indent | em | under | openS | closeS | openB | closeB | openC | closeC | openA | closeA | sectionChar | variableSectionChar | openCloseAnnotationHeader | openCloseAnnotationNote) ~  ANY }
+  def normalCharNoReturn: Rule0 = rule { !( nl | pipe | centered | rightThreeQuarters | right | pagebreak | indent | em | under | openS | closeS | openB | closeB | openC | closeC | openA | closeA | sectionChar | sectionBreak | variableSectionChar | openCloseAnnotationHeader | openCloseAnnotationNote) ~  ANY }
 
   def commentsChar: Rule0 = rule {zeroOrMore(noneOf(nl))}
 
-  def normalCharNoColons: Rule0 = rule { !(colons | pipe | centered | rightThreeQuarters | right | pagebreak | indent | em | under | openS | closeS | openB | closeB | openC | closeC | openA | closeA | sectionChar | variableSectionChar | openCloseAnnotationHeader | openCloseAnnotationNote) ~  ANY }
+  def normalCharNoColons: Rule0 = rule { !(colons | pipe | centered | rightThreeQuarters | right | pagebreak | indent | em | under | openS | closeS | openB | closeB | openC | closeC | openA | closeA | sectionChar | sectionBreak | variableSectionChar | openCloseAnnotationHeader | openCloseAnnotationNote) ~  ANY }
 
   def characters: Rule0 = rule { oneOrMore(normalChar)  } // word
 
@@ -67,7 +68,7 @@ trait GlobalRules extends Parser {
   def keyChar: Rule0 = rule { !forbiddenChar ~ ANY }
 
   def forbiddenChar: Rule0 =  rule {
-    centered | rightThreeQuarters | right | pagebreak | indent | em | under | openS | closeS | openB | closeB | openC | closeC | sectionChar | ":" | "|" | "&" | "@" | "#" | quote | "\n" | "," | "." | "->" | ">" | "<" | "=" | ")" | "(" | "+" | "-" | "*" | "/" | ";" | "!" | "{" | "}" | "[" | "]"
+    centered | rightThreeQuarters | right | pagebreak | indent | em | under | openS | closeS | openB | closeB | openC | closeC | sectionChar | sectionBreak | ":" | "|" | "&" | "@" | "#" | quote | "\n" | "," | "." | "->" | ">" | "<" | "=" | ")" | "(" | "+" | "-" | "*" | "/" | ";" | "!" | "{" | "}" | "[" | "]"
   }
 
   def charsKeyAST: Rule1[String] = rule { ws ~ capture(firstKeyChar ~ zeroOrMore(keyChar)) }

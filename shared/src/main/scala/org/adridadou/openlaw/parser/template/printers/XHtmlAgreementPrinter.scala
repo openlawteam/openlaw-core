@@ -15,7 +15,7 @@ import scala.annotation.tailrec
 object XHtmlAgreementPrinter {
 
   /** Implicit value class to enrich the Seq[Frag] with a function to print
-    * it's content as an XHTML string.
+    * its content as an XHTML string.
     */
   implicit class FragsPrinter(val frags: Seq[Frag]) extends AnyVal {
     def print: String = frags
@@ -118,7 +118,6 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
 
           // Setup classes to be added to this paragraph element
           val classes = Seq() ++ (if (!inSection) Seq("no-section") else Nil) ++ align
-
           val paragraph = if (classes.isEmpty) {
             recurse(remaining, conditionalBlockDepth, inSection, { elems => Seq(p(elems)) })
           } else {
@@ -158,7 +157,6 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
 
           // Partition the elements into sections at this level
           val sections = partitionSections(level, section +: content)
-
           val frag = ul(`class` := s"list-lvl-$level")(
             sections.map { section =>
               recurse(section._2, conditionalBlockDepth, true, { elems => Seq(li(elems)) })
