@@ -285,6 +285,32 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
     }
   }
 
+  it should "support collections for smart contract call arguments" in {
+    val text = """
+                 |[[Var1:Collection<Text>]]
+                 |[[My Contract Call:EthereumCall(
+                 |contract:"0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAe";
+                 |interface:'ipfs:5ihruiherg34893zf';
+                 |startDate: '2018-12-12 00:00:00';
+                 |function:'callFunction';
+                 |arguments:Var1;
+                 |repeatEvery:'1 minute 12 seconds')]]
+    """.stripMargin
+
+    executeTemplate(text) match {
+      case Right(executionResult) =>
+        executionResult.getVariables(EthereumCallType).size shouldBe 1
+        val allActions = executionResult.allActions.right.value
+        allActions.size shouldBe 1
+
+        val call = executionResult.getVariableValues[EthereumSmartContractCall](EthereumCallType).right.value.head
+        call.address.asInstanceOf[StringConstant].value shouldBe "0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAe"
+        call.arguments.map(_.toString) shouldBe List("Var1")
+        call.abi.asInstanceOf[StringConstant].value shouldBe "ipfs:5ihruiherg34893zf"
+      case Left(ex) => fail(ex)
+    }
+  }
+
   it should "parse for smart contract calls" in {
     val text = """
       |[[Var1:Text]]
