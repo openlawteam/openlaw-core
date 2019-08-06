@@ -197,7 +197,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
   it should "handle conditional blocks with else" in {
 
     val clauseText = """This is my clause. [[contractor:Text "the contractor who is going to do the job"]]. {{shouldShowBirthdate "Should we show the birthdate?" => And I am born in [[contractorBirthdate "The birthdate of the contractor"]] :: I am not showing any birthday-related information }}"""
-    
+
     resultShouldBe(forReview(clauseText, Map(
       "contractor" -> "David Roon",
       "shouldShowBirthdate" -> "true",
@@ -225,6 +225,23 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
 
     val text2 =
       """<div class="openlaw-paragraph paragraph-1"><p class="no-section">a small title</p></div><ul class="list-lvl-1"><li><div class="openlaw-paragraph paragraph-2"><p>1. this is a first element<br /></p></div></li><li><div class="openlaw-paragraph paragraph-3"><p>2. this is a second element<br /></p></div><ul class="list-lvl-2"><li><div class="openlaw-paragraph paragraph-4"><p>(a) this is a first sub element<br /></p></div><ul class="list-lvl-3"><li><div class="openlaw-paragraph paragraph-5"><p>(i) this is a first sub sub element<br /></p></div></li><li><div class="openlaw-paragraph paragraph-6"><p>(ii) this is a second sub sub element<br /></p></div></li></ul></li></ul></li><li><div class="openlaw-paragraph paragraph-7"><p>3. this is a third element<br /></p></div><ul class="list-lvl-2"><li><div class="openlaw-paragraph paragraph-8"><p>(a) this is yet another sub element<br />      </p></div></li></ul></li></ul>""".stripMargin
+
+    val result = forPreview(text)
+    resultShouldBe(result, text2)
+  }
+
+  it should "not add paragraphs to lists by default" in {
+    val text =
+      """a small title
+        |
+        |^I am a list.
+        |^I am also a list.
+        |I am a paragraph!
+        |
+      """.stripMargin
+
+    val text2 =
+      """<div class="openlaw-paragraph paragraph-1"><p class="no-section">a small title</p></div><ul class="list-lvl-1"><li><div class="openlaw-paragraph paragraph-2"><p>1. I am a list.<br /></p></div></li><li></li></ul><div class="openlaw-paragraph paragraph-3"><p>2. I am also a list.<br />I am a paragraph!<br /><br />    </p></div>""".stripMargin
 
     val result = forPreview(text)
     resultShouldBe(result, text2)
