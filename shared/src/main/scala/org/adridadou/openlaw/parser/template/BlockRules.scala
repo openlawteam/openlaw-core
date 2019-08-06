@@ -14,10 +14,10 @@ import scala.annotation.tailrec
   */
 trait BlockRules extends Parser with ExpressionRules with GlobalRules {
 
-  def blockRule:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | pageBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | headerAnnotationPart | noteAnnotationPart | textPart) ~> ((s: Seq[TemplatePart]) => Block(s))}
+  def blockRule:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | pageBreak | sectionBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | headerAnnotationPart | noteAnnotationPart | textPart) ~> ((s: Seq[TemplatePart]) => Block(s))}
 
-  def blockInConditionalRule:Rule1[Block] = rule { zeroOrMore( centeredLine | rightThreeQuartersLine | rightLine | pageBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | headerAnnotationPart | noteAnnotationPart | textPartNoColons) ~> ((s: Seq[TemplatePart]) => Block(s))}
-  def blockInConditionalElseRule:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | pageBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | headerAnnotationPart | noteAnnotationPart | textPartNoColons) ~> ((s: Seq[TemplatePart]) => Block(s))}
+  def blockInConditionalRule:Rule1[Block] = rule { zeroOrMore( centeredLine | rightThreeQuartersLine | rightLine | pageBreak | sectionBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | headerAnnotationPart | noteAnnotationPart | textPartNoColons) ~> ((s: Seq[TemplatePart]) => Block(s))}
+  def blockInConditionalElseRule:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | pageBreak | sectionBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | headerAnnotationPart | noteAnnotationPart | textPartNoColons) ~> ((s: Seq[TemplatePart]) => Block(s))}
 
   def blockNoStrong:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | indentLine | varAliasKey | varKey | varMemberKey | headerAnnotationPart | noteAnnotationPart | textPartNoStrong) ~> ((s: Seq[TemplatePart]) => Block(s))}
 
@@ -56,11 +56,11 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   def comment:Rule1[EmptyTemplatePart.type ] = rule { &("#" | "//") ~ capture(commentsChar) ~ "\n" ~>((s:String) => EmptyTemplatePart )}
 
   def sectionKey:Rule1[Section] = rule {
-    &(sectionChar) ~ section
+    &(sectionChar) ~ section ~ optional(&(sectionBreak))
   }
 
   def section:Rule1[Section] = rule {
-    capture(oneOrMore("^")) ~ optional(sectionDefinition) ~ zeroOrMore("\b") ~> ((elems:String, namedSection:Option[SectionDefinition]) => Section(UUID.randomUUID().toString, namedSection, elems.length))
+    capture(oneOrMore("^")) ~ optional(sectionDefinition) ~ optional(capture(&(sectionBreak))) ~> ((elems:String, namedSection:Option[SectionDefinition], break:Option[String]) => Section(UUID.randomUUID().toString, namedSection, elems.length))
   }
 
   def sectionDefinition:Rule1[SectionDefinition] = rule {
@@ -89,6 +89,10 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
 
   def pageBreak: Rule1[TemplateText] = rule {
     capture(pagebreak) ~ "\n" ~> ((_: String) => TemplateText(Seq(PageBreak)))
+  }
+
+   def sectionBreak: Rule1[TemplateText] = rule {
+    capture(sectionbreak) ~> ((_: String) => TemplateText(Seq(SectionBreak)))
   }
 
   def indentLine: Rule1[TemplateText] = rule {

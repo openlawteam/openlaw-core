@@ -230,6 +230,9 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
         case FreeText(PageBreak) =>
           tailRecurse(xs, conditionalBlockDepth, inSection, { elems => continue(hr(`class` := "pagebreak") +: elems) })
 
+        case FreeText(SectionBreak) =>
+          tailRecurse(xs, conditionalBlockDepth, inSection, { elems => continue(hr(`class` := "section-break") +: elems) })
+
         case FreeText(Centered) =>
           tailRecurse(xs, conditionalBlockDepth, inSection, continue)
 

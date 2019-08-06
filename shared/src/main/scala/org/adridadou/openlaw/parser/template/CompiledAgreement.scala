@@ -115,6 +115,7 @@ case class CompiledAgreement(
       case Strong => Success(renderedElements :+ FreeText(Strong))
       case Under => Success(renderedElements :+ FreeText(Under))
       case PageBreak => Success(renderedElements :+ FreeText(PageBreak))
+      case SectionBreak => Success(renderedElements :+ FreeText(SectionBreak))
       case Indent => Success(renderedElements :+ FreeText(Indent))
       case Centered => Success(renderedElements :+ FreeText(Centered))
       case RightAlign => Success(renderedElements :+ FreeText(RightAlign))
