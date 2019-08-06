@@ -563,7 +563,7 @@ case class OpenlawExecutionState(
       .sequence
     }
 
-    missingIdentitiesResult.map { missingIdentitiesValue =>
+    missingIdentitiesResult.flatMap { missingIdentitiesValue =>
 
       val identitiesErrors = missingIdentitiesValue.flatMap({
         case (_, errors) => errors
@@ -575,16 +575,18 @@ case class OpenlawExecutionState(
 
       val (missingInputs, additionalErrors) = resultFromMissingInput(allMissingInput)
 
-      val serviceNamesErrors = missingServiceNames().map(varName => s"Invalid or missing property <$varName>")
+      missingServiceNames.map { x =>
+        val serviceNamesErrors = x.map(varName => s"Invalid or missing property <$varName>")
 
-      val validationErrors = validate.leftMap(nel => nel.map(_.message).toList).swap.getOrElse(Nil)
+        val validationErrors = validate.leftMap(nel => nel.map(_.message).toList).swap.getOrElse(Nil)
 
-      ValidationResult(
-        identities = identities.toList,
-        missingInputs = missingInputs.toList,
-        missingIdentities = missingIdentities,
-        validationExpressionErrors = validationErrors ++ additionalErrors ++ identitiesErrors ++ serviceNamesErrors
-      )
+        ValidationResult(
+          identities = identities.toList,
+          missingInputs = missingInputs.toList,
+          missingIdentities = missingIdentities,
+          validationExpressionErrors = validationErrors ++ additionalErrors ++ identitiesErrors ++ serviceNamesErrors
+        )
+      }
     }
   }
 
@@ -620,30 +622,29 @@ case class OpenlawExecutionState(
 
   private def getSubExecutions:Seq[OpenlawExecutionState] = subExecutionsInternal.values.toSeq
 
-  private def missingServiceNames(): Seq[VariableName] = {
+  private def missingServiceNames(): Result[Seq[VariableName]] = {
 
     def isValid(serviceName: String): Boolean =
       externalCallStructures.exists({case (s,_) => s.serviceName.equalsIgnoreCase(serviceName)})
 
     getAllExecutedVariables
       .flatMap({ case (result, name) => result.getVariable(name).map(variable => (result, variable)) })
-      .map { case (execResult, varDef) =>
+      .toList
+      .flatTraverse { case (execResult, varDef) =>
         varDef.varType(execResult) match {
           case ExternalSignatureType =>
             execResult.getVariableValue[ExternalSignature](varDef.name).map {
-              case Some(value) if isValid(value.serviceName.serviceName) => ""
-              case Some(_) => s"${varDef.name}.serviceName"
-              case None => s"${varDef.name}.serviceName"
-            }.getOrElse(s"${varDef.name}.serviceName")
+              case Some(value) if isValid(value.serviceName.serviceName) => Nil
+              case _ => List(VariableName(s"${varDef.name}.serviceName"))
+            }
           case ExternalCallType =>
             execResult.getVariableValue[ExternalCall](varDef.name).map {
-              case Some(value) if isValid(value.getServiceName(execResult).getOrElse("")) => ""
-              case Some(_) => s"${varDef.name}.serviceName"
-              case None => s"${varDef.name}.serviceName"
-            }.getOrElse(s"${varDef.name}.serviceName")
-          case _ => ""
+              case Some(value) if isValid(value.getServiceName(execResult).getOrElse("")) => Nil
+              case _ => List(VariableName(s"${varDef.name}.serviceName"))
+            }
+          case _ => Success(Nil)
         }
-      }.filter(_.nonEmpty).map(VariableName(_))
+      }
   }
 
   private def resultFromMissingInput(seq:Result[Seq[VariableName]]): (Seq[VariableName], Seq[String]) = seq match {
@@ -660,9 +661,10 @@ case class OpenlawExecutionState(
       case _ => true
     })
     val missingInputs = variables.map({case (result, variable) => variable.missingInput(result)})
-    VariableType.sequence(missingInputs)
+    VariableType
+      .sequence(missingInputs)
       .map(_.flatten.distinct)
-      .map(seq => seq ++ missingServiceNames())
+      .flatMap(seq => missingServiceNames().map(seq ++ _))
   }
 
   def registerNewType(variableType: VariableType): Result[OpenlawExecutionState] = {
