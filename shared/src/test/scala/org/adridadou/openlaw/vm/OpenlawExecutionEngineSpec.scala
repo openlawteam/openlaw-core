@@ -1,11 +1,12 @@
 package org.adridadou.openlaw.vm
 
 import java.time.{Clock, LocalDateTime}
+import java.util.Date
 
 import org.adridadou.openlaw.result.Implicits.failureCause2Exception
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template._
-import org.adridadou.openlaw.parser.template.variableTypes._
+import org.adridadou.openlaw.parser.template.variableTypes.{VariableType, _}
 import org.adridadou.openlaw.result.{Failure, Success}
 import org.adridadou.openlaw.result.Implicits.RichResult
 import org.adridadou.openlaw.values.{TemplateParameters, TemplateTitle}
@@ -484,6 +485,39 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       case Left(ex) =>
         fail(ex)
     }
+  }
+
+  it should "not modify dates in a collection when accessing values" in {
+    val mainTemplate =
+      compile(
+        """<%[[My Collection:Collection<Date>]]%>
+          |
+          |{{#for each title : My Collection =>
+          | [[title]]
+          |}}
+        """.stripMargin)
+
+
+    val collectionType = AbstractCollectionType.createParameterInstance(DateType)
+
+    val result = engine.execute(mainTemplate, TemplateParameters("title" -> "this is a test", "My Collection" -> collectionType.internalFormat(CollectionValue(size = 0, values = Map(), collectionType = collectionType)).right.value), Map()).right.value
+    val executionResult = result.getAllExecutionResults.head
+
+    val initialValue = "1564660800000"
+    val initialCollection = s"""{"values":{"0":"$initialValue"},"size":2}"""
+    val newValue = "1564660800000"
+    val newCollection = s"""{"values":{"0":"$initialValue","1":"$newValue"},"size":2}"""
+
+    val variable = result.getVariable("My Collection").value
+    val varType = variable.varType(executionResult).asInstanceOf[CollectionType]
+    val collection = VariableType.convert[CollectionValue](varType.cast(initialCollection, executionResult).getOrThrow()).getOrThrow()
+    initialValue should be(collection.valueInternalFormat(collection.list.head).right.value)
+
+    val openlawValue = collection.castValue(newValue, executionResult).getOrThrow()
+    val values: Map[Int, OpenlawValue] = collection.values ++ Map(1 -> openlawValue)
+    val collectionOutput = collection.collectionType.internalFormat(collection.copy(values = values)).getOrThrow()
+
+    collectionOutput should be(newCollection)
   }
 
   it should "be able to take a variable from outside the for each a collection" in {
