@@ -64,13 +64,20 @@ case object PeriodType extends VariableType("Period") {
 
   override def internalFormat(value: OpenlawValue): Result[String] = {
     convert[Period](value).map { period =>
-      val result = (if (period.years > 0) s"${period.years}" + " years " else "") +
-        (if (period.months > 0) s"${period.months}" + " months " else "") +
-        (if (period.weeks > 0) s"${period.weeks}" + " weeks " else "") +
-        (if (period.days > 0) s"${period.days}" + " days " else "") +
-        (if (period.hours > 0) s"${period.hours}" + " hours " else "") +
-        (if (period.minutes > 0) s"${period.minutes}" + " minutes " else "") +
-        (if (period.seconds > 0) s"${period.seconds}" + " seconds " else "")
+      val result = (if (period.years > 1) s"${period.years}" + " years "
+      else if (period.years === 1) s"${period.years}" + " year " else "") +
+      (if (period.months > 1) s"${period.months}" + " months "
+      else if (period.months === 1) s"${period.months}" + " month " else "") +
+      (if (period.weeks > 1) s"${period.weeks}" + " weeks "
+      else if (period.weeks === 1) s"${period.weeks}" + " week " else "") +
+      (if (period.days > 1) s"${period.days}" + " days "
+      else if (period.days === 1) s"${period.days}" + " day " else "") +
+      (if (period.hours > 1) s"${period.hours}" + " hours "
+      else if (period.hours === 1) s"${period.hours}" + " hour " else "") +
+      (if (period.minutes > 1) s"${period.minutes}" + " minutes "
+      else if (period.minutes === 1) s"${period.minutes}" + " minute " else "") +
+      (if (period.seconds > 1) s"${period.seconds}" + " seconds "
+      else if (period.seconds === 1) s"${period.seconds}" + " second " else "")
       result
     }
   }
@@ -145,10 +152,6 @@ class PeriodTypeParser(val input: ParserInput) extends Parser {
         }
       }).reduce((left, right) => left.plus(right)))
   }
-
-  def singularPlural(name:String):Rule0 = rule {
-    name | (name + "s")
-  }
 }
 
 case class ParameterNotFound(value:String) extends RuntimeException
@@ -180,13 +183,13 @@ case class Period(seconds:Int = 0, minutes:Int = 0, hours:Int = 0, days:Int = 0,
       seconds = totalSeconds.toInt
     )
   }
-  override def toString:String = (if( years > 0 ) s"$years years " else "") +
-      ( if( months > 0 ) s"$months months " else "") +
-      ( if( weeks > 0 ) s"$weeks weeks " else "") +
-      ( if( days > 0 ) s"$days days " else "") +
-      ( if( hours > 0 ) s"$hours hours " else "") +
-      ( if( minutes > 0 ) s"$minutes minutes " else "") +
-      ( if( seconds > 0 ) s"$seconds seconds" else "")
+  override def toString:String = (if( years > 1 ) s"$years years " else if( years === 1 ) s"$years year " else "") +
+      ( if( months > 1 ) s"$months months " else if( months === 1 ) s"$months month " else "") +
+      ( if( weeks > 1 ) s"$weeks weeks " else if( weeks === 1 ) s"$weeks week " else "") +
+      ( if( days > 1 ) s"$days days " else if( days === 1 ) s"$days day " else "") +
+      ( if( hours > 1 ) s"$hours hours " else if( hours === 1 ) s"$hours hour " else "") +
+      ( if( minutes > 1 ) s"$minutes minutes " else if( minutes === 1 ) s"$minutes minute " else "") +
+      ( if( seconds > 1 ) s"$seconds seconds" else if( seconds === 1 ) s"$seconds second" else "")
 
   private def toSeconds: Long = {
     seconds.toLong + 60 * (minutes.toLong + 60 * (hours.toLong + 24 * (days.toLong + 7 * weeks.toLong + 365 * years.toLong)))

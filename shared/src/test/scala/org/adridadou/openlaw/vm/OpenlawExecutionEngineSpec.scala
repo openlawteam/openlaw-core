@@ -466,6 +466,28 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     }
   }
 
+  it should "print a period containing a singular value properly" in {
+    val mainTemplate =
+      compile("""[[var:Period]]""".stripMargin)
+    engine.execute(mainTemplate, TemplateParameters("var" -> PeriodType.internalFormat(PeriodType.cast("1 minute 1 second").right.value).right.value), Map()) match {
+      case Right(result) =>
+        parser.forReview(result.agreements.head,ParagraphEdits()) shouldBe """<p class="no-section">1 minute 1 second</p>"""
+      case Left(ex) =>
+        fail(ex)
+    }
+  }
+
+  it should "print a period containing a singular and non-singular value properly" in {
+    val mainTemplate =
+      compile("""[[var:Period]]""".stripMargin)
+    engine.execute(mainTemplate, TemplateParameters("var" -> PeriodType.internalFormat(PeriodType.cast("1 minute 20 seconds").right.value).right.value), Map()) match {
+      case Right(result) =>
+        parser.forReview(result.agreements.head,ParagraphEdits()) shouldBe """<p class="no-section">1 minute 20 seconds</p>"""
+      case Left(ex) =>
+        fail(ex)
+    }
+  }
+
   it should "define a collection" in {
     val mainTemplate =
       compile(
