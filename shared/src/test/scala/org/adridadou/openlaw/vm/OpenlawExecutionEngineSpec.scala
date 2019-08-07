@@ -1363,7 +1363,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         |[[param1:Text]]
         |[[param2:Text]]
         |[[externalCall:ExternalCall(
-        |serviceName: "SomeIntegratedService";
+        |serviceName: "SomeIntegratedServiceName";
         |parameters:
         | param1 -> param1,
         | param2 -> param2;
@@ -1372,8 +1372,6 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         |repeatEvery: '1 hour 30 minute')]]
         |[[externalCall]]
       """.stripMargin
-
-    val template = compile(text)
 
     val Success(integratedService) = IntegratedServiceDefinition(
       """
@@ -1386,17 +1384,16 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         |)]]
       """.stripMargin)
 
-    engine.execute(template,
-      TemplateParameters("param1" -> "test1", "param2" -> "test2"),
-      Map(),
-      Map(ServiceName("SomeIntegratedService") -> integratedService)) match {
+    val externalCallStructures = Map(ServiceName("SomeIntegratedServiceName") -> integratedService)
+    val template = compile(text)
+    engine.execute(template, TemplateParameters("param1" -> "test1", "param2" -> "test2"), Map(), externalCallStructures) match {
       case Right(executionResult) =>
         executionResult.getExecutedVariables.map(_.name).toSet shouldBe Set("param1", "param2", "externalCall")
         val Some(externalCall) = executionResult.getVariable("externalCall")
         val externalCallVarType = externalCall.varType(executionResult)
         externalCallVarType.getTypeClass shouldBe classOf[ExternalCall]
         val Some(externalCallValue) = executionResult.getVariableValue[ExternalCall](VariableName("externalCall")).getOrThrow()
-        externalCallValue.getServiceName(executionResult).getOrThrow() shouldBe "SomeIntegratedService"
+        externalCallValue.getServiceName(executionResult).getOrThrow() shouldBe "SomeIntegratedServiceName"
         val arguments = externalCallValue.getParameters(executionResult).getOrThrow()
         arguments.size shouldBe 2
         arguments(VariableName("param1")).underlying shouldBe "test1"
@@ -1405,7 +1402,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         externalCallValue.getEndDate(executionResult).getOrThrow() shouldBe Some(LocalDateTime.parse("2048-12-12T00:00:00"))
         externalCallValue.getEvery(executionResult).getOrThrow() shouldBe Some(PeriodType.cast("1 hour 30 minute").getOrThrow())
       case Left(ex) =>
-        fail(ex.message, ex)
+        fail(ex)
     }
   }
 
