@@ -154,18 +154,18 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
           // partition out all content that will be within the newly defined sections
           val higherLevel = level - 1
           val (content, remaining) = partitionAt(xs) { case SectionElement(_, thisLevel, _, _, _, _) if thisLevel === higherLevel => true }
-          val (inner, remaining2) = partitionAt(xs) { case FreeText(SectionBreak) => true }
 
           // Partition the elements into sections at this level
-          val sections = partitionSections(level, section +: inner)
-          
+          val sections = partitionSections(level, section +: content)
+          val (inner, remaining2) = partitionAt(xs) { case FreeText(SectionBreak) => true }
+
           val frag = ul(`class` := s"list-lvl-$level")(
             sections.map { section =>
               recurse(section._2, conditionalBlockDepth, true, { elems => Seq(li(elems)) })
             }
           ) 
-          val postSection = ul(recurse(remaining2, conditionalBlockDepth, false, { elems => continue(elems) } ))
-          tailRecurse(remaining, conditionalBlockDepth, inSection, { elems => continue(frag +: postSection +: elems) } )
+          val postSection = ul(recurse(remaining2, conditionalBlockDepth, inSection, { elems => elems } ))
+          tailRecurse(remaining2, conditionalBlockDepth, inSection, { elems => continue(frag +: postSection +: elems) } )
 
 
         case VariableElement(name, variableType, content, dependencies) =>
