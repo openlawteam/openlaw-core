@@ -49,9 +49,9 @@ object AbiParser {
     case object Bool extends AbiType(classOf[Boolean], YesNoType)
     case object String extends AbiType(classOf[String], TextType, true)
     case object Address extends AbiType(classOf[EthereumAddress], EthAddressType)
+    case object Array extends AbiType(classOf[CollectionValue], AbstractCollectionType)
 
     /* Not supported for now
-    case object Array extends AbiType
     case object Bytes extends AbiType
     case object Bytes32 extends AbiType
     case object Bytes16 extends AbiType
