@@ -2,7 +2,7 @@ package org.adridadou.openlaw.oracles
 
 import java.time.{Clock, LocalDateTime}
 
-import org.adridadou.openlaw.parser.template.variableTypes.RequestIdentifier
+import org.adridadou.openlaw.parser.template.variableTypes.{IntegratedServiceDefinition, RequestIdentifier, ServiceName}
 import org.adridadou.openlaw.{OpenlawMap, OpenlawValue}
 import org.adridadou.openlaw.parser.template.{ActionIdentifier, OpenlawTemplateLanguageParserService, VariableName, VariableTypeDefinition}
 import org.adridadou.openlaw.result.{Failure, Success}
@@ -62,7 +62,8 @@ class ExternalCallOracleSpec extends FlatSpec with Matchers with Checkers {
 
   private val templateId = TemplateId(TestCryptoService.sha256(template))
   private val definition = ContractDefinition(UserId("hello@world.com"), templateId, Map(), TemplateParameters("param1" -> "a", "param2" -> "b"))
-  private val vm = vmProvider.create(definition, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq(oracle))
+  private val externalCallStructures = Map(ServiceName("SomeIntegratedService") -> IntegratedServiceDefinition("""[[Input:Structure(param1:Text;param2:Text)]] [[Output:Structure(result:Text)]]""").getOrThrow())
+  private val vm = vmProvider.create(definition, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq(oracle), externalCallStructures)
 
   vm(LoadTemplate(template))
 

@@ -1583,20 +1583,14 @@ here""".stripMargin
          |[[myExternalCall]]
       """.stripMargin
 
-    executeTemplate(input) match {
+    executeTemplate(input, Map("param1" -> "5", "param2" -> "5"), Map(),
+      Map(ServiceName("FakeServiceInput") -> IntegratedServiceDefinition(inputStructureType, outputStructureType))) match {
       case Right(executionResult) =>
         val externalCallType = executionResult.findVariableType(VariableTypeDefinition("ExternalCall")) match {
             case Some(variableType) => variableType
             case None => fail("structure type is not the right type")
         }
         externalCallType shouldBe ExternalCallType
-
-        val Right(newExecutionResult) = executeTemplate(input,
-          Map("param1" -> "5", "param2" -> "5"),
-          Map(),
-          Map(ServiceName("FakeServiceInput") -> IntegratedServiceDefinition(inputStructureType, outputStructureType)))
-
-        newExecutionResult.getVariables(ExternalCallType).size shouldBe 1
         val allActions = executionResult.allActions.getOrThrow()
         allActions.size shouldBe 1
 
@@ -1607,7 +1601,7 @@ here""".stripMargin
         call.endDate.map(_.toString) shouldBe Some("\"2048-12-12 00:00:00\"")
         call.every.map(_.toString) shouldBe Some("\"1 hour 30 minutes\"")
       case Left(ex) =>
-        fail(ex)
+        fail(ex.message, ex)
     }
   }
 
@@ -1628,7 +1622,7 @@ here""".stripMargin
     }
   }
 
-  it should "provide the missing input fields for external signature type" in {
+  it should "check if serviceName is valid for external signature type" in {
     val text =
       """
         |[[Signatory: ExternalSignature(serviceName:"")]]
@@ -1636,75 +1630,27 @@ here""".stripMargin
       """.stripMargin
 
     executeTemplate(text) match {
-      case Right(executionResult) =>
-        val Success(validationResult) = executionResult.validateExecution
-        validationResult.missingIdentities shouldBe Seq(VariableName("Signatory"))
-        validationResult.missingInputs shouldBe Seq(VariableName("Signatory"), VariableName("Signatory.serviceName"))
-        validationResult.validationExpressionErrors shouldBe Seq("Invalid or missing property <Signatory.serviceName>")
-        executionResult.allMissingInput shouldBe Right(Seq(VariableName("Signatory"), VariableName("Signatory.serviceName")))
+      case Right(_) =>
+        fail("Empty 'serviceName' name value shouldn't be allowed in the template execution")
       case Left(ex) =>
-        fail(ex)
+        ex.getMessage shouldBe "Invalid 'serviceName' property for ExternalSignature"
     }
   }
 
-  it should "provide the missing input fields for external call type" in {
-    val inputStructureText =
+  it should "find the missing input field 'identity' for external signature type" in {
+    val text =
       """
-        |[[FakeServiceInput:Structure(
-        |param1: Text;
-        |param2: Text)]]
-        |[[input:FakeServiceInput]]
+        |[[Signatory: ExternalSignature(serviceName:"MyService")]]
+        |Test simple template
       """.stripMargin
 
-    val inputStructureType = executeTemplate(inputStructureText) match {
-      case Right(executionResult) =>
-        executionResult.findVariableType(VariableTypeDefinition("FakeServiceInput")) match {
-          case Some(structureType: DefinedStructureType) => structureType.structure
-          case Some(variableType) => fail(s"invalid variable type ${variableType.thisType}")
-          case None => fail("structure type is not the right type")
-        }
-      case Left(ex) =>
-        fail(ex)
-    }
-
-    val outputStructureText =
-      """
-        |[[FakeServiceOutput:Structure(
-        |result: Text)]]
-        |[[output:FakeServiceOutput]]
-      """.stripMargin
-
-    val outputStructureType = executeTemplate(outputStructureText) match {
-      case Right(executionResult) =>
-        executionResult.findVariableType(VariableTypeDefinition("FakeServiceOutput")) match {
-          case Some(structureType:DefinedStructureType) => structureType.structure
-          case Some(variableType) => fail(s"invalid variable type ${variableType.thisType}")
-          case None => fail("structure type is not the right type")
-        }
-      case Left(ex) =>
-        fail(ex)
-    }
-
-    val template =
-      """
-        |[[CustomCall:ExternalCall(
-        |serviceName: "";
-        |parameters:
-        | param1 -> '1',
-        | param2 -> '2';
-        |startDate: '2018-12-12 00:00:00')]]
-        |[[CustomCall]]
-        |Test Template
-      """.stripMargin
-
-    val externalCallStructures = Map(ServiceName("FakeServiceInput") -> IntegratedServiceDefinition(inputStructureType, outputStructureType))
-    executeTemplate(template, Map("param1" -> "5", "param2" -> "5"), Map(), externalCallStructures) match {
+    executeTemplate(text, Map(), Map(), Map(ServiceName("MyService") -> SignatureServiceDefinition().abi)) match {
       case Right(executionResult) =>
         val Success(validationResult) = executionResult.validateExecution
-        validationResult.missingIdentities shouldBe Seq()
-        validationResult.missingInputs shouldBe Seq(VariableName("CustomCall.serviceName"))
-        validationResult.validationExpressionErrors shouldBe Seq("Invalid or missing property <CustomCall.serviceName>")
-        executionResult.allMissingInput shouldBe Right(Seq(VariableName("CustomCall.serviceName")))
+        validationResult.missingIdentities shouldBe Seq(VariableName("Signatory"))
+        validationResult.missingInputs shouldBe Seq(VariableName("Signatory"))
+        validationResult.validationExpressionErrors shouldBe Seq()
+        executionResult.allMissingInput shouldBe Right(Seq(VariableName("Signatory")))
       case Left(ex) =>
         fail(ex)
     }
