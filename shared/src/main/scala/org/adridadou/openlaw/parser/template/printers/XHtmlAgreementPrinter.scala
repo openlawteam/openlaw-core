@@ -159,18 +159,27 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
             case SectionElement(_, thisLevel, _, _, _, _) if thisLevel === higherLevel => true 
           }
           val sections = partitionSections(level, section +: content)
-          val (beforeBreak, afterBreak) = sections.apply(1)._2.span(_ != Paragraph(List(FreeText(SectionBreak))))
-          println("before break " + beforeBreak)
-          println("after break " + afterBreak)
-
-          val frag = ul(`class` := s"list-lvl-$level")(
-            //beforeBreak.map { section =>
-              recurse(beforeBreak, conditionalBlockDepth, true, { elems => Seq(li(elems)) })
-            //}
-          ) 
-          val postSection = ul(recurse(afterBreak, conditionalBlockDepth, inSection, { elems => elems }))
-          tailRecurse(remaining, conditionalBlockDepth, inSection, { elems => continue(postSection +: frag +: elems) } )
-
+          sections.lift(1) match {
+            case Some(x) => {
+              val (beforeBreak, afterBreak) = sections.apply(1)._2.span(_ != Paragraph(List(FreeText(SectionBreak)))) 
+              val frag = ul(`class` := s"list-lvl-$level")(
+              sections.map { section =>
+                val filtered = section._2 filterNot afterBreak.contains
+                recurse(filtered, conditionalBlockDepth, true, { elems => Seq(li(elems)) })
+              }
+            ) 
+            tailRecurse(afterBreak, conditionalBlockDepth, inSection, { elems => continue(frag +: elems) } )
+          }
+            case None => 
+            {
+               val frag = ul(`class` := s"list-lvl-$level")(
+                sections.map { section =>
+                  recurse(section._2, conditionalBlockDepth, true, { elems => Seq(li(elems)) })
+                }
+              )
+              tailRecurse(remaining, conditionalBlockDepth, inSection, { elems => continue(frag +: elems) } )
+          }
+          }
 
         case VariableElement(name, variableType, content, dependencies) =>
           // Do not highlight identity variables
