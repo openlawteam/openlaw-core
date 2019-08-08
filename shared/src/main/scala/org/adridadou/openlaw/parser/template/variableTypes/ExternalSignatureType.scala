@@ -7,8 +7,10 @@ import io.circe.generic.semiauto._
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
 import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success}
+import org.adridadou.openlaw.result.Implicits._
 import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawString, OpenlawValue}
 import cats.implicits._
+import org.adridadou.openlaw.parser.template.expressions.Expression
 
 case object ExternalSignatureType extends VariableType("ExternalSignature") {
 
@@ -29,21 +31,27 @@ case object ExternalSignatureType extends VariableType("ExternalSignature") {
       case Parameters(v) =>
         val values = v.toMap
         for {
-          serviceName <- getExpression(values, "serviceName", "service", "name", "service name").flatMap(_.evaluateT[OpenlawString](executionResult))
+          serviceNameExp <- getExpression(values, "serviceName", "service", "name", "service name")
+          strValue <- serviceNameExp.evaluateT[OpenlawString](executionResult)
+          serviceName <- strValue.toResult("Missing 'serviceName' property for ExternalSignature")
+          serviceDef <- getIntegratedService(serviceNameExp, executionResult)
+          _ <- serviceDef.toResult("Invalid 'serviceName' property for ExternalSignature")
         } yield {
-          Some(ExternalSignature(
-            serviceName = ServiceName(serviceName.getOrElse("")),
-            identity = None
-          ))
+          Some(ExternalSignature(serviceName = ServiceName(serviceName.underlying), identity = None))
         }
       case _ =>
-        Failure("ExternalCall needs to get 'serviceName' and 'arguments' as constructor parameters")
+        Failure("ExternalSignature needs to get 'serviceName' and 'arguments' as constructor parameters")
     }
   }
 
   override def getTypeClass: Class[_ <: ExternalSignature] = classOf[ExternalSignature]
 
   def thisType: VariableType = ExternalSignatureType
+
+  private def getIntegratedService(serviceNameExp: Expression, executionResult: TemplateExecutionResult): Result[Option[IntegratedServiceDefinition]] =
+    serviceNameExp.evaluateT[OpenlawString](executionResult).map { option =>
+      option.map(ServiceName(_)).flatMap(executionResult.externalCallStructures.get)
+    }
 }
 
 object ExternalSignature {
