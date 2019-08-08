@@ -158,17 +158,17 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
           }
           // Partition the elements into sections at this level
           val sections = partitionSections(level, section +: content)
-          var afterBreak:Seq[AgreementElement] = Seq()
-          sections.map { section => 
-            // bifurcate the sections around the section break 
-            val (beforeBreak, after) = section._2.span(_ != Paragraph(List(FreeText(SectionBreak))))
-            afterBreak = afterBreak ++ after
-          }
-          if (afterBreak.size > 0) {
+          val afterBreak = sections.foldLeft(Seq[AgreementElement]()) { 
+            case (accu, (_, elements)) =>
+            // bifurcate the sections around the section break
+              val (_, after) = elements.span(_ != Paragraph(List(FreeText(SectionBreak))))
+              accu ++ after
+            }
+          if (afterBreak.nonEmpty) {
             val frag = ul(`class` := s"list-lvl-$level")(
-              sections.map { section =>
+              sections.map { case (_, elements) =>
               // section break elements and after should not be given the `ul/list` class
-              val filtered = section._2 filterNot afterBreak.contains
+              val filtered = elements filterNot afterBreak.contains
               recurse(filtered, conditionalBlockDepth, true, { elems => Seq(li(elems)) })
               }
             )
