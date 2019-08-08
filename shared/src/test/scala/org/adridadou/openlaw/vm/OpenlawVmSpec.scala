@@ -4,7 +4,7 @@ import java.time.{Clock, LocalDateTime}
 
 import org.adridadou.openlaw.{OpenlawMap, OpenlawString, oracles}
 import org.adridadou.openlaw.oracles._
-import org.adridadou.openlaw.parser.template.{ActionIdentifier, ExecutionFinished, ExpressionParserService, OpenlawTemplateLanguageParserService, VariableName, variableTypes}
+import org.adridadou.openlaw.parser.template.{ActionIdentifier, ExecutionFinished, ExpressionParserService, OpenlawTemplateLanguageParserService, VariableDefinition, VariableName, variableTypes}
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.result.{Failure, Success}
 import org.adridadou.openlaw.result.Implicits.RichResult
@@ -104,7 +104,10 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
 
     val contractId = definition.id(TestCryptoService)
 
-    val vm = vmProvider.create(definition, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address, Map(serviceName -> serviceAccount.address)), Seq())
+    val vm = vmProvider.create(definition, None,
+      OpenlawSignatureOracle(TestCryptoService, serverAccount.address, Map(serviceName -> serviceAccount.address)),
+      Seq(),
+      Map(serviceName -> SignatureServiceDefinition().abi))
 
     vm(LoadTemplate(template))
     vm.executionState shouldBe ContractCreated
@@ -455,13 +458,14 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
       )
     )
 
-    val contractId = definition.id(TestCryptoService)
     val vm = vmProvider.create(definition, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq())
-
     vm(LoadTemplate(templateContent))
 
-    val values = vm.getAllExecutedVariables(EthereumEventFilterType)
-    println(values.map(_._2))
+    val Some((varDef, varType)) = vm.getAllExecutedVariables(EthereumEventFilterType)
+      .map({case (execRes, varDef) => (varDef, varDef.varType(execRes))}).headOption
+
+    varDef.name shouldBe VariableName("Contract Creation Event")
+    varType shouldBe EthereumEventFilterType
   }
 
   it should "execute an external call and display the result" in {

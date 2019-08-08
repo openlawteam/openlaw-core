@@ -1,11 +1,12 @@
 package org.adridadou.openlaw.vm
 
 import java.time.{Clock, LocalDateTime}
+import java.util.Date
 
 import org.adridadou.openlaw.result.Implicits.failureCause2Exception
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template._
-import org.adridadou.openlaw.parser.template.variableTypes._
+import org.adridadou.openlaw.parser.template.variableTypes.{VariableType, _}
 import org.adridadou.openlaw.result.{Failure, Success}
 import org.adridadou.openlaw.result.Implicits.RichResult
 import org.adridadou.openlaw.values.{TemplateParameters, TemplateTitle}
@@ -465,6 +466,28 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     }
   }
 
+  it should "print a period containing a singular value properly" in {
+    val mainTemplate =
+      compile("""[[var:Period]]""".stripMargin)
+    engine.execute(mainTemplate, TemplateParameters("var" -> PeriodType.internalFormat(PeriodType.cast("1 minute 1 second").right.value).right.value), Map()) match {
+      case Right(result) =>
+        parser.forReview(result.agreements.head,ParagraphEdits()) shouldBe """<p class="no-section">1 minute 1 second</p>"""
+      case Left(ex) =>
+        fail(ex)
+    }
+  }
+
+  it should "print a period containing a singular and non-singular value properly" in {
+    val mainTemplate =
+      compile("""[[var:Period]]""".stripMargin)
+    engine.execute(mainTemplate, TemplateParameters("var" -> PeriodType.internalFormat(PeriodType.cast("1 minute 20 seconds").right.value).right.value), Map()) match {
+      case Right(result) =>
+        parser.forReview(result.agreements.head,ParagraphEdits()) shouldBe """<p class="no-section">1 minute 20 seconds</p>"""
+      case Left(ex) =>
+        fail(ex)
+    }
+  }
+
   it should "define a collection" in {
     val mainTemplate =
       compile(
@@ -484,6 +507,39 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       case Left(ex) =>
         fail(ex)
     }
+  }
+
+  it should "not modify dates in a collection when accessing values" in {
+    val mainTemplate =
+      compile(
+        """<%[[My Collection:Collection<Date>]]%>
+          |
+          |{{#for each title : My Collection =>
+          | [[title]]
+          |}}
+        """.stripMargin)
+
+
+    val collectionType = AbstractCollectionType.createParameterInstance(DateType)
+
+    val result = engine.execute(mainTemplate, TemplateParameters("title" -> "this is a test", "My Collection" -> collectionType.internalFormat(CollectionValue(size = 0, values = Map(), collectionType = collectionType)).right.value), Map()).right.value
+    val executionResult = result.getAllExecutionResults.head
+
+    val initialValue = "1564660800000"
+    val initialCollection = s"""{"values":{"0":"$initialValue"},"size":2}"""
+    val newValue = "1564660800000"
+    val newCollection = s"""{"values":{"0":"$initialValue","1":"$newValue"},"size":2}"""
+
+    val variable = result.getVariable("My Collection").value
+    val varType = variable.varType(executionResult).asInstanceOf[CollectionType]
+    val collection = VariableType.convert[CollectionValue](varType.cast(initialCollection, executionResult).getOrThrow()).getOrThrow()
+    initialValue should be(collection.valueInternalFormat(collection.list.head).right.value)
+
+    val openlawValue = collection.castValue(newValue, executionResult).getOrThrow()
+    val values: Map[Int, OpenlawValue] = collection.values ++ Map(1 -> openlawValue)
+    val collectionOutput = collection.collectionType.internalFormat(collection.copy(values = values)).getOrThrow()
+
+    collectionOutput should be(newCollection)
   }
 
   it should "be able to take a variable from outside the for each a collection" in {
@@ -1307,7 +1363,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         |[[param1:Text]]
         |[[param2:Text]]
         |[[externalCall:ExternalCall(
-        |serviceName: "SomeIntegratedService";
+        |serviceName: "SomeIntegratedServiceName";
         |parameters:
         | param1 -> param1,
         | param2 -> param2;
@@ -1316,8 +1372,6 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         |repeatEvery: '1 hour 30 minute')]]
         |[[externalCall]]
       """.stripMargin
-
-    val template = compile(text)
 
     val Success(integratedService) = IntegratedServiceDefinition(
       """
@@ -1330,17 +1384,16 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         |)]]
       """.stripMargin)
 
-    engine.execute(template,
-      TemplateParameters("param1" -> "test1", "param2" -> "test2"),
-      Map(),
-      Map(ServiceName("SomeIntegratedService") -> integratedService)) match {
+    val externalCallStructures = Map(ServiceName("SomeIntegratedServiceName") -> integratedService)
+    val template = compile(text)
+    engine.execute(template, TemplateParameters("param1" -> "test1", "param2" -> "test2"), Map(), externalCallStructures) match {
       case Right(executionResult) =>
         executionResult.getExecutedVariables.map(_.name).toSet shouldBe Set("param1", "param2", "externalCall")
         val Some(externalCall) = executionResult.getVariable("externalCall")
         val externalCallVarType = externalCall.varType(executionResult)
         externalCallVarType.getTypeClass shouldBe classOf[ExternalCall]
         val Some(externalCallValue) = executionResult.getVariableValue[ExternalCall](VariableName("externalCall")).getOrThrow()
-        externalCallValue.getServiceName(executionResult).getOrThrow() shouldBe "SomeIntegratedService"
+        externalCallValue.getServiceName(executionResult).getOrThrow() shouldBe "SomeIntegratedServiceName"
         val arguments = externalCallValue.getParameters(executionResult).getOrThrow()
         arguments.size shouldBe 2
         arguments(VariableName("param1")).underlying shouldBe "test1"
@@ -1349,7 +1402,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         externalCallValue.getEndDate(executionResult).getOrThrow() shouldBe Some(LocalDateTime.parse("2048-12-12T00:00:00"))
         externalCallValue.getEvery(executionResult).getOrThrow() shouldBe Some(PeriodType.cast("1 hour 30 minute").getOrThrow())
       case Left(ex) =>
-        fail(ex.message, ex)
+        fail(ex)
     }
   }
 
