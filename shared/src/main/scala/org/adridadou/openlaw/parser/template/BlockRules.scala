@@ -60,7 +60,7 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   }
 
   def section:Rule1[Section] = rule {
-    capture(oneOrMore("^")) ~ optional(sectionDefinition) ~ optional(capture(&(sectionBreak))) ~> ((elems:String, namedSection:Option[SectionDefinition], break:Option[String]) => Section(UUID.randomUUID().toString, namedSection, elems.length))
+    capture(oneOrMore("^")) ~ optional(sectionDefinition) ~ optional(capture(zeroOrMore("\\sectionbreak"))) ~> ((elems:String, namedSection:Option[SectionDefinition], break:Option[String]) => Section(UUID.randomUUID().toString, namedSection, elems.length))
   }
 
   def sectionDefinition:Rule1[SectionDefinition] = rule {

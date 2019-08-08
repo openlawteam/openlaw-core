@@ -235,13 +235,15 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
       """a small title
         |
         |^I am a list.
-        |^I am also a list.\sectionbreak
-        |I am a paragraph!
+        |^I am also a list.
+        |\sectionbreak
+        |
+        |I am a PARAGRAPH!
         |
       """.stripMargin
 
     val text2 =
-      """<div class="openlaw-paragraph paragraph-1"><p class="no-section">a small title</p></div><ul class="list-lvl-1"><li><div class="openlaw-paragraph paragraph-2"><p>1. I am a list.<br /></p></div></li><li><div class="openlaw-paragraph paragraph-3"><p>2. I am also a list.</li></ul><hr class="section-break" /><br />I am a paragraph!<br /><br />    </p></div>""".stripMargin
+      """<div class="openlaw-paragraph paragraph-1"><p class="no-section">a small title</p></div><ul class="list-lvl-1"><li><div class="openlaw-paragraph paragraph-2"><p>1. I am a list.<br /></p></div></li><li><div class="openlaw-paragraph paragraph-3"><p>2. I am also a list.</li></ul><hr class="section-break" /><br />I am a PARAGRAPH!<br /><br />    </p></div>""".stripMargin
 
     val result = forPreview(text)
     resultShouldBe(result, text2)

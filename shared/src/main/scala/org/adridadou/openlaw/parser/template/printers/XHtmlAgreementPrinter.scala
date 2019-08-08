@@ -9,6 +9,8 @@ import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes.IdentityType
 import scalatags.Text.all._
 import slogging._
+import cats.syntax.either._
+import io.circe._, io.circe.parser._
 
 import scala.annotation.tailrec
 
@@ -153,19 +155,21 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
         case section@SectionElement(_, level, _, _, _, _) =>
           // partition out all content that will be within the newly defined sections
           val higherLevel = level - 1
-          val (content, remaining) = partitionAt(xs) { case SectionElement(_, thisLevel, _, _, _, _) if thisLevel === higherLevel => true }
-
-          // Partition the elements into sections at this level
+          val (content, remaining) = partitionAt(xs) { 
+            case SectionElement(_, thisLevel, _, _, _, _) if thisLevel === higherLevel => true 
+          }
           val sections = partitionSections(level, section +: content)
-          val (inner, remaining2) = partitionAt(xs) { case FreeText(SectionBreak) => true }
+          val (beforeBreak, afterBreak) = sections.apply(1)._2.span(_ != Paragraph(List(FreeText(SectionBreak))))
+          println("before break " + beforeBreak)
+          println("after break " + afterBreak)
 
           val frag = ul(`class` := s"list-lvl-$level")(
-            sections.map { section =>
-              recurse(section._2, conditionalBlockDepth, true, { elems => Seq(li(elems)) })
-            }
+            //beforeBreak.map { section =>
+              recurse(beforeBreak, conditionalBlockDepth, true, { elems => Seq(li(elems)) })
+            //}
           ) 
-          val postSection = ul(recurse(remaining2, conditionalBlockDepth, inSection, { elems => elems } ))
-          tailRecurse(remaining2, conditionalBlockDepth, inSection, { elems => continue(frag +: postSection +: elems) } )
+          val postSection = ul(recurse(afterBreak, conditionalBlockDepth, inSection, { elems => elems }))
+          tailRecurse(remaining, conditionalBlockDepth, inSection, { elems => continue(postSection +: frag +: elems) } )
 
 
         case VariableElement(name, variableType, content, dependencies) =>
@@ -234,7 +238,10 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
           tailRecurse(xs, conditionalBlockDepth, inSection, { elems => continue(hr(`class` := "pagebreak") +: elems) })
 
         case FreeText(SectionBreak) =>
-          tailRecurse(xs, conditionalBlockDepth, inSection, { elems => continue(hr(`class` := "section-break") +: elems) })
+          //tailRecurse(xs, conditionalBlockDepth, inSection, { elems => continue(hr(`class` := "section-break") +: elems) })
+          val (inner, remaining) = partitionAtItem(xs, x)
+          val frag = hr(`class` := "section-break")(recurse(inner, conditionalBlockDepth, inSection))
+          tailRecurse(remaining.drop(1), conditionalBlockDepth, inSection, { elems => continue(frag +: elems) })
 
         case FreeText(Centered) =>
           tailRecurse(xs, conditionalBlockDepth, inSection, continue)

@@ -76,6 +76,7 @@ case class CompiledAgreement(
         }
         newParagraphs :+ Text(text.substring(lastValue, text.length))
       case PageBreak =>  List(ParagraphSeparator, PageBreak, ParagraphSeparator)
+      case SectionBreak => List(ParagraphSeparator, SectionBreak, ParagraphSeparator)
       case other =>  List(other)
     }
 
