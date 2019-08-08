@@ -9,8 +9,6 @@ import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes.IdentityType
 import scalatags.Text.all._
 import slogging._
-import cats.syntax.either._
-import io.circe._, io.circe.parser._
 
 import scala.annotation.tailrec
 
