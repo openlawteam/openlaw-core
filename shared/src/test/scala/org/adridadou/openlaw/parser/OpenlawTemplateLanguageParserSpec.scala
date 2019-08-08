@@ -234,15 +234,16 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
     val text =
       """a small title
         |
-        |^I am a list.
-        |^I am also a list.
+        |^I should have a ul tag.
+        |^So should I.
+        |^And I also. 
         |\sectionbreak
-        |I am a PARAGRAPH!
+        |But I should not!
         |
       """.stripMargin
 
     val text2 =
-      """<div class="openlaw-paragraph paragraph-1"><p class="no-section">a small title</p></div><ul class="list-lvl-1"><li><div class="openlaw-paragraph paragraph-2"><p>1. I am a list.<br /></p></div></li><li><div class="openlaw-paragraph paragraph-3"><p>2. I am also a list.<br /></p></div></li></ul><div class="openlaw-paragraph paragraph-4"><p class="no-section"><hr class="section-break" /></p></div><div class="openlaw-paragraph paragraph-5"><p class="no-section"><br />I am a PARAGRAPH!<br /><br />    </p></div>""".stripMargin
+      """<div class="openlaw-paragraph paragraph-1"><p class="no-section">a small title</p></div><ul class="list-lvl-1"><li><div class="openlaw-paragraph paragraph-2"><p>1. I should have a ul tag.<br /></p></div></li><li><div class="openlaw-paragraph paragraph-3"><p>2. So should I.<br /></p></div></li><li><div class="openlaw-paragraph paragraph-4"><p>3. And I also. <br /></p></div></li></ul><div class="openlaw-paragraph paragraph-5"><p class="no-section"><hr class="section-break" /></p></div><div class="openlaw-paragraph paragraph-6"><p class="no-section"><br />But I should not!<br /><br />    </p></div>""".stripMargin
 
     val result = forPreview(text)
     resultShouldBe(result, text2)
