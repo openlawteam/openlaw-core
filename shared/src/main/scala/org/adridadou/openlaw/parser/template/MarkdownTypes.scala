@@ -217,6 +217,8 @@ object TextElement {
         Right(Under)
       case _ if "PageBreak" === name =>
         Right(PageBreak)
+      case _ if "SectionBreak" === name =>
+        Right(SectionBreak)
       case _ if "Centered" === name =>
         Right(Centered)
       case _ if "RightAlign" === name =>
@@ -239,6 +241,7 @@ case object Em extends TextElement("Em")
 case object Strong extends TextElement("Strong")
 case object Under extends TextElement("Under")
 case object PageBreak extends TextElement("PageBreak")
+case object SectionBreak extends TextElement("SectionBreak")
 case object Centered extends TextElement("Centered")
 case object RightAlign extends TextElement("RightAlign")
 case object RightThreeQuarters extends TextElement("RightThreeQuarters")

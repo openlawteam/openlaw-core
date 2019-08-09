@@ -15,7 +15,7 @@ import scala.annotation.tailrec
 object XHtmlAgreementPrinter {
 
   /** Implicit value class to enrich the Seq[Frag] with a function to print
-    * it's content as an XHTML string.
+    * its content as an XHTML string.
     */
   implicit class FragsPrinter(val frags: Seq[Frag]) extends AnyVal {
     def print: String = frags
@@ -118,7 +118,6 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
 
           // Setup classes to be added to this paragraph element
           val classes = Seq() ++ (if (!inSection) Seq("no-section") else Nil) ++ align
-
           val paragraph = if (classes.isEmpty) {
             recurse(remaining, conditionalBlockDepth, inSection, { elems => Seq(p(elems)) })
           } else {
@@ -154,18 +153,35 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
         case section@SectionElement(_, level, _, _, _, _) =>
           // partition out all content that will be within the newly defined sections
           val higherLevel = level - 1
-          val (content, remaining) = partitionAt(xs) { case SectionElement(_, thisLevel, _, _, _, _) if thisLevel === higherLevel => true }
-
+          val (content, remaining) = partitionAt(xs) { 
+            case SectionElement(_, thisLevel, _, _, _, _) if thisLevel === higherLevel => true 
+          }
           // Partition the elements into sections at this level
           val sections = partitionSections(level, section +: content)
-
-          val frag = ul(`class` := s"list-lvl-$level")(
-            sections.map { section =>
-              recurse(section._2, conditionalBlockDepth, true, { elems => Seq(li(elems)) })
+          val afterBreak = sections.foldLeft(Seq[AgreementElement]()) { 
+            case (accu, (_, elements)) =>
+            // bifurcate the sections around the section break
+              val (_, after) = elements.span(_ != Paragraph(List(FreeText(SectionBreak))))
+              accu ++ after
             }
-          )
-          tailRecurse(remaining, conditionalBlockDepth, inSection, { elems => continue(frag +: elems) } )
-
+          if (afterBreak.nonEmpty) {
+            val frag = ul(`class` := s"list-lvl-$level")(
+              sections.map { case (_, elements) =>
+              // section break elements and after should not be given the `ul/list` class
+              val filtered = elements filterNot afterBreak.contains
+              recurse(filtered, conditionalBlockDepth, true, { elems => Seq(li(elems)) })
+              }
+            )
+            tailRecurse(afterBreak, conditionalBlockDepth, inSection, { elems => continue(frag +: elems) } )
+          }
+          else {
+            val frag = ul(`class` := s"list-lvl-$level")(
+              sections.map { section =>
+                recurse(section._2, conditionalBlockDepth, true, { elems => Seq(li(elems)) })
+              }
+            ) 
+            tailRecurse(remaining, conditionalBlockDepth, inSection, { elems => continue(frag +: elems) } )
+          }
 
         case VariableElement(name, variableType, content, dependencies) =>
           // Do not highlight identity variables
@@ -231,6 +247,9 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
 
         case FreeText(PageBreak) =>
           tailRecurse(xs, conditionalBlockDepth, inSection, { elems => continue(hr(`class` := "pagebreak") +: elems) })
+
+        case FreeText(SectionBreak) =>
+          tailRecurse(xs, conditionalBlockDepth, inSection, { elems => continue(hr(`class` := "section-break") +: elems) })
 
         case FreeText(Centered) =>
           tailRecurse(xs, conditionalBlockDepth, inSection, continue)
