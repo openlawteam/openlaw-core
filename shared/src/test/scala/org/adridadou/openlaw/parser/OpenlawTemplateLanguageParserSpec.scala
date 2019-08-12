@@ -197,7 +197,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
   it should "handle conditional blocks with else" in {
 
     val clauseText = """This is my clause. [[contractor:Text "the contractor who is going to do the job"]]. {{shouldShowBirthdate "Should we show the birthdate?" => And I am born in [[contractorBirthdate "The birthdate of the contractor"]] :: I am not showing any birthday-related information }}"""
-    
+
     resultShouldBe(forReview(clauseText, Map(
       "contractor" -> "David Roon",
       "shouldShowBirthdate" -> "true",
@@ -225,6 +225,25 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
 
     val text2 =
       """<div class="openlaw-paragraph paragraph-1"><p class="no-section">a small title</p></div><ul class="list-lvl-1"><li><div class="openlaw-paragraph paragraph-2"><p>1. this is a first element<br /></p></div></li><li><div class="openlaw-paragraph paragraph-3"><p>2. this is a second element<br /></p></div><ul class="list-lvl-2"><li><div class="openlaw-paragraph paragraph-4"><p>(a) this is a first sub element<br /></p></div><ul class="list-lvl-3"><li><div class="openlaw-paragraph paragraph-5"><p>(i) this is a first sub sub element<br /></p></div></li><li><div class="openlaw-paragraph paragraph-6"><p>(ii) this is a second sub sub element<br /></p></div></li></ul></li></ul></li><li><div class="openlaw-paragraph paragraph-7"><p>3. this is a third element<br /></p></div><ul class="list-lvl-2"><li><div class="openlaw-paragraph paragraph-8"><p>(a) this is yet another sub element<br />      </p></div></li></ul></li></ul>""".stripMargin
+
+    val result = forPreview(text)
+    resultShouldBe(result, text2)
+  }
+
+  it should "not add paragraphs to lists by default" in {
+    val text =
+      """a small title
+        |
+        |^I should have a ul tag.
+        |^So should I.
+        |^And I also. 
+        |\sectionbreak
+        |But I should not!
+        |
+      """.stripMargin
+
+    val text2 =
+      """<div class="openlaw-paragraph paragraph-1"><p class="no-section">a small title</p></div><ul class="list-lvl-1"><li><div class="openlaw-paragraph paragraph-2"><p>1. I should have a ul tag.<br /></p></div></li><li><div class="openlaw-paragraph paragraph-3"><p>2. So should I.<br /></p></div></li><li><div class="openlaw-paragraph paragraph-4"><p>3. And I also. <br /></p></div></li></ul><div class="openlaw-paragraph paragraph-5"><p class="no-section"><hr class="section-break" /></p></div><div class="openlaw-paragraph paragraph-6"><p class="no-section"><br />But I should not!<br /><br />    </p></div>""".stripMargin
 
     val result = forPreview(text)
     resultShouldBe(result, text2)
@@ -1609,20 +1628,14 @@ here""".stripMargin
          |[[myExternalCall]]
       """.stripMargin
 
-    executeTemplate(input) match {
+    executeTemplate(input, Map("param1" -> "5", "param2" -> "5"), Map(),
+      Map(ServiceName("FakeServiceInput") -> IntegratedServiceDefinition(inputStructureType, outputStructureType))) match {
       case Right(executionResult) =>
         val externalCallType = executionResult.findVariableType(VariableTypeDefinition("ExternalCall")) match {
             case Some(variableType) => variableType
             case None => fail("structure type is not the right type")
         }
         externalCallType shouldBe ExternalCallType
-
-        val Right(newExecutionResult) = executeTemplate(input,
-          Map("param1" -> "5", "param2" -> "5"),
-          Map(),
-          Map(ServiceName("FakeServiceInput") -> IntegratedServiceDefinition(inputStructureType, outputStructureType)))
-
-        newExecutionResult.getVariables(ExternalCallType).size shouldBe 1
         val allActions = executionResult.allActions.getOrThrow()
         allActions.size shouldBe 1
 
@@ -1633,7 +1646,59 @@ here""".stripMargin
         call.endDate.map(_.toString) shouldBe Some("\"2048-12-12 00:00:00\"")
         call.every.map(_.toString) shouldBe Some("\"1 hour 30 minutes\"")
       case Left(ex) =>
+        fail(ex.message, ex)
+    }
+  }
+
+  it should "provide the missing input fields for identity type" in {
+    val text =
+      """
+        |[[Signatory: Identity]]
+      """.stripMargin
+
+    executeTemplate(text) match {
+      case Right(executionResult) =>
+        val Success(validationResult) = executionResult.validateExecution
+        validationResult.missingIdentities shouldBe Seq(VariableName("Signatory"))
+        validationResult.missingInputs shouldBe Seq(VariableName("Signatory"))
+        executionResult.allMissingInput shouldBe Right(Seq(VariableName("Signatory")))
+      case Left(ex) =>
         fail(ex)
     }
   }
+
+  it should "check if serviceName is valid for external signature type" in {
+    val text =
+      """
+        |[[Signatory: ExternalSignature(serviceName:"")]]
+        |Test simple template
+      """.stripMargin
+
+    executeTemplate(text) match {
+      case Right(_) =>
+        fail("Empty 'serviceName' name value shouldn't be allowed in the template execution")
+      case Left(ex) =>
+        ex.getMessage shouldBe "Invalid 'serviceName' property for ExternalSignature"
+    }
+  }
+
+  it should "find the missing input field 'identity' for external signature type" in {
+    val text =
+      """
+        |[[Signatory: ExternalSignature(serviceName:"MyService")]]
+        |Test simple template
+      """.stripMargin
+
+    executeTemplate(text, Map(), Map(), Map(ServiceName("MyService") -> SignatureServiceDefinition().abi)) match {
+      case Right(executionResult) =>
+        val Success(validationResult) = executionResult.validateExecution
+        validationResult.missingIdentities shouldBe Seq(VariableName("Signatory"))
+        validationResult.missingInputs shouldBe Seq(VariableName("Signatory"))
+        validationResult.validationExpressionErrors shouldBe Seq()
+        executionResult.allMissingInput shouldBe Right(Seq(VariableName("Signatory")))
+      case Left(ex) =>
+        fail(ex)
+    }
+  }
+
 }

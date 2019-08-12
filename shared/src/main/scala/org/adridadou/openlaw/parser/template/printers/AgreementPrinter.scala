@@ -25,6 +25,7 @@ trait AgreementPrinter[T] {
   def sectionStart(section:SectionElement):AgreementPrinter[T]
   def sectionHeader(section:SectionElement):AgreementPrinter[T]
   def sectionEnd():AgreementPrinter[T]
+  def sectionBreak():AgreementPrinter[T]
   def paragraphHeader(docParagraph:Paragraph):AgreementPrinter[T]
   def paragraphFooter:AgreementPrinter[T]
 
