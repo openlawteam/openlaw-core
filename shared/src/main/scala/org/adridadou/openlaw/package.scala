@@ -6,6 +6,8 @@ import org.adridadou.openlaw.parser.template.AgreementElement
 
 import scala.language.implicitConversions
 
+import org.adridadou.openlaw.parser.template.Link
+
 package object openlaw {
 
   trait OpenlawValue {
@@ -32,6 +34,13 @@ package object openlaw {
 
   object OpenlawDateTime {
     def unapply(value: OpenlawDateTime): Option[LocalDateTime] = Some(value.underlying)
+  }
+
+  object OpenlawLink {
+    def unapply(value: OpenlawLink): Option[Link] = {
+      println(value.underlying)
+      Some(value.underlying)
+  }
   }
 
   implicit def unwrap[U <: OpenlawValue](value: U): U#T = value.underlying
@@ -84,6 +93,17 @@ package object openlaw {
     override type T = LocalDateTime
     override def toString: String = underlying.toString
     override def compareTo(t: OpenlawDateTime): Int = underlying.compareTo(t.underlying)
+    override def equals(o: Any): Boolean = o match {
+      case value: OpenlawValue => underlying.equals(value.underlying)
+      case _ => underlying.equals(o)
+    }
+    override def hashCode: Int = underlying.hashCode
+  }
+
+  implicit class OpenlawLink(override val underlying: Link) extends Comparable[OpenlawLink] with OpenlawValue {
+    override type T = Link
+    override def toString: String = underlying.toString
+    override def compareTo(t: OpenlawLink): Int = underlying.compareTo(t.underlying)
     override def equals(o: Any): Boolean = o match {
       case value: OpenlawValue => underlying.equals(value.underlying)
       case _ => underlying.equals(o)

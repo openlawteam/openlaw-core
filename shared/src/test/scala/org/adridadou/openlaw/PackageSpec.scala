@@ -8,11 +8,15 @@ import org.scalatest.{FlatSpec, Matchers}
 import io.circe.syntax._
 import io.circe.parser._
 
+import org.adridadou.openlaw.parser.template.Link
+
 class PackageSpec extends FlatSpec with Matchers with Checkers {
 
 	"An OpenlawValue instance" should "be equal" in {
 		OpenlawString("test") should be (OpenlawString("test"))
 		OpenlawString("test") shouldNot be (OpenlawString("TEST"))
+		OpenlawLink(Link("ol link", "https://openlaw.io")) should be (OpenlawLink(Link("ol link", "https://openlaw.io")))
+		OpenlawLink(Link("ol link", "https://openlaw.io")) shouldNot be (OpenlawLink(Link("ol link", "https://app.openlaw.io")))
 		OpenlawBigDecimal(BigDecimal(1L)) should be (OpenlawBigDecimal(BigDecimal(1L)))
 		OpenlawBigDecimal(BigDecimal(1L)) shouldNot be (OpenlawBigDecimal(BigDecimal(2L)))
 	}
@@ -22,10 +26,12 @@ class PackageSpec extends FlatSpec with Matchers with Checkers {
 		OpenlawString("test").compareTo(OpenlawString("TEST")) shouldNot be (0)
 	}
 
-	it should "implicitly convert to it's underlying type" in {
+	it should "implicitly convert to its underlying type" in {
 		val string: String = OpenlawString("test")
 		string should be ("test")
 		val bigDecimal: BigDecimal = OpenlawBigDecimal(BigDecimal(1L))
 		bigDecimal should be (BigDecimal(1L))
+		val link: OpenlawLink = OpenlawLink(Link("ol link", "https://openlaw.io"))
+		link should be (Link("ol link", "https://openlaw.io"))
 	}
 }

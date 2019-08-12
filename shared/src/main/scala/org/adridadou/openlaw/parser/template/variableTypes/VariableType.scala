@@ -360,6 +360,7 @@ object VariableType {
     ExternalSignatureType,
     IdentityType,
     LargeTextType,
+    LinkType,
     ImageType,
     NumberType,
     PeriodType,
