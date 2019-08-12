@@ -42,7 +42,7 @@ jobs:
   test:
     executor: corerunner
     steps:
-      - run: sbt "openlawCore" test
+      - run: sbt "project openlawCore" test
 
   coverage:
     executor: corerunner
