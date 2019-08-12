@@ -31,7 +31,7 @@ class PackageSpec extends FlatSpec with Matchers with Checkers {
 		string should be ("test")
 		val bigDecimal: BigDecimal = OpenlawBigDecimal(BigDecimal(1L))
 		bigDecimal should be (BigDecimal(1L))
-		val link: OpenlawLink = OpenlawLink(Link("ol link", "https://openlaw.io"))
+		val link: Link = OpenlawLink(Link("ol link", "https://openlaw.io"))
 		link should be (Link("ol link", "https://openlaw.io"))
 	}
 }

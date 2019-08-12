@@ -37,10 +37,9 @@ package object openlaw {
   }
 
   object OpenlawLink {
-    def unapply(value: OpenlawLink): Option[Link] = {
-      println(value.underlying)
-      Some(value.underlying)
+    def unapply(value: OpenlawLink): Option[Link] = { Some(value.underlying)
   }
+
   }
 
   implicit def unwrap[U <: OpenlawValue](value: U): U#T = value.underlying
@@ -102,7 +101,7 @@ package object openlaw {
 
   implicit class OpenlawLink(override val underlying: Link) extends Comparable[OpenlawLink] with OpenlawValue {
     override type T = Link
-    override def toString: String = underlying.toString
+    override def toString: String = "label " + underlying.label.toString + " url " + underlying.url.toString
     override def compareTo(t: OpenlawLink): Int = underlying.compareTo(t.underlying)
     override def equals(o: Any): Boolean = o match {
       case value: OpenlawValue => underlying.equals(value.underlying)
