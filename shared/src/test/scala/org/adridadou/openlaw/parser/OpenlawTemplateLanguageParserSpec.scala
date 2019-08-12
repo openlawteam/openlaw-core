@@ -267,33 +267,33 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
   }
 
    it should "handle link variables with absolute URLs" in {
-    val text = """[[link1:Link("https://openlaw.io")]]"""
+    val text = """[[link1:Link("homepage", "https://openlaw.io")]]"""
 
     executeTemplate(text) match {
       case Right(executionResult) =>
         executionResult.getVariables(LinkType).size shouldBe 1
 
         val link = executionResult.getVariableValues[OpenlawLink](LinkType).right.value.head.underlying
-        link should be ("https://openlaw.io")
+        link should be (Link("homepage", "https://openlaw.io"))
 
-        resultShouldBe(forPreview(text), "<div class=\"openlaw-paragraph paragraph-1\"><p class=\"no-section\"><span class=\"markdown-variable markdown-variable-link1\"><a href=\"https://openlaw.io\"></a></span></p></div>")
-        resultShouldBe(forReview(text), "<p class=\"no-section\"><a href=\"https://openlaw.io\"></a></p>")
+        resultShouldBe(forPreview(text), "<div class=\"openlaw-paragraph paragraph-1\"><p class=\"no-section\"><span class=\"markdown-variable markdown-variable-link1\"><a href=\"https://openlaw.io\">homepage</a></span></p></div>")
+        resultShouldBe(forReview(text), "<p class=\"no-section\"><a href=\"https://openlaw.io\">homepage</a></p>")
       case Left(ex) => fail(ex)
     }
   }
 
   it should "handle link variables with relative URLs" in {
-    val text = """[[link1:Link("/login")]]"""
+    val text = """[[link1:Link("Log In", "/login")]]"""
 
     executeTemplate(text) match {
       case Right(executionResult) =>
         executionResult.getVariables(LinkType).size shouldBe 1
 
         val link = executionResult.getVariableValues[OpenlawLink](LinkType).right.value.head.underlying
-        link should be ("/login")
+        link should be (Link("Log In", "/login"))
 
-        resultShouldBe(forPreview(text), "<div class=\"openlaw-paragraph paragraph-1\"><p class=\"no-section\"><span class=\"markdown-variable markdown-variable-link1\"><a href=\"/login\"></a></span></p></div>")
-        resultShouldBe(forReview(text), "<p class=\"no-section\"><a href=\"/login\"></a></p>")
+        resultShouldBe(forPreview(text), "<div class=\"openlaw-paragraph paragraph-1\"><p class=\"no-section\"><span class=\"markdown-variable markdown-variable-link1\"><a href=\"/login\">Log In</a></span></p></div>")
+        resultShouldBe(forReview(text), "<p class=\"no-section\"><a href=\"/login\">Log In</a></p>")
       case Left(ex) => fail(ex)
     }
   }

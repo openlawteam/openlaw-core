@@ -6,7 +6,16 @@ import org.adridadou.openlaw.parser.template.formatters.Formatter
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 
+
+  object LinkFormatter extends Formatter {
+    def format(value:OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] = value match {
+        case OpenlawLink(Link(label, url)) => Success(Seq(Link(label, url)))
+        case _ => Failure("unsupported link value found: $value")
+    }
+}
+
 case object LinkType extends VariableType("Link") {
+
   override def cast(value: String, executionResult: TemplateExecutionResult): Result[OpenlawLink] = attempt(Link("ol link", value))
 
   override def internalFormat(value: OpenlawValue): Result[String] = VariableType.convert[OpenlawLink](value).map(_.toString)
@@ -20,6 +29,8 @@ case object LinkType extends VariableType("Link") {
   }
 
   def thisType: VariableType = LinkType
+
+  override def defaultFormatter: Formatter = ImageFormatter
 
   override def isCompatibleType(otherType: VariableType, operation: ValueOperation): Boolean = otherType match {
     case LinkType => true
