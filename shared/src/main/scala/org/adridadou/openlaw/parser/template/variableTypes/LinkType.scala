@@ -1,41 +1,60 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
 import cats.implicits._
-import org.adridadou.openlaw.{OpenlawLink, OpenlawValue}
+import io.circe.{Decoder, Encoder}
+import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
+import io.circe.parser.decode
+import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawString, OpenlawValue}
 import org.adridadou.openlaw.parser.template.formatters.Formatter
 import org.adridadou.openlaw.parser.template._
-import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
+import org.adridadou.openlaw.result.{Failure, Result, Success}
 
+case class LinkInfo(label: String, url:String) extends OpenlawNativeValue
 
-  object LinkFormatter extends Formatter {
-    def format(value:OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] = value match {
-        case OpenlawLink(Link(label, url)) => Success(Seq(Link(label, url)))
-        case _ => Failure("unsupported link value found: $value")
+case object LinkType extends VariableType(name = "Link") {
+
+  private implicit val enc: Encoder[LinkInfo] = deriveEncoder[LinkInfo]
+  private implicit val dec: Decoder[LinkInfo] = deriveDecoder[LinkInfo]
+
+  override def cast(value: String, executionResult: TemplateExecutionResult): Result[LinkInfo] = decode[LinkInfo](value).leftMap(FailureException(_))
+
+  override def internalFormat(value: OpenlawValue): Result[String] = VariableType.convert[OpenlawString](value)
+
+  override def defaultFormatter: Formatter = new LinkFormatter
+
+  override def getTypeClass: Class[LinkInfo] = classOf[LinkInfo]
+
+  override def checkTypeName(nameToCheck: String): Boolean = Seq("Link").exists(_.equalsIgnoreCase(nameToCheck))
+
+  override def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Result[Option[LinkInfo]] = {
+    constructorParams match {
+      case Parameters(seq) =>
+        val map = seq.toMap
+        (for {
+          label <- map.get("label")
+          url <- map.get("url")
+        } yield for {
+          labelValue <- getOneValueConstant(label)
+          urlValue <- getOneValueConstant(url)
+        } yield LinkInfo(labelValue, urlValue)).sequence
+      case _ =>
+        Failure("""Link requires parameters, not a unique value or a list""")
     }
-}
-
-case object LinkType extends VariableType("Link") {
-
-  override def cast(value: String, executionResult: TemplateExecutionResult): Result[OpenlawLink] = attempt(Link("ol link", value))
-
-  override def internalFormat(value: OpenlawValue): Result[String] = VariableType.convert[OpenlawLink](value).map(_.toString)
-
-  override def construct(constructorParams:Parameter, executionResult:TemplateExecutionResult): Result[Option[OpenlawLink]] = constructorParams match {
-    case OneValueParameter(expr) =>
-      expr
-        .evaluate(executionResult)
-        .flatMap(opt => opt.map(value => VariableType.convert[OpenlawLink](value).map(OpenlawLink(_))).sequence)
-    case _ => Failure("constructor only handles single value")
   }
 
   def thisType: VariableType = LinkType
 
-  override def defaultFormatter: Formatter = ImageFormatter
-
-  override def isCompatibleType(otherType: VariableType, operation: ValueOperation): Boolean = otherType match {
-    case LinkType => true
-    case _ => otherType.isCompatibleType(this, operation)
+  private def getOneValueConstant(value:Parameter): Result[String] = value match {
+    case OneValueParameter(StringConstant(v, _)) =>
+      Success(v)
+    case _ =>
+      Failure("""Link requires "label" argument.""")
   }
+}
 
-  override def getTypeClass: Class[OpenlawLink] = classOf[OpenlawLink]
+class LinkFormatter extends Formatter {
+  override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] =
+    VariableType.convert[LinkInfo](value) map {
+      case LinkInfo(labelValue, urlValue) => Seq(Link(labelValue, urlValue))
+    }
 }

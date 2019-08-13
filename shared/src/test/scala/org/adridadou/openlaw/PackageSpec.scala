@@ -15,8 +15,6 @@ class PackageSpec extends FlatSpec with Matchers with Checkers {
 	"An OpenlawValue instance" should "be equal" in {
 		OpenlawString("test") should be (OpenlawString("test"))
 		OpenlawString("test") shouldNot be (OpenlawString("TEST"))
-		OpenlawLink(Link("ol link", "https://openlaw.io")) should be (OpenlawLink(Link("ol link", "https://openlaw.io")))
-		OpenlawLink(Link("ol link", "https://openlaw.io")) shouldNot be (OpenlawLink(Link("ol link", "https://app.openlaw.io")))
 		OpenlawBigDecimal(BigDecimal(1L)) should be (OpenlawBigDecimal(BigDecimal(1L)))
 		OpenlawBigDecimal(BigDecimal(1L)) shouldNot be (OpenlawBigDecimal(BigDecimal(2L)))
 	}
@@ -31,7 +29,5 @@ class PackageSpec extends FlatSpec with Matchers with Checkers {
 		string should be ("test")
 		val bigDecimal: BigDecimal = OpenlawBigDecimal(BigDecimal(1L))
 		bigDecimal should be (BigDecimal(1L))
-		val link: Link = OpenlawLink(Link("ol link", "https://openlaw.io"))
-		link should be (Link("ol link", "https://openlaw.io"))
 	}
 }
