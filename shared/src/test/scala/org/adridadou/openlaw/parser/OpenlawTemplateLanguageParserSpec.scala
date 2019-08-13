@@ -267,30 +267,22 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
   }
 
    it should "handle link variables with absolute URLs" in {
-    val text = """[[link1:Link("homepage", "https://openlaw.io")]]"""
+    val text = """[[link1:Link(label:'homepage';url:'https://openlaw.io')]]"""
 
-    executeTemplate(text) match {
-      case Right(executionResult) =>
-        executionResult.getVariables(LinkType).size shouldBe 1
-
-        val link = executionResult.getVariableValues[OpenlawLink](LinkType).right.value.head.underlying
-        link should be (Link("homepage", "https://openlaw.io"))
-
-        resultShouldBe(forPreview(text), "<div class=\"openlaw-paragraph paragraph-1\"><p class=\"no-section\"><span class=\"markdown-variable markdown-variable-link1\"><a href=\"https://openlaw.io\">homepage</a></span></p></div>")
-        resultShouldBe(forReview(text), "<p class=\"no-section\"><a href=\"https://openlaw.io\">homepage</a></p>")
-      case Left(ex) => fail(ex)
-    }
+    resultShouldBe(forPreview(text), "<div class=\"openlaw-paragraph paragraph-1\"><p class=\"no-section\"><span class=\"markdown-variable markdown-variable-link1\"><a href=\"https://openlaw.io\">homepage</a></span></p></div>")
+    resultShouldBe(forReview(text), "<p class=\"no-section\"><a href=\"https://openlaw.io\">homepage</a></p>")
+      
   }
 
-  it should "handle link variables with relative URLs" in {
-    val text = """[[link1:Link("Log In", "/login")]]"""
+  it should "handle link variables with relative URLs, including storing variable correctly" in {
+    val text = """[[link1:Link(label: 'Log In';url:'/login')]]"""
 
     executeTemplate(text) match {
       case Right(executionResult) =>
         executionResult.getVariables(LinkType).size shouldBe 1
 
-        val link = executionResult.getVariableValues[OpenlawLink](LinkType).right.value.head.underlying
-        link should be (Link("Log In", "/login"))
+        val link = executionResult.getVariableValues[LinkInfo](LinkType).right.value.head.underlying
+        link should be (LinkInfo("Log In", "/login"))
 
         resultShouldBe(forPreview(text), "<div class=\"openlaw-paragraph paragraph-1\"><p class=\"no-section\"><span class=\"markdown-variable markdown-variable-link1\"><a href=\"/login\">Log In</a></span></p></div>")
         resultShouldBe(forReview(text), "<p class=\"no-section\"><a href=\"/login\">Log In</a></p>")

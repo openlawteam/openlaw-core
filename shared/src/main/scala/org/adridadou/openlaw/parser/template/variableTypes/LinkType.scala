@@ -7,7 +7,7 @@ import io.circe.parser.decode
 import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawString, OpenlawValue}
 import org.adridadou.openlaw.parser.template.formatters.Formatter
 import org.adridadou.openlaw.parser.template._
-import org.adridadou.openlaw.result.{Failure, Result, Success}
+import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success}
 
 case class LinkInfo(label: String, url:String) extends OpenlawNativeValue
 
