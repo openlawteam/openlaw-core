@@ -8,8 +8,6 @@ import org.scalatest.{FlatSpec, Matchers}
 import io.circe.syntax._
 import io.circe.parser._
 
-import org.adridadou.openlaw.parser.template.Link
-
 class PackageSpec extends FlatSpec with Matchers with Checkers {
 
 	"An OpenlawValue instance" should "be equal" in {

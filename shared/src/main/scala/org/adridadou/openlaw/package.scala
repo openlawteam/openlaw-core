@@ -6,8 +6,6 @@ import org.adridadou.openlaw.parser.template.AgreementElement
 
 import scala.language.implicitConversions
 
-import org.adridadou.openlaw.parser.template.Link
-
 package object openlaw {
 
   trait OpenlawValue {
