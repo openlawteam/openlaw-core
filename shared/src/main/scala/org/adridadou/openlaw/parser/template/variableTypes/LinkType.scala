@@ -30,13 +30,10 @@ case object LinkType extends VariableType(name = "Link") {
     constructorParams match {
       case Parameters(seq) =>
         val map = seq.toMap
-        (for {
-          label <- map.get("label")
-          url <- map.get("url")
-        } yield for {
-          labelValue <- getOneValueConstant(label)
-          urlValue <- getOneValueConstant(url)
-        } yield LinkInfo(labelValue, urlValue)).sequence
+        for {
+          label <- map.get("label").traverse(getOneValueConstant)
+          url <- map.get("url").traverse(getOneValueConstant)
+        } yield (label, url) mapN { LinkInfo(_, _) }
       case _ =>
         Failure("""Link requires parameters, not a unique value or a list""")
     }
