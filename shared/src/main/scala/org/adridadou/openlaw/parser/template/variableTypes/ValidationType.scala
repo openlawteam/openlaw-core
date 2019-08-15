@@ -13,9 +13,6 @@ import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 case object ValidationType extends VariableType(name = "Validation") with NoShowInForm {
 
-  implicit val validationEnc: Encoder[Validation] = deriveEncoder[Validation]
-  implicit val validationDec: Decoder[Validation] = deriveDecoder[Validation]
-
   override def cast(value: String, executionResult: TemplateExecutionResult): Result[Validation] = decode[Validation](value) match {
     case Right(result) => Success(result)
     case Left(ex) => Failure(ex)
@@ -57,6 +54,11 @@ case object ValidationType extends VariableType(name = "Validation") with NoShow
     } yield result
 
   def thisType: VariableType = ValidationType
+}
+
+case object Validation {
+  implicit val validationEnc: Encoder[Validation] = deriveEncoder[Validation]
+  implicit val validationDec: Decoder[Validation] = deriveDecoder[Validation]
 }
 
 case class Validation(condition:Expression, errorMessage:Expression) extends OpenlawNativeValue {
