@@ -9,9 +9,9 @@ import io.circe.syntax._
 import io.circe.generic.semiauto._
 import org.adridadou.openlaw._
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
-import org.adridadou.openlaw.result.{Failure, FailureException, Result}
+import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success}
 
-case class DomainInformation(variableType:VariableType, validation:Validation) extends OpenlawNativeValue
+case class DomainInformation(variableType:Map[VariableName, VariableType], validation:Validation) extends OpenlawNativeValue
 
 case object DomainInformation {
   implicit val domainEnc:Encoder[DomainInformation] = deriveEncoder[DomainInformation]
@@ -24,14 +24,41 @@ case object AbstractDomainType extends VariableType(name = "Domain") with TypeGe
 
   override def construct(param:Parameter, executionResult: TemplateExecutionResult): Result[Option[DomainInformation]] = param match {
     case Parameters(seq) =>
-        val map = seq.toMap
-        for {
-          variableType <- map.get("variableType")
-          validation <- map.get("validation")
-        } yield (variableType, validation) mapN { DomainInformation(_, _) }
-      case _ =>
-        Failure("""Domain requires parameters, not a unique value or a list""")
+      val map = seq.toMap
+      for {
+        variableName <- map.get("variableType")
+        validation <- map.get("validation")
+      } yield {
+        val  = executionResult.getVariable(variableName).map(_.varType(executionResult))
+        val validationValue = ValidationType.cast(getOneValueConstant(validation).toString, executionResult).right.get
+        DomainInformation(variableTypeValue, validationValue)
+      }
+    case _ =>
+      Failure("""Domain type requires parameters (either 'variableType' or 'validation' is missing)""")
+    /*case Parameters(values) =>
+      VariableType.sequence(values
+        .map(
+          {case (key,value) => getField(key, value, executionResult).map(VariableName(key) -> _)}
+
+        ))
+
+        /*.map(fields => {
+          val types = fields.map({case (key,definition) => key -> definition.varType(executionResult)})*/
+          Some(
+            DomainInformation(variableType = values.map({case (key,_) => VariableName(key)}), )
+          )
+        //}//)
+    case parameter =>
+      Failure(s"structure must have one or more expressions as constructor parameters, instead received ${parameter.getClass}")*/
+
     }
+
+  private def getType(typeName:String, value:Parameter, executionResult: TemplateExecutionResult): Result[VariableType] = value match {
+    case OneValueParameter(VariableName(typeName)) =>
+      Success(VariableType(name = VariableType(typeName)))
+    case _ =>
+      Failure("error in the constructor for Structured Type")
+  }
 
   override def defaultFormatter: Formatter = new NoopFormatter
 
@@ -45,19 +72,26 @@ case object AbstractDomainType extends VariableType(name = "Domain") with TypeGe
 
   def thisType: VariableType = AbstractDomainType
 
-  override def generateType(name: VariableName, domainInformation: DomainInformation): DefinedDomainType =
-    DefinedDomainType(domainInformation, name.name)
-
+  private def getOneValueConstant(value:Parameter): Result[String] = value match {
+    case OneValueParameter(StringConstant(v, _)) =>
+      Success(v)
+    case _ =>
+      Failure("""Domain requires "variableType" or "validation" argument.""")
   }
 
-  /*private def getField(name:String, value:Parameter, executionResult: TemplateExecutionResult): Result[VariableDefinition] = value match {
+  private def getField(name:String, value:Parameter, executionResult: TemplateExecutionResult): Result[VariableDefinition] = value match {
     case OneValueParameter(VariableName(typeName)) =>
       Success(VariableDefinition(name = VariableName(name), variableTypeDefinition = Some(VariableTypeDefinition(name = typeName))))
     case OneValueParameter(definition:VariableDefinition) =>
       Success(definition.copy(name = VariableName(name)))
     case _ =>
       Failure("error in the constructor for Structured Type")
-  }*/
+  }
+
+  override def generateType(name: VariableName, domainInformation: DomainInformation): DefinedDomainType =
+    DefinedDomainType(domainInformation, name.name)
+
+  }
 
 object DefinedDomainType {
   implicit val definedDomainTypeEnc:Encoder[DefinedDomainType] = (a: DefinedDomainType) => a.serialize
