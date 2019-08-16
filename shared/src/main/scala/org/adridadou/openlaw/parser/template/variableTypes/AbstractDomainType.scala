@@ -23,42 +23,25 @@ case object DomainInformation {
 case object AbstractDomainType extends VariableType(name = "Domain") with TypeGenerator[DomainInformation] {
 
   override def construct(param:Parameter, executionResult: TemplateExecutionResult): Result[Option[DomainInformation]] = param match {
-    case Parameters(seq) =>
-      val map = seq.toMap
-      for {
-        variableName <- map.get("variableType")
-        validation <- map.get("validation")
-      } yield {
-        val  = executionResult.getVariable(variableName).map(_.varType(executionResult))
-        val validationValue = ValidationType.cast(getOneValueConstant(validation).toString, executionResult).right.get
-        DomainInformation(variableTypeValue, validationValue)
-      }
+    case Parameters(values) =>
+        val validationType = values.toMap.get("validation").get
+        val validationValue = ValidationType.cast(getOneValueConstant(validationType).toString, executionResult).right.get
+        VariableType.sequence(values
+          .map({case (key,value) => getField(key, value, executionResult).map(VariableName(key) -> _)}))
+          .map(fields => {
+            val types = fields.map({case (key,definition) => key -> definition.varType(executionResult)})
+            Success(Option(DomainInformation(types.toMap, validationValue)))
+          }.right.get)
     case _ =>
       Failure("""Domain type requires parameters (either 'variableType' or 'validation' is missing)""")
-    /*case Parameters(values) =>
-      VariableType.sequence(values
-        .map(
-          {case (key,value) => getField(key, value, executionResult).map(VariableName(key) -> _)}
-
-        ))
-
-        /*.map(fields => {
-          val types = fields.map({case (key,definition) => key -> definition.varType(executionResult)})*/
-          Some(
-            DomainInformation(variableType = values.map({case (key,_) => VariableName(key)}), )
-          )
-        //}//)
-    case parameter =>
-      Failure(s"structure must have one or more expressions as constructor parameters, instead received ${parameter.getClass}")*/
-
     }
 
-  private def getType(typeName:String, value:Parameter, executionResult: TemplateExecutionResult): Result[VariableType] = value match {
+  /*private def getType(typeName:String, value:Parameter, executionResult: TemplateExecutionResult): Result[VariableType] = value match {
     case OneValueParameter(VariableName(typeName)) =>
       Success(VariableType(name = VariableType(typeName)))
     case _ =>
       Failure("error in the constructor for Structured Type")
-  }
+  }*/
 
   override def defaultFormatter: Formatter = new NoopFormatter
 
@@ -166,21 +149,24 @@ case class DefinedDomainType(domain:DomainInformation, typeName:String) extends 
       }
   }*/
 
-  override def cast(value: String, executionResult: TemplateExecutionResult): Result[OpenlawMap[VariableName, OpenlawValue]] =
+  /*override def cast(value: String, executionResult: TemplateExecutionResult): Result[OpenlawMap[VariableName, OpenlawValue]] =
     for {
       values <- decode[Map[String, String]](value).leftMap(FailureException(_))
-      list <- List(typeName, Map("variableName" -> domain.variableType, "validation" -> domain.validation)).sequence
-    } yield OpenlawMap(list.toMap)
+      list <- domain.variableType.flatMap {case  =>
+        values.get(fieldName.name).map(value => fieldType.cast(value, executionResult).map(fieldName -> _))
+      }.toList.sequence
+    } yield OpenlawMap(list.toMap)*/
 
-  /*override def internalFormat(value: OpenlawValue): Result[String] =
+  override def internalFormat(value: OpenlawValue): Result[String] =
     VariableType.convert[OpenlawMap[VariableName, OpenlawValue]](value).flatMap { values =>
       domain
-        .types
+        .variableType
+        .flatMap { case (fieldName, fieldType) => values.get(fieldName).map(value => fieldType.internalFormat(value).map( fieldName.name -> _)) }
         .toList
         .sequence
         .map(_.toMap)
         .map { _.asJson.noSpaces }
-    }*/
+    }
 
   override def thisType: VariableType = this
 }
