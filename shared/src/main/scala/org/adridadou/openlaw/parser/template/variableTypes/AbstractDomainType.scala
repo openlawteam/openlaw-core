@@ -4,8 +4,8 @@ import cats.implicits._
 import io.circe.{Decoder, Encoder, HCursor, Json}
 import cats.kernel.Eq
 import org.adridadou.openlaw.parser.template._
-import io.circe.parser._
 import io.circe.syntax._
+import io.circe.parser._
 import io.circe.generic.semiauto._
 import org.adridadou.openlaw._
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
@@ -24,14 +24,17 @@ case object AbstractDomainType extends VariableType(name = "Domain") with TypeGe
 
   override def construct(param:Parameter, executionResult: TemplateExecutionResult): Result[Option[DomainInformation]] = param match {
     case Parameters(values) =>
-        val validationType = values.toMap.get("validation").get
-        val validationValue = ValidationType.cast(getOneValueConstant(validationType).toString, executionResult).right.get
+        val validationType = values.toMap.key("validation")
         VariableType.sequence(values
           .map({case (key,value) => getField(key, value, executionResult).map(VariableName(key) -> _)}))
           .map(fields => {
             val types = fields.map({case (key,definition) => key -> definition.varType(executionResult)})
-            Success(Option(DomainInformation(types.toMap, validationValue)))
-          }.right.get)
+            ValidationType.cast(getOneValueConstant(validationType).toString, executionResult) match {
+              case Success(validationVal) => Success(Option(DomainInformation(types.toMap, validationVal)))
+              case _ => Failure("""Validation type not found""")
+            }
+            //Success(Option(DomainInformation(types.toMap, validationValue)))
+          }.right.getOrElse(None))
     case _ =>
       Failure("""Domain type requires parameters (either 'variableType' or 'validation' is missing)""")
     }
@@ -149,13 +152,13 @@ case class DefinedDomainType(domain:DomainInformation, typeName:String) extends 
       }
   }*/
 
-  /*override def cast(value: String, executionResult: TemplateExecutionResult): Result[OpenlawMap[VariableName, OpenlawValue]] =
+  override def cast(value: String, executionResult: TemplateExecutionResult): Result[OpenlawMap[VariableName, OpenlawValue]] =
     for {
       values <- decode[Map[String, String]](value).leftMap(FailureException(_))
-      list <- domain.variableType.flatMap {case  =>
+      list <- domain.variableType.flatMap {case (fieldName, fieldType) =>
         values.get(fieldName.name).map(value => fieldType.cast(value, executionResult).map(fieldName -> _))
       }.toList.sequence
-    } yield OpenlawMap(list.toMap)*/
+    } yield OpenlawMap(list.toMap)
 
   override def internalFormat(value: OpenlawValue): Result[String] =
     VariableType.convert[OpenlawMap[VariableName, OpenlawValue]](value).flatMap { values =>
