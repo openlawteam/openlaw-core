@@ -206,6 +206,20 @@ trait TemplateExecutionResult {
                   .map(_.flatMap(_.identity))
               }
 
+          case domainType: DefinedDomainType if domainType.domain.typeDefinition.values.exists(_.varType(result) === IdentityType) =>
+            variable
+              .evaluateT[OpenlawMap[VariableName, OpenlawValue]](result)
+              .map(_.getOrElse(Map()))
+              .flatMap { values =>
+                domainType
+                  .domain
+                  .names
+                  .filter(name => domainType.domain.typeDefinition(name).varType(result) === IdentityType)
+                  .map(name => VariableType.convert[Identity](values(name)))
+                  .toList
+                  .sequence
+              }
+
           case _ =>
             Success(Seq())
         }
@@ -522,6 +536,7 @@ case class OpenlawExecutionState(
         case ExternalSignatureType => true
         case collectionType:CollectionType if IdentityType.identityTypes.contains(collectionType.typeParameter) => true
         case structureType:DefinedStructureType if structureType.structure.typeDefinition.values.exists(s => IdentityType.identityTypes.contains(s.varType(this))) => true
+        case domainType:DefinedDomainType if domainType.domain.typeDefinition.values.exists(s => IdentityType.identityTypes.contains(s.varType(this))) => true
         case _ => false
       }
     }).map({case (_, variable) => variable})
@@ -556,6 +571,20 @@ case class OpenlawExecutionState(
                 (Seq(variable.name), Seq())
               }
             }
+
+          case domainType: DefinedDomainType if domainType.domain.typeDefinition.values.exists(s => IdentityType.identityTypes.contains(s.varType(this))) =>
+            result.getVariableValue[OpenlawMap[VariableName, OpenlawValue]](variable.name).map { values =>
+              val identityProperties = domainType.domain.typeDefinition
+                .filter({ case (_, propertyType) => IdentityType.identityTypes.contains(propertyType.varType(this))})
+                .map({ case (propertyName, _) => propertyName }).toSeq
+
+              if (identityProperties.forall(values.getOrElse(Map()).contains)) {
+                (Seq(), Seq())
+              } else {
+                (Seq(variable.name), Seq())
+              }
+            }
+
 
           case _ =>
             Success((Seq(), Seq()))

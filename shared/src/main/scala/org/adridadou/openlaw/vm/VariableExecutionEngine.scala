@@ -178,6 +178,13 @@ trait VariableExecutionEngine {
           case None =>
             Failure(s"the new type ${variable.name.name} could not be executed properly")
         }
+      case AbstractDomainType =>
+        variable.constructT[Domain](executionResult).flatMap {
+          case Some(domain) =>
+            executionResult.registerNewType(AbstractDomainType.generateType(variable.name, domain)).map(_ => true)
+          case None =>
+            Failure(s"the new type ${variable.name.name} could not be executed properly")
+        }
       case _ =>
         Success(false)
     }
