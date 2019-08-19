@@ -1242,13 +1242,24 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
   it should "handle validation in a domain type" in {
     val text =
       """
-         [[Amount:DomainType(
+         [[Amount:Domain(
          type:Number;
-         validation: Validation(
+         validation:Validation(
          condition: this >= 0;
          errorMessage: "an amount cannot be negative"
         ))]]
       """.stripMargin
+
+     val domainType = executeTemplate(text) match {
+      case Right(executionResult) =>
+        executionResult.findVariableType(VariableTypeDefinition("Amount")) match {
+          case Some(domainType: DefinedDomainType) => domainType.domain
+          case Some(variableType) => fail(s"invalid variable type ${variableType.thisType}")
+          case None => fail("domain type is not the right type")
+        }
+      case Left(ex) =>
+        fail(ex)
+    }
 
     executeTemplate(text, Map("Amount" -> "-5")) match {
       case Right(executionResult) =>

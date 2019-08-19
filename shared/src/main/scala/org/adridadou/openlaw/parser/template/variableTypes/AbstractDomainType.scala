@@ -11,7 +11,7 @@ import org.adridadou.openlaw._
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
 import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success}
 
-case class DomainInformation(variableType:Map[VariableName, VariableType], validation:Validation) extends OpenlawNativeValue
+case class DomainInformation(typeDefinition: Map[VariableName, VariableDefinition], variableType:Map[VariableName, VariableType], validation:Validation) extends OpenlawNativeValue
 
 case object DomainInformation {
   implicit val domainEnc:Encoder[DomainInformation] = deriveEncoder[DomainInformation]
@@ -30,7 +30,7 @@ case object AbstractDomainType extends VariableType(name = "Domain") with TypeGe
           .map(fields => {
             val types = fields.map({case (key,definition) => key -> definition.varType(executionResult)})
             ValidationType.cast(getOneValueConstant(validationType).toString, executionResult) match {
-              case Success(validationVal) => Success(Option(DomainInformation(types.toMap, validationVal)))
+              case Success(validationVal) => Success(Option(DomainInformation(fields.toMap, types.toMap, validationVal)))
               case _ => Failure("""Validation type not found""")
             }
             //Success(Option(DomainInformation(types.toMap, validationValue)))

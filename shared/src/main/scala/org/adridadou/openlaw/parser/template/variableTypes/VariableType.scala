@@ -352,6 +352,7 @@ object VariableType {
     ClauseType,
     DateType,
     DateTimeType,
+    AbstractDomainType,
     EthAddressType,
     EthTxHashType,
     EthereumCallType,
@@ -429,6 +430,13 @@ object VariableType {
 
   private def createCustomType(cursor: HCursor, name:String):Decoder.Result[VariableType] = {
     DefinedStructureType.definedStructureTypeDec(cursor) match {
+      case Right(value) => Right(value)
+      case Left(_) => DefinedChoiceType.definedChoiceTypeDec(cursor) match {
+        case Right(value) => Right(value)
+        case Left(_) => Left(DecodingFailure(s"unknown type $name. or error while decoding", List()))
+      }
+    }
+    DefinedDomainType.definedDomainTypeDec(cursor) match {
       case Right(value) => Right(value)
       case Left(_) => DefinedChoiceType.definedChoiceTypeDec(cursor) match {
         case Right(value) => Right(value)

@@ -122,6 +122,8 @@ trait TemplateExecutionResult {
             varTypes.contains(collectionType.typeParameter)
           case structuredType:DefinedStructureType =>
             structuredType.structure.typeDefinition.values.exists(s => varTypes.contains(s.varType(this)))
+          case domainType:DefinedDomainType =>
+            domainType.domain.typeDefinition.values.exists(s => varTypes.contains(s.varType(this)))
           case variableType => varTypes.contains(variableType)
         }}).map((this, _)) ++ subExecutions.values.flatMap(_.getVariables(varTypes:_*))
 
