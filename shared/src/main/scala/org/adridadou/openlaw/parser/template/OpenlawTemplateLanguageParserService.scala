@@ -69,9 +69,6 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
             .getOrElse(Failure(s"${variable.name} is missing a variable type name"))
       }
 
-    case _: VariableName =>
-      Right(redefinition)
-
     case ConditionalBlock(block, elseBlock, conditionalExpression) =>
       val newTypeMap = conditionalExpression match {
         case variable: VariableDefinition =>
@@ -199,9 +196,8 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
       case (link:Link,_) =>
         Success(agreementPrinter.link(link))
       case (variable:VariableElement,_) if variable.dependencies.forall(variable => !hiddenVariables.contains(variable)) =>
-        agreementPrinter.variableStart(variable.name)
         variable.content
-          .foldLeft(Success(agreementPrinter))((result, elem) => result.flatMap(p => renderElement(elem, docParagraph, optParagraph, hiddenVariables, p)))
+          .foldLeft(Success(agreementPrinter.variableStart(variable.name)))((result, elem) => result.flatMap(p => renderElement(elem, docParagraph, optParagraph, hiddenVariables, p)))
           .map(_.variableEnd())
       case (variable:VariableElement,_) =>
         variable
@@ -225,4 +221,4 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
 }
 
 
-case class VariableRedefinition(typeMap:Map[String, VariableTypeDefinition] = Map(), descriptions:Map[String,String] = Map())
+final case class VariableRedefinition(typeMap:Map[String, VariableTypeDefinition] = Map(), descriptions:Map[String,String] = Map())

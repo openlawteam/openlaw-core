@@ -10,10 +10,10 @@ lazy val repo     = "openlaw-core"
 
 licenses += ("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0"))
 
-lazy val scalaV = "2.12.8"
+lazy val scalaV = "2.12.9"
 lazy val scalaJavaTimeV = "2.0.0-RC3"
 lazy val catsV = "1.6.1"
-lazy val parboiledV = "2.1.7"
+lazy val parboiledV = "2.1.8"
 lazy val circeV = "0.11.1"
 lazy val playJsonV = "2.7.4"
 lazy val scalaTagsV = "0.7.0"
@@ -85,7 +85,20 @@ lazy val releaseSettings = releaseProcess := Seq[ReleaseStep](
   //pushChanges                             // : ReleaseStep, also checks that an upstream branch is properly configured
 )
 
-val rules = Seq(Wart.ArrayEquals, Wart.OptionPartial, Wart.EitherProjectionPartial, Wart.Enumeration, Wart.ExplicitImplicitTypes, Wart.FinalVal, Wart.JavaConversions, Wart.JavaSerializable, Wart.LeakingSealed)
+val rules = Seq(
+	Wart.AnyVal,
+	Wart.ArrayEquals,
+	Wart.AsInstanceOf,
+	Wart.EitherProjectionPartial,
+	Wart.Enumeration,
+	Wart.ExplicitImplicitTypes,
+	Wart.FinalCaseClass,
+	Wart.FinalVal,
+	Wart.IsInstanceOf,
+	Wart.JavaConversions,
+	Wart.JavaSerializable,
+	Wart.LeakingSealed,
+	Wart.OptionPartial)
 
 /*
       *** Library Dependencies. ***

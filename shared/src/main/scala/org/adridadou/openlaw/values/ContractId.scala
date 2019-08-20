@@ -7,7 +7,7 @@ import org.adridadou.openlaw.oracles.CryptoService
 import org.adridadou.openlaw.parser.template.variableTypes.{EthereumAddress, EthereumData}
 
 @SerialVersionUID(7843732947346776640L)
-case class ContractId(id: String) {
+final case class ContractId(id: String) {
   def stopContract(cryptoService: CryptoService):EthereumData = executionId("_stop_contract", cryptoService)
   def data:EthereumData = EthereumData(id)
   def resumeContract(cryptoService: CryptoService):EthereumData = executionId("_resume_contract", cryptoService)
@@ -21,8 +21,8 @@ object ContractId {
 
   def apply(data:Array[Byte]):ContractId = ContractId(EthereumAddress.bytes2hex(data))
 
-  implicit val contractIdEnc:Encoder[ContractId] = deriveEncoder[ContractId]
-  implicit val contractIdDec:Decoder[ContractId] = deriveDecoder[ContractId]
+  implicit val contractIdEnc:Encoder[ContractId] = deriveEncoder
+  implicit val contractIdDec:Decoder[ContractId] = deriveDecoder
 
   implicit val contractEq:Eq[ContractId] = Eq.fromUniversalEquals
 }

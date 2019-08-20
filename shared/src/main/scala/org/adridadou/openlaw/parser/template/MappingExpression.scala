@@ -5,7 +5,7 @@ import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.variableTypes.VariableType
 import org.adridadou.openlaw.result.{Result, Success}
 
-case class MappingExpression(expression: Expression, scopeExecutionResult: TemplateExecutionResult) extends Expression {
+final case class MappingExpression(expression: Expression, scopeExecutionResult: TemplateExecutionResult) extends Expression {
   override def missingInput(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =
     expression.missingInput(scopeExecutionResult)
 

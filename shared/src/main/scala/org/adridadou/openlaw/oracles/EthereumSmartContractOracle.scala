@@ -14,7 +14,7 @@ import EthereumHash._
 import LocalDateTimeHelper._
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 
-case class EthereumSmartContractOracle() extends OpenlawOracle[EthereumSmartContractCallEvent] with LazyLogging {
+final case class EthereumSmartContractOracle() extends OpenlawOracle[EthereumSmartContractCallEvent] with LazyLogging {
 
   override def incoming(vm: OpenlawVm, event: EthereumSmartContractCallEvent): Result[OpenlawVm] = event match {
     case failedEvent:FailedEthereumSmartContractCallEvent =>
@@ -94,18 +94,18 @@ case class EthereumSmartContractOracle() extends OpenlawOracle[EthereumSmartCont
 }
 
 object PendingEthereumSmartContractCallEvent {
-  implicit val ethereumSmartContractCallEventEnc: Encoder[PendingEthereumSmartContractCallEvent] = deriveEncoder[PendingEthereumSmartContractCallEvent]
-  implicit val ethereumSmartContractCallEventDec: Decoder[PendingEthereumSmartContractCallEvent] = deriveDecoder[PendingEthereumSmartContractCallEvent]
+  implicit val ethereumSmartContractCallEventEnc: Encoder[PendingEthereumSmartContractCallEvent] = deriveEncoder
+  implicit val ethereumSmartContractCallEventDec: Decoder[PendingEthereumSmartContractCallEvent] = deriveDecoder
 }
 
 object FailedEthereumSmartContractCallEvent {
-  implicit val failedEthereumSmartContractCallEventEnc: Encoder[FailedEthereumSmartContractCallEvent] = deriveEncoder[FailedEthereumSmartContractCallEvent]
-  implicit val failedEthereumSmartContractCallEventDec: Decoder[FailedEthereumSmartContractCallEvent] = deriveDecoder[FailedEthereumSmartContractCallEvent]
+  implicit val failedEthereumSmartContractCallEventEnc: Encoder[FailedEthereumSmartContractCallEvent] = deriveEncoder
+  implicit val failedEthereumSmartContractCallEventDec: Decoder[FailedEthereumSmartContractCallEvent] = deriveDecoder
 }
 
 object SuccessfulEthereumSmartContractCallEvent {
-  implicit val successfulEthereumSmartContractCallEventEnc: Encoder[SuccessfulEthereumSmartContractCallEvent] = deriveEncoder[SuccessfulEthereumSmartContractCallEvent]
-  implicit val successfulEthereumSmartContractCallEventDec: Decoder[SuccessfulEthereumSmartContractCallEvent] = deriveDecoder[SuccessfulEthereumSmartContractCallEvent]
+  implicit val successfulEthereumSmartContractCallEventEnc: Encoder[SuccessfulEthereumSmartContractCallEvent] = deriveEncoder
+  implicit val successfulEthereumSmartContractCallEventDec: Decoder[SuccessfulEthereumSmartContractCallEvent] = deriveDecoder
 }
 
 sealed trait EthereumSmartContractCallEvent extends OpenlawVmEvent {

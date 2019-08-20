@@ -56,8 +56,8 @@ class EthereumAddress(val address: Array[Byte]) extends OpenlawNativeValue {
 }
 
 object EthereumAddress {
-  implicit val ethereumAddressEnc: Encoder[EthereumAddress] = deriveEncoder[EthereumAddress]
-  implicit val ethereumAddressDec: Decoder[EthereumAddress] = deriveDecoder[EthereumAddress]
+  implicit val ethereumAddressEnc: Encoder[EthereumAddress] = deriveEncoder
+  implicit val ethereumAddressDec: Decoder[EthereumAddress] = deriveDecoder
 
   val maxAddressSize = 20
   val maxSignatureSize = 63
@@ -65,8 +65,11 @@ object EthereumAddress {
   def unapply(address: EthereumAddress): Option[Array[Byte]] = Some(address.address)
 
   def apply(address: Array[Byte]): Result[EthereumAddress] = {
-    if (address.length > maxAddressSize) Failure("byte array of the address cannot be bigger than 20.value:" + bytes2hex(address))
-    Success(new EthereumAddress(address))
+    if (address.length > maxAddressSize) {
+			Failure("byte array of the address cannot be bigger than 20.value:" + bytes2hex(address))
+		} else {
+			Success(new EthereumAddress(address))
+		}
   }
 
   def apply(a: String): Result[EthereumAddress] = Option(a) match {
@@ -90,7 +93,7 @@ object EthereumAddress {
 }
 
 @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
-case class EthereumSignature(signature: Array[Byte]) {
+final case class EthereumSignature(signature: Array[Byte]) {
   def withLeading0x: String = "0x" + this.toString
   override def toString: String = EthereumAddress.bytes2hex(signature)
 
@@ -101,8 +104,8 @@ case class EthereumSignature(signature: Array[Byte]) {
 }
 
 object EthereumSignature {
-  implicit val ethereumSignatureEnc: Encoder[EthereumSignature] = deriveEncoder[EthereumSignature]
-  implicit val ethereumSignatureDec: Decoder[EthereumSignature] = deriveDecoder[EthereumSignature]
+  implicit val ethereumSignatureEnc: Encoder[EthereumSignature] = deriveEncoder
+  implicit val ethereumSignatureDec: Decoder[EthereumSignature] = deriveDecoder
 
   implicit val ethereumSignatureEq:Eq[EthereumSignature] = Eq.fromUniversalEquals
 
@@ -129,8 +132,8 @@ object EthereumSignature {
 
 object EthereumData {
 
-  implicit val ethereumDataEnc: Encoder[EthereumData] = deriveEncoder[EthereumData]
-  implicit val ethereumDataDec: Decoder[EthereumData] = deriveDecoder[EthereumData]
+  implicit val ethereumDataEnc: Encoder[EthereumData] = deriveEncoder
+  implicit val ethereumDataDec: Decoder[EthereumData] = deriveDecoder
 
   implicit val ethereumDataEq:Eq[EthereumData] = Eq.fromUniversalEquals
 
@@ -147,7 +150,7 @@ object EthereumData {
 }
 
 @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
-case class EthereumData(data: Array[Byte]) {
+final case class EthereumData(data: Array[Byte]) {
   def withLeading0x: String = "0x" + this.toString
   override def toString: String = EthereumAddress.bytes2hex(data)
 
@@ -160,8 +163,8 @@ case class EthereumData(data: Array[Byte]) {
 }
 
 object EthereumHash {
-  implicit val ethereumHashEnc: Encoder[EthereumHash] = deriveEncoder[EthereumHash]
-  implicit val ethereumHashDec: Decoder[EthereumHash] = deriveDecoder[EthereumHash]
+  implicit val ethereumHashEnc: Encoder[EthereumHash] = deriveEncoder
+  implicit val ethereumHashDec: Decoder[EthereumHash] = deriveDecoder
 
   implicit val ethereumHashEq:Eq[EthereumHash] = Eq.fromUniversalEquals
 
@@ -172,7 +175,7 @@ object EthereumHash {
 }
 
 @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
-case class EthereumHash(data: Array[Byte]) extends OpenlawNativeValue {
+final case class EthereumHash(data: Array[Byte]) extends OpenlawNativeValue {
   def withLeading0x: String = "0x" + this.toString
   override def toString: String = EthereumAddress.bytes2hex(data)
 
@@ -182,4 +185,4 @@ case class EthereumHash(data: Array[Byte]) extends OpenlawNativeValue {
   }
 }
 
-case class OpenlawKeyIdentifier(userId: UserId, contractId: ContractId)
+final case class OpenlawKeyIdentifier(userId: UserId, contractId: ContractId)

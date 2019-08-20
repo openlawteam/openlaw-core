@@ -169,9 +169,6 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     case variableMember: VariableMember =>
       processVariableMember(executionResult, variableMember, executed = true)
 
-    case variable:VariableName =>
-      processVariable(executionResult, VariableDefinition(name = variable.name), executed = true)
-
     case alias:VariableAliasing =>
       processAlias(executionResult, alias, executed = true)
 
@@ -326,7 +323,8 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     }
   }
 
-  private def getRoot(parent:OpenlawExecutionState):OpenlawExecutionState = parent.parentExecutionInternal match {
+  @scala.annotation.tailrec
+	private def getRoot(parent:OpenlawExecutionState):OpenlawExecutionState = parent.parentExecutionInternal match {
     case Some(parentExecution) => getRoot(parentExecution)
     case None => parent
   }
@@ -364,9 +362,6 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
   private def processCodeElement(executionResult: OpenlawExecutionState, templates:Map[TemplateSourceIdentifier, CompiledTemplate], element:TemplatePart): Result[OpenlawExecutionState] = element match {
     case variable: VariableDefinition =>
       processVariable(executionResult, variable, executed = false)
-
-    case variable:VariableName =>
-      processVariable(executionResult, VariableDefinition(name = variable.name), executed = false)
 
     case alias:VariableAliasing =>
       processAlias(executionResult, alias, executed = false)

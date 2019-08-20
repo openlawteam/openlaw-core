@@ -9,12 +9,12 @@ import org.adridadou.openlaw.parser.template.formatters.Formatter
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success}
 
-case class LinkInfo(label: String, url:String) extends OpenlawNativeValue
+final case class LinkInfo(label: String, url:String) extends OpenlawNativeValue
 
 case object LinkType extends VariableType(name = "Link") {
 
-  private implicit val enc: Encoder[LinkInfo] = deriveEncoder[LinkInfo]
-  private implicit val dec: Decoder[LinkInfo] = deriveDecoder[LinkInfo]
+  private implicit val enc: Encoder[LinkInfo] = deriveEncoder
+  private implicit val dec: Decoder[LinkInfo] = deriveDecoder
 
   override def cast(value: String, executionResult: TemplateExecutionResult): Result[LinkInfo] = decode[LinkInfo](value).leftMap(FailureException(_))
 

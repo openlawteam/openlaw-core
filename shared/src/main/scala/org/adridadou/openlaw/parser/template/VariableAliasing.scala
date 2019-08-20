@@ -8,11 +8,11 @@ import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.result.Result
 
 object VariableAliasing {
-  implicit val variableAliasingEnc: Encoder[VariableAliasing] = deriveEncoder[VariableAliasing]
-  implicit val variableAliasingDec: Decoder[VariableAliasing] = deriveDecoder[VariableAliasing]
+  implicit val variableAliasingEnc: Encoder[VariableAliasing] = deriveEncoder
+  implicit val variableAliasingDec: Decoder[VariableAliasing] = deriveDecoder
 }
 
-case class VariableAliasing(name:VariableName, expr:Expression) extends Expression with TemplatePart{
+final case class VariableAliasing(name:VariableName, expr:Expression) extends Expression with TemplatePart{
   def validate(executionResult: TemplateExecutionResult): Result[Unit] =
     expr.validate(executionResult)
 

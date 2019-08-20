@@ -56,14 +56,14 @@ object ServiceName {
   val openlawServiceName = ServiceName("Openlaw")
 }
 
-case class ServiceName(serviceName:String)
+final case class ServiceName(serviceName:String)
 
-case class IntegratedServiceDefinition(input:Structure, output:Structure) {
+final case class IntegratedServiceDefinition(input:Structure, output:Structure) {
   def definedInput: DefinedStructureType = DefinedStructureType(input, "Input")
   def definedOutput: DefinedStructureType = DefinedStructureType(output, "Output")
 }
 
-case class SignatureServiceDefinition() {
+final case class SignatureServiceDefinition() {
   val definition = "[[Input:Structure(signerEmail: Text; contractContentBase64: Text; contractTitle: Text)]] [[Output:Structure(signerEmail: Text; signature: Text; recordLink: Text)]]"
   val abi = IntegratedServiceDefinition(definition).getOrThrow()
   def definedInput: DefinedStructureType = DefinedStructureType(abi.input, "Input")
@@ -76,14 +76,14 @@ object SignatureServiceDefinition {
   implicit val signatureServiceDefinitionEq:Eq[SignatureServiceDefinition] = Eq.fromUniversalEquals
 }
 
-case class SignatureInput(signerEmail: Email, contractContentBase64: String, contractTitle: String)
+final case class SignatureInput(signerEmail: Email, contractContentBase64: String, contractTitle: String)
 object SignatureInput {
   implicit val signatureInputEnc:Encoder[SignatureInput] = deriveEncoder
   implicit val signatureInputDec:Decoder[SignatureInput] = deriveDecoder
   implicit val signatureInputEq:Eq[SignatureInput] = Eq.fromUniversalEquals
 }
 
-case class SignatureOutput(signerEmail: Email, signature: EthereumSignature, recordLink: String)
+final case class SignatureOutput(signerEmail: Email, signature: EthereumSignature, recordLink: String)
 object SignatureOutput {
   implicit val signatureOutputEnc:Encoder[SignatureOutput] =  Encoder.instance[SignatureOutput] { output =>
     Json.obj(
@@ -107,7 +107,7 @@ object SignatureOutput {
   }
 }
 
-case class ExternalCall(serviceName: Expression,
+final case class ExternalCall(serviceName: Expression,
                         parameters: Map[VariableName, Expression],
                         startDate: Option[Expression],
                         endDate: Option[Expression],
@@ -192,6 +192,6 @@ case class ExternalCall(serviceName: Expression,
 }
 
 object ExternalCall {
-  implicit val externalCallEnc: Encoder[ExternalCall] = deriveEncoder[ExternalCall]
-  implicit val externalCallDec: Decoder[ExternalCall] = deriveDecoder[ExternalCall]
+  implicit val externalCallEnc: Encoder[ExternalCall] = deriveEncoder
+  implicit val externalCallDec: Decoder[ExternalCall] = deriveDecoder
 }

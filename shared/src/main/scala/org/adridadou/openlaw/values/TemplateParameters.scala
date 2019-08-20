@@ -4,7 +4,7 @@ import org.adridadou.openlaw.parser.template.VariableName
 import io.circe._
 import io.circe.generic.semiauto._
 
-case class TemplateParameters(params:Map[VariableName, String] = Map()) {
+final case class TemplateParameters(params:Map[VariableName, String] = Map()) {
   def strParams:Map[String, String] = params.map({case (key,value) => key.name -> value})
   def get(name: String):Option[String] = get(VariableName(name))
   def apply(name:String):String = apply(VariableName(name))
@@ -22,6 +22,6 @@ object TemplateParameters {
     TemplateParameters(Map(names:_*))
   }
 
-  implicit val templateParametersEnc:Encoder[TemplateParameters] = deriveEncoder[TemplateParameters]
-  implicit val templateParametersDec:Decoder[TemplateParameters]= deriveDecoder[TemplateParameters]
+  implicit val templateParametersEnc:Encoder[TemplateParameters] = deriveEncoder
+  implicit val templateParametersDec:Decoder[TemplateParameters]= deriveDecoder
 }

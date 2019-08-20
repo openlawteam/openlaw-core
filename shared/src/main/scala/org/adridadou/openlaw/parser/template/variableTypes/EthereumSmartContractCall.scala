@@ -15,11 +15,11 @@ import org.adridadou.openlaw.oracles.CryptoService
 import org.adridadou.openlaw.result.{Result, Success}
 
 object EthereumSmartContractCall {
-  implicit val smartContractEnc: Encoder[EthereumSmartContractCall] = deriveEncoder[EthereumSmartContractCall]
-  implicit val smartContractDec: Decoder[EthereumSmartContractCall] = deriveDecoder[EthereumSmartContractCall]
+  implicit val smartContractEnc: Encoder[EthereumSmartContractCall] = deriveEncoder
+  implicit val smartContractDec: Decoder[EthereumSmartContractCall] = deriveDecoder
 }
 
-case class EthereumSmartContractCall(
+final case class EthereumSmartContractCall(
     address: Expression,
     abi: Expression,
     network: Expression,
@@ -171,4 +171,4 @@ case class EthereumSmartContractCall(
   }
 }
 
-case class SmartContractMetadata(protocol: String, address: String) extends OpenlawNativeValue
+final case class SmartContractMetadata(protocol: String, address: String) extends OpenlawNativeValue

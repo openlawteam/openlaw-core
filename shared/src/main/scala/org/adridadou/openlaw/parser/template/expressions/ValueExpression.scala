@@ -5,7 +5,7 @@ import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes.VariableType
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 
-case class ValueExpression(left:Expression, right:Expression, operation:ValueOperation) extends BinaryExpression {
+final case class ValueExpression(left:Expression, right:Expression, operation:ValueOperation) extends BinaryExpression {
   override def expressionType(executionResult: TemplateExecutionResult): Result[VariableType] = {
     for {
       leftType <- left.expressionType(executionResult)

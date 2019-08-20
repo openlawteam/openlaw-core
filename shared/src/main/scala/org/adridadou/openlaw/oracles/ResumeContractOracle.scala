@@ -7,7 +7,7 @@ import io.circe.syntax._
 import io.circe.generic.semiauto._
 import org.adridadou.openlaw.result.Result
 
-case class ResumeContractOracle(crypto:CryptoService) extends SignedActionOracle[ResumeExecutionEvent] {
+final case class ResumeContractOracle(crypto:CryptoService) extends SignedActionOracle[ResumeExecutionEvent] {
 
   override def incoming(vm:OpenlawVm, event: ResumeExecutionEvent): Result[OpenlawVm] =
     checkAction(vm, crypto, event, vm.contractDefinition.id(crypto).resumeContract(crypto))
@@ -27,7 +27,7 @@ object ResumeExecutionEvent {
   implicit val resumeExecutionEventDec:Decoder[ResumeExecutionEvent] = deriveDecoder
 }
 
-case class ResumeExecutionEvent(signature: EthereumSignature) extends SignedActionEvent {
+final case class ResumeExecutionEvent(signature: EthereumSignature) extends SignedActionEvent {
   override def typeIdentifier: String = className[ResumeExecutionEvent]
   override def serialize: String = this.asJson.noSpaces
 }

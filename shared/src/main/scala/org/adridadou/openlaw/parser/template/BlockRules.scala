@@ -191,8 +191,15 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   @tailrec final def accumulateTextAndTrim(seq: Seq[TemplatePart], accu: Seq[TemplatePart] = Seq()): Seq[TemplatePart] = seq match {
     case Seq() => accu
     case seq @ Seq(head, tail @ _*) =>
-      val texts = seq.takeWhile(_.isInstanceOf[Text]).asInstanceOf[Seq[Text]]
-      val trimmed = texts.map(_.str).foldLeft("")(_ + _).trim
+      val texts = seq.takeWhile({
+				case _:Text => true
+				case _ => false
+			}).map({
+				case t:Text => t.str
+				case _ => ""
+			})
+
+      val trimmed = texts.foldLeft("")(_ + _).trim
       texts.size match {
         case 0 => accumulateTextAndTrim(tail, accu :+ head)
         case _ if trimmed === "" => accumulateTextAndTrim(seq.drop(texts.size), accu)
@@ -266,5 +273,5 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   }
 }
 
-case class VariableSection(name:String, variables:Seq[VariableDefinition]) extends TemplatePart
-case class SectionDefinition(name:String, parameters:Option[Parameters])
+final case class VariableSection(name:String, variables:Seq[VariableDefinition]) extends TemplatePart
+final case class SectionDefinition(name:String, parameters:Option[Parameters])

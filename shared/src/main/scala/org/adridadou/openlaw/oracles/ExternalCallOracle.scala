@@ -15,7 +15,7 @@ import org.adridadou.openlaw.{OpenlawMap, OpenlawValue}
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 
-case class ExternalCallOracle(crypto: CryptoService) extends OpenlawOracle[ExternalCallEvent] with LazyLogging {
+final case class ExternalCallOracle(crypto: CryptoService) extends OpenlawOracle[ExternalCallEvent] with LazyLogging {
 
   override def incoming(vm: OpenlawVm, event: ExternalCallEvent): Result[OpenlawVm] = event match {
     case failedEvent: FailedExternalCallEvent =>
@@ -79,18 +79,18 @@ case class ExternalCallOracle(crypto: CryptoService) extends OpenlawOracle[Exter
 }
 
 object PendingExternalCallEvent {
-  implicit val pendingExternalCallEventEnc: Encoder[PendingExternalCallEvent] = deriveEncoder[PendingExternalCallEvent]
-  implicit val pendingExternalCallEventDec: Decoder[PendingExternalCallEvent] = deriveDecoder[PendingExternalCallEvent]
+  implicit val pendingExternalCallEventEnc: Encoder[PendingExternalCallEvent] = deriveEncoder
+  implicit val pendingExternalCallEventDec: Decoder[PendingExternalCallEvent] = deriveDecoder
 }
 
 object FailedExternalCallEvent {
-  implicit val failedExternalCallEventEnc: Encoder[FailedExternalCallEvent] = deriveEncoder[FailedExternalCallEvent]
-  implicit val failedExternalCallEventDec: Decoder[FailedExternalCallEvent] = deriveDecoder[FailedExternalCallEvent]
+  implicit val failedExternalCallEventEnc: Encoder[FailedExternalCallEvent] = deriveEncoder
+  implicit val failedExternalCallEventDec: Decoder[FailedExternalCallEvent] = deriveDecoder
 }
 
 object SuccessfulExternalCallEvent {
-  implicit val successfulExternalCallEventEnc: Encoder[SuccessfulExternalCallEvent] = deriveEncoder[SuccessfulExternalCallEvent]
-  implicit val successfulExternalCallEventDec: Decoder[SuccessfulExternalCallEvent] = deriveDecoder[SuccessfulExternalCallEvent]
+  implicit val successfulExternalCallEventEnc: Encoder[SuccessfulExternalCallEvent] = deriveEncoder
+  implicit val successfulExternalCallEventDec: Decoder[SuccessfulExternalCallEvent] = deriveDecoder
 }
 
 sealed trait ExternalCallEvent extends OpenlawVmEvent {

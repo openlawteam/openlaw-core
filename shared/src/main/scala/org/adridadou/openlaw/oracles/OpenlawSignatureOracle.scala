@@ -14,7 +14,7 @@ import org.adridadou.openlaw.result.{Failure, Result, Success}
 import org.adridadou.openlaw.values.ContractId
 import org.adridadou.openlaw.vm.OpenlawVmEvent
 
-case class OpenlawSignatureOracle(crypto:CryptoService, serverAccount:EthereumAddress, externalSignatureAccounts:Map[ServiceName, EthereumAddress] = Map()) {
+final case class OpenlawSignatureOracle(crypto:CryptoService, serverAccount:EthereumAddress, externalSignatureAccounts:Map[ServiceName, EthereumAddress] = Map()) {
 
   def isSignatureValid(data:EthereumData, signatureEvent: SignatureEvent): Result[Boolean] = signatureEvent match {
     case event:SignatureEvent =>
@@ -51,7 +51,7 @@ object ExternalSignatureEvent {
   implicit val externalSignatureEventDec: Decoder[ExternalSignatureEvent] = deriveDecoder
 }
 
-case class ExternalSignatureEvent(contractId:ContractId, email:Email, fullName:String, serviceName:ServiceName, signature: EthereumSignature) extends SignatureEvent {
+final case class ExternalSignatureEvent(contractId:ContractId, email:Email, fullName:String, serviceName:ServiceName, signature: EthereumSignature) extends SignatureEvent {
   override def getServiceName: Option[ServiceName] = Some(serviceName)
   override def typeIdentifier: String = className[ExternalSignatureEvent]
   override def serialize: String = this.asJson.noSpaces
@@ -64,7 +64,7 @@ object OpenlawSignatureEvent {
   implicit val openlawSignatureEventDec: Decoder[OpenlawSignatureEvent] = deriveDecoder
 }
 
-case class OpenlawSignatureEvent(contractId:ContractId, email:Email, fullName:String, signature: EthereumSignature, ethereumHash:EthereumHash) extends SignatureEvent {
+final case class OpenlawSignatureEvent(contractId:ContractId, email:Email, fullName:String, signature: EthereumSignature, ethereumHash:EthereumHash) extends SignatureEvent {
 
   override def getServiceName: Option[ServiceName] = None
 
@@ -78,14 +78,14 @@ case class OpenlawSignatureEvent(contractId:ContractId, email:Email, fullName:St
     txHash = ethereumHash)
 }
 
-case class UserId(id:String) {
+final case class UserId(id:String) {
   override def toString: String = id
 }
 
 object UserId {
   implicit val eqForUserIdType: Eq[UserId] = (x: UserId, y: UserId) => x.id === y.id
-  implicit val userIdEnc:Encoder[UserId] = deriveEncoder[UserId]
-  implicit val userIdDec:Decoder[UserId] = deriveDecoder[UserId]
+  implicit val userIdEnc:Encoder[UserId] = deriveEncoder
+  implicit val userIdDec:Decoder[UserId] = deriveDecoder
 
   implicit val userIdKeyEnc:KeyEncoder[UserId] = (key: UserId) => key.id
   implicit val userIdKeyDec:KeyDecoder[UserId] = (key: String) => Some(UserId(key))
@@ -96,5 +96,5 @@ object UserId {
 
 }
 
-case class OpenlawUser(userId:UserId, token: Option[String],
+final case class OpenlawUser(userId:UserId, token: Option[String],
                        tokenValidityDate: Option[LocalDateTime])

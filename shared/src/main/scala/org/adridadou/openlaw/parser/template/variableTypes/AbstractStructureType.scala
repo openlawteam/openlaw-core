@@ -18,7 +18,7 @@ object Structure {
   implicit val structureDecEq:Eq[Structure] = Eq.fromUniversalEquals
 }
 
-case class Structure(typeDefinition: Map[VariableName, VariableDefinition], names:Seq[VariableName], types:Map[VariableName, VariableType]) extends OpenlawNativeValue
+final case class Structure(typeDefinition: Map[VariableName, VariableDefinition], names:Seq[VariableName], types:Map[VariableName, VariableType]) extends OpenlawNativeValue
 
 case object AbstractStructureType extends VariableType(name = "Structure") with TypeGenerator[Structure] {
   override def construct(param:Parameter, executionResult: TemplateExecutionResult): Result[Option[Structure]] = param match {
@@ -69,7 +69,7 @@ object DefinedStructureType {
 
 }
 
-case class DefinedStructureType(structure:Structure, typeName:String) extends VariableType(name = typeName) {
+final case class DefinedStructureType(structure:Structure, typeName:String) extends VariableType(name = typeName) {
 
 
   override def serialize: Json = {
@@ -123,11 +123,11 @@ case class DefinedStructureType(structure:Structure, typeName:String) extends Va
       Success(())
     case head::tail =>
       val name = VariableName(head)
-      structure.typeDefinition.get(name) match {
+      structure.typeDefinition.get(name).map(_.varType(executionResult)) match {
         case Some(variableType:NoShowInForm) =>
           Failure(s"invalid type in structure ${variableType.name} only types that should be shown in the input form are allowed (Text, YesNo, Address ...)")
         case Some(variableType) =>
-          variableType.varType(executionResult).validateKeys(name, tail, expression, executionResult)
+          variableType.validateKeys(name, tail, expression, executionResult)
         case None =>
           Failure(s"property '${tail.mkString(".")}' could not be resolved in structure value '$head'")
       }

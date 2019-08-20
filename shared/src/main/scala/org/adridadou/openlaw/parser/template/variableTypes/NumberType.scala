@@ -117,7 +117,7 @@ case object RawNumberFormatter extends Formatter with NumberFormatter {
     VariableType.convert[OpenlawBigDecimal](value).map(_.bigDecimal.stripTrailingZeros().toPlainString).map(str => Seq(FreeText(Text(str))))
 }
 
-case class Rounding(expr:Expression) extends Formatter with NumberFormatter {
+final case class Rounding(expr:Expression) extends Formatter with NumberFormatter {
   override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] = {
     expr
       .evaluate(executionResult)

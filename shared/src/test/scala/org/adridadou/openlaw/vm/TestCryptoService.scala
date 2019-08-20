@@ -16,7 +16,7 @@ object TestCryptoService extends CryptoService {
     }
 }
 
-case class TestAccount(address:EthereumAddress) {
+final case class TestAccount(address:EthereumAddress) {
 
   def sign(data:EthereumData):EthereumSignature =
     sign(data.data)

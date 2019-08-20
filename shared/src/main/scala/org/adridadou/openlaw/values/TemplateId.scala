@@ -11,7 +11,7 @@ case object Unknown extends TemplateKind("unknown")
 case object Agreement extends TemplateKind("agreement")
 case object Deal extends TemplateKind("deal")
 
-case class TemplateId(id:String = "") extends Comparable[TemplateId] {
+final case class TemplateId(id:String = "") extends Comparable[TemplateId] {
   override def toString:String = id
 
   override def compareTo(o: TemplateId): Int = id.compareTo(o.id)
@@ -21,16 +21,16 @@ object TemplateId {
 
   def apply(data:Array[Byte]):TemplateId = TemplateId(EthereumAddress.bytes2hex(data))
 
-  implicit val templateIdEnc:Encoder[TemplateId] = deriveEncoder[TemplateId]
-  implicit val templateIdDec:Decoder[TemplateId] = deriveDecoder[TemplateId]
+  implicit val templateIdEnc:Encoder[TemplateId] = deriveEncoder
+  implicit val templateIdDec:Decoder[TemplateId] = deriveDecoder
 
   implicit val eq:Eq[TemplateId] = Eq.by(_.id)
 
 }
 
-case class TemplateIdentifier(title:TemplateTitle, version:Int)
+final case class TemplateIdentifier(title:TemplateTitle, version:Int)
 
-case class TemplateTitle(originalTitle:String, title:String) {
+final case class TemplateTitle(originalTitle:String, title:String) {
   override def toString:String = title
 
   override def equals(obj: Any): Boolean = obj match {
