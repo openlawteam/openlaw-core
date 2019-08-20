@@ -213,8 +213,8 @@ trait TemplateExecutionResult {
               .flatMap { values =>
                 domainType
                   .domain
-                  .names
-                  .filter(name => domainType.domain.typeDefinition(name).varType(result) === IdentityType)
+                  .typeDefinition
+                  .filter(name => name.varType(result) === IdentityType)
                   .map(name => VariableType.convert[Identity](values(name)))
                   .toList
                   .sequence
