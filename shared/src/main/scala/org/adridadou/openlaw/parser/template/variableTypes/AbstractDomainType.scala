@@ -8,6 +8,7 @@ import io.circe.syntax._
 import io.circe.parser._
 import io.circe.generic.semiauto._
 import org.adridadou.openlaw._
+import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
 import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success}
 
@@ -20,7 +21,7 @@ case object DomainInformation {
 
 }
 
-case object AbstractDomainType extends VariableType(name = "Domain") with TypeGenerator[DomainInformation] {
+case object AbstractDomainType extends VariableType(name = "DomainInformation") with TypeGenerator[DomainInformation] {
 
   override def construct(param:Parameter, executionResult: TemplateExecutionResult): Result[Option[DomainInformation]] = param match {
     case Parameters(values) =>
@@ -33,18 +34,10 @@ case object AbstractDomainType extends VariableType(name = "Domain") with TypeGe
               case Success(validationVal) => Success(Option(DomainInformation(fields.toMap, types.toMap, validationVal)))
               case _ => Failure("""Validation type not found""")
             }
-            //Success(Option(DomainInformation(types.toMap, validationValue)))
           }.right.getOrElse(None))
     case _ =>
       Failure("""Domain type requires parameters (either 'variableType' or 'validation' is missing)""")
     }
-
-  /*private def getType(typeName:String, value:Parameter, executionResult: TemplateExecutionResult): Result[VariableType] = value match {
-    case OneValueParameter(VariableName(typeName)) =>
-      Success(VariableType(name = VariableType(typeName)))
-    case _ =>
-      Failure("error in the constructor for Structured Type")
-  }*/
 
   override def defaultFormatter: Formatter = new NoopFormatter
 
@@ -100,7 +93,7 @@ case class DefinedDomainType(domain:DomainInformation, typeName:String) extends 
 
   override def defaultFormatter: Formatter = new NoopFormatter
 
-  /*override def access(value: OpenlawValue, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = {
+  override def access(value: OpenlawValue, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = {
     keys.toList match {
       case Nil =>
         Success(Some(value))
@@ -112,45 +105,41 @@ case class DefinedDomainType(domain:DomainInformation, typeName:String) extends 
             keyType <- domain.typeDefinition.get(headName)
           } yield keyType.varType(executionResult).access(result, name, tail, executionResult)) match {
             case Some(result) => result
-            case None if domain.names.contains(headName) =>
-              Success(None)
             case None =>
-              Failure(s"properties '${keys.mkString(".")}' could not be resolved for the structured type $typeName. available properties ${structure.names.map(name => s"'${name.name}'").mkString(",")}")
+              Failure(s"properties '${keys.mkString(".")}' could not be resolved for the domain type $typeName.")
           }
         }
     }
-  }*/
+  }
 
   override def getTypeClass: Class[OpenlawMap[VariableName, OpenlawValue]] = classOf[OpenlawMap[VariableName, OpenlawValue]]
 
-  /*override def keysType(keys: Seq[String], expression: Expression, executionResult: TemplateExecutionResult): Result[VariableType] =
+  override def keysType(keys: Seq[String], expression: Expression, executionResult: TemplateExecutionResult): Result[VariableType] =
     keys.toList match {
       case Nil =>
         Success(AbstractDomainType)
       case head::tail =>
         val name = VariableName(head)
-        domain.variableType match {
-          case Some(variableType) =>
+        domain.typeDefinition.get(name) match {
+          case Some(varDefinition) =>
             varDefinition.varType(executionResult).keysType(tail, expression, executionResult)
           case None =>
             Failure(s"property '${keys.mkString(".")}' could not be resolved in domain value '$head'")
         }
-    }*/
+    }
 
-  /*override def validateKeys(name:VariableName, keys: Seq[String], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] = keys.toList match {
+  override def validateKeys(name:VariableName, keys: Seq[String], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] = keys.toList match {
     case Nil =>
       Success(())
     case head::tail =>
       val name = VariableName(head)
-      structure.typeDefinition.get(name) match {
-        case Some(variableType:NoShowInForm) =>
-          Failure(s"invalid type in structure ${variableType.name} only types that should be shown in the input form are allowed (Text, YesNo, Address ...)")
+      domain.typeDefinition.get(name) match {
         case Some(variableType) =>
           variableType.varType(executionResult).validateKeys(name, tail, expression, executionResult)
         case None =>
-          Failure(s"property '${tail.mkString(".")}' could not be resolved in structure value '$head'")
+          Failure(s"property '${tail.mkString(".")}' could not be resolved in domain value '$head'")
       }
-  }*/
+  }
 
   override def cast(value: String, executionResult: TemplateExecutionResult): Result[OpenlawMap[VariableName, OpenlawValue]] =
     for {

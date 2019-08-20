@@ -206,7 +206,7 @@ trait TemplateExecutionResult {
                   .map(_.flatMap(_.identity))
               }
 
-          case domainType: DefinedDomainType if domainType.domain.typeDefinition.values.exists(_.varType(result) === IdentityType) =>
+          /*case domainType: DefinedDomainType if domainType.domain.typeDefinition.values.exists(_.varType(result) === IdentityType) =>
             variable
               .evaluateT[OpenlawMap[VariableName, OpenlawValue]](result)
               .map(_.getOrElse(Map()))
@@ -218,7 +218,7 @@ trait TemplateExecutionResult {
                   .map(name => VariableType.convert[Identity](values(name)))
                   .toList
                   .sequence
-              }
+              }*/
 
           case _ =>
             Success(Seq())
