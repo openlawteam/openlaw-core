@@ -1467,7 +1467,6 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
          <%
          [[amount:Amount]]
          %>
-         [[amount]]
       """.stripMargin
 
     val template = compile(text)
@@ -1480,54 +1479,43 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       case Failure(ex, message) => fail(message, ex)
     }
 
-    val Right(result) = engine.execute(template)
+    val textWithVar =
+      """<%
+        [[Amount:DomainInformation(
+         |variableType: Number;
+         |condition: this >= 0;
+         |errorMessage: "an amount cannot be negative"
+         |)]]
+        |
+        [[amount:Amount]]
+        |%>
+        |My amount is: [[amount.variableType]]
+      """.stripMargin
+
+    val template2 = compile(textWithVar)
+
+    val Right(result) = engine.execute(template2)
     val Some(varType:DefinedDomainType) = result.findVariableType(VariableTypeDefinition("Amount"))
     val Right(internalFormat) = varType.internalFormat(Map[VariableName, OpenlawValue](
-      VariableName("amount") -> OpenlawBigDecimal(BigDecimal("5"))))
-    engine.execute(template, TemplateParameters("amount" -> internalFormat)) match {
+      VariableName("variableType") -> OpenlawBigDecimal(BigDecimal("5"))))
+    engine.execute(template2, TemplateParameters("amount" -> internalFormat)) match {
       case Success(newResult) =>
-        parser.forReview(newResult.agreements.head) shouldBe "<p class=\"no-section\"><br />        <br />5<br />      </p>"
+        parser.forReview(newResult.agreements.head) shouldBe "<p class=\"no-section\"><br>My amount is: 5<br /><     </p>"
       case Failure(ex, message) =>
         ex.printStackTrace()
         fail(message, ex)
     }
 
-    /*engine.execute(template, TemplateParameters("amount" -> "5")) match {
-      case Success(executionResult) =>
-        executionResult.findVariableType(VariableTypeDefinition("Amount")) match {
-          case Some(domainType: DefinedDomainType) => 
-             executionResult.getVariable("amount") match {
-             case Some(variable) =>
-                variable.variableTypeDefinition.map(_.name) shouldBe Some("Amount")
-                variable.name.name shouldBe "amount"
-                variable.description shouldBe Some(5)
-             case None => fail("amount was not declared properly!")
-             }
-          case Some(variableType) => fail(s"invalid variable type ${variableType.thisType}")
-          case None => fail("domain type is not the right type")
-        }
-      case Failure(ex, message) => fail(message, ex)
-    }*/
-
-    /*engine.execute(template, TemplateParameters("amount" -> "-5")) match {
-      case Success(executionResult) =>
-        executionResult.findVariableType(VariableTypeDefinition("Amount")) match {
-          case Some(domainType: DefinedDomainType) => 
-             executionResult.getVariable("amount") match {
-             case Some(variable) =>
-                variable.variableTypeDefinition.map(_.name) shouldBe Some("Amount")
-                variable.name.name shouldBe "amount"
-                println(variable.toString)
-                variable.description shouldBe None
-             case None => fail("amount was not declared properly!")
-             }
-          case Some(variableType) => fail(s"invalid variable type ${variableType.thisType}")
-          case None => fail("domain type is not the right type")
-        }
-      case Failure(ex, message) => fail(message, ex)
-    }*/
+    val Right(internalFormat2) = varType.internalFormat(Map[VariableName, OpenlawValue](
+      VariableName("variableType") -> OpenlawBigDecimal(BigDecimal("-5"))))
+    engine.execute(template2, TemplateParameters("amount" -> internalFormat2)) match {
+      case Success(newResult) =>
+        parser.forReview(newResult.agreements.head) shouldBe "<p class=\"no-section\">My amount is .        <br /><     </p>"
+      case Failure(ex, message) =>
+        ex.printStackTrace()
+        fail(message, ex)
+    }
    
-
   }
 
   it should "print table properly even in a conditional" in {
