@@ -26,22 +26,21 @@ case object AbstractDomainType extends VariableType(name = "DomainInformation") 
   override def construct(param:Parameter, executionResult: TemplateExecutionResult): Result[Option[DomainInformation]] = param match {
     case Parameters(values) =>
         val mappedValues = values.toMap
-        val validationType = mappedValues.key("validation")
-        val strippedValues = mappedValues - "validation"
+        val strippedValues = mappedValues - "condition" - "errorMessage"
+        val validationInfo = mappedValues - "variableType"
         VariableType.sequence(strippedValues.toList
           .map({case (key,value) => 
           getField(key, value, executionResult).map(VariableName(key) -> _)}))
           .map(fields => {
             val types = fields.map({case (key,definition) => key -> definition.varType(executionResult)})
-            //println(
-            ValidationType.cast(getOneValueConstant(validationType).toString, executionResult) match {
+            ValidationType.constructFromMap(validationInfo, executionResult) match {
               case Success(validationVal) => 
               Success(Option(DomainInformation(fields.toMap, types.toMap, validationVal)))
               case _ => Failure("""Validation type not found""")
             }
           }.right.getOrElse(None))
     case _ =>
-      Failure("""Domain type requires parameters (either 'variableType' or 'validation' is missing)""")
+      Failure("""Domain type requires parameters (either 'variableType', 'condition', or 'errorMessage' is missing)""")
     }
 
   override def defaultFormatter: Formatter = new NoopFormatter

@@ -32,6 +32,18 @@ case object ValidationType extends VariableType(name = "Validation") with NoShow
 
     case _ => Failure("Validation need to get 'condition' and 'errorMessage' as constructor parameter")
   }
+
+  def constructFromMap(values: Map[String, Parameter], executionResult: TemplateExecutionResult): Result[Validation] = {
+      for {
+        condition <- getExpression(values, "condition")
+        errorMessage <- getExpression(values, "errorMessage")
+        result <- validate(Validation(
+          condition = condition,
+          errorMessage = errorMessage
+        ), executionResult)
+      } yield result
+  }
+
   override def internalFormat(value: OpenlawValue): Result[String] = VariableType.convert[Validation](value).map(_.asJson.noSpaces)
 
   override def getTypeClass: Class[_ <: Validation ] = classOf[Validation]
