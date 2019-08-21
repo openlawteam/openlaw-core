@@ -459,10 +459,10 @@ final case class OpenlawExecutionState(
         case Some(parent) =>
 					parent.addLastSectionByLevel(lvl, sectionValue)
         case None =>
-					val addResult = lastSectionByLevel put (lvl , sectionValue)
+					lastSectionByLevel put (lvl , sectionValue)
       }
     } else {
-      val addResult = lastSectionByLevel put (lvl , sectionValue)
+      lastSectionByLevel put (lvl , sectionValue)
     }
   }
 
@@ -709,7 +709,7 @@ final case class OpenlawExecutionState(
               newExecution
           }
 
-          val putResult = this.subExecutionsInternal.put(variableName, execution)
+          this.subExecutionsInternal.put(variableName, execution)
           execution
         })
       }.getOrElse(Failure(s"template ${variableName.name} was not resolved! ${variables.map(_.name)}"))
@@ -894,7 +894,7 @@ final case class NoteAnnotation(content:String) extends TemplatePart with Agreem
 final case class DistinctVariableBuilder(variables:mutable.Buffer[VariableDefinition] = mutable.Buffer(), names:mutable.Set[VariableName] = mutable.Set()) {
   def add(variable: VariableDefinition): DistinctVariableBuilder = {
     variables append variable
-    val addResult = names add variable.name
+    names add variable.name
     this
   }
 }
