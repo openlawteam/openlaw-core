@@ -1460,7 +1460,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     val text =
       """
         |[[Amount:DomainInformation(
-         |type: 'Number';
+         |variableType: Number;
          |validation: 'Validation(
          |condition: this >= 0;
          |errorMessage: "an amount cannot be negative"

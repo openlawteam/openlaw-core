@@ -25,13 +25,17 @@ case object AbstractDomainType extends VariableType(name = "DomainInformation") 
 
   override def construct(param:Parameter, executionResult: TemplateExecutionResult): Result[Option[DomainInformation]] = param match {
     case Parameters(values) =>
-        val validationType = values.toMap.key("validation")
-        VariableType.sequence(values
-          .map({case (key,value) => getField(key, value, executionResult).map(VariableName(key) -> _)}))
+        val mappedValues = values.toMap
+        val validationType = mappedValues.key("validation")
+        val strippedValues = mappedValues - "validation"
+        VariableType.sequence(strippedValues.toList
+          .map({case (key,value) => 
+          getField(key, value, executionResult).map(VariableName(key) -> _)}))
           .map(fields => {
             val types = fields.map({case (key,definition) => key -> definition.varType(executionResult)})
             ValidationType.cast(getOneValueConstant(validationType).toString, executionResult) match {
-              case Success(validationVal) => Success(Option(DomainInformation(fields.toMap, types.toMap, validationVal)))
+              case Success(validationVal) => 
+              Success(Option(DomainInformation(fields.toMap, types.toMap, validationVal)))
               case _ => Failure("""Validation type not found""")
             }
           }.right.getOrElse(None))
