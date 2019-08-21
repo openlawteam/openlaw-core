@@ -33,6 +33,7 @@ case object AbstractDomainType extends VariableType(name = "DomainInformation") 
           getField(key, value, executionResult).map(VariableName(key) -> _)}))
           .map(fields => {
             val types = fields.map({case (key,definition) => key -> definition.varType(executionResult)})
+            //println(
             ValidationType.cast(getOneValueConstant(validationType).toString, executionResult) match {
               case Success(validationVal) => 
               Success(Option(DomainInformation(fields.toMap, types.toMap, validationVal)))
