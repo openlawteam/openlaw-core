@@ -64,7 +64,7 @@ case object AbstractDomainType extends VariableType(name = "DomainInformation") 
     case OneValueParameter(definition:VariableDefinition) =>
       Success(definition.copy(name = VariableName(name)))
     case _ =>
-      Failure("error in the constructor for Structured Type")
+      Failure("error in the constructor for Domain Type")
   }
 
   override def generateType(name: VariableName, domainInformation: DomainInformation): DefinedDomainType =

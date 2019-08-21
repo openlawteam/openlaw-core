@@ -1244,11 +1244,11 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
     val text =
       """
          |[[Amount:DomainInformation(
-         |type: Number;
-         |validation: Validation(
+         |type:'Number',
+         |validation:'Validation(
          |condition: this >= 0;
          |errorMessage: "an amount cannot be negative"
-         |))]]
+         |)')]]
          |[[amount:Amount]]
       """.stripMargin
 
@@ -1263,11 +1263,11 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
         fail(ex)
     }
 
-    /*executeTemplate(text, Map("Amount" -> "-5")) match {
+    executeTemplate(text, Map("Amount" -> "-5")) match {
       case Right(executionResult) =>
         executionResult.validate.toResult.left.value.message should be("an amount cannot be negative")
       case Left(ex) => fail(ex.message, ex)
-    }*/
+    }
   }
 
   it should "verify that conditionals are of the correct type" in {

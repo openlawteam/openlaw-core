@@ -1456,6 +1456,28 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     }
   }
 
+  it should "handle Domain correctly" in {
+    val text =
+      """
+        |[[Amount:DomainInformation(
+         |type: 'Number';
+         |validation: 'Validation(
+         |condition: this >= 0;
+         |errorMessage: "an amount cannot be negative"
+         |)')]]
+      """.stripMargin
+
+    val template = compile(text)
+
+    engine.execute(template, TemplateParameters()) match {
+      case Success(executionResult) =>
+        val Some(domain:DefinedDomainType) = executionResult.findVariableType(VariableTypeDefinition("Amount"))
+        val field = domain.domain.typeDefinition(VariableName("type"))
+        field.varType(executionResult) shouldBe NumberType
+      case Failure(ex, message) => fail(message ,ex)
+    }
+  }
+
   it should "print table properly even in a conditional" in {
     val template = compile(
       """
