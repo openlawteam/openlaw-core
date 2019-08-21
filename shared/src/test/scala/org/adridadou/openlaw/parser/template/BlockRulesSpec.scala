@@ -38,20 +38,25 @@ class BlockRulesSpec extends FlatSpec with Matchers with TryValues with EitherVa
     TestParser(" [[var1]]").TableColumnEntry.run().success.value shouldBe Vector(VariableDefinition("var1"))
   }
 
+	private def conditionalBlock(text:String):Try[ConditionalBlock] = TestParser("""{{conditional1 "Question" => Question text}}""").TableColumnEntry.run().success.value.head match {
+		case c:ConditionalBlock => Success(c)
+		case _ => Failure(new RuntimeException("wrong type"))
+	}
+
   it should "parse a table column entry with a conditional" in {
-    val value1 = TestParser("""{{conditional1 "Question" => Question text}}""").TableColumnEntry.run().success.value.head.asInstanceOf[ConditionalBlock]
+    val Success(value1) = conditionalBlock("""{{conditional1 "Question" => Question text}}""")
     value1.block shouldBe Block(Vector(TemplateText(List(Text("Question text")))))
     value1.conditionalExpression shouldBe VariableDefinition(VariableName("conditional1"), Some(VariableTypeDefinition(YesNoType.name)), Some("Question"))
 
-    val value2 = TestParser(""" {{conditional1 "Question" => Question text}}""").TableColumnEntry.run().success.value.head.asInstanceOf[ConditionalBlock]
+    val Success(value2) = conditionalBlock(""" {{conditional1 "Question" => Question text}}""")
     value2.block shouldBe Block(Vector(TemplateText(List(Text("Question text")))))
     value2.conditionalExpression shouldBe VariableDefinition(VariableName("conditional1"), Some(VariableTypeDefinition(YesNoType.name)), Some("Question"))
 
-    val value3 = TestParser(""" {{conditional1 "Question" => Question text}} """).TableColumnEntry.run().success.value.head.asInstanceOf[ConditionalBlock]
+    val Success(value3) = conditionalBlock(""" {{conditional1 "Question" => Question text}} """)
     value3.block shouldBe Block(Vector(TemplateText(List(Text("Question text")))))
     value3.conditionalExpression shouldBe VariableDefinition(VariableName("conditional1"), Some(VariableTypeDefinition(YesNoType.name)), Some("Question"))
 
-    val value4 = TestParser("""{{conditional1 "Question" => Question text}} """).TableColumnEntry.run().success.value.head.asInstanceOf[ConditionalBlock]
+    val Success(value4) = conditionalBlock("""{{conditional1 "Question" => Question text}} """)
     value4.block shouldBe Block(Vector(TemplateText(List(Text("Question text")))))
     value4.conditionalExpression shouldBe VariableDefinition(VariableName("conditional1"), Some(VariableTypeDefinition(YesNoType.name)), Some("Question"))
 

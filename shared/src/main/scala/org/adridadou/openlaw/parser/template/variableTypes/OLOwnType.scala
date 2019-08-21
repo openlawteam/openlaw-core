@@ -55,8 +55,8 @@ case object OLOwnType extends VariableType("OLInfo") with NoShowInForm {
 }
 
 object OLInformation {
-  implicit val olInformationEnc:Encoder[OLInformation] = deriveEncoder[OLInformation]
-  implicit val olInformationDec:Decoder[OLInformation] = deriveDecoder[OLInformation]
+  implicit val olInformationEnc:Encoder[OLInformation] = deriveEncoder
+  implicit val olInformationDec:Decoder[OLInformation] = deriveDecoder
 }
 
-case class OLInformation(id:Option[ContractId], profileAddress:Option[EthereumAddress]) extends OpenlawNativeValue
+final case class OLInformation(id:Option[ContractId] = None, profileAddress:Option[EthereumAddress] = None) extends OpenlawNativeValue

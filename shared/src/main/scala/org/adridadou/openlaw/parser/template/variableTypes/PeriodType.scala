@@ -2,8 +2,6 @@ package org.adridadou.openlaw.parser.template.variableTypes
 
 import org.parboiled2._
 import VariableType._
-import cats._
-import cats.data.EitherT
 import cats.implicits._
 import org.adridadou.openlaw.parser.template.{Divide, Minus, Plus, TemplateExecutionResult, ValueOperation}
 import org.adridadou.openlaw.{OpenlawBigDecimal, OpenlawDateTime, OpenlawNativeValue, OpenlawValue}
@@ -91,7 +89,7 @@ case object PeriodType extends VariableType("Period") {
     case _ => rightType
   }
 
-  override def validateOperation(expr: ValueExpression, executionResult: TemplateExecutionResult): Result[Unit] = {
+  override def validateOperation(expr: ValueExpression, executionResult: TemplateExecutionResult): Result[Unit] =
     expr.operation match {
       case Divide =>
         (for {
@@ -105,9 +103,8 @@ case object PeriodType extends VariableType("Period") {
           }
         }).flatten.map(_ => ())
       case _ =>
-        Success(None)
+        Success(())
     }
-  }
 }
 
 class PeriodTypeParser(val input: ParserInput) extends Parser {
@@ -154,10 +151,10 @@ class PeriodTypeParser(val input: ParserInput) extends Parser {
   }
 }
 
-case class ParameterNotFound(value:String) extends RuntimeException
-case class ParsingError(msg:String) extends RuntimeException
+final case class ParameterNotFound(value:String) extends RuntimeException
+final case class ParsingError(msg:String) extends RuntimeException
 
-case class Period(seconds:Int = 0, minutes:Int = 0, hours:Int = 0, days:Int = 0, weeks:Int = 0, months:Int = 0, years:Int = 0) extends OpenlawNativeValue {
+final case class Period(seconds:Int = 0, minutes:Int = 0, hours:Int = 0, days:Int = 0, weeks:Int = 0, months:Int = 0, years:Int = 0) extends OpenlawNativeValue {
   def minus(right:Period):Period = Period(seconds - right.seconds, minutes - right.minutes, hours - right.hours, days - right.days, weeks - right.weeks, months - right.months, years - right.years)
   def plus(right:Period):Period = Period(seconds + right.seconds, minutes + right.minutes, hours + right.hours, days + right.days, weeks + right.weeks, months + right.months, years + right.years)
   def divide(right: OpenlawBigDecimal): Period = {

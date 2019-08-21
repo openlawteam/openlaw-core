@@ -12,7 +12,7 @@ import LocalDateTimeHelper._
 import cats.kernel.Eq
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 
-case class EthereumERC712Oracle(crypto:CryptoService) extends OpenlawOracle[PreparedERC712SmartContractCallEvent] with LazyLogging {
+final case class EthereumERC712Oracle(crypto:CryptoService) extends OpenlawOracle[PreparedERC712SmartContractCallEvent] with LazyLogging {
 
   override def incoming(vm: OpenlawVm, event: PreparedERC712SmartContractCallEvent): Result[OpenlawVm] =
     vm
@@ -53,15 +53,15 @@ case class EthereumERC712Oracle(crypto:CryptoService) extends OpenlawOracle[Prep
 }
 
 object PreparedERC712SmartContractCallEvent {
-  implicit val preparedERC712SmartContractCallEventEnc: Encoder[PreparedERC712SmartContractCallEvent] = deriveEncoder[PreparedERC712SmartContractCallEvent]
-  implicit val preparedERC712SmartContractCallEventDec: Decoder[PreparedERC712SmartContractCallEvent] = deriveDecoder[PreparedERC712SmartContractCallEvent]
+  implicit val preparedERC712SmartContractCallEventEnc: Encoder[PreparedERC712SmartContractCallEvent] = deriveEncoder
+  implicit val preparedERC712SmartContractCallEventDec: Decoder[PreparedERC712SmartContractCallEvent] = deriveDecoder
 
   implicit val preparedErc712SmartContractCallEventEq:Eq[PreparedERC712SmartContractCallEvent] = Eq.fromUniversalEquals
 }
 
 object PreparedERC712SmartContractCallExecution{
-  implicit val preparedERC712SmartContractCallExecutionEnc: Encoder[PreparedERC712SmartContractCallExecution] = deriveEncoder[PreparedERC712SmartContractCallExecution]
-  implicit val preparedERC712SmartContractCallExecutionDec: Decoder[PreparedERC712SmartContractCallExecution] = deriveDecoder[PreparedERC712SmartContractCallExecution]
+  implicit val preparedERC712SmartContractCallExecutionEnc: Encoder[PreparedERC712SmartContractCallExecution] = deriveEncoder
+  implicit val preparedERC712SmartContractCallExecutionDec: Decoder[PreparedERC712SmartContractCallExecution] = deriveDecoder
 
   implicit val preparedErc712SmartContractCallExecutionEq:Eq[PreparedERC712SmartContractCallExecution] = Eq.fromUniversalEquals
 }

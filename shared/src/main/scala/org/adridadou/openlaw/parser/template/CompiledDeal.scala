@@ -2,7 +2,7 @@ package org.adridadou.openlaw.parser.template
 
 import java.time.Clock
 
-case class CompiledDeal(
+final case class CompiledDeal(
                          header:TemplateHeader,
                          block:Block,
                          redefinition:VariableRedefinition = VariableRedefinition(),

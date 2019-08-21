@@ -7,13 +7,13 @@ import io.circe.parser
 import io.circe.generic.auto._
 import org.adridadou.openlaw.parser.template.variableTypes._
 
-case class AbiParam(indexed: Option[Boolean], name: String, `type`: String) {
+final case class AbiParam(indexed: Option[Boolean], name: String, `type`: String) {
   def isArray: Boolean = `type`.contains("[")
   def isDynamic: Boolean = `type`.contains("[]") || `type` == "string" || `type` == "bytes"
   override def toString: String = "AbiParam{" + "indexed=" + indexed + ", name='" + name + '\'' + ", type='" + `type` + '\'' + '}'
 }
 
-case class AbiEntry (
+final case class AbiEntry (
   name: Option[String],
   anonymous: Option[Boolean],
   constant: Option[Boolean],

@@ -25,7 +25,7 @@ object XHtmlAgreementPrinter {
   }
 }
 
-case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdits = ParagraphEdits(), hiddenVariables: Seq[String] = Seq()) extends LazyLogging {
+final case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdits = ParagraphEdits(), hiddenVariables: Seq[String] = Seq()) extends LazyLogging {
 
   private def partitionAtItem[T](seq: Seq[T], t: T): (Seq[T], Seq[T]) = partitionAt(seq) { case item if item.equals(t) => true }
 
@@ -153,12 +153,12 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
         case section@SectionElement(_, level, _, _, _, _) =>
           // partition out all content that will be within the newly defined sections
           val higherLevel = level - 1
-          val (content, remaining) = partitionAt(xs) { 
-            case SectionElement(_, thisLevel, _, _, _, _) if thisLevel === higherLevel => true 
+          val (content, remaining) = partitionAt(xs) {
+            case SectionElement(_, thisLevel, _, _, _, _) if thisLevel === higherLevel => true
           }
           // Partition the elements into sections at this level
           val sections = partitionSections(level, section +: content)
-          val afterBreak = sections.foldLeft(Seq[AgreementElement]()) { 
+          val afterBreak = sections.foldLeft(Seq[AgreementElement]()) {
             case (accu, (_, elements)) =>
             // bifurcate the sections around the section break
               val (_, after) = elements.span(_ != Paragraph(List(FreeText(SectionBreak))))
@@ -179,7 +179,7 @@ case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdit
               sections.map { section =>
                 recurse(section._2, conditionalBlockDepth, true, { elems => Seq(li(elems)) })
               }
-            ) 
+            )
             tailRecurse(remaining, conditionalBlockDepth, inSection, { elems => continue(frag +: elems) } )
           }
 

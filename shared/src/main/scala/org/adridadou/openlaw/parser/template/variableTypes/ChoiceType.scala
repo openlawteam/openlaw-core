@@ -12,13 +12,13 @@ import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawString, OpenlawValue}
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
 import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success}
 
-case class Choices(values: Seq[String]) extends OpenlawNativeValue
+final case class Choices(values: Seq[String]) extends OpenlawNativeValue
 
 object Choices {
   def apply(value: String): Choices = Choices(Seq(value))
 
-  implicit val choicesEnc:Encoder[Choices] = deriveEncoder[Choices]
-  implicit val choicesDec:Decoder[Choices] = deriveDecoder[Choices]
+  implicit val choicesEnc:Encoder[Choices] = deriveEncoder
+  implicit val choicesDec:Decoder[Choices] = deriveDecoder
 }
 
 case object ChoiceType extends VariableType("Choice") with TypeGenerator[Choices] {
@@ -72,8 +72,7 @@ object DefinedChoiceType {
   }
 }
 
-case class DefinedChoiceType(choices:Choices, typeName:String) extends VariableType(name = typeName) {
-
+final case class DefinedChoiceType(choices:Choices, typeName:String) extends VariableType(name = typeName) {
 
   override def serialize: Json = {
     Json.obj(

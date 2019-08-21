@@ -27,7 +27,7 @@ case object AbstractCollectionType extends VariableType("Collection") with Param
     CollectionType(typeParameter)
 }
 
-case class CollectionValue(size:Int = 1, values:Map[Int, OpenlawValue] = Map(), collectionType:CollectionType) extends OpenlawNativeValue {
+final case class CollectionValue(size:Int = 1, values:Map[Int, OpenlawValue] = Map(), collectionType:CollectionType) extends OpenlawNativeValue {
   def castValue(value:String, executionResult: TemplateExecutionResult):Result[OpenlawValue] = collectionType.typeParameter.cast(value, executionResult)
   def valueInternalFormat(value:OpenlawValue): Result[String] = collectionType.typeParameter.internalFormat(value)
   def list:Seq[OpenlawValue] = values.values.toSeq
@@ -38,9 +38,9 @@ object CollectionTypeValue {
   implicit val collectionTypeValueDec:Decoder[CollectionTypeValue] = deriveDecoder
 }
 
-case class CollectionTypeValue(values:Map[Int, String], size:Int)
+final case class CollectionTypeValue(values:Map[Int, String], size:Int)
 
-case class CollectionType(typeParameter:VariableType) extends VariableType("Collection") with ParameterType {
+final case class CollectionType(typeParameter:VariableType) extends VariableType("Collection") with ParameterType {
 
   override def cast(value: String, executionResult: TemplateExecutionResult): Result[CollectionValue] =
     for {

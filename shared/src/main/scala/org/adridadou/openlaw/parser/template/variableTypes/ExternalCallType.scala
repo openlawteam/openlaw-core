@@ -13,7 +13,7 @@ import org.adridadou.openlaw.result.Implicits._
 
 case object ExternalCallType extends VariableType("ExternalCall") with ActionType {
 
-  case class PropertyDef(typeDef: VariableType, data: Seq[ExternalCallExecution] => Option[OpenlawValue])
+  final case class PropertyDef(typeDef: VariableType, data: Seq[ExternalCallExecution] => Option[OpenlawValue])
 
   private val propertyDef: Map[String, PropertyDef] = Map[String, PropertyDef](
     "status" -> PropertyDef(typeDef = TextType, _.headOption.map(_.executionStatus.name)),

@@ -4,7 +4,7 @@ import cats.implicits._
 import org.adridadou.openlaw.parser.template.expressions._
 
 
-case class Block(elems:Seq[TemplatePart] = Seq()) {
+final case class Block(elems:Seq[TemplatePart] = Seq()) {
   def variableAliases():Seq[VariableAliasing] = variableAliases(elems)
 
   def variableAliases(e:Seq[TemplatePart]):Seq[VariableAliasing] = e.flatMap({

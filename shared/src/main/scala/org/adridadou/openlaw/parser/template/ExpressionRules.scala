@@ -280,10 +280,10 @@ final case class MappingParameter(mappingInternal: Map[String, Expression]) exte
 
 object VariableTypeDefinition {
   implicit val variableTypeDefinitionEq:Eq[VariableTypeDefinition] = Eq.fromUniversalEquals
-  implicit val variableTypeDefinitionEnc:Encoder[VariableTypeDefinition] = deriveEncoder[VariableTypeDefinition]
-  implicit val variableTypeDefinitionDec:Decoder[VariableTypeDefinition] = deriveDecoder[VariableTypeDefinition]
+  implicit val variableTypeDefinitionEnc:Encoder[VariableTypeDefinition] = deriveEncoder
+  implicit val variableTypeDefinitionDec:Decoder[VariableTypeDefinition] = deriveDecoder
 }
 
-case class VariableTypeDefinition(name:String, typeParameter:Option[VariableTypeDefinition] = None)
+final case class VariableTypeDefinition(name:String, typeParameter:Option[VariableTypeDefinition] = None)
 
-case class PartialOperation(op:String, expr:Expression)
+final case class PartialOperation(op:String, expr:Expression)

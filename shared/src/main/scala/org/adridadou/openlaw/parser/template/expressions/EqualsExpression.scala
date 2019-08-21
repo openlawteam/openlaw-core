@@ -5,7 +5,7 @@ import org.adridadou.openlaw.parser.template.TemplateExecutionResult
 import org.adridadou.openlaw.parser.template.variableTypes.{VariableType, YesNoType}
 import org.adridadou.openlaw.result.{Result, Success}
 
-case class EqualsExpression(left:Expression, right:Expression) extends BinaryExpression {
+final case class EqualsExpression(left:Expression, right:Expression) extends BinaryExpression {
 
   override def evaluate(executionResult: TemplateExecutionResult): Result[Option[OpenlawBoolean]] = {
     for {

@@ -56,7 +56,7 @@ trait AgreementPrinter[T] {
 
 }
 
-case class PrinterState(
+final case class PrinterState(
   conditionalDepth:Int = 0,
   paragraphIndex:Int = 0,
   headerGenerated:Boolean = false,
@@ -79,13 +79,11 @@ object SectionHelper {
     val numberInList = calculateNumberInList(lvl, sections)
     (0 until sections.lastOption.map(_ - lvl).getOrElse(0)).foreach(_ => builder.append("</li></ul>"))
 
-    if(numberInList === 0) {
+		(if(numberInList === 0) {
       builder.append(s"<ul class='list-lvl-$lvl'>")
     } else {
       builder.append("</li>")
-    }
-
-    builder.append("<li>")
+    }).append("<li>")
 
   }
 

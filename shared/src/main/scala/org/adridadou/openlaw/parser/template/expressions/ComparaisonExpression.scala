@@ -6,7 +6,7 @@ import cats.implicits._
 import org.adridadou.openlaw.OpenlawBoolean
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 
-case class ComparaisonExpression(left:Expression, right:Expression, op:Operation) extends BinaryExpression {
+final case class ComparaisonExpression(left:Expression, right:Expression, op:Operation) extends BinaryExpression {
 
   override def evaluate(executionResult: TemplateExecutionResult): Result[Option[OpenlawBoolean]] =
     (for {

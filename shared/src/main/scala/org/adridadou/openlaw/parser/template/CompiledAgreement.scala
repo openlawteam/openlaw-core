@@ -10,8 +10,8 @@ import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 import scala.annotation.tailrec
 
-case class CompiledAgreement(
-  header:TemplateHeader,
+final case class CompiledAgreement(
+  header:TemplateHeader = TemplateHeader(Map()),
   block: Block = Block(),
   redefinition:VariableRedefinition = VariableRedefinition(),
   clock: Clock = Clock.systemDefaultZone,

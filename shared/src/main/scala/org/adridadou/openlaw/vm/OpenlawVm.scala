@@ -16,16 +16,16 @@ import slogging.LazyLogging
 import scala.reflect.ClassTag
 import io.circe.generic.semiauto._
 import LocalDateTimeHelper._
-import org.adridadou.openlaw.{values, _}
+import org.adridadou.openlaw._
 
-case class Signature(userId:UserId, signature:OpenlawSignatureEvent)
+final case class Signature(userId:UserId, signature:OpenlawSignatureEvent)
 
 object Executions {
-  implicit val executionsEnc:Encoder[Executions] = deriveEncoder[Executions]
-  implicit val executionsDec:Decoder[Executions] = deriveDecoder[Executions]
+  implicit val executionsEnc:Encoder[Executions] = deriveEncoder
+  implicit val executionsDec:Decoder[Executions] = deriveDecoder
 }
 
-case class Executions(executionMap:Map[LocalDateTime,OpenlawExecution] = Map(), executionInit:Option[OpenlawExecutionInit] = None) {
+final case class Executions(executionMap:Map[LocalDateTime,OpenlawExecution] = Map(), executionInit:Option[OpenlawExecutionInit] = None) {
   def update(key:LocalDateTime, value:OpenlawExecution):Executions =
     this.copy(executionMap = executionMap + (key -> value))
 
@@ -33,7 +33,7 @@ case class Executions(executionMap:Map[LocalDateTime,OpenlawExecution] = Map(), 
     this.copy(executionInit = Some(executionInit))
 }
 
-case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
+final case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
                            templates:Map[TemplateId, CompiledTemplate] = Map(),
                            optExecutionResult:Option[OpenlawExecutionState],
                            definition:ContractDefinition,
@@ -117,7 +117,7 @@ case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
   }
 }
 
-case class OpenlawVm(contractDefinition: ContractDefinition, profileAddress:Option[EthereumAddress], crypto: CryptoService, parser:OpenlawTemplateLanguageParserService, identityOracle:OpenlawSignatureOracle, oracles:Seq[OpenlawOracle[_]], externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] = Map()) extends LazyLogging {
+final case class OpenlawVm(contractDefinition: ContractDefinition, profileAddress:Option[EthereumAddress], crypto: CryptoService, parser:OpenlawTemplateLanguageParserService, identityOracle:OpenlawSignatureOracle, oracles:Seq[OpenlawOracle[_]], externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] = Map()) extends LazyLogging {
   private val templateOracle = TemplateLoadOracle(crypto)
   val contractId:ContractId = contractDefinition.id(crypto)
   private val expressionParser = new ExpressionParserService
@@ -256,10 +256,8 @@ case class OpenlawVm(contractDefinition: ContractDefinition, profileAddress:Opti
       case values if values.exists(_.email === email) => Seq(ServiceName.openlawServiceName)
     })
 
-    this.executionResult.map(executionResult => {
-      executionResult.getAllExecutedVariables
-      ActionInfo(SignatureAction(email, services.toList), executionResult)
-    })
+    this.executionResult
+			.map(executionResult => ActionInfo(SignatureAction(email, services.toList), executionResult))
   }
 
   def template(definition: TemplateSourceIdentifier):CompiledTemplate = state.templates(contractDefinition.templates(definition))
@@ -418,7 +416,7 @@ trait OpenlawVmCommand
 final case class LoadTemplateCommand(id:TemplateId, event:LoadTemplate) extends OpenlawVmCommand
 final case class UpdateExecutionStateCommand(name:ContractExecutionState, event:OpenlawVmEvent) extends OpenlawVmCommand
 
-case class ExecutionScope(template:CompiledTemplate, vm:OpenlawVm, clock:Clock)
+final case class ExecutionScope(template:CompiledTemplate, vm:OpenlawVm, clock:Clock)
 
 abstract sealed class ContractExecutionState(val state:String)
 

@@ -78,7 +78,7 @@ case object IdentityType extends VariableType(name = "Identity") {
   private def getOrNa(optStr:Option[String]):String = optStr.getOrElse("[n/a]")
 }
 
-case class Identity(email:Email) extends OpenlawNativeValue {
+final case class Identity(email:Email) extends OpenlawNativeValue {
   def getJsonString: String = this.asJson.noSpaces
 }
 
@@ -89,7 +89,7 @@ case object Identity {
   implicit val identityDec: Decoder[Identity] = deriveDecoder
 }
 
-case class Email(email:String) {
+final case class Email(email:String) {
   override def toString:String = email
 }
 
@@ -127,7 +127,7 @@ object SignatureAction {
   implicit val signatureActionEq:Eq[SignatureAction] = Eq.fromUniversalEquals
 }
 
-case class SignatureAction(email:Email, services:List[ServiceName] = List(ServiceName.openlawServiceName)) extends ActionValue {
+final case class SignatureAction(email:Email, services:List[ServiceName] = List(ServiceName.openlawServiceName)) extends ActionValue {
   override def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions: Seq[OpenlawExecution]): Result[Option[LocalDateTime]] =
     if(executionResult.hasSigned(email)) {
       Success(None)

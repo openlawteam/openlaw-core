@@ -234,13 +234,15 @@ class SimpleDateTimeFormatter extends Formatter {
           minuteInt <- VariableType.convert[OpenlawInt](zonedDate.getMinute)
           secondInt <- VariableType.convert[OpenlawInt](zonedDate.getSecond)
         } yield {
-          val hour = String.format("%02d", hourInt.asInstanceOf[Integer])
-          val minute = String.format("%02d", minuteInt.asInstanceOf[Integer])
-          val second = String.format("%02d", secondInt.asInstanceOf[Integer])
+          val hour = formatNumber(hourInt)
+          val minute = formatNumber(minuteInt)
+          val second = formatNumber(secondInt)
           val month = zonedDate.underlying.getMonth.getDisplayName(TextStyle.FULL, Locale.ENGLISH)
           Seq(FreeText(Text(s"$month ${zonedDate.underlying.getDayOfMonth}, ${zonedDate.underlying.getYear} $hour:$minute:$second")))
         }
       }
+
+	private def formatNumber(value:Integer):String = String.format("%02d", value)
 }
 
 object DateHelper {

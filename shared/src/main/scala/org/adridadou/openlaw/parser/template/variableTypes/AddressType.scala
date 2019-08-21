@@ -78,11 +78,11 @@ object AddressType extends VariableType(name = "Address") {
   }
 }
 
-case class Address(placeId:String = "", streetName:String = "", streetNumber:String = "", city:String = "", state:String = "", country:String = "", zipCode:String = "", formattedAddress:String = "") extends OpenlawNativeValue
+final case class Address(placeId:String = "", streetName:String = "", streetNumber:String = "", city:String = "", state:String = "", country:String = "", zipCode:String = "", formattedAddress:String = "") extends OpenlawNativeValue
 
 object Address{
-  implicit val addressEnc: Encoder[Address] = deriveEncoder[Address]
-  implicit val addressDec: Decoder[Address] = deriveDecoder[Address]
+  implicit val addressEnc: Encoder[Address] = deriveEncoder
+  implicit val addressDec: Decoder[Address] = deriveDecoder
 }
 
 object AddressFormatter extends Formatter {

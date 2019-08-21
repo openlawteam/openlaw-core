@@ -95,7 +95,7 @@ object EthereumSmartContractExecution {
   implicit val smartContractExecutionDec: Decoder[EthereumSmartContractExecution] = deriveDecoder
 }
 
-case class EthereumSmartContractExecution(scheduledDate:LocalDateTime, executionDate:LocalDateTime, executionStatus: OpenlawExecutionStatus = PendingExecution, tx:EthereumHash) extends OpenlawExecution {
+final case class EthereumSmartContractExecution(scheduledDate:LocalDateTime, executionDate:LocalDateTime, executionStatus: OpenlawExecutionStatus = PendingExecution, tx:EthereumHash) extends OpenlawExecution {
   def message: String = executionStatus match {
     case PendingExecution => "the transaction has been submitted, waiting for the transaction to be executed"
     case SuccessfulExecution => "the transaction has been added to the chain and successfully executed"
@@ -115,7 +115,7 @@ case object RequestIdentifier {
   implicit val requestIdentifierEq:Eq[RequestIdentifier] = Eq.fromUniversalEquals
 }
 
-case class RequestIdentifier(identifier:String)
+final case class RequestIdentifier(identifier:String)
 
 object SuccessfulExternalCallExecution {
   implicit val successfulExternalCallExecutionEnc:Encoder[SuccessfulExternalCallExecution] = deriveEncoder

@@ -11,7 +11,7 @@ import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 import scala.reflect.ClassTag
 
-case class VariableMember(name:VariableName, keys:Seq[String], formatter:Option[FormatterDefinition]) extends TemplatePart with Expression {
+final case class VariableMember(name:VariableName, keys:Seq[String], formatter:Option[FormatterDefinition]) extends TemplatePart with Expression {
   override def missingInput(executionResult:TemplateExecutionResult): Result[Seq[VariableName]] =
     name.missingInput(executionResult)
 
@@ -49,19 +49,18 @@ case class VariableMember(name:VariableName, keys:Seq[String], formatter:Option[
     (Seq(name.name) ++ keys).mkString(".")
 }
 
-case class VariableName(name:String) extends Expression {
+final case class VariableName(name:String) extends Expression {
   def isAnonymous: Boolean = name.trim === "_"
 
   override def validate(executionResult:TemplateExecutionResult): Result[Unit] = Success.unit
 
-  override def expressionType(executionResult:TemplateExecutionResult): Result[VariableType] = {
+  override def expressionType(executionResult:TemplateExecutionResult): Result[VariableType] =
     executionResult.getVariable(name) match {
       case Some(variable) =>
         Success(variable.varType(executionResult))
       case None =>
         executionResult.getAlias(name).map(_.expressionType(executionResult)).sequence.map(_.getOrElse(TextType))
     }
-  }
 
   override def evaluate(executionResult:TemplateExecutionResult): Result[Option[OpenlawValue]] =
     executionResult.getVariable(name) match {
@@ -123,7 +122,7 @@ object FormatterDefinition {
   implicit val formatterDefinitionDec:Decoder[FormatterDefinition] = deriveDecoder
 }
 
-case class FormatterDefinition(name:String, parameters:Option[Parameter])
+final case class FormatterDefinition(name:String, parameters:Option[Parameter])
 
 object VariableDefinition {
   def apply(name:String):VariableDefinition =
@@ -149,7 +148,7 @@ object VariableName {
   def apply(name:String):VariableName = new VariableName(name.trim)
 }
 
-case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[VariableTypeDefinition] = None, description:Option[String] = None, formatter:Option[FormatterDefinition] = None, isHidden:Boolean = false, defaultValue:Option[Parameter] = None) extends TextElement("VariableDefinition") with TemplatePart with Expression {
+final case class VariableDefinition(name: VariableName, variableTypeDefinition:Option[VariableTypeDefinition] = None, description:Option[String] = None, formatter:Option[FormatterDefinition] = None, isHidden:Boolean = false, defaultValue:Option[Parameter] = None) extends TextElement("VariableDefinition") with TemplatePart with Expression {
 
   def constructT[U <: OpenlawValue](executionResult: TemplateExecutionResult)(implicit classTag:ClassTag[U]): Result[Option[U#T]] = {
     construct(executionResult).flatMap({

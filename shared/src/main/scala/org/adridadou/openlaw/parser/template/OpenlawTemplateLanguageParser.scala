@@ -69,11 +69,11 @@ class OpenlawTemplateLanguageParser(val input: ParserInput, internalClock:Clock)
 }
 
 object TemplateHeader {
-  implicit val templateHeaderEnc:Encoder[TemplateHeader] = deriveEncoder[TemplateHeader]
-  implicit val templateHeaderDec:Decoder[TemplateHeader] = deriveDecoder[TemplateHeader]
+  implicit val templateHeaderEnc:Encoder[TemplateHeader] = deriveEncoder
+  implicit val templateHeaderDec:Decoder[TemplateHeader] = deriveDecoder
 }
 
-case class TemplateHeader(values:Map[String, String] = Map()) {
+final case class TemplateHeader(values:Map[String, String] = Map()) {
   def shouldShowTitle: Boolean = {
     values.get("show title").exists(_.toBoolean) ||
       values.get("title").exists(_ === "show")
