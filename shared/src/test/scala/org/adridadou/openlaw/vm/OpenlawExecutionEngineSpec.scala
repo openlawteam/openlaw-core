@@ -1500,7 +1500,9 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       VariableName("variableType") -> OpenlawBigDecimal(BigDecimal("5"))))
     engine.execute(template2, TemplateParameters("amount" -> internalFormat)) match {
       case Success(newResult) =>
-        parser.forReview(newResult.agreements.head) shouldBe "<p class=\"no-section\"><br>My amount is: 5<br /><     </p>"
+        val Some(variable) = newResult.getVariable("amount")
+        //variable.validate(result) shouldBe Success
+        parser.forReview(newResult.agreements.head) shouldBe "<p class=\"no-section\"><br />My amount is: 5<br />      </p>"
       case Failure(ex, message) =>
         ex.printStackTrace()
         fail(message, ex)
@@ -1510,7 +1512,8 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       VariableName("variableType") -> OpenlawBigDecimal(BigDecimal("-5"))))
     engine.execute(template2, TemplateParameters("amount" -> internalFormat2)) match {
       case Success(newResult) =>
-        parser.forReview(newResult.agreements.head) shouldBe "<p class=\"no-section\">My amount is .        <br /><     </p>"
+        val Some(variable) = newResult.getVariable("amount")
+        variable.validate(result) shouldBe Failure
       case Failure(ex, message) =>
         ex.printStackTrace()
         fail(message, ex)
