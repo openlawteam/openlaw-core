@@ -137,10 +137,10 @@ case class DefinedDomainType(domain:DomainInformation, typeName:String) extends 
       Success(())
     case head::tail =>
       val name = VariableName(head)
+      domain.validation.validate
       domain.typeDefinition.get(name) match {
         case Some(variableType) =>
           variableType.varType(executionResult).validateKeys(name, tail, expression, executionResult)
-          domain.validation.validate(executionResult)
         case None =>
           Failure(s"property '${tail.mkString(".")}' could not be resolved in domain value '$head'")
       }
