@@ -7,11 +7,11 @@ import io.circe.parser.decode
 import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawString, OpenlawValue}
 import org.adridadou.openlaw.parser.template.formatters.Formatter
 import org.adridadou.openlaw.parser.template._
-import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success, attempt}
+import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success}
 
 final case class SectionInfo(name: Option[String], numbering: String, value:String) extends OpenlawNativeValue
 
-case object SectionType extends VariableType(name = "Section") with NoShowInForm {
+case object SectionType extends VariableType(name = "Section") with NoShowInFormButRender {
 
   private implicit val enc: Encoder[SectionInfo] = deriveEncoder
   private implicit val dec: Decoder[SectionInfo] = deriveDecoder
