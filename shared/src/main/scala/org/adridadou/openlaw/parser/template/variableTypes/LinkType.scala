@@ -9,12 +9,14 @@ import org.adridadou.openlaw.parser.template.formatters.Formatter
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success}
 
+object LinkInfo {
+	implicit val linkInfoEnc: Encoder[LinkInfo] = deriveEncoder
+	implicit val linkInfoDec: Decoder[LinkInfo] = deriveDecoder
+}
+
 final case class LinkInfo(label: String, url:String) extends OpenlawNativeValue
 
-case object LinkType extends VariableType(name = "Link") {
-
-  private implicit val enc: Encoder[LinkInfo] = deriveEncoder
-  private implicit val dec: Decoder[LinkInfo] = deriveDecoder
+case object LinkType extends VariableType(name = "Link") with NoShowInFormButRender {
 
   override def cast(value: String, executionResult: TemplateExecutionResult): Result[LinkInfo] = decode[LinkInfo](value).leftMap(FailureException(_))
 
@@ -52,6 +54,8 @@ case object LinkType extends VariableType(name = "Link") {
 class LinkFormatter extends Formatter {
   override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] =
     VariableType.convert[LinkInfo](value) map {
-      case LinkInfo(labelValue, urlValue) => Seq(Link(labelValue, urlValue))
+      case LinkInfo(labelValue, urlValue) =>
+				println("***** printing link!")
+				Seq(Link(labelValue, urlValue))
     }
 }

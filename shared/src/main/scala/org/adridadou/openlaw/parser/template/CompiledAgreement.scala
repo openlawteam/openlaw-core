@@ -4,7 +4,6 @@ import java.time.Clock
 
 import cats.implicits._
 import org.adridadou.openlaw.{OpenlawBigDecimal, OpenlawBoolean}
-import org.adridadou.openlaw.parser.template
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 
@@ -128,7 +127,7 @@ final case class CompiledAgreement(
         getAgreementElementsFromElement(renderedElements, variableDefinition.copy(name = VariableName(executionResult.generateAnonymousName(nbAnonymous + 1))), executionResult)
       case variableDefinition:VariableDefinition if !variableDefinition.isHidden =>
         executionResult.getAliasOrVariableType(variableDefinition.name) match {
-          case Right(variableType @ SectionType) =>
+          case Right(variableType: NoShowInFormButRender) =>
            getDependencies(variableDefinition.name, executionResult).flatMap { dependencies =>
              generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult).map { list =>
                renderedElements :+ VariableElement(variableDefinition.name, Some(variableType), list, dependencies)

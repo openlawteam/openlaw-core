@@ -306,7 +306,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
     val text = """[[link1:Link(label: 'Log In';url:'/login')]]"""
 
     executeTemplate(text) match {
-      case Right(executionResult) =>
+      case Success(executionResult) =>
         executionResult.getVariables(LinkType).size shouldBe 1
 
         val link = executionResult.getVariableValues[LinkInfo](LinkType).right.value.head.underlying
@@ -1373,7 +1373,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
         structureType === NumberType shouldBe false
         val newExecutionResult = executeTemplate(text, Map("name1" -> structureType.internalFormat(OpenlawMap(Map(VariableName("first") -> OpenlawString("John"), VariableName("last") -> OpenlawString("Doe")))).right.value)).right.value
 
-        service.parseExpression("name1.first").flatMap(_.evaluate(newExecutionResult)).right.value.value.toString shouldBe ("John")
+        service.parseExpression("name1.first").flatMap(_.evaluate(newExecutionResult)).right.value.value.toString shouldBe "John"
       case Left(ex) =>
         fail(ex)
     }
