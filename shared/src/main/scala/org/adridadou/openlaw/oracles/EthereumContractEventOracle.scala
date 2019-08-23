@@ -16,11 +16,11 @@ import LocalDateTimeHelper._
 import org.adridadou.openlaw.{OpenlawBoolean, OpenlawString}
 
 object EthereumEventFilterExecution {
-  implicit val ethEventFilterExecutionEnc:Encoder[EthereumEventFilterExecution] = deriveEncoder[EthereumEventFilterExecution]
-  implicit val ethEventFilterExecutionDec:Decoder[EthereumEventFilterExecution] = deriveDecoder[EthereumEventFilterExecution]
+  implicit val ethEventFilterExecutionEnc:Encoder[EthereumEventFilterExecution] = deriveEncoder
+  implicit val ethEventFilterExecutionDec:Decoder[EthereumEventFilterExecution] = deriveDecoder
 }
 
-case class EthereumEventFilterExecution(executionDate: LocalDateTime, executionStatus: OpenlawExecutionStatus = PendingExecution, event:EthereumEventFilterEvent) extends OpenlawExecution {
+final case class EthereumEventFilterExecution(executionDate: LocalDateTime, executionStatus: OpenlawExecutionStatus = PendingExecution, event:EthereumEventFilterEvent) extends OpenlawExecution {
   val scheduledDate: LocalDateTime = executionDate
 
   override def key: Any = event.hash
@@ -30,7 +30,7 @@ case class EthereumEventFilterExecution(executionDate: LocalDateTime, executionS
   override def serialize: Json = this.asJson
 }
 
-case class EthereumEventFilterOracle(parser: OpenlawTemplateLanguageParserService, crypto:CryptoService) extends OpenlawOracle[EthereumEventFilterEvent] with LazyLogging {
+final case class EthereumEventFilterOracle(parser: OpenlawTemplateLanguageParserService, crypto:CryptoService) extends OpenlawOracle[EthereumEventFilterEvent] with LazyLogging {
 
   override def incoming(vm: OpenlawVm, event: EthereumEventFilterEvent): Result[OpenlawVm] = {
     vm.getAllVariableValues[EventFilterDefinition](EthereumEventFilterType).flatMap { values =>
@@ -88,8 +88,8 @@ case class EthereumEventFilterOracle(parser: OpenlawTemplateLanguageParserServic
 }
 
 object EthereumEventFilterEvent {
-  implicit val ethereumEventFilterEventEnc: Encoder[EthereumEventFilterEvent] = deriveEncoder[EthereumEventFilterEvent]
-  implicit val ethereumEventFilterEventDec: Decoder[EthereumEventFilterEvent] = deriveDecoder[EthereumEventFilterEvent]
+  implicit val ethereumEventFilterEventEnc: Encoder[EthereumEventFilterEvent] = deriveEncoder
+  implicit val ethereumEventFilterEventDec: Decoder[EthereumEventFilterEvent] = deriveDecoder
 }
 
 final case class EthereumEventFilterEvent(

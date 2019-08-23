@@ -13,15 +13,15 @@ import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatte
 import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success, attempt}
 
 object SignatureRSVParameter {
-  implicit val signatureRSVParameterEnc: Encoder[SignatureRSVParameter] = deriveEncoder[SignatureRSVParameter]
-  implicit val signatureRSVParameterDec: Decoder[SignatureRSVParameter] = deriveDecoder[SignatureRSVParameter]
+  implicit val signatureRSVParameterEnc: Encoder[SignatureRSVParameter] = deriveEncoder
+  implicit val signatureRSVParameterDec: Decoder[SignatureRSVParameter] = deriveDecoder
 }
 
-case class SignatureRSVParameterNames(r:String, s:String, v:String) {
+final case class SignatureRSVParameterNames(r:String, s:String, v:String) {
   def toSeq:Seq[String] = Seq(r,s,v)
 }
 
-case class SignatureRSVParameter(rExpr:Expression, sExpr:Expression, vExpr:Expression) {
+final case class SignatureRSVParameter(rExpr:Expression, sExpr:Expression, vExpr:Expression) {
   def getRsv(executionResult: TemplateExecutionResult): Result[Option[SignatureRSVParameterNames]] =
     (for {
       rOpt <- rExpr.evaluate(executionResult)
@@ -43,7 +43,7 @@ case class SignatureRSVParameter(rExpr:Expression, sExpr:Expression, vExpr:Expre
 }
 
 case object EthereumCallType extends VariableType("EthereumCall") with ActionType {
-  case class EthereumCallPropertyDef(typeDef:VariableType, data:Seq[EthereumSmartContractExecution] => Option[OpenlawValue])
+  final case class EthereumCallPropertyDef(typeDef:VariableType, data:Seq[EthereumSmartContractExecution] => Option[OpenlawValue])
 
   private val propertyDef:Map[String,EthereumCallPropertyDef] = Map[String, EthereumCallPropertyDef](
     "isSuccessful" -> EthereumCallPropertyDef(typeDef = YesNoType, _.headOption.map(_.executionStatus === SuccessfulExecution)),

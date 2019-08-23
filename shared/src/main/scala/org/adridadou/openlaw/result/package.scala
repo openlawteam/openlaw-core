@@ -29,7 +29,7 @@ package object result {
 package result {
 
   object Success {
-    def unit:Result[Unit] = Success(Unit)
+    def unit:Result[Unit] = Success(())
     def apply[A](a: A): Result[A] = Right(a)
     def unapply[A](result: Result[A]): Option[A] = result.toOption
   }

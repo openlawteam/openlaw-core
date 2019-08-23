@@ -14,7 +14,7 @@ import org.adridadou.openlaw.parser.template.expressions.Expression
 
 case object ExternalSignatureType extends VariableType("ExternalSignature") {
 
-  case class PropertyDef(typeDef: VariableType, data: Seq[ExternalCallExecution] => Option[OpenlawValue])
+  final case class PropertyDef(typeDef: VariableType, data: Seq[ExternalCallExecution] => Option[OpenlawValue])
   override def cast(value: String, executionResult: TemplateExecutionResult): Result[ExternalSignature] =
     decode[ExternalSignature](value).leftMap(FailureException(_))
 
@@ -59,4 +59,4 @@ object ExternalSignature {
   implicit val externalSignatureDec:Decoder[ExternalSignature] = deriveDecoder
 }
 
-case class ExternalSignature(identity:Option[Identity] = None, serviceName: ServiceName) extends OpenlawNativeValue
+final case class ExternalSignature(identity:Option[Identity] = None, serviceName: ServiceName) extends OpenlawNativeValue

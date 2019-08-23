@@ -1,18 +1,22 @@
 package org.adridadou.openlaw.parser
 
-import cats._
 import java.time.{Clock, LocalDateTime, ZoneOffset}
-import org.adridadou.openlaw._
+import java.util.concurrent.atomic.AtomicInteger
+
+import org.adridadou.openlaw.{OpenlawMap, OpenlawString}
+
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.result.{Failure, Result, Success}
-import org.adridadou.openlaw.result.Implicits.{failureCause2Exception, RichResult, RichResultNel}
+import org.adridadou.openlaw.result.Implicits.{RichResult, RichResultNel, failureCause2Exception}
 import org.adridadou.openlaw.values.TemplateParameters
 import org.adridadou.openlaw.vm.OpenlawExecutionEngine
 import org.scalatest._
 import org.scalatest.EitherValues._
 import org.scalatest.OptionValues._
+
+import scala.collection.mutable
 
 /**
   * Created by davidroon on 05.05.17.
@@ -22,6 +26,19 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
   private val clock = Clock.systemUTC
   private val service = new OpenlawTemplateLanguageParserService(clock)
   private val engine = new OpenlawExecutionEngine
+
+	private val emptyExecutionResult = OpenlawExecutionState(
+		parameters = TemplateParameters(),
+		id = TemplateExecutionResultId(s"@@anonymous_main_template_id@@"),
+		info = OLInformation(),
+		template = CompiledAgreement(),
+		executions = Map(),
+		anonymousVariableCounter = new AtomicInteger(0),
+		executionType = TemplateExecution,
+		variableRedefinition = VariableRedefinition(),
+		remainingElements = mutable.Buffer(),
+		clock = clock
+	)
 
   private def structureAgreement(text:String, p:Map[String, String] = Map(), templates:Map[TemplateSourceIdentifier, CompiledTemplate] = Map(), externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] = Map()):Result[StructuredAgreement] = compiledTemplate(text).flatMap({
     case agreement:CompiledAgreement =>
@@ -110,8 +127,11 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
     || val21 | val22 | val23 |
     |This is a test.""".stripMargin
 
-    val tableElement = structureAgreement(text).map(_.paragraphs.head.elements(3)).right.value.asInstanceOf[TableElement]
-    tableElement.rows.head.head.head shouldBe a [VariableElement]
+		structureAgreement(text).map(_.paragraphs.head.elements(3)).right.value match {
+			case tableElement:TableElement =>
+				tableElement.rows.head.head.head shouldBe a [VariableElement]
+			case _ => fail("not a table element!")
+		}
    }
 
   it should "handle tables with variables in multiple rows" in {
@@ -125,11 +145,15 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
     || val41 | val42 | val43 |
     |This is a test.""".stripMargin
 
-    val tableElement = structureAgreement(text).map(_.paragraphs.head.elements(3)).right.value.asInstanceOf[TableElement]
-    tableElement.rows.head.head.head shouldBe a [VariableElement]
-    tableElement.rows(1).head.head should not be a[VariableElement]
-    tableElement.rows(2).head.head shouldBe a [VariableElement]
-    tableElement.rows(3).head.head should not be a[VariableElement]
+    structureAgreement(text).map(_.paragraphs.head.elements(3)).right.value match {
+			case tableElement:TableElement =>
+				tableElement.rows.head.head.head shouldBe a [VariableElement]
+				tableElement.rows(1).head.head should not be a[VariableElement]
+				tableElement.rows(2).head.head shouldBe a [VariableElement]
+				tableElement.rows(3).head.head should not be a[VariableElement]
+			case _ => fail("not a table element!")
+		}
+
    }
 
   it should "handle tables with conditionals in cells" in {
@@ -141,8 +165,12 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
     || val21 | val22 | val23 |
     |This is a test.""".stripMargin
 
-    val tableElement = structureAgreement(text, Map("conditional1" -> "true")).map(_.paragraphs.head.elements(3)).right.value.asInstanceOf[TableElement]
-    tableElement.rows.head.head.head shouldBe a [ConditionalStart]
+    structureAgreement(text, Map("conditional1" -> "true")).map(_.paragraphs.head.elements(3)).right.value match {
+			case tableElement:TableElement =>
+				tableElement.rows.head.head.head shouldBe a [ConditionalStart]
+			case _ => fail("not table element!")
+		}
+
    }
 
   it should "parse and replace each variable with its value" in {
@@ -237,14 +265,14 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
         |
         |^I should have a ul tag.
         |^So should I.
-        |^And I also. 
+        |^And I also.
         |\sectionbreak
         |But I should not!
         |
       """.stripMargin
 
     val text2 =
-      """<div class="openlaw-paragraph paragraph-1"><p class="no-section">a small title</p></div><ul class="list-lvl-1"><li><div class="openlaw-paragraph paragraph-2"><p>1. I should have a ul tag.<br /></p></div></li><li><div class="openlaw-paragraph paragraph-3"><p>2. So should I.<br /></p></div></li><li><div class="openlaw-paragraph paragraph-4"><p>3. And I also. <br /></p></div></li></ul><div class="openlaw-paragraph paragraph-5"><p class="no-section"><hr class="section-break" /></p></div><div class="openlaw-paragraph paragraph-6"><p class="no-section"><br />But I should not!<br /><br />    </p></div>""".stripMargin
+      """<div class="openlaw-paragraph paragraph-1"><p class="no-section">a small title</p></div><ul class="list-lvl-1"><li><div class="openlaw-paragraph paragraph-2"><p>1. I should have a ul tag.<br /></p></div></li><li><div class="openlaw-paragraph paragraph-3"><p>2. So should I.<br /></p></div></li><li><div class="openlaw-paragraph paragraph-4"><p>3. And I also.<br /></p></div></li></ul><div class="openlaw-paragraph paragraph-5"><p class="no-section"><hr class="section-break" /></p></div><div class="openlaw-paragraph paragraph-6"><p class="no-section"><br />But I should not!<br /><br />    </p></div>"""
 
     val result = forPreview(text)
     resultShouldBe(result, text2)
@@ -265,6 +293,30 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
 
     resultShouldBe(forReview(text), text2)
     resultShouldBe(forPreview(text), text3)
+  }
+
+   it should "handle link variables with absolute URLs" in {
+    val text = """[[link1:Link(label:'homepage';url:'https://openlaw.io')]]"""
+
+    resultShouldBe(forPreview(text), "<div class=\"openlaw-paragraph paragraph-1\"><p class=\"no-section\"><span class=\"markdown-variable markdown-variable-link1\"><a href=\"https://openlaw.io\">homepage</a></span></p></div>")
+    resultShouldBe(forReview(text), "<p class=\"no-section\"><a href=\"https://openlaw.io\">homepage</a></p>")
+
+  }
+
+  it should "handle link variables with relative URLs, including storing variable correctly" in {
+    val text = """[[link1:Link(label: 'Log In';url:'/login')]]"""
+
+    executeTemplate(text) match {
+      case Success(executionResult) =>
+        executionResult.getVariables(LinkType).size shouldBe 1
+
+        val link = executionResult.getVariableValues[LinkInfo](LinkType).right.value.head.underlying
+        link should be (LinkInfo("Log In", "/login"))
+
+        resultShouldBe(forPreview(text), "<div class=\"openlaw-paragraph paragraph-1\"><p class=\"no-section\"><span class=\"markdown-variable markdown-variable-link1\"><a href=\"/login\">Log In</a></span></p></div>")
+        resultShouldBe(forReview(text), "<p class=\"no-section\"><a href=\"/login\">Log In</a></p>")
+      case Left(ex) => fail(ex)
+    }
   }
 
   it should "do post processing for lists on preview too (with paragraphs)" in {
@@ -326,9 +378,9 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
         allActions.size shouldBe 1
 
         val call = executionResult.getVariableValues[EthereumSmartContractCall](EthereumCallType).right.value.head
-        call.address.asInstanceOf[StringConstant].value shouldBe "0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAe"
+        call.address.evaluate(emptyExecutionResult) shouldBe Right(Some(OpenlawString("0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAe")))
         call.arguments.map(_.toString) shouldBe List("Var1","Var2","Var3")
-        call.abi.asInstanceOf[StringConstant].value shouldBe "ipfs:5ihruiherg34893zf"
+        call.abi.evaluate(emptyExecutionResult) shouldBe Right(Some(OpenlawString("ipfs:5ihruiherg34893zf")))
       case Left(ex) => fail(ex)
     }
   }
@@ -494,9 +546,10 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
 
     executeTemplate(clauseText).toOption.flatMap(_.getVariable("contractor").flatMap(_.defaultValue)) match {
       case Some(ListParameter(vector)) =>
-        vector.head.asInstanceOf[StringConstant].value shouldBe "First option"
-        vector(1).asInstanceOf[StringConstant].value shouldBe "Second option"
-      case result => fail(result.toString)
+				val list = VariableType.sequence(vector.map(_.evaluate(emptyExecutionResult)))
+				list.map(_.flatten) shouldBe Right(List("First option", "Second option"))
+      case result =>
+				fail(result.toString)
     }
   }
 
@@ -1348,7 +1401,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
         structureType === NumberType shouldBe false
         val newExecutionResult = executeTemplate(text, Map("name1" -> structureType.internalFormat(OpenlawMap(Map(VariableName("first") -> OpenlawString("John"), VariableName("last") -> OpenlawString("Doe")))).right.value)).right.value
 
-        service.parseExpression("name1.first").flatMap(_.evaluate(newExecutionResult)).right.value.value.toString shouldBe ("John")
+        service.parseExpression("name1.first").flatMap(_.evaluate(newExecutionResult)).right.value.value.toString shouldBe "John"
       case Left(ex) =>
         fail(ex)
     }

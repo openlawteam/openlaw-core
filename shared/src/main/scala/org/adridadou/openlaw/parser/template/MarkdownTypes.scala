@@ -17,7 +17,7 @@ import org.adridadou.openlaw.{OpenlawString, OpenlawValue}
 
 trait TemplatePart
 
-case class TemplateText(elem: Seq[TemplatePart]) extends TemplatePart
+final case class TemplateText(elem: Seq[TemplatePart]) extends TemplatePart
 
 case object EmptyTemplatePart extends TemplatePart
 
@@ -34,19 +34,19 @@ trait ConstantExpression extends Expression {
   override def missingInput(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] = Success(Seq())
 }
 
-case class NoopConstant(varType:VariableType) extends ConstantExpression {
+final case class NoopConstant(varType:VariableType) extends ConstantExpression {
   override def typeFunction: TemplateExecutionResult => VariableType = _ => varType
   override def evaluate(executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = Success(None)
 }
 
-case class StringConstant(value:String, typeFunction: TemplateExecutionResult => VariableType = _ => TextType) extends ConstantExpression {
+final case class StringConstant(value:String, typeFunction: TemplateExecutionResult => VariableType = _ => TextType) extends ConstantExpression {
   override def evaluate(executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] =
     typeFunction(executionResult).cast(value, executionResult).map(Some(_))
 
   override def toString: String = "\"" + value + "\""
 }
 
-case class JsonConstant(value:String, typeFunction: TemplateExecutionResult => VariableType = _ => TextType) extends ConstantExpression {
+final case class JsonConstant(value:String, typeFunction: TemplateExecutionResult => VariableType = _ => TextType) extends ConstantExpression {
   override def evaluate(executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] =
     typeFunction(executionResult).cast(value, executionResult).map(Some(_))
 
@@ -54,7 +54,7 @@ case class JsonConstant(value:String, typeFunction: TemplateExecutionResult => V
   override def toString: String = value
 }
 
-case class NumberConstant(value:BigDecimal, typeFunction: TemplateExecutionResult => VariableType = _ => NumberType) extends ConstantExpression {
+final case class NumberConstant(value:BigDecimal, typeFunction: TemplateExecutionResult => VariableType = _ => NumberType) extends ConstantExpression {
   override def evaluate(executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] =
     typeFunction(executionResult).cast(value.toString(), executionResult).map(Some(_))
 
@@ -62,14 +62,14 @@ case class NumberConstant(value:BigDecimal, typeFunction: TemplateExecutionResul
   override def toString: String = value.toString()
 }
 
-case class Table(header: List[List[TemplatePart]], rows: List[List[List[TemplatePart]]]) extends TemplatePart
+final case class Table(header: List[List[TemplatePart]], rows: List[List[List[TemplatePart]]]) extends TemplatePart
 
 trait ConditionalExpression {
   def evaluate(params:TemplateParameters):Boolean
 }
 
-case class ConditionalBlock(block:Block, elseBlock:Option[Block], conditionalExpression:Expression) extends TemplatePart
-case class ForEachBlock(variable:VariableName, expression: Expression, block:Block) extends TemplatePart {
+final case class ConditionalBlock(block:Block, elseBlock:Option[Block], conditionalExpression:Expression) extends TemplatePart
+final case class ForEachBlock(variable:VariableName, expression: Expression, block:Block) extends TemplatePart {
   def toCompiledTemplate(executionResult: TemplateExecutionResult): Result[(CompiledTemplate, VariableType)] = {
     expression.expressionType(executionResult).flatMap {
       case listType:CollectionType =>
@@ -87,24 +87,18 @@ case class ForEachBlock(variable:VariableName, expression: Expression, block:Blo
   }
 }
 
-case class ConditionalBlockSet(blocks:Seq[ConditionalBlock]) extends TemplatePart
+final case class ConditionalBlockSet(blocks:Seq[ConditionalBlock]) extends TemplatePart
 
 case object AEnd extends TemplatePart
 
-case class CodeBlock(elems:Seq[TemplatePart]) extends TemplatePart {
-
-  def smartContractCalls(): Seq[EthereumSmartContractCall] = elems.flatMap({
-    case elem:EthereumSmartContractCall => Some(elem)
-    case _ => None
-  })
-}
+final case class CodeBlock(elems:Seq[TemplatePart]) extends TemplatePart
 
 object Section {
-  implicit val sectionEnc:Encoder[Section] = deriveEncoder[Section]
-  implicit val sectionDec:Decoder[Section] = deriveDecoder[Section]
+  implicit val sectionEnc:Encoder[Section] = deriveEncoder
+  implicit val sectionDec:Decoder[Section] = deriveDecoder
 }
 
-case class Section(uuid:String, definition:Option[SectionDefinition], lvl:Int) extends TemplatePart {
+final case class Section(uuid:String, definition:Option[SectionDefinition], lvl:Int) extends TemplatePart {
 
   private def getSingleExpression(param: Parameter): Option[Expression] = param match {
     case OneValueParameter(expr) => Some(expr)
@@ -236,7 +230,7 @@ object TextElement {
 }
 
 abstract class TextElement(val elementTypeName:String) extends TemplatePart
-case class Text(str: String) extends TextElement("Text")
+final case class Text(str: String) extends TextElement("Text")
 case object Em extends TextElement("Em")
 case object Strong extends TextElement("Strong")
 case object Under extends TextElement("Under")

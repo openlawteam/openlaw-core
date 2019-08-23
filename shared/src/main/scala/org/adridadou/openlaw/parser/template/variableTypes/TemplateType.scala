@@ -13,13 +13,13 @@ import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success, attempt}
 import org.adridadou.openlaw.values._
 
-case class TemplateDefinition(name:TemplateSourceIdentifier, mappingInternal:Map[VariableName, Expression] = Map(), path:Option[TemplatePath] = None) extends OpenlawNativeValue {
+final case class TemplateDefinition(name:TemplateSourceIdentifier, mappingInternal:Map[VariableName, Expression] = Map(), path:Option[TemplatePath] = None) extends OpenlawNativeValue {
   lazy val mapping: Map[VariableName, Expression] = mappingInternal.map({case (key,value) => key -> value})
 }
 
-case class TemplateSourceIdentifier(name:TemplateTitle)
+final case class TemplateSourceIdentifier(name:TemplateTitle)
 
-case class TemplatePath(path:Seq[String] = Seq()) extends OpenlawNativeValue {
+final case class TemplatePath(path:Seq[String] = Seq()) extends OpenlawNativeValue {
   def innerFile(name:String):TemplatePath = TemplatePath(path ++ Seq(name))
 }
 
@@ -43,20 +43,20 @@ case object TemplatePathType extends VariableType("TemplateType") with NoShowInF
 }
 
 object TemplateDefinition {
-  implicit val templateDefinitionEnc: Encoder[TemplateDefinition] = deriveEncoder[TemplateDefinition]
-  implicit val templateDefinitionDec: Decoder[TemplateDefinition] = deriveDecoder[TemplateDefinition]
+  implicit val templateDefinitionEnc: Encoder[TemplateDefinition] = deriveEncoder
+  implicit val templateDefinitionDec: Decoder[TemplateDefinition] = deriveDecoder
   implicit val templateDefinitionEq:Eq[TemplateDefinition] = Eq.fromUniversalEquals
 }
 
 object TemplateSourceIdentifier {
-  implicit val templateIdentifierEnc: Encoder[TemplateSourceIdentifier] = deriveEncoder[TemplateSourceIdentifier]
-  implicit val templateIdentifierDec: Decoder[TemplateSourceIdentifier] = deriveDecoder[TemplateSourceIdentifier]
+  implicit val templateIdentifierEnc: Encoder[TemplateSourceIdentifier] = deriveEncoder
+  implicit val templateIdentifierDec: Decoder[TemplateSourceIdentifier] = deriveDecoder
   implicit val templateIdentifierEq:Eq[TemplateSourceIdentifier] = Eq.fromUniversalEquals
 }
 
 object TemplatePath {
-  implicit val templatePathEnc: Encoder[TemplatePath] = deriveEncoder[TemplatePath]
-  implicit val templatePathDec: Decoder[TemplatePath] = deriveDecoder[TemplatePath]
+  implicit val templatePathEnc: Encoder[TemplatePath] = deriveEncoder
+  implicit val templatePathDec: Decoder[TemplatePath] = deriveDecoder
   implicit val templatePathEq:Eq[TemplatePath] = Eq.fromUniversalEquals
 }
 

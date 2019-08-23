@@ -1,7 +1,6 @@
 package org.adridadou.openlaw.vm
 
 import java.time.{Clock, LocalDateTime}
-import java.util.Date
 
 import org.adridadou.openlaw.result.Implicits.failureCause2Exception
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
@@ -15,8 +14,6 @@ import org.scalatest.EitherValues._
 import org.scalatest.OptionValues._
 import play.api.libs.json.Json
 import org.adridadou.openlaw.{OpenlawMap, _}
-
-import scala.concurrent.Await
 
 class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
@@ -531,7 +528,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     val newCollection = s"""{"values":{"0":"$initialValue","1":"$newValue"},"size":2}"""
 
     val variable = result.getVariable("My Collection").value
-    val varType = variable.varType(executionResult).asInstanceOf[CollectionType]
+    val varType = variable.varType(executionResult)
     val collection = VariableType.convert[CollectionValue](varType.cast(initialCollection, executionResult).getOrThrow()).getOrThrow()
     initialValue should be(collection.valueInternalFormat(collection.list.head).right.value)
 

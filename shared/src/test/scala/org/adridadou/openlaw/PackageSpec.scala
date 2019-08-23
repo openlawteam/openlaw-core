@@ -22,7 +22,7 @@ class PackageSpec extends FlatSpec with Matchers with Checkers {
 		OpenlawString("test").compareTo(OpenlawString("TEST")) shouldNot be (0)
 	}
 
-	it should "implicitly convert to it's underlying type" in {
+	it should "implicitly convert to its underlying type" in {
 		val string: String = OpenlawString("test")
 		string should be ("test")
 		val bigDecimal: BigDecimal = OpenlawBigDecimal(BigDecimal(1L))

@@ -353,7 +353,7 @@ trait TemplateExecutionResult {
       case Success(_) =>
         Failure(s"${name.name} has already been defined!")
       case Failure(_,_) =>
-        varType.internalFormat(value).map { internalFormat =>
+        varType.internalFormat(value).flatMap { internalFormat =>
           val result = OpenlawExecutionState(
             id = TemplateExecutionResultId(UUID.randomUUID().toString),
             info = info,
@@ -367,13 +367,11 @@ trait TemplateExecutionResult {
             variableRedefinition = VariableRedefinition()
           )
 
-          result.registerNewType(varType)
-
-          result.variablesInternal.append(VariableDefinition(name, Some(VariableTypeDefinition(name = varType.name, None))))
-
-          result.executedVariablesInternal.append(name)
-
-          result
+					result.registerNewType(varType).map(newResult => {
+						newResult.variablesInternal.append(VariableDefinition(name, Some(VariableTypeDefinition(name = varType.name, None))))
+						newResult.executedVariablesInternal.append(name)
+						newResult
+					})
         }
     }
 }
@@ -388,7 +386,7 @@ object SerializableTemplateExecutionResult {
   implicit val clockDecEq:Eq[Clock] = Eq.fromUniversalEquals
 }
 
-case class SerializableTemplateExecutionResult(id:TemplateExecutionResultId,
+final case class SerializableTemplateExecutionResult(id:TemplateExecutionResultId,
                                                info:OLInformation,
                                                templateDefinition: Option[TemplateDefinition] = None,
                                                subExecutionIds:Map[VariableName, TemplateExecutionResultId],
@@ -424,7 +422,7 @@ case object TemplateExecution extends ExecutionType
 case object ClauseExecution extends ExecutionType
 case object BlockExecution extends ExecutionType
 
-case class OpenlawExecutionState(
+final case class OpenlawExecutionState(
                                     id:TemplateExecutionResultId,
                                     parameters:TemplateParameters,
                                     executionType:ExecutionType,
@@ -475,8 +473,10 @@ case class OpenlawExecutionState(
   def addLastSectionByLevel(lvl: Int, sectionValue: String):Unit = {
     if(embedded) {
       parentExecutionInternal match {
-        case Some(parent) => parent.addLastSectionByLevel(lvl, sectionValue)
-        case None => lastSectionByLevel put (lvl , sectionValue)
+        case Some(parent) =>
+					parent.addLastSectionByLevel(lvl, sectionValue)
+        case None =>
+					lastSectionByLevel put (lvl , sectionValue)
       }
     } else {
       lastSectionByLevel put (lvl , sectionValue)
@@ -485,7 +485,8 @@ case class OpenlawExecutionState(
 
   override def subExecutions: Map[VariableName, TemplateExecutionResult] = subExecutionsInternal.toMap
 
-  def getLastSectionByLevel(idx: Int): String = {
+  @scala.annotation.tailrec
+	def getLastSectionByLevel(idx: Int): String = {
     if(embedded) {
       parentExecutionInternal match {
         case Some(parent) => parent.getLastSectionByLevel(idx)
@@ -496,11 +497,13 @@ case class OpenlawExecutionState(
     }
   }
 
+	@scala.annotation.tailrec
   def addProcessedSection(section: Section, number: Int):Unit = (embedded, parentExecutionInternal) match {
     case (true, Some(parent)) => parent.addProcessedSection(section, number)
     case _ => processedSectionsInternal append (section -> number)
   }
 
+	@scala.annotation.tailrec
   def addSectionLevelStack(newSectionValues: Seq[Int]):Unit =
     if(embedded) {
       parentExecutionInternal match {
@@ -659,10 +662,8 @@ case class OpenlawExecutionState(
     parent.map(p => executionLevel(p.parentExecution, acc + 1)).getOrElse(acc)
 
   def allMissingInput: Result[Seq[VariableName]] = {
-    val missingInputs = getAllExecutedVariables.filter({
-      case (_, _:NoShowInForm) => false
-      case _ => true
-    }).map({case (result, variable) => variable.missingInput(result)})
+    val missingInputs = getAllExecutedVariables
+			.map({case (result, variable) => variable.missingInput(result)})
 
     VariableType.sequence(missingInputs).map(_.flatten.distinct)
   }
@@ -779,14 +780,14 @@ case class OpenlawExecutionState(
 
 }
 
-case class StructuredAgreementId(id:String)
+final case class StructuredAgreementId(id:String)
 
 object StructuredAgreement {
-  implicit val structuredAgreementEnc:Encoder[StructuredAgreement] = deriveEncoder[StructuredAgreement]
-  implicit val structuredAgreementDec:Decoder[StructuredAgreement] = deriveDecoder[StructuredAgreement]
+  implicit val structuredAgreementEnc:Encoder[StructuredAgreement] = deriveEncoder
+  implicit val structuredAgreementDec:Decoder[StructuredAgreement] = deriveDecoder
 }
 
-case class StructuredAgreement(executionResultId:TemplateExecutionResultId, templateDefinition:Option[TemplateDefinition], mainTemplate:Boolean = false, header:TemplateHeader, paragraphs:List[Paragraph] = List(), path:Option[TemplatePath] = None) {
+final case class StructuredAgreement(executionResultId:TemplateExecutionResultId, templateDefinition:Option[TemplateDefinition], mainTemplate:Boolean = false, header:TemplateHeader, paragraphs:List[Paragraph] = List(), path:Option[TemplatePath] = None) {
   def title: TemplateTitle = {
     if(header.shouldShowTitle) {
       templateDefinition.map(template => template.name.name).getOrElse(TemplateTitle(""))
@@ -891,7 +892,7 @@ final case class ConditionalEnd(dependencies: Seq[String]) extends AgreementElem
   override def serialize: Json = this.asJson
 }
 
-case class ParagraphBuilder(paragraphs:List[Paragraph] = List(), lastParagraph:Paragraph = Paragraph()) {
+final case class ParagraphBuilder(paragraphs:List[Paragraph] = List(), lastParagraph:Paragraph = Paragraph()) {
   def addAllToLastParagraph(elements: List[AgreementElement]): ParagraphBuilder = elements.foldLeft(this)((builder, element) => builder.add(element))
 
   def add(element: AgreementElement): ParagraphBuilder = this.copy(lastParagraph = lastParagraph.appendElement(element))
@@ -922,7 +923,7 @@ final case class NoteAnnotation(content:String) extends TemplatePart with Agreem
   override def serialize: Json = this.asJson
 }
 
-case class DistinctVariableBuilder(variables:mutable.Buffer[VariableDefinition] = mutable.Buffer(), names:mutable.Set[VariableName] = mutable.Set()) {
+final case class DistinctVariableBuilder(variables:mutable.Buffer[VariableDefinition] = mutable.Buffer(), names:mutable.Set[VariableName] = mutable.Set()) {
   def add(variable: VariableDefinition): DistinctVariableBuilder = {
     variables append variable
     names add variable.name
@@ -940,7 +941,7 @@ case object ExecutionReady extends TemplateExecutionState
 final case class ExecutionFailed(err:Failure[_]) extends TemplateExecutionState
 final case class ExecutionWaitForTemplate(variableName:VariableName, template:TemplateSourceIdentifier, executionType:ExecutionType) extends TemplateExecutionState
 
-case class ActionInfo(action:ActionValue, executionResult: TemplateExecutionResult) {
+final case class ActionInfo(action:ActionValue, executionResult: TemplateExecutionResult) {
   def identifier:Result[ActionIdentifier] = action.identifier(executionResult)
 }
 
@@ -952,7 +953,7 @@ object TemplateExecutionResultId {
   implicit val templateExecutionResultIdKeyDec:KeyDecoder[TemplateExecutionResultId] = (key: String) => Some(TemplateExecutionResultId(key))
 }
 
-case class TemplateExecutionResultId(id:String)
+final case class TemplateExecutionResultId(id:String)
 
 object SignatureProof {
 
@@ -982,7 +983,7 @@ trait SignatureProof {
   val contractId:ContractId
 }
 
-case class ValidationResult(
+final case class ValidationResult(
                              identities:Seq[VariableDefinition],
                              missingInputs:Seq[VariableName],
                              missingIdentities:Seq[VariableName],
@@ -998,4 +999,4 @@ object ActionIdentifier {
   implicit val actionIdentifierEq:Eq[ActionIdentifier] = Eq.fromUniversalEquals
 }
 
-case class ActionIdentifier(identifier:String)
+final case class ActionIdentifier(identifier:String)

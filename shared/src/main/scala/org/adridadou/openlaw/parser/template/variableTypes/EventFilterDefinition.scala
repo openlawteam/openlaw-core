@@ -11,7 +11,7 @@ import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 import org.adridadou.openlaw.result.Implicits.RichOption
 
-case class EventFilterDefinition(
+final case class EventFilterDefinition(
   contractAddress: Expression,
   interface: Expression,
   eventType: Expression,

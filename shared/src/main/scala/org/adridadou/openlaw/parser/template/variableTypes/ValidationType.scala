@@ -74,6 +74,8 @@ case object Validation {
 }
 
 case class Validation(condition:Expression, errorMessage:Expression) extends OpenlawNativeValue {
+
+final case class Validation(condition:Expression, errorMessage:Expression) extends OpenlawNativeValue {
   def validate(executionResult: TemplateExecutionResult):Result[Unit] =
     (for {
       option <- condition.evaluate(executionResult)

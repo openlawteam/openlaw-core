@@ -6,7 +6,7 @@ import cats.implicits._
 import org.adridadou.openlaw.OpenlawBoolean
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 
-case class BooleanExpression(left:Expression, right:Expression, op:BooleanOperation) extends Expression {
+final case class BooleanExpression(left:Expression, right:Expression, op:BooleanOperation) extends Expression {
   override def evaluate(executionResult: TemplateExecutionResult): Result[Option[OpenlawBoolean]] = {
     (for {
       leftOpt <- left.evaluate(executionResult)
@@ -35,13 +35,19 @@ case class BooleanExpression(left:Expression, right:Expression, op:BooleanOperat
     for {
       leftType <- left.expressionType(executionResult)
       rightType <- right.expressionType(executionResult)
-    } yield {
-      (leftType, rightType) match {
-        case (l, _) if l =!= YesNoType => Failure("The left part of the expression has to be a Boolean but instead is " + l.name + ":" + left.toString)
-        case (_, r) if r =!= YesNoType => Failure("The right part of the expression has to be a Boolean but instead is " + r.name + ":" + right.toString)
-        case _ => Success(())
-      }
-  }
+			_ <- validate(leftType, rightType)
+    } yield ()
+
+	private def validate(leftType:VariableType, rightType:VariableType):Result[Unit] = {
+		(leftType, rightType) match {
+			case (l, _) if l =!= YesNoType =>
+				Failure("The left part of the expression has to be a Boolean but instead is " + l.name + ":" + left.toString)
+			case (_, r) if r =!= YesNoType =>
+				Failure("The right part of the expression has to be a Boolean but instead is " + r.name + ":" + right.toString)
+			case _ =>
+				Success(())
+		}
+	}
 
   override def variables(executionResult:TemplateExecutionResult): Result[Seq[VariableName]] =
     left.evaluate(executionResult).flatMap { value =>
@@ -76,7 +82,7 @@ case class BooleanExpression(left:Expression, right:Expression, op:BooleanOperat
 
 }
 
-case class BooleanUnaryExpression(expr:Expression, op:BooleanUnaryOperation) extends Expression {
+final case class BooleanUnaryExpression(expr:Expression, op:BooleanUnaryOperation) extends Expression {
   override def expressionType(executionResult:TemplateExecutionResult): Result[VariableType] = Success(YesNoType)
 
   override def evaluate(executionResult:TemplateExecutionResult): Result[Option[OpenlawBoolean]] =

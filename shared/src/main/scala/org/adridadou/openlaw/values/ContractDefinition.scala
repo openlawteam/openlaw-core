@@ -5,7 +5,7 @@ import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template.variableTypes.{EthereumData, TemplateSourceIdentifier}
 
 
-case class ContractDefinition(
+final case class ContractDefinition(
                                creatorId:UserId = UserId.SYSTEM_ID,
                                mainTemplate:TemplateId,
                                templates:Map[TemplateSourceIdentifier, TemplateId] = Map(),
@@ -35,4 +35,4 @@ case class ContractDefinition(
     .map({case (key, value) => s"$key||$value"}).mkString("#")
 }
 
-case class TemplateScope(parameters:TemplateParameters = TemplateParameters(), paragraphEdits: ParagraphEdits = ParagraphEdits())
+final case class TemplateScope(parameters:TemplateParameters = TemplateParameters(), paragraphEdits: ParagraphEdits = ParagraphEdits())

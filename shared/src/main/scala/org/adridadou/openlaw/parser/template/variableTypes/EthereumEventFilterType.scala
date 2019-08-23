@@ -10,13 +10,13 @@ import org.adridadou.openlaw.oracles.EthereumEventFilterExecution
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
-import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success, attempt}
+import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success}
 
 case object EthereumEventFilterType extends VariableType("EthereumEventFilter") with ActionType {
-  implicit val smartContractEnc: Encoder[EventFilterDefinition] = deriveEncoder[EventFilterDefinition]
-  implicit val smartContractDec: Decoder[EventFilterDefinition] = deriveDecoder[EventFilterDefinition]
+  implicit val smartContractEnc: Encoder[EventFilterDefinition] = deriveEncoder
+  implicit val smartContractDec: Decoder[EventFilterDefinition] = deriveDecoder
 
-  case class EthereumEventPropertyDef(typeDef:VariableType, data:Seq[EthereumEventFilterExecution] => Result[Option[OpenlawValue]])
+  final case class EthereumEventPropertyDef(typeDef:VariableType, data:Seq[EthereumEventFilterExecution] => Result[Option[OpenlawValue]])
 
   private val propertyDef:Map[String,EthereumEventPropertyDef] = Map[String, EthereumEventPropertyDef](
     "executionDate" -> EthereumEventPropertyDef(typeDef = DateTimeType, evts => Success(evts.headOption.map(_.executionDate))),
@@ -77,7 +77,7 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
     case key::Nil =>
       propertyDef.get(key) map { _ => Success.unit } getOrElse Failure(s"unknown key $key for $name")
     case "event"::head::Nil =>
-      propertyDef(head, name, executionResult).map(_ => Unit)
+      propertyDef(head, name, executionResult).map(_ => ())
     case _ =>
       super.validateKeys(name, keys, expression, executionResult)
   }

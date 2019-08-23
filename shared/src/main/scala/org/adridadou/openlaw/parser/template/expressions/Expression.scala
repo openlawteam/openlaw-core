@@ -50,7 +50,7 @@ trait Expression {
   def variables(executionResult: TemplateExecutionResult): Result[Seq[VariableName]]
 }
 
-case class ParensExpression(expr:Expression) extends Expression {
+final case class ParensExpression(expr:Expression) extends Expression {
   override def missingInput(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =
     expr.missingInput(executionResult)
 
