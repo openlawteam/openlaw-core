@@ -3,7 +3,7 @@ package org.adridadou.openlaw.parser
 import java.time.{Clock, LocalDateTime, ZoneOffset}
 import java.util.concurrent.atomic.AtomicInteger
 
-import org.adridadou.openlaw.{OpenlawMap, OpenlawString}
+import org.adridadou.openlaw.{OpenlawMap, OpenlawString, OpenlawBigDecimal}
 
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template._
@@ -1293,18 +1293,16 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
     }
   }
 
-  it should "parse a defined domain type" in {
+  it should "parse a defined domain type and validate correctly" in {
     val text =
       """
-         [[Amount:DomainInformation(
-         |variableType: Number;
-         |validation: Validation(
-         |condition: this >= 0;
-         |errorMessage: "an amount cannot be negative"
-        ))]]
-         <%
+        [[Amount:DomainInformation(
+         |variableType: Number)]]
          [[amount:Amount]]
-         %>
+         [[amount validation:Validation(
+         condition: amount > 0;
+         errorMessage:"amount needs to be higher than 0"
+         )]]
       """.stripMargin
 
      val domainType = executeTemplate(text) match {
@@ -1317,6 +1315,23 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
       case Left(ex) =>
         fail(ex)
     }
+
+     /*val domainTypeInvalidInput = executeTemplate(text) match {
+      case Right(executionResult) =>
+        executionResult.findVariableType(VariableTypeDefinition("Amount")) match {
+          case Some(domainType: DefinedDomainType) => 
+            val newExecutionResult = executeTemplate(text, Map("amount" -> "-5"))
+            println(newExecutionResult)
+            newExecutionResult match {
+              case Right(result) => result.validate.toResult.left.value.message should be("My Number needs to be higher than 5")
+              case _ => fail(s"could not parse execution result!")
+            }
+          case Some(variableType) => fail(s"invalid variable type ${variableType.thisType}")
+          case None => fail("domain type is not the right type")
+        }
+      case Left(ex) =>
+        fail(ex)
+    }*/
 
   }
 
