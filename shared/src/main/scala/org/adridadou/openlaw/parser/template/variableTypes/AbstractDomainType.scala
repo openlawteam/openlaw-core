@@ -27,7 +27,6 @@ case object AbstractDomainType extends VariableType(name = "DomainInformation") 
     case Parameters(values) =>
         val mappedValues = values.toMap
         val strippedValues = mappedValues - "validation"
-        //val strippedValues = mappedValues - "condition" - "errorMessage"
         val validationInfo = mappedValues - "variableType"
         VariableType.sequence(strippedValues.toList
           .map({case (key,value) => 
@@ -35,7 +34,6 @@ case object AbstractDomainType extends VariableType(name = "DomainInformation") 
           .map(fields => {
             val types = fields.map({case (key,definition) => key -> definition.varType(executionResult)})
             ValidationType.constructFromMap(validationInfo, executionResult) match {
-            //ValidationType.construct(validationInfo, executionResult) match {
               case Success(validationVal) => Success(Option(DomainInformation(fields.toMap, types.toMap, Some(validationVal))))
               case _ => Success(Option(DomainInformation(fields.toMap, types.toMap, None)))
             }

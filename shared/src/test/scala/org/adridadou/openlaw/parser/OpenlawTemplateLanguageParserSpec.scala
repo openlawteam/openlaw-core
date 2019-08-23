@@ -1300,8 +1300,8 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
          |variableType: Number)]]
          [[amount:Amount]]
          [[amount validation:Validation(
-         condition: amount > 0;
-         errorMessage:"amount needs to be higher than 0"
+         condition: amount.variableType > 0;
+         errorMessage:"amount must be greater than 0!"
          )]]
       """.stripMargin
 
@@ -1316,22 +1316,33 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
         fail(ex)
     }
 
-     /*val domainTypeInvalidInput = executeTemplate(text) match {
+     val domainTypeValidInput = executeTemplate(text) match {
       case Right(executionResult) =>
         executionResult.findVariableType(VariableTypeDefinition("Amount")) match {
           case Some(domainType: DefinedDomainType) => 
-            val newExecutionResult = executeTemplate(text, Map("amount" -> "-5"))
-            println(newExecutionResult)
-            newExecutionResult match {
-              case Right(result) => result.validate.toResult.left.value.message should be("My Number needs to be higher than 5")
-              case _ => fail(s"could not parse execution result!")
-            }
+            val newExecutionResult = executeTemplate(text, Map("amount" -> domainType.internalFormat(OpenlawMap(Map(VariableName("variableType") -> OpenlawBigDecimal(BigDecimal("5")), VariableName("validation") -> OpenlawMap(Map(VariableName("condition") -> OpenlawString("amount > 0"), VariableName("errorMessage") -> OpenlawString("amount must be greater than 0!"))))))
+            .right.value)).right.value
+            service.parseExpression("amount.variableType").flatMap(_.evaluate(newExecutionResult)).right.value.value.toString shouldBe "5"
           case Some(variableType) => fail(s"invalid variable type ${variableType.thisType}")
           case None => fail("domain type is not the right type")
         }
       case Left(ex) =>
         fail(ex)
-    }*/
+    }
+
+    val domainTypeInvalidInput = executeTemplate(text) match {
+      case Right(executionResult) =>
+        executionResult.findVariableType(VariableTypeDefinition("Amount")) match {
+          case Some(domainType: DefinedDomainType) => 
+            val newExecutionResult = executeTemplate(text, Map("amount" -> domainType.internalFormat(OpenlawMap(Map(VariableName("variableType") -> OpenlawBigDecimal(BigDecimal("-5")))))
+            .right.value)).right.value
+            newExecutionResult.validate.toResult.left.value.message should be("amount must be greater than 0!")
+          case Some(variableType) => fail(s"invalid variable type ${variableType.thisType}")
+          case None => fail("domain type is not the right type")
+        }
+      case Left(ex) =>
+        fail(ex)
+    }
 
   }
 
