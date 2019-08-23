@@ -3,7 +3,6 @@ package org.adridadou.openlaw.parser.template.variableTypes
 import java.util
 
 import cats.Eq
-import cats._
 import cats.implicits._
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.{Decoder, Encoder}
@@ -11,8 +10,7 @@ import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawString, OpenlawValue}
 import org.adridadou.openlaw.oracles.UserId
 import org.adridadou.openlaw.parser.template.variableTypes.EthereumAddress.hex2bytes
 import org.adridadou.openlaw.parser.template.{Parameter, TemplateExecutionResult}
-import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
-import org.adridadou.openlaw.result.Implicits.RichResult
+import org.adridadou.openlaw.result.{Failure, Result, Success}
 import org.adridadou.openlaw.values.ContractId
 
 case object EthAddressType extends VariableType("EthAddress") {
@@ -93,7 +91,7 @@ object EthereumAddress {
 }
 
 @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
-final case class EthereumSignature(signature: Array[Byte]) {
+final case class EthereumSignature(signature: Array[Byte]) extends OpenlawNativeValue {
   def withLeading0x: String = "0x" + this.toString
   override def toString: String = EthereumAddress.bytes2hex(signature)
 
@@ -150,7 +148,7 @@ object EthereumData {
 }
 
 @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
-final case class EthereumData(data: Array[Byte]) {
+final case class EthereumData(data: Array[Byte]) extends OpenlawNativeValue {
   def withLeading0x: String = "0x" + this.toString
   override def toString: String = EthereumAddress.bytes2hex(data)
 
