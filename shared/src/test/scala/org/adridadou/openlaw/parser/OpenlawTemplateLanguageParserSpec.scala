@@ -51,7 +51,6 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
   private def executeTemplate(text:String, p:Map[String, String] = Map(), templates:Map[TemplateSourceIdentifier, CompiledTemplate] = Map(), externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] = Map()):Result[OpenlawExecutionState] = compiledTemplate(text).flatMap({
     case agreement:CompiledAgreement =>
       val params = p.map({case (k,v) => VariableName(k) -> v})
-      //println(agreement)
       engine.execute(agreement, TemplateParameters(params), templates, externalCallStructures = externalCallStructures)
     case _ =>
       Failure("was expecting agreement")
