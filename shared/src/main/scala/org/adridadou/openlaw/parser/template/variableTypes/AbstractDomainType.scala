@@ -12,7 +12,7 @@ import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
 import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success}
 
-case class DomainInformation(typeDefinition: Map[VariableName, VariableDefinition], variableType:Map[VariableName, VariableType], validation:Validation) extends OpenlawNativeValue
+final case class DomainInformation(typeDefinition: Map[VariableName, VariableDefinition], variableType:Map[VariableName, VariableType], validation:Option[Validation]) extends OpenlawNativeValue
 
 case object DomainInformation {
   implicit val domainEnc:Encoder[DomainInformation] = deriveEncoder[DomainInformation]
@@ -36,9 +36,8 @@ case object AbstractDomainType extends VariableType(name = "DomainInformation") 
             val types = fields.map({case (key,definition) => key -> definition.varType(executionResult)})
             ValidationType.constructFromMap(validationInfo, executionResult) match {
             //ValidationType.construct(validationInfo, executionResult) match {
-              case Success(validationVal) => 
-              Success(Option(DomainInformation(fields.toMap, types.toMap, validationVal)))
-              case _ => Failure("""Validation type not found""")
+              case Success(validationVal) => Success(Option(DomainInformation(fields.toMap, types.toMap, Some(validationVal))))
+              case _ => Success(Option(DomainInformation(fields.toMap, types.toMap, None)))
             }
           }.right.getOrElse(None))
     case _ =>
@@ -87,7 +86,7 @@ object DefinedDomainType {
 
 }
 
-case class DefinedDomainType(domain:DomainInformation, typeName:String) extends VariableType(name = typeName) {
+final case class DefinedDomainType(domain:DomainInformation, typeName:String) extends VariableType(name = typeName) {
 
 
   override def serialize: Json = {

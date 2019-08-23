@@ -1456,15 +1456,14 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
   it should "handle Domain correctly" in {
      val text =
       """
-        [[validator: Validation(
-         |condition: _ >= 0;
-         |errorMessage: "an amount cannot be negative"
-         |)]]
         [[Amount:DomainInformation(
-         |variableType: Number;
-         |validation: validator)]]
+         |variableType: Number)]]
          <%
          [[amount:Amount]]
+         [[amount validation:Validation(
+         condition: amount > 5;
+         errorMessage:"amount needs to be higher than 5"
+         )]]
          %>
       """.stripMargin
 
@@ -1481,13 +1480,13 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     val textWithVar =
       """<%
         [[Amount:DomainInformation(
-         |variableType: Number;
-         |validation: Validation(
-         |condition: this >= 0;
-         |errorMessage: "an amount cannot be negative"
-        ))]]
-        [[amount:Amount]]
-        |%>
+         |variableType: Number)]]
+         [[amount:Amount]]
+         [[amount validation:Validation(
+         condition: amount > 5;
+         errorMessage:"amount needs to be higher than 5"
+         )]]
+         %>
         |My amount is: [[amount.variableType]]
       """.stripMargin
 

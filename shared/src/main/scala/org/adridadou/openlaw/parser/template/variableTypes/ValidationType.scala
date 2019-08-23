@@ -73,8 +73,6 @@ case object Validation {
   implicit val validationDec: Decoder[Validation] = deriveDecoder[Validation]
 }
 
-case class Validation(condition:Expression, errorMessage:Expression) extends OpenlawNativeValue {
-
 final case class Validation(condition:Expression, errorMessage:Expression) extends OpenlawNativeValue {
   def validate(executionResult: TemplateExecutionResult):Result[Unit] =
     (for {
