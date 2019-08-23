@@ -1457,13 +1457,15 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
   }
 
   it should "handle Domain correctly" in {
-      val text =
+     val text =
       """
-        |[[Amount:DomainInformation(
-         |variableType: Number;
-         |condition: this >= 0;
+        [[validator: Validation(
+         |condition: _ >= 0;
          |errorMessage: "an amount cannot be negative"
          |)]]
+        [[Amount:DomainInformation(
+         |variableType: Number;
+         |validation: validator)]]
          <%
          [[amount:Amount]]
          %>
@@ -1483,10 +1485,10 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       """<%
         [[Amount:DomainInformation(
          |variableType: Number;
+         |validation: Validation(
          |condition: this >= 0;
          |errorMessage: "an amount cannot be negative"
-         |)]]
-        |
+        ))]]
         [[amount:Amount]]
         |%>
         |My amount is: [[amount.variableType]]
@@ -1495,24 +1497,23 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     val template2 = compile(textWithVar)
 
     val Right(result) = engine.execute(template2)
-    val Some(varType:DefinedDomainType) = result.findVariableType(VariableTypeDefinition("Amount"))
-    val Right(internalFormat) = varType.internalFormat(Map[VariableName, OpenlawValue](
+    val Some(domainType:DefinedDomainType) = result.findVariableType(VariableTypeDefinition("Amount"))
+    val Right(internalFormat) = domainType.internalFormat(Map[VariableName, OpenlawValue](
       VariableName("variableType") -> OpenlawBigDecimal(BigDecimal("5"))))
     engine.execute(template2, TemplateParameters("amount" -> internalFormat)) match {
       case Success(newResult) =>
-        //println(newResult.validate)
-        //val Some(variable) = newResult.getVariable("amount")
         parser.forReview(newResult.agreements.head) shouldBe "<p class=\"no-section\"><br />My amount is: 5<br />      </p>"
       case Failure(ex, message) =>
         ex.printStackTrace()
         fail(message, ex)
     }
 
-    val Right(internalFormat2) = varType.internalFormat(Map[VariableName, OpenlawValue](
+    val Right(internalFormat2) = domainType.internalFormat(Map[VariableName, OpenlawValue](
       VariableName("variableType") -> OpenlawBigDecimal(BigDecimal("-5"))))
     engine.execute(template2, TemplateParameters("amount" -> internalFormat2)) match {
       case Success(newResult) =>
-        println(newResult.validate)//.toResult)//.left.value.message should be("an amount cannot be negative!"))
+        parser.forReview(newResult.agreements.head) shouldBe "<p class=\"no-section\"><br />My amount is: <br />      </p>"
+        //newResult.validate.toResult.left.value.message should be("an amount cannot be negative!")
         //fail("this should fail the validation for custom type!")
       case _ =>
         

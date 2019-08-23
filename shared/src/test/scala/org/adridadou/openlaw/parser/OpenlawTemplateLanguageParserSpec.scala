@@ -1243,11 +1243,12 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
   it should "parse a defined domain type" in {
     val text =
       """
-         |[[Amount:DomainInformation(
-         |variableType:Number;
+         [[Amount:DomainInformation(
+         |variableType: Number;
+         |validation: Validation(
          |condition: this >= 0;
          |errorMessage: "an amount cannot be negative"
-         |)]]
+        ))]]
          <%
          [[amount:Amount]]
          %>

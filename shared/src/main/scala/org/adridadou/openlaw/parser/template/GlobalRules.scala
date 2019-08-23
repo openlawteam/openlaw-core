@@ -68,7 +68,7 @@ trait GlobalRules extends Parser {
   def keyChar: Rule0 = rule { !forbiddenChar ~ ANY }
 
   def forbiddenChar: Rule0 =  rule {
-    centered | rightThreeQuarters | right | pagebreak | indent | em | under | openS | closeS | openB | closeB | openC | closeC | sectionChar | sectionbreak | ":" | "|" | "&" | "@" | "#" | quote | "\n" | "," | "." | "->" | ">" | "<" | "=" | ")" | "(" | "+" | "-" | "*" | "/" | ";" | "!" | "{" | "}" | "[" | "]"
+    centered | rightThreeQuarters | right | pagebreak | indent | em | under | openB | closeB | openC | closeC | sectionChar | sectionbreak | ":" | "|" | "&" | "@" | "#" | quote | "\n" | "," | "." | "->" | ">" | "<" | "=" | ")" | "(" | "+" | "-" | "*" | "/" | ";" | "!" | "{" | "}" | "[" | "]"
   }
 
   def charsKeyAST: Rule1[String] = rule { ws ~ capture(firstKeyChar ~ zeroOrMore(keyChar)) }

@@ -206,6 +206,7 @@ trait TemplateExecutionResult {
                   .map(_.flatMap(_.identity))
               }
 
+          //TODo - we may need to add this, not sure yet
           /*case domainType: DefinedDomainType if domainType.domain.typeDefinition.values.exists(_.varType(result) === IdentityType) =>
             variable
               .evaluateT[OpenlawMap[VariableName, OpenlawValue]](result)
