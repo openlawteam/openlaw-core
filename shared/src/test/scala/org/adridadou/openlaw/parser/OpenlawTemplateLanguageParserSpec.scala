@@ -1303,21 +1303,21 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
          [[amount:Amount]]
       """.stripMargin
 
-     val domainType = executeTemplate(text) match {
-      case Right(executionResult) =>
+     executeTemplate(text) match {
+      case Success(executionResult) =>
         executionResult.findVariableType(VariableTypeDefinition("Amount")) match {
           case Some(domainType: DefinedDomainType) => domainType.domain
           case Some(variableType) => fail(s"invalid variable type ${variableType.thisType}")
           case None => fail("domain type is not the right type")
         }
-      case Left(ex) =>
-        fail(ex)
+      case Failure(ex, message) =>
+        fail(message, ex)
     }
 
      executeTemplate(text) match {
       case Right(executionResult) =>
         executionResult.findVariableType(VariableTypeDefinition("Amount")) match {
-          case Some(domainType: DefinedDomainType) =>
+          case Some(_: DefinedDomainType) =>
             val Right(newExecutionResult) = executeTemplate(text, Map("amount" -> "5"))
             service.parseExpression("amount").flatMap(_.evaluate(newExecutionResult)).right.value.value.toString shouldBe "5"
           case Some(variableType) => fail(s"invalid variable type ${variableType.thisType}")
