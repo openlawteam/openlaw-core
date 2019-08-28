@@ -1477,7 +1477,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
     val textWithVar =
       """
-        [[Amount:DomainInformation(
+        [[Amount:DomainType(
          |variableType: Number;
 				 |condition: this > 5;
 				 |errorMessage: "amount should be higher than 5")]]
