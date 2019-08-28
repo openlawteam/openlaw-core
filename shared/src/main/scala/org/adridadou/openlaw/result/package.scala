@@ -5,7 +5,6 @@ import cats.data.Validated._
 import cats.data.{NonEmptyList, ValidatedNel}
 import cats.data.NonEmptyList.{of, one}
 import cats.implicits._
-import cats.Semigroup
 import org.adridadou.openlaw.result.Implicits.RichTry
 import scala.util.Try
 import scala.util.control.NonFatal

@@ -1456,14 +1456,13 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
   it should "handle Domain correctly" in {
      val text =
       """
-        [[Amount:DomainInformation(
-         |variableType: Number)]]
+        [[Amount:DomainType(
+         |variableType: Number;
+				 |condition: this > 5;
+				 |errorMessage:"amount needs to be higher than 5"
+				 |)]]
          <%
          [[amount:Amount]]
-         [[amount validation:Validation(
-         condition: amount > 5;
-         errorMessage:"amount needs to be higher than 5"
-         )]]
          %>
       """.stripMargin
 
@@ -1472,37 +1471,35 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     engine.execute(template, TemplateParameters()) match {
       case Success(executionResult) =>
         val Some(domain:DefinedDomainType) = executionResult.findVariableType(VariableTypeDefinition("Amount"))
-        val field = domain.domain.typeDefinition(VariableName("variableType"))
-        field.varType(executionResult) shouldBe NumberType
+				domain.domain.typeDefinition shouldBe NumberType
       case Failure(ex, message) => fail(message, ex)
     }
 
     val textWithVar =
       """
         [[Amount:DomainInformation(
-         |variableType: Number)]]
-         [[amount:Amount]]
-         [[amount validation:Validation(
-         condition: amount.variableType > 5;
-         errorMessage:"amount needs to be higher than 5"
-         )]]
-        |My amount is: [[amount.variableType]]
+         |variableType: Number;
+				 |condition: this > 5;
+				 |errorMessage: "amount should be higher than 5")]]
+         |
+				 |[[amount:Amount]]
+        |My amount is: [[amount]]
       """.stripMargin
 
     val template2 = compile(textWithVar)
 
     val Right(result) = engine.execute(template2)
     val Some(domainType:DefinedDomainType) = result.findVariableType(VariableTypeDefinition("Amount"))
-    val Right(internalFormat) = domainType.internalFormat(Map[VariableName, OpenlawValue](
-      VariableName("variableType") -> OpenlawBigDecimal(BigDecimal("5"))))
+    val Right(internalFormat) = domainType.internalFormat(OpenlawBigDecimal(BigDecimal("5")))
     engine.execute(template2, TemplateParameters("amount" -> internalFormat)) match {
       case Success(newResult) =>
-        parser.forReview(newResult.agreements.head) shouldBe "<p class=\"no-section\"><br />        <br />         <br />         <br />My amount is: 5<br />      </p>"
+				val text = parser.forReview(newResult.agreements.head)
+				text shouldBe "<p class=\"no-section\"><br />        </p><p class=\"no-section\">5<br />My amount is: 5<br />      </p>"
       case Failure(ex, message) =>
         ex.printStackTrace()
         fail(message, ex)
     }
-   
+
   }
 
   it should "print table properly even in a conditional" in {

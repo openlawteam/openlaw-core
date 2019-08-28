@@ -1,43 +1,59 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
-import cats.implicits._
 import io.circe.{Decoder, Encoder, HCursor, Json}
 import cats.kernel.Eq
 import org.adridadou.openlaw.parser.template._
 import io.circe.syntax._
-import io.circe.parser._
 import io.circe.generic.semiauto._
 import org.adridadou.openlaw._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
-import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success}
+import org.adridadou.openlaw.result.{Failure, Result, ResultNel, Success}
+import org.adridadou.openlaw.result.Implicits._
 
-final case class DomainInformation(typeDefinition: Map[VariableName, VariableDefinition], variableType:Map[VariableName, VariableType], validation:Option[Validation]) extends OpenlawNativeValue
+final case class DomainInformation(typeDefinition: VariableType, validation:Validation) extends OpenlawNativeValue {
+	def validate(value:OpenlawValue, executionResult: TemplateExecutionResult):ResultNel[Unit] =
+		executionResult.startEphemeralExecution(VariableName("this"), value, typeDefinition).toResultNel
+			.andThen(validation.validate)
+}
 
 case object DomainInformation {
-  implicit val domainEnc:Encoder[DomainInformation] = deriveEncoder[DomainInformation]
-  implicit val domainDec:Decoder[DomainInformation] = deriveDecoder[DomainInformation]
+  implicit val domainEnc:Encoder[DomainInformation] = deriveEncoder
+  implicit val domainDec:Decoder[DomainInformation] = deriveDecoder
   implicit val domainDecEq:Eq[DomainInformation] = Eq.fromUniversalEquals
 
 }
 
-case object AbstractDomainType extends VariableType(name = "DomainInformation") with TypeGenerator[DomainInformation] {
+case object AbstractDomainType extends VariableType(name = "DomainType") with TypeGenerator[DomainInformation] {
+
+	private def getValue(values:Map[String, Parameter], propertyName:String):Result[Parameter] = values
+		.get(propertyName)
+		.map(Success(_))
+  	.getOrElse(Failure(s"missing property $propertyName in Domain Type constructor"))
+
+	private def getVariableType(param:Parameter, executionResult: TemplateExecutionResult):Result[VariableType] = param match {
+		case OneValueParameter(VariableName(typeName)) =>
+			executionResult
+				.findVariableType(VariableTypeDefinition(typeName)).map(Success(_))
+				.getOrElse(Failure(s"type $typeName not found"))
+		case OneValueParameter(definition:VariableDefinition) =>
+			(for {
+				varTypeDefinition <- definition.variableTypeDefinition
+				varType <- executionResult.findVariableType(varTypeDefinition)
+			} yield varType).map(Success(_)).getOrElse(Failure(s"type ${definition.name} not found"))
+		case _ =>
+			Failure("error in the constructor for Domain Type")
+	}
 
   override def construct(param:Parameter, executionResult: TemplateExecutionResult): Result[Option[DomainInformation]] = param match {
     case Parameters(values) =>
-        val mappedValues = values.toMap
-        val strippedValues = mappedValues - "validation"
-        val validationInfo = mappedValues - "variableType"
-        VariableType.sequence(strippedValues.toList
-          .map({case (key,value) => 
-          getField(key, value, executionResult).map(VariableName(key) -> _)}))
-          .map(fields => {
-            val types = fields.map({case (key,definition) => key -> definition.varType(executionResult)})
-            ValidationType.constructFromMap(validationInfo, executionResult) match {
-              case Success(validationVal) => Success(Option(DomainInformation(fields.toMap, types.toMap, Some(validationVal))))
-              case _ => Success(Option(DomainInformation(fields.toMap, types.toMap, None)))
-            }
-          }.right.getOrElse(None))
+			val mappedValues = values.toMap
+			for {
+				varTypeParameter <- getValue(mappedValues, "variableType")
+				variableType <- getVariableType(varTypeParameter, executionResult)
+				validation <- ValidationType.construct2(param, executionResult)
+			} yield Some(DomainInformation(variableType, validation))
+
     case _ =>
       Failure("""Domain type requires parameters (either 'variableType', 'condition', or 'errorMessage' is missing)""")
     }
@@ -50,25 +66,9 @@ case object AbstractDomainType extends VariableType(name = "DomainInformation") 
 
   override def getTypeClass: Class[_ <: DomainInformation] = classOf[DomainInformation]
 
-  override def checkTypeName(nameToCheck: String): Boolean = Seq("DomainInformation").exists(_.equalsIgnoreCase(nameToCheck))
+  override def checkTypeName(nameToCheck: String): Boolean = Seq("DomainType").exists(_.equalsIgnoreCase(nameToCheck))
 
   def thisType: VariableType = AbstractDomainType
-
-  private def getOneValueConstant(value:Parameter): Result[String] = value match {
-    case OneValueParameter(StringConstant(v, _)) =>
-      Success(v)
-    case _ =>
-      Failure("""Domain requires "variableType" or "validation" argument.""")
-  }
-
-  private def getField(name:String, value:Parameter, executionResult: TemplateExecutionResult): Result[VariableDefinition] = value match {
-    case OneValueParameter(VariableName(typeName)) =>
-      Success(VariableDefinition(name = VariableName(name), variableTypeDefinition = Some(VariableTypeDefinition(name = typeName))))
-    case OneValueParameter(definition:VariableDefinition) =>
-      Success(definition.copy(name = VariableName(name)))
-    case _ =>
-      Failure("error in the constructor for Domain Type")
-  }
 
   override def generateType(name: VariableName, domainInformation: DomainInformation): DefinedDomainType =
     DefinedDomainType(domainInformation, name.name)
@@ -85,8 +85,6 @@ object DefinedDomainType {
 }
 
 final case class DefinedDomainType(domain:DomainInformation, typeName:String) extends VariableType(name = typeName) {
-
-
   override def serialize: Json = {
     Json.obj(
       "name" -> Json.fromString(typeName),
@@ -96,72 +94,22 @@ final case class DefinedDomainType(domain:DomainInformation, typeName:String) ex
 
   override def defaultFormatter: Formatter = new NoopFormatter
 
-  override def access(value: OpenlawValue, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = {
-    keys.toList match {
-      case Nil =>
-        Success(Some(value))
-      case head :: tail =>
-        val headName = VariableName(head)
-        VariableType.convert[OpenlawMap[VariableName, OpenlawValue]](value).flatMap { values =>
-          (for {
-            result <- values.get(headName)
-            keyType <- domain.typeDefinition.get(headName)
-          } yield keyType.varType(executionResult).access(result, name, tail, executionResult)) match {
-            case Some(result) => result
-            case None =>
-              Failure(s"properties '${keys.mkString(".")}' could not be resolved for the domain type $typeName.")
-          }
-        }
-    }
-  }
+  override def access(value: OpenlawValue, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] =
+		domain.typeDefinition.access(value, name, keys, executionResult)
 
-  override def getTypeClass: Class[OpenlawMap[VariableName, OpenlawValue]] = classOf[OpenlawMap[VariableName, OpenlawValue]]
+  override def getTypeClass: Class[_ <: OpenlawValue] = domain.typeDefinition.getTypeClass
 
   override def keysType(keys: Seq[String], expression: Expression, executionResult: TemplateExecutionResult): Result[VariableType] =
-    keys.toList match {
-      case Nil =>
-        Success(AbstractDomainType)
-      case head::tail =>
-        val name = VariableName(head)
-        domain.typeDefinition.get(name) match {
-          case Some(varDefinition) =>
-            varDefinition.varType(executionResult).keysType(tail, expression, executionResult)
-          case None =>
-            Failure(s"property '${keys.mkString(".")}' could not be resolved in domain value '$head'")
-        }
-    }
+		domain.typeDefinition.keysType(keys, expression, executionResult)
 
-  override def validateKeys(name:VariableName, keys: Seq[String], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] = keys.toList match {
-    case Nil =>
-      Success(())
-    case head::tail =>
-      val name = VariableName(head)
-      domain.typeDefinition.get(name) match {
-        case Some(variableType) =>
-          variableType.varType(executionResult).validateKeys(name, tail, expression, executionResult)
-        case None =>
-          Failure(s"property '${tail.mkString(".")}' could not be resolved in domain value '$head'")
-      }
-  }
+  override def validateKeys(name:VariableName, keys: Seq[String], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] =
+		domain.typeDefinition.validateKeys(name, keys, expression, executionResult)
 
-  override def cast(value: String, executionResult: TemplateExecutionResult): Result[OpenlawMap[VariableName, OpenlawValue]] =
-    for {
-      values <- decode[Map[String, String]](value).leftMap(FailureException(_))
-      list <- domain.variableType.flatMap {case (fieldName, fieldType) =>
-        values.get(fieldName.name).map(value => fieldType.cast(value, executionResult).map(fieldName -> _))
-      }.toList.sequence
-    } yield OpenlawMap(list.toMap)
+  override def cast(value: String, executionResult: TemplateExecutionResult): Result[OpenlawValue] =
+		domain.typeDefinition.cast(value, executionResult)
 
   override def internalFormat(value: OpenlawValue): Result[String] =
-    VariableType.convert[OpenlawMap[VariableName, OpenlawValue]](value).flatMap { values =>
-      domain
-        .variableType
-        .flatMap { case (fieldName, fieldType) => values.get(fieldName).map(value => fieldType.internalFormat(value).map( fieldName.name -> _)) }
-        .toList
-        .sequence
-        .map(_.toMap)
-        .map { _.asJson.noSpaces }
-    }
+		domain.typeDefinition.internalFormat(value)
 
   override def thisType: VariableType = this
 }

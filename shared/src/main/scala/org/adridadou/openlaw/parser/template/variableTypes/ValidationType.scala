@@ -9,7 +9,8 @@ import io.circe.parser._
 import cats.implicits._
 import org.adridadou.openlaw._
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
-import org.adridadou.openlaw.result.{Failure, Result, Success}
+import org.adridadou.openlaw.result.{Failure, Result, ResultNel, Success}
+import org.adridadou.openlaw.result.Implicits._
 
 case object ValidationType extends VariableType(name = "Validation") with NoShowInForm {
 
@@ -18,31 +19,23 @@ case object ValidationType extends VariableType(name = "Validation") with NoShow
     case Left(ex) => Failure(ex)
   }
 
-  override def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = constructorParams match {
-    case Parameters(v) =>
-      val values = v.toMap
-      for {
-        condition <- getExpression(values, "condition")
-        errorMessage <- getExpression(values, "errorMessage")
-        result <- validate(Validation(
-          condition = condition,
-          errorMessage = errorMessage
-        ), executionResult).map(Some(_))
-      } yield result
+	def construct2(constructorParams: Parameter, executionResult: TemplateExecutionResult): Result[Validation] = constructorParams match {
+		case Parameters(v) =>
+			val values = v.toMap
+			for {
+				condition <- getExpression(values, "condition")
+				errorMessage <- getExpression(values, "errorMessage")
+				result <- validate(Validation(
+					condition = condition,
+					errorMessage = errorMessage
+				), executionResult)
+			} yield result
 
-    case _ => Failure("Validation need to get 'condition' and 'errorMessage' as constructor parameter")
-  }
+		case _ => Failure("Validation need to get 'condition' and 'errorMessage' as constructor parameter")
+	}
 
-  def constructFromMap(values: Map[String, Parameter], executionResult: TemplateExecutionResult): Result[Validation] = {
-      for {
-        condition <- getExpression(values, "condition")
-        errorMessage <- getExpression(values, "errorMessage")
-        result <- validate(Validation(
-          condition = condition,
-          errorMessage = errorMessage
-        ), executionResult)
-      } yield result
-  }
+  override def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Result[Option[Validation]] =
+		construct2(constructorParams, executionResult).map(Some(_))
 
   override def internalFormat(value: OpenlawValue): Result[String] = VariableType.convert[Validation](value).map(_.asJson.noSpaces)
 
@@ -69,25 +62,17 @@ case object ValidationType extends VariableType(name = "Validation") with NoShow
 }
 
 case object Validation {
-  implicit val validationEnc: Encoder[Validation] = deriveEncoder[Validation]
-  implicit val validationDec: Decoder[Validation] = deriveDecoder[Validation]
+  implicit val validationEnc: Encoder[Validation] = deriveEncoder
+  implicit val validationDec: Decoder[Validation] = deriveDecoder
 }
 
 final case class Validation(condition:Expression, errorMessage:Expression) extends OpenlawNativeValue {
-  def validate(executionResult: TemplateExecutionResult):Result[Unit] =
-    (for {
-      option <- condition.evaluate(executionResult)
-      value <- option.map(VariableType.convert[OpenlawBoolean](_)).sequence
-      errorOption <- value
-        .filter(_ === false)
-        .map { _ =>
-          errorMessage
-            .evaluate(executionResult).flatMap(_.map(VariableType.convert[OpenlawString]).sequence)
-            .map(_.getOrElse(s"validation error (error message could not be resolved)"))
-        }
-        .sequence
-    } yield {
-      errorOption.map(Failure(_)).getOrElse(Success(()))
-    })
-    .flatten
+  def validate(executionResult: TemplateExecutionResult):ResultNel[Unit] = (for {
+      value <- condition.evaluateT[OpenlawBoolean](executionResult)
+			evaluatedErrorMessage <- errorMessage.evaluateT[OpenlawString](executionResult)
+			_ <- value
+				.filter(_ === false)
+				.map(_ => Failure(evaluatedErrorMessage.getOrElse(s"validation error (error message could not be resolved)")))
+				.getOrElse(Success(()))
+    } yield ()).toResultNel
 }

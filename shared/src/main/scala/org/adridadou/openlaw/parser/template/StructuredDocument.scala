@@ -15,14 +15,15 @@ import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.{OpenlawMap, OpenlawValue}
 import org.adridadou.openlaw.oracles.{ExternalSignatureProof, OpenlawSignatureProof}
-import org.adridadou.openlaw.result.{Failure, Result, ResultNel, Success}
-import org.adridadou.openlaw.result.Implicits.{RichResult, RichResultNel}
+import org.adridadou.openlaw.result.{Failure, FailureCause, Result, ResultNel, Success}
 import org.adridadou.openlaw.vm.Executions
 
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.reflect.ClassTag
 import VariableName._
+import cats.data.NonEmptyList
+import cats.data.Validated.{Invalid, Valid}
 
 trait TemplateExecutionResult {
   def id:TemplateExecutionResultId
@@ -122,8 +123,6 @@ trait TemplateExecutionResult {
             varTypes.contains(collectionType.typeParameter)
           case structuredType:DefinedStructureType =>
             structuredType.structure.typeDefinition.values.exists(s => varTypes.contains(s.varType(this)))
-          case domainType:DefinedDomainType =>
-            domainType.domain.typeDefinition.values.exists(s => varTypes.contains(s.varType(this)))
           case variableType => varTypes.contains(variableType)
         }}).map((this, _)) ++ subExecutions.values.flatMap(_.getVariables(varTypes:_*))
 
@@ -205,22 +204,6 @@ trait TemplateExecutionResult {
                   .sequence
                   .map(_.flatMap(_.identity))
               }
-
-          //TODO - we may need to add this, not sure yet
-          /*case domainType: DefinedDomainType if domainType.domain.typeDefinition.values.exists(_.varType(result) === IdentityType) =>
-            variable
-              .evaluateT[OpenlawMap[VariableName, OpenlawValue]](result)
-              .map(_.getOrElse(Map()))
-              .flatMap { values =>
-                domainType
-                  .domain
-                  .typeDefinition
-                  .filter(name => name.varType(result) === IdentityType)
-                  .map(name => VariableType.convert[Identity](values(name)))
-                  .toList
-                  .sequence
-              }*/
-
           case _ =>
             Success(Seq())
         }
@@ -333,12 +316,45 @@ trait TemplateExecutionResult {
       getVariable(name)
   }
 
-  def validate: ResultNel[Unit] =
-    getVariableValues[Validation](ValidationType).toResultNel andThen { values =>
-      ResultNel(values.toList.map(x => x.validate(this))).toUnit
-    }
+  def validate: ResultNel[Unit] = {
+		val result = getAllExecutedVariables.map({
+			case (executionResult, name) =>
+				for {
+					validationResult <- executionResult.getVariable(name)
+						.filter(_.varType(executionResult) === ValidationType)
+						.map(_.evaluateT[Validation](executionResult))
+						.sequence
+						.map(_.flatten)
+					domainTypeValue <- executionResult.getVariable(name)
+						.map(variable => variable.varType(executionResult) match {
+							case _: DefinedDomainType => variable.evaluate(executionResult)
+							case _ => Success(None)
+						}).sequence.map(_.flatten)
+				} yield {
+					val domainTypeResult = executionResult.getVariable(name)
+						.flatMap(_.varType(executionResult) match {
+							case varType: DefinedDomainType => Some(varType)
+							case _ => None
+						})
+					val validationTypeValidation = validationResult.map(_.validate(executionResult)).getOrElse(Valid(()))
+					val domainTypeValidation = (for {
+						dtv <- domainTypeValue
+						dtr <- domainTypeResult
+					} yield dtr.domain.validate(dtv, executionResult)).getOrElse(Valid(()))
 
-  def getExecutedVariables:Seq[VariableName] = {
+					validationTypeValidation combine domainTypeValidation
+				}
+		}).toList.sequence
+		val r = result
+			.map(_.reduceOption(_ combine _).getOrElse(Valid(())))
+
+		r match {
+			case f:FailureCause => Invalid(NonEmptyList(f, Nil))
+			case Success(validationResult) => validationResult
+		}
+	}
+
+	def getExecutedVariables:Seq[VariableName] = {
     val variableNames = getAllVariableNames
     getAllExecutedVariables.
       filter({case (_, variable) => variableNames.contains(variable)})
@@ -353,7 +369,7 @@ trait TemplateExecutionResult {
       case Success(_) =>
         Failure(s"${name.name} has already been defined!")
       case Failure(_,_) =>
-        varType.internalFormat(value).flatMap { internalFormat =>
+        varType.internalFormat(value).map { internalFormat =>
           val result = OpenlawExecutionState(
             id = TemplateExecutionResultId(UUID.randomUUID().toString),
             info = info,
@@ -367,11 +383,14 @@ trait TemplateExecutionResult {
             variableRedefinition = VariableRedefinition()
           )
 
-					result.registerNewType(varType).map(newResult => {
-						newResult.variablesInternal.append(VariableDefinition(name, Some(VariableTypeDefinition(name = varType.name, None))))
-						newResult.executedVariablesInternal.append(name)
-						newResult
-					})
+					val r = result.registerNewType(varType) match {
+						case Success(newResult) => newResult
+						case Failure(_,_) => result
+					}
+
+					r.variablesInternal.append(VariableDefinition(name, Some(VariableTypeDefinition(name = varType.name, None))))
+					r.executedVariablesInternal.append(name)
+					r
         }
     }
 }
@@ -470,6 +489,7 @@ final case class OpenlawExecutionState(
 
   override def sectionNameMappingInverse: Map[VariableName, String] = sectionNameMappingInverseInternal.toMap
 
+	@tailrec
   def addLastSectionByLevel(lvl: Int, sectionValue: String):Unit = {
     if(embedded) {
       parentExecutionInternal match {
@@ -540,7 +560,7 @@ final case class OpenlawExecutionState(
         case ExternalSignatureType => true
         case collectionType:CollectionType if IdentityType.identityTypes.contains(collectionType.typeParameter) => true
         case structureType:DefinedStructureType if structureType.structure.typeDefinition.values.exists(s => IdentityType.identityTypes.contains(s.varType(this))) => true
-        case domainType:DefinedDomainType if domainType.domain.typeDefinition.values.exists(s => IdentityType.identityTypes.contains(s.varType(this))) => true
+        case domainType:DefinedDomainType if domainType.domain.typeDefinition === IdentityType => true
         case _ => false
       }
     }).map({case (_, variable) => variable})
@@ -575,21 +595,6 @@ final case class OpenlawExecutionState(
                 (Seq(variable.name), Seq())
               }
             }
-
-          case domainType: DefinedDomainType if domainType.domain.typeDefinition.values.exists(s => IdentityType.identityTypes.contains(s.varType(this))) =>
-            result.getVariableValue[OpenlawMap[VariableName, OpenlawValue]](variable.name).map { values =>
-              val identityProperties = domainType.domain.typeDefinition
-                .filter({ case (_, propertyType) => IdentityType.identityTypes.contains(propertyType.varType(this))})
-                .map({ case (propertyName, _) => propertyName }).toSeq
-
-              if (identityProperties.forall(values.getOrElse(Map()).contains)) {
-                (Seq(), Seq())
-              } else {
-                (Seq(variable.name), Seq())
-              }
-            }
-
-
           case _ =>
             Success((Seq(), Seq()))
         }

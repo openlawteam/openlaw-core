@@ -3,7 +3,7 @@ package org.adridadou.openlaw.parser
 import java.time.{Clock, LocalDateTime, ZoneOffset}
 import java.util.concurrent.atomic.AtomicInteger
 
-import org.adridadou.openlaw.{OpenlawMap, OpenlawString, OpenlawBigDecimal}
+import org.adridadou.openlaw.{OpenlawMap, OpenlawString}
 
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template._
@@ -1295,13 +1295,12 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
   it should "parse a defined domain type and validate correctly" in {
     val text =
       """
-        [[Amount:DomainInformation(
-         |variableType: Number)]]
+        [[Amount:DomainType(
+         |variableType: Number;
+         |condition: this > 0;
+				 |errorMessage:"amount must be greater than 0!"
+				 |)]]
          [[amount:Amount]]
-         [[amount validation:Validation(
-         condition: amount.variableType > 0;
-         errorMessage:"amount must be greater than 0!"
-         )]]
       """.stripMargin
 
      val domainType = executeTemplate(text) match {
@@ -1315,13 +1314,12 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
         fail(ex)
     }
 
-     val domainTypeValidInput = executeTemplate(text) match {
+     executeTemplate(text) match {
       case Right(executionResult) =>
         executionResult.findVariableType(VariableTypeDefinition("Amount")) match {
-          case Some(domainType: DefinedDomainType) => 
-            val newExecutionResult = executeTemplate(text, Map("amount" -> domainType.internalFormat(OpenlawMap(Map(VariableName("variableType") -> OpenlawBigDecimal(BigDecimal("5")), VariableName("validation") -> OpenlawMap(Map(VariableName("condition") -> OpenlawString("amount > 0"), VariableName("errorMessage") -> OpenlawString("amount must be greater than 0!"))))))
-            .right.value)).right.value
-            service.parseExpression("amount.variableType").flatMap(_.evaluate(newExecutionResult)).right.value.value.toString shouldBe "5"
+          case Some(domainType: DefinedDomainType) =>
+            val Right(newExecutionResult) = executeTemplate(text, Map("amount" -> "5"))
+            service.parseExpression("amount").flatMap(_.evaluate(newExecutionResult)).right.value.value.toString shouldBe "5"
           case Some(variableType) => fail(s"invalid variable type ${variableType.thisType}")
           case None => fail("domain type is not the right type")
         }
@@ -1329,12 +1327,11 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
         fail(ex)
     }
 
-    val domainTypeInvalidInput = executeTemplate(text) match {
+    executeTemplate(text) match {
       case Right(executionResult) =>
         executionResult.findVariableType(VariableTypeDefinition("Amount")) match {
-          case Some(domainType: DefinedDomainType) => 
-            val newExecutionResult = executeTemplate(text, Map("amount" -> domainType.internalFormat(OpenlawMap(Map(VariableName("variableType") -> OpenlawBigDecimal(BigDecimal("-5")))))
-            .right.value)).right.value
+          case Some(domainType: DefinedDomainType) =>
+            val Right(newExecutionResult) = executeTemplate(text, Map("amount" -> "-5"))
             newExecutionResult.validate.toResult.left.value.message should be("amount must be greater than 0!")
           case Some(variableType) => fail(s"invalid variable type ${variableType.thisType}")
           case None => fail("domain type is not the right type")
@@ -1342,7 +1339,6 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
       case Left(ex) =>
         fail(ex)
     }
-
   }
 
   it should "verify that conditionals are of the correct type" in {
