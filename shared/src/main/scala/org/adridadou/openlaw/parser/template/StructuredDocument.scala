@@ -252,6 +252,9 @@ trait TemplateExecutionResult {
     case _ => processedSections
   }
 
+	def allAliases:Seq[(TemplateExecutionResult, VariableAliasing)] =
+		aliases.map(alias => (this, alias)) ++ subExecutions.values.flatMap(_.allAliases)
+
   def getAllExecutedVariables:Seq[(TemplateExecutionResult, VariableName)] =
     executedVariables.distinct.map(name => (this, name)) ++ subExecutions.values.flatMap(_.getAllExecutedVariables)
 
@@ -316,7 +319,7 @@ trait TemplateExecutionResult {
       getVariable(name)
   }
 
-  def validate: ResultNel[Unit] = {
+	private def validateGlobalValidation:ResultNel[Unit] = {
 		val result = getAllExecutedVariables.map({
 			case (executionResult, name) =>
 				for {
@@ -325,6 +328,21 @@ trait TemplateExecutionResult {
 						.map(_.evaluateT[Validation](executionResult))
 						.sequence
 						.map(_.flatten)
+				} yield validationResult.map(_.validate(executionResult)).getOrElse(Valid(()))
+
+		}).toList.sequence
+
+		result
+			.map(_.reduceOption(_ combine _).getOrElse(Valid(()))) match {
+			case f:FailureCause => Invalid(NonEmptyList(f, Nil))
+			case Success(validationResult) => validationResult
+		}
+	}
+
+	private def validateDomainTypeVariables:ResultNel[Unit] = {
+		val result = getAllExecutedVariables.map({
+			case (executionResult, name) =>
+				for {
 					domainTypeValue <- executionResult.getVariable(name)
 						.map(variable => variable.varType(executionResult) match {
 							case _: DefinedDomainType => variable.evaluate(executionResult)
@@ -336,23 +354,51 @@ trait TemplateExecutionResult {
 							case varType: DefinedDomainType => Some(varType)
 							case _ => None
 						})
-					val validationTypeValidation = validationResult.map(_.validate(executionResult)).getOrElse(Valid(()))
-					val domainTypeValidation = (for {
+					(for {
 						dtv <- domainTypeValue
 						dtr <- domainTypeResult
 					} yield dtr.domain.validate(dtv, executionResult)).getOrElse(Valid(()))
-
-					validationTypeValidation combine domainTypeValidation
 				}
 		}).toList.sequence
-		val r = result
-			.map(_.reduceOption(_ combine _).getOrElse(Valid(())))
 
-		r match {
+		result
+			.map(_.reduceOption(_ combine _).getOrElse(Valid(()))) match {
 			case f:FailureCause => Invalid(NonEmptyList(f, Nil))
 			case Success(validationResult) => validationResult
 		}
 	}
+
+	private def validateDomainTypeExpressions: ResultNel[Unit] = {
+		val result = allAliases.map({
+			case (executionResult, alias) =>
+				for {
+					domainTypeValue <- alias.expressionType(executionResult)
+						.flatMap({
+							case _: DefinedDomainType => alias.evaluate(executionResult)
+							case _ => Success(None)
+						})
+					domainTypeResult <- alias.expressionType(executionResult)
+						.map({
+							case varType: DefinedDomainType => Some(varType)
+							case _ => None
+						})
+				} yield {
+					(for {
+						dtv <- domainTypeValue
+						dtr <- domainTypeResult
+					} yield dtr.domain.validate(dtv, executionResult)).getOrElse(Valid(()))
+				}
+		}).toList.sequence
+
+		result
+			.map(_.reduceOption(_ combine _).getOrElse(Valid(()))) match {
+			case f:FailureCause => Invalid(NonEmptyList(f, Nil))
+			case Success(validationResult) => validationResult
+		}
+	}
+
+  def validate: ResultNel[Unit] =
+		validateGlobalValidation combine validateDomainTypeVariables combine validateDomainTypeExpressions
 
 	def getExecutedVariables:Seq[VariableName] = {
     val variableNames = getAllVariableNames
@@ -488,7 +534,6 @@ final case class OpenlawExecutionState(
   override def variableSections: Map[String, Seq[VariableName]] = variableSectionsInternal.toMap
 
   override def sectionNameMappingInverse: Map[VariableName, String] = sectionNameMappingInverseInternal.toMap
-
 	@tailrec
   def addLastSectionByLevel(lvl: Int, sectionValue: String):Unit = {
     if(embedded) {

@@ -92,7 +92,19 @@ final case class DefinedDomainType(domain:DomainInformation, typeName:String) ex
     )
   }
 
-  override def defaultFormatter: Formatter = new NoopFormatter
+	override def plus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] =
+		domain.typeDefinition.plus(optLeft, optRight, executionResult)
+
+	override def minus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] =
+		domain.typeDefinition.minus(optLeft, optRight, executionResult)
+
+	override def multiply(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] =
+		domain.typeDefinition.multiply(optLeft, optRight, executionResult)
+
+	override def divide(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] =
+		domain.typeDefinition.divide(optLeft, optRight, executionResult)
+
+	override def defaultFormatter: Formatter = new NoopFormatter
 
   override def access(value: OpenlawValue, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] =
 		domain.typeDefinition.access(value, name, keys, executionResult)

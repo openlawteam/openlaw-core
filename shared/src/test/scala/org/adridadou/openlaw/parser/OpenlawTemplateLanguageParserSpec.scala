@@ -1341,6 +1341,35 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
     }
   }
 
+	it should "make it possible to do expressions with domain types (and the expressions need to be validated too)" in {
+		val text =
+			"""
+        [[Amount:DomainType(
+				|variableType: Number;
+				|condition: this > 0;
+				|errorMessage:"amount must be greater than 0!"
+				|)]]
+				|[[amount:Amount]]
+				|[[amount2:Amount]]
+				|[[@amount expression=amount - amount2]]
+				|[[amount expression]]
+      """.stripMargin
+
+		executeTemplate(text, Map("amount" -> "10", "amount2" -> "2" )) match {
+			case Success(executionResult) =>
+				executionResult.validate.isValid shouldBe true
+			case Failure(ex, message) =>
+				fail(message, ex)
+		}
+
+		executeTemplate(text, Map("amount" -> "10", "amount2" -> "12" )) match {
+			case Success(executionResult) =>
+				executionResult.validate.toResult.left.value.message shouldBe "amount must be greater than 0!"
+			case Failure(ex, message) =>
+				fail(message, ex)
+		}
+	}
+
   it should "verify that conditionals are of the correct type" in {
     val text =
       """
@@ -1389,7 +1418,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
 
     executeTemplate(text, Map("option" -> "two")) match {
       case Right(executionResult) =>
-        executionResult.getVariableValue[OpenlawString](VariableName("option")).right.value.value.underlying shouldBe ("two")
+        executionResult.getVariableValue[OpenlawString](VariableName("option")).right.value.value.underlying shouldBe "two"
       case Left(ex) =>
         fail(ex)
     }
@@ -1448,7 +1477,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
     )).right.value)) match {
       case Right(executionResult) =>
         val result = executionResult.getAlias("My Id").flatMap(_.evaluate(executionResult).right.value)
-        result.value.toString shouldBe ("placeId")
+        result.value.toString shouldBe "placeId"
       case Left(ex) => fail(ex)
     }
   }
@@ -1461,13 +1490,13 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
       """.stripMargin
 
     executeTemplate(text, Map("My Conditional" -> "true")) match {
-      case Right(executionResult) =>
+      case Success(executionResult) =>
         val variableDefinition = executionResult.getVariables.head
 
         variableDefinition.name.name shouldBe "My Conditional"
         variableDefinition.variableTypeDefinition.map(_.name) shouldBe Some(YesNoType.name)
         variableDefinition.description shouldBe Some("this is a question")
-      case Left(ex) => fail(ex)
+      case Failure(ex, message) => fail(message, ex)
     }
   }
 
@@ -1486,13 +1515,13 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
       """.stripMargin
 
     executeTemplate(text, Map("BV" -> "true", "My Conditional" -> "true")) match {
-      case Right(executionResult) =>
+      case Success(executionResult) =>
         val variableDefinition = executionResult.getVariables.filter(_.name.name === "My Conditional").head
 
         variableDefinition.name.name shouldBe "My Conditional"
         variableDefinition.variableTypeDefinition.map(_.name) shouldBe Some(YesNoType.name)
         variableDefinition.description shouldBe Some("this is a question")
-      case Left(ex) => fail(ex)
+      case Failure(ex, message) => fail(message, ex)
     }
   }
 
@@ -1564,7 +1593,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
           case None =>
             fail("Dispute Resolution not found!")
         }
-      case Left(ex) => fail(ex)
+      case Failure(ex, message) => fail(message, ex)
     }
   }
 
@@ -1581,10 +1610,10 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
       """.stripMargin
 
     executeTemplate(text) match {
-      case Right(executionResult) =>
+      case Success(executionResult) =>
         executionResult.getAllExecutedVariables.map({case (_, name) => name.name}) shouldBe Seq("Conditional")
-      case Left(ex) =>
-        fail(ex)
+      case Failure(ex, message) =>
+        fail(message, ex)
     }
   }
 
@@ -1661,14 +1690,14 @@ here""".stripMargin
       """.stripMargin
 
     val inputStructureType = executeTemplate(inputStructureText) match {
-      case Right(executionResult) =>
+      case Success(executionResult) =>
         executionResult.findVariableType(VariableTypeDefinition("FakeServiceInput")) match {
           case Some(structureType: DefinedStructureType) => structureType.structure
           case Some(variableType) => fail(s"invalid variable type ${variableType.thisType}")
           case None => fail("structure type is not the right type")
         }
-      case Left(ex) =>
-        fail(ex)
+      case Failure(ex, message) =>
+        fail(message, ex)
     }
 
     val outputStructureText =
@@ -1679,14 +1708,14 @@ here""".stripMargin
       """.stripMargin
 
     val outputStructureType = executeTemplate(outputStructureText) match {
-      case Right(executionResult) =>
+      case Success(executionResult) =>
         executionResult.findVariableType(VariableTypeDefinition("FakeServiceOutput")) match {
           case Some(structureType:DefinedStructureType) => structureType.structure
           case Some(variableType) => fail(s"invalid variable type ${variableType.thisType}")
           case None => fail("structure type is not the right type")
         }
-      case Left(ex) =>
-        fail(ex)
+      case Failure(ex, m) =>
+        fail(m, ex)
     }
 
     val input =
@@ -1733,13 +1762,13 @@ here""".stripMargin
       """.stripMargin
 
     executeTemplate(text) match {
-      case Right(executionResult) =>
+      case Success(executionResult) =>
         val Success(validationResult) = executionResult.validateExecution
         validationResult.missingIdentities shouldBe Seq(VariableName("Signatory"))
         validationResult.missingInputs shouldBe Seq(VariableName("Signatory"))
         executionResult.allMissingInput shouldBe Right(Seq(VariableName("Signatory")))
-      case Left(ex) =>
-        fail(ex)
+      case Failure(ex, message) =>
+        fail(message, ex)
     }
   }
 
@@ -1772,9 +1801,8 @@ here""".stripMargin
         validationResult.missingInputs shouldBe Seq(VariableName("Signatory"))
         validationResult.validationExpressionErrors shouldBe Seq()
         executionResult.allMissingInput shouldBe Right(Seq(VariableName("Signatory")))
-      case Left(ex) =>
-        fail(ex)
+      case Failure(ex, message) =>
+        fail(message, ex)
     }
   }
-
 }
