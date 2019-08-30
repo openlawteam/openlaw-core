@@ -15,14 +15,15 @@ import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.{OpenlawMap, OpenlawValue}
 import org.adridadou.openlaw.oracles.{ExternalSignatureProof, OpenlawSignatureProof}
-import org.adridadou.openlaw.result.{Failure, Result, ResultNel, Success}
-import org.adridadou.openlaw.result.Implicits.{RichResult, RichResultNel}
+import org.adridadou.openlaw.result.{Failure, FailureCause, Result, ResultNel, Success}
 import org.adridadou.openlaw.vm.Executions
 
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.reflect.ClassTag
 import VariableName._
+import cats.data.NonEmptyList
+import cats.data.Validated.{Invalid, Valid}
 
 trait TemplateExecutionResult {
   def id:TemplateExecutionResultId
@@ -203,7 +204,6 @@ trait TemplateExecutionResult {
                   .sequence
                   .map(_.flatMap(_.identity))
               }
-
           case _ =>
             Success(Seq())
         }
@@ -251,6 +251,9 @@ trait TemplateExecutionResult {
     case (true, Some(parent)) => parent.allProcessedSections ++ processedSections
     case _ => processedSections
   }
+
+	def allAliases:Seq[(TemplateExecutionResult, VariableAliasing)] =
+		aliases.map(alias => (this, alias)) ++ subExecutions.values.flatMap(_.allAliases)
 
   def getAllExecutedVariables:Seq[(TemplateExecutionResult, VariableName)] =
     executedVariables.distinct.map(name => (this, name)) ++ subExecutions.values.flatMap(_.getAllExecutedVariables)
@@ -316,12 +319,88 @@ trait TemplateExecutionResult {
       getVariable(name)
   }
 
-  def validate: ResultNel[Unit] =
-    getVariableValues[Validation](ValidationType).toResultNel andThen { values =>
-      ResultNel(values.toList.map(x => x.validate(this))).toUnit
-    }
+	private def validateGlobalValidation:ResultNel[Unit] = {
+		val result = getAllExecutedVariables.map({
+			case (executionResult, name) =>
+				for {
+					validationResult <- executionResult.getVariable(name)
+						.filter(_.varType(executionResult) === ValidationType)
+						.map(_.evaluateT[Validation](executionResult))
+						.sequence
+						.map(_.flatten)
+				} yield validationResult.map(_.validate(executionResult)).getOrElse(Valid(()))
 
-  def getExecutedVariables:Seq[VariableName] = {
+		}).toList.sequence
+
+		result
+			.map(_.reduceOption(_ combine _).getOrElse(Valid(()))) match {
+			case f:FailureCause => Invalid(NonEmptyList(f, Nil))
+			case Success(validationResult) => validationResult
+		}
+	}
+
+	private def validateDomainTypeVariables:ResultNel[Unit] = {
+		val result = getAllExecutedVariables.map({
+			case (executionResult, name) =>
+				for {
+					domainTypeValue <- executionResult.getVariable(name)
+						.map(variable => variable.varType(executionResult) match {
+							case _: DefinedDomainType => variable.evaluate(executionResult)
+							case _ => Success(None)
+						}).sequence.map(_.flatten)
+				} yield {
+					val domainTypeResult = executionResult.getVariable(name)
+						.flatMap(_.varType(executionResult) match {
+							case varType: DefinedDomainType => Some(varType)
+							case _ => None
+						})
+					(for {
+						dtv <- domainTypeValue
+						dtr <- domainTypeResult
+					} yield dtr.domain.validate(dtv, executionResult)).getOrElse(Valid(()))
+				}
+		}).toList.sequence
+
+		result
+			.map(_.reduceOption(_ combine _).getOrElse(Valid(()))) match {
+			case f:FailureCause => Invalid(NonEmptyList(f, Nil))
+			case Success(validationResult) => validationResult
+		}
+	}
+
+	private def validateDomainTypeExpressions: ResultNel[Unit] = {
+		val result = allAliases.map({
+			case (executionResult, alias) =>
+				for {
+					domainTypeValue <- alias.expressionType(executionResult)
+						.flatMap({
+							case _: DefinedDomainType => alias.evaluate(executionResult)
+							case _ => Success(None)
+						})
+					domainTypeResult <- alias.expressionType(executionResult)
+						.map({
+							case varType: DefinedDomainType => Some(varType)
+							case _ => None
+						})
+				} yield {
+					(for {
+						dtv <- domainTypeValue
+						dtr <- domainTypeResult
+					} yield dtr.domain.validate(dtv, executionResult)).getOrElse(Valid(()))
+				}
+		}).toList.sequence
+
+		result
+			.map(_.reduceOption(_ combine _).getOrElse(Valid(()))) match {
+			case f:FailureCause => Invalid(NonEmptyList(f, Nil))
+			case Success(validationResult) => validationResult
+		}
+	}
+
+  def validate: ResultNel[Unit] =
+		validateGlobalValidation combine validateDomainTypeVariables combine validateDomainTypeExpressions
+
+	def getExecutedVariables:Seq[VariableName] = {
     val variableNames = getAllVariableNames
     getAllExecutedVariables.
       filter({case (_, variable) => variableNames.contains(variable)})
@@ -336,7 +415,7 @@ trait TemplateExecutionResult {
       case Success(_) =>
         Failure(s"${name.name} has already been defined!")
       case Failure(_,_) =>
-        varType.internalFormat(value).flatMap { internalFormat =>
+        varType.internalFormat(value).map { internalFormat =>
           val result = OpenlawExecutionState(
             id = TemplateExecutionResultId(UUID.randomUUID().toString),
             info = info,
@@ -350,11 +429,14 @@ trait TemplateExecutionResult {
             variableRedefinition = VariableRedefinition()
           )
 
-					result.registerNewType(varType).map(newResult => {
-						newResult.variablesInternal.append(VariableDefinition(name, Some(VariableTypeDefinition(name = varType.name, None))))
-						newResult.executedVariablesInternal.append(name)
-						newResult
-					})
+					val r = result.registerNewType(varType) match {
+						case Success(newResult) => newResult
+						case Failure(_,_) => result
+					}
+
+					r.variablesInternal.append(VariableDefinition(name, Some(VariableTypeDefinition(name = varType.name, None))))
+					r.executedVariablesInternal.append(name)
+					r
         }
     }
 }
@@ -452,7 +534,7 @@ final case class OpenlawExecutionState(
   override def variableSections: Map[String, Seq[VariableName]] = variableSectionsInternal.toMap
 
   override def sectionNameMappingInverse: Map[VariableName, String] = sectionNameMappingInverseInternal.toMap
-
+	@tailrec
   def addLastSectionByLevel(lvl: Int, sectionValue: String):Unit = {
     if(embedded) {
       parentExecutionInternal match {
@@ -523,6 +605,7 @@ final case class OpenlawExecutionState(
         case ExternalSignatureType => true
         case collectionType:CollectionType if IdentityType.identityTypes.contains(collectionType.typeParameter) => true
         case structureType:DefinedStructureType if structureType.structure.typeDefinition.values.exists(s => IdentityType.identityTypes.contains(s.varType(this))) => true
+        case domainType:DefinedDomainType if domainType.domain.typeDefinition === IdentityType => true
         case _ => false
       }
     }).map({case (_, variable) => variable})
@@ -557,7 +640,6 @@ final case class OpenlawExecutionState(
                 (Seq(variable.name), Seq())
               }
             }
-
           case _ =>
             Success((Seq(), Seq()))
         }

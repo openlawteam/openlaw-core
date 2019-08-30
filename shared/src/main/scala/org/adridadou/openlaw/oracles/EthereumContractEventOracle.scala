@@ -6,7 +6,7 @@ import cats.implicits._
 import io.circe.syntax._
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.{Decoder, Encoder, Json}
-import org.adridadou.openlaw.parser.template.{ActionIdentifier, OpenlawTemplateLanguageParserService, TemplateExecutionResult, VariableDefinition, VariableName}
+import org.adridadou.openlaw.parser.template.{ActionIdentifier, OpenlawTemplateLanguageParserService, TemplateExecutionResult, VariableName}
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.result.{Result, Success}
 import org.adridadou.openlaw.vm.{OpenlawVm, OpenlawVmEvent}
@@ -71,7 +71,7 @@ final case class EthereumEventFilterOracle(parser: OpenlawTemplateLanguageParser
     }
   }
 
-  private def generateStructureType(name: VariableName, eventFilter:EventFilterDefinition, executionResult: TemplateExecutionResult): Result[VariableType] = {
+  private def generateStructureType(name: VariableName, eventFilter:EventFilterDefinition, executionResult: TemplateExecutionResult): Result[VariableType] =
     eventFilter.abiOpenlawVariables(executionResult).map(varDefinitions => {
       val definitions = varDefinitions.map(definition => definition.name -> definition)
       val types = varDefinitions.map(definition => definition.name -> definition.varType(executionResult))
@@ -79,7 +79,6 @@ final case class EthereumEventFilterOracle(parser: OpenlawTemplateLanguageParser
       val structure = Structure(typeDefinition = definitions.toMap, types = types.toMap, names = definitions.map { case(k, _) => k })
       AbstractStructureType.generateType(name, structure)
     })
-  }
 
   override def shouldExecute(event: OpenlawVmEvent): Boolean = event match {
     case _:EthereumEventFilterEvent => true
