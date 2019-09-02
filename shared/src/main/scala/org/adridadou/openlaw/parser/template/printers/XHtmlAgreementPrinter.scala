@@ -11,6 +11,7 @@ import scalatags.Text.all._
 import slogging._
 
 import scala.annotation.tailrec
+import scala.collection.immutable.ArraySeq
 
 object XHtmlAgreementPrinter {
 
@@ -30,7 +31,7 @@ final case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: Paragra
   private def partitionAtItem[T](seq: Seq[T], t: T): (Seq[T], Seq[T]) = partitionAt(seq) { case item if item.equals(t) => true }
 
   private def partitionAt[T](seq: Seq[T])(pf: PartialFunction[T, Boolean]): (Seq[T], Seq[T]) = {
-    seq.prefixLength { x => (!pf.isDefinedAt(x)) || !pf(x) } match {
+    seq.segmentLength { x => (!pf.isDefinedAt(x)) || !pf(x) } match {
       case 0 => (seq, Nil)
       case length => seq.take(length) -> seq.drop(length)
     }
@@ -50,7 +51,7 @@ final case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: Paragra
     case Seq(x, xs @ _*) => addBreaks(xs, result :+ x :+ br())
   }
 
-  private def text(str: String): Seq[Frag] = addBreaks(str.split("\n", -1).map(stringFrag))
+  private def text(str: String): Seq[Frag] = addBreaks(ArraySeq.unsafeWrapArray(str.split("\n", -1)).map(stringFrag))
 
   private[this] val paragraphCounter = new AtomicInteger()
 
@@ -66,11 +67,11 @@ final case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: Paragra
   def printFragments(elements: Seq[AgreementElement]): Seq[Frag] =
     tailRecurse(elements, 0, false)
 
-  private final def recurse(elements: Seq[AgreementElement], conditionalBlockDepth: Int, inSection: Boolean, continue: Seq[Frag] => Seq[Frag] = identity): Seq[Frag] = {
+  private def recurse(elements: Seq[AgreementElement], conditionalBlockDepth: Int, inSection: Boolean, continue: Seq[Frag] => Seq[Frag] = identity): Seq[Frag] = {
     tailRecurse(elements, conditionalBlockDepth, inSection, continue)
   }
 
-  @tailrec private final def tailRecurse(elements: Seq[AgreementElement], conditionalBlockDepth: Int, inSection: Boolean, continue: Seq[Frag] => Seq[Frag] = identity): Seq[Frag] = {
+  @tailrec private def tailRecurse(elements: Seq[AgreementElement], conditionalBlockDepth: Int, inSection: Boolean, continue: Seq[Frag] => Seq[Frag] = identity): Seq[Frag] = {
 
     elements match {
       case Seq() =>

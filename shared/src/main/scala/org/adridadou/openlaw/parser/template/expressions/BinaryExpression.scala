@@ -1,6 +1,5 @@
 package org.adridadou.openlaw.parser.template.expressions
 
-import cats.implicits._
 import org.adridadou.openlaw.parser.template.{Compare, TemplateExecutionResult, VariableName}
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 
@@ -26,7 +25,7 @@ trait BinaryExpression extends Expression {
         (for {
           _ <- left.missingInput(executionResult)
           _ <- right.missingInput(executionResult)
-        } yield Unit) match {
+        } yield ()) match {
           case Left(ex) =>
             Failure(ex)
           case Right(_) =>

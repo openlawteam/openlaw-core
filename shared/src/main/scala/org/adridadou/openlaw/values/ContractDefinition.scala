@@ -22,7 +22,7 @@ final case class ContractDefinition(
     templateScopeKey
 
   private def templatesKey:String = templates
-    .map({case (definition, id) => definition.name + "_" + id.id}).toSeq.sorted.mkString("#")
+    .map({case (definition, id) => s"${definition.name}_${id.id}"}).toSeq.sorted.mkString("#")
 
   private def templateScopeKey:String = paragraphs.toSeq.sortBy({case (key,_) => key})
     .map({case (index:Int, edits:ParagraphEdits) => s"$index#${editsToChecksum(edits)}"})

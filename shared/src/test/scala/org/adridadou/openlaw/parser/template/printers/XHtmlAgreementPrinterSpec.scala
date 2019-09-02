@@ -63,8 +63,8 @@ class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues
       |This is a test.
       |""".stripMargin
 
-    val agreement = structureAgreement(text)
-    val html = XHtmlAgreementPrinter(false).printParagraphs(agreement.right.value.paragraphs.toList).print
+    val Right(agreement) = structureAgreement(text)
+    val html = XHtmlAgreementPrinter(false).printParagraphs(agreement.paragraphs).print
     html shouldBe
       """<p class="no-section"></p><ul class="list-lvl-1"><li><p>1.  <strong>Section 1</strong></p><p>This is a test.</p></li><li><p>2.  Section 2.</p><p>This is a test.</p><ul class="list-lvl-2"><li><p>(a)  Section 2.a</p><p>This is a test.</p></li><li><p>(b)  Section 2.b</p><p>This is a test.</p></li></ul></li><li><p>3.  Section 3.</p><p>This is a test.<br /></p></li></ul>"""
   }
@@ -77,8 +77,8 @@ class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues
       |
       |""".stripMargin
 
-    val agreement = structureAgreement(text)
-    val html = XHtmlAgreementPrinter(false).printParagraphs(agreement.right.value.paragraphs.toList).print
+    val Right(agreement) = structureAgreement(text)
+    val html = XHtmlAgreementPrinter(false).printParagraphs(agreement.paragraphs).print
     html shouldBe """<p class="no-section">This is a test<br /></p><p class="no-section">Another line</p>"""
   }
 
@@ -89,22 +89,22 @@ class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues
 
   it should "handle right aligned section" in {
     val text = """\right **[[Company Name | Uppercase]]**"""
-    val agreement = structureAgreement(text)
-    val html = XHtmlAgreementPrinter(false).printParagraphs(agreement.right.value.paragraphs.toList).print
+    val Right(agreement) = structureAgreement(text)
+    val html = XHtmlAgreementPrinter(false).printParagraphs(agreement.paragraphs).print
     html shouldBe """<p class="no-section align-right"> <strong>[[Company Name]]</strong></p>"""
   }
 
   it should "handle right aligned underlined section" in {
     val text = """\right __[[Company Name | Uppercase]]__"""
-    val agreement = structureAgreement(text)
-    val html = XHtmlAgreementPrinter(false).printParagraphs(agreement.right.value.paragraphs.toList).print
+    val Right(agreement) = structureAgreement(text)
+    val html = XHtmlAgreementPrinter(false).printParagraphs(agreement.paragraphs).print
     html shouldBe """<p class="no-section align-right"> <u>[[Company Name]]</u></p>"""
   }
 
   it should "handle right 3/4 aligned section" in {
     val text = """\right-three-quarters **[[Company Name | Uppercase]]**"""
-    val agreement = structureAgreement(text)
-    val html = XHtmlAgreementPrinter(false).printParagraphs(agreement.right.value.paragraphs.toList).print
+    val Right(agreement) = structureAgreement(text)
+    val html = XHtmlAgreementPrinter(false).printParagraphs(agreement.paragraphs).print
     html shouldBe """<p class="no-section align-right-three-quarters"> <strong>[[Company Name]]</strong></p>"""
   }
 
@@ -120,8 +120,8 @@ class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues
                  |^^ **Registered Office**.  The registered office of the corporation in the State of Delaware shall be [[Registered Agent Address: Address]], and the name of the registered agent of the corporation in the State of Delaware at such address is [[Registered Agent Name]].
                  |""".stripMargin
 
-    val agreement = structureAgreement(text)
-    val html = XHtmlAgreementPrinter(false).printParagraphs(agreement.right.value.paragraphs.toList).print
+    val Right(agreement) = structureAgreement(text)
+    val html = XHtmlAgreementPrinter(false).printParagraphs(agreement.paragraphs).print
     html shouldBe """<p class="no-section align-center"> <strong>BYLAWS</strong><br /> <strong>OF</strong><br /> <strong>[[Company Name]]</strong><br /> (A DELAWARE CORPORATION)<br /></p><ul class="list-lvl-1"><li><p>1.  <strong>Offices</strong></p><ul class="list-lvl-2"><li><p>(a)  <strong>Registered Office</strong>.  The registered office of the corporation in the State of Delaware shall be [[Registered Agent Address]], and the name of the registered agent of the corporation in the State of Delaware at such address is [[Registered Agent Name]].<br /></p></li></ul></li></ul>"""
 
   }
@@ -136,8 +136,8 @@ class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues
       || val41 | val42 | val43 |
       |This is a test.""".stripMargin
 
-    val agreement = structureAgreement(text)
-    val html = XHtmlAgreementPrinter(true).printParagraphs(agreement.right.value.paragraphs).print
+    val Right(agreement) = structureAgreement(text)
+    val html = XHtmlAgreementPrinter(true).printParagraphs(agreement.paragraphs).print
     html shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="no-section">This is | a test.<br /><table class="markdown-table"><tr class="markdown-table-row"><th class="markdown-table-header">head1</th><th class="markdown-table-header">head2</th><th class="markdown-table-header">head3</th></tr><tr class="markdown-table-row"><td class="markdown-table-data"><span class="markdown-variable markdown-variable-var1">[[var1]]</span></td><td class="markdown-table-data">val12</td><td class="markdown-table-data">val13</td></tr><tr class="markdown-table-row"><td class="markdown-table-data">val21</td><td class="markdown-table-data">val22</td><td class="markdown-table-data">val23</td></tr><tr class="markdown-table-row"><td class="markdown-table-data"><span class="markdown-variable markdown-variable-var31">[[var31]]</span></td><td class="markdown-table-data">val32</td><td class="markdown-table-data">val33</td></tr><tr class="markdown-table-row"><td class="markdown-table-data">val41</td><td class="markdown-table-data">val42</td><td class="markdown-table-data">val43</td></tr></table>This is a test.</p></div>"""
   }
 
@@ -149,16 +149,16 @@ class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues
       || test | test |
       |""".stripMargin
 
-    val agreement = structureAgreement(text)
-    val html = XHtmlAgreementPrinter(true).printParagraphs(agreement.right.value.paragraphs).print
+    val Right(agreement) = structureAgreement(text)
+    val html = XHtmlAgreementPrinter(true).printParagraphs(agreement.paragraphs).print
     html shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="no-section"><br /><table class="markdown-table"><tr class="markdown-table-row"><th class="markdown-table-header">head1</th><th class="markdown-table-header">head2</th></tr><tr class="markdown-table-row"><td class="markdown-table-data">test test</td><td class="markdown-table-data">test</td></tr><tr class="markdown-table-row"><td class="markdown-table-data">test</td><td class="markdown-table-data">test</td></tr></table></p></div>"""
   }
 
   it should "handle variables with text prefixes" in {
     val text = "$[[var31]]"
 
-    val agreement = structureAgreement(text)
-    val html = XHtmlAgreementPrinter(true).printParagraphs(agreement.right.value.paragraphs).print
+    val Right(agreement) = structureAgreement(text)
+    val html = XHtmlAgreementPrinter(true).printParagraphs(agreement.paragraphs).print
     html shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="no-section">$<span class="markdown-variable markdown-variable-var31">[[var31]]</span></p></div>"""
   }
 
@@ -170,8 +170,8 @@ class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues
       || test | test |
       |""".stripMargin
 
-    val agreement = structureAgreement(text)
-    val html = XHtmlAgreementPrinter(true).printParagraphs(agreement.right.value.paragraphs).print
+    val Right(agreement) = structureAgreement(text)
+    val html = XHtmlAgreementPrinter(true).printParagraphs(agreement.paragraphs).print
     html shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="no-section"><br /><table class="markdown-table"><tr class="markdown-table-row"><th class="markdown-table-header">head1</th><th class="markdown-table-header">head2</th></tr><tr class="markdown-table-row"><td class="markdown-table-data">$<span class="markdown-variable markdown-variable-var31">[[var31]]</span></td><td class="markdown-table-data">test</td></tr><tr class="markdown-table-row"><td class="markdown-table-data">test</td><td class="markdown-table-data">test</td></tr></table></p></div>"""
   }
 
@@ -185,8 +185,8 @@ class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues
       || val41 | val42 | val43 |
       |This is a test.""".stripMargin
 
-    val agreement = structureAgreement(text)
-    val html = XHtmlAgreementPrinter(true).printParagraphs(agreement.right.value.paragraphs).print
+    val Right(agreement) = structureAgreement(text)
+    val html = XHtmlAgreementPrinter(true).printParagraphs(agreement.paragraphs).print
     html shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="no-section">This is | a test.<br /><table class="markdown-table"><tr class="markdown-table-row"><th class="markdown-table-header">head1</th><th class="markdown-table-header">head2</th><th class="markdown-table-header">head3</th></tr><tr class="markdown-table-row"><td class="markdown-table-data"><span class="markdown-variable markdown-variable-var1">[[var1]]</span></td><td class="markdown-table-data">val12</td><td class="markdown-table-data">val13</td></tr><tr class="markdown-table-row"><td class="markdown-table-data">val21</td><td class="markdown-table-data">val22</td><td class="markdown-table-data">val23</td></tr><tr class="markdown-table-row"><td class="markdown-table-data">$<span class="markdown-variable markdown-variable-var31">[[var31]]</span></td><td class="markdown-table-data">val32</td><td class="markdown-table-data">val33</td></tr><tr class="markdown-table-row"><td class="markdown-table-data">val41</td><td class="markdown-table-data">val42</td><td class="markdown-table-data">val43</td></tr></table>This is a test.</p></div>"""
   }
 
@@ -198,8 +198,8 @@ class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues
     |
     | yet another paragraph after the conditional""".stripMargin
 
-    val agreement = structureAgreement(text, Map("if me" -> "true"))
-    val html = service.forPreview(agreement.right.value, ParagraphEdits())
+    val Right(agreement) = structureAgreement(text, Map("if me" -> "true"))
+    val html = service.forPreview(agreement, ParagraphEdits())
     html shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="no-section">before the conditional<br /></p></div><div class="openlaw-paragraph paragraph-2"><p class="no-section"><span class="markdown-conditional-block">in the conditional </span> after the conditional<br /> this too<br /></p></div><div class="openlaw-paragraph paragraph-3"><p class="no-section">yet another paragraph after the conditional</p></div>"""
   }
 
@@ -214,7 +214,7 @@ class XHtmlAgreementPrinterSpec extends FlatSpec with Matchers with EitherValues
         |
         |yet another paragraph after the conditional""".stripMargin
 
-    val template = service.compileTemplate(text).right.value
+    val Right(template) = service.compileTemplate(text)
     engine.execute(template, TemplateParameters("if me" -> "true"), Map()) match {
       case Right(result) =>
         val text = service.forPreview(result.agreements.head, ParagraphEdits())

@@ -3,7 +3,7 @@ package org.adridadou.openlaw
 
 import io.circe.Json
 import org.adridadou.openlaw.values.TemplateTitle
-import org.scalatest.check.Checkers
+import org.scalatestplus.scalacheck.Checkers
 import org.scalatest.{FlatSpec, Matchers}
 import io.circe.syntax._
 import io.circe.parser._

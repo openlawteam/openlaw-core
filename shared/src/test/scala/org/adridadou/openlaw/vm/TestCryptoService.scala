@@ -8,7 +8,7 @@ object TestCryptoService extends CryptoService {
 
   override def sha256(data: Array[Byte]): Array[Byte] = data.slice(0, 20)
   override def validateECSignature(data: Array[Byte], signature: Array[Byte]): Array[Byte] =
-    signature.toStream.indexOfSlice(data) match {
+    signature.to(LazyList).indexOfSlice(data) match {
       case -1 =>
         Array()
       case index =>

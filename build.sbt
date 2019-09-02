@@ -10,17 +10,19 @@ lazy val repo     = "openlaw-core"
 
 licenses += ("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0"))
 
-lazy val scalaV = "2.12.9"
+lazy val scalaV = "2.13.0"
 lazy val scalaJavaTimeV = "2.0.0-RC3"
-lazy val catsV = "1.6.1"
+lazy val catsV = "2.0.0-RC2"
 lazy val parboiledV = "2.1.8"
-lazy val circeV = "0.11.1"
+lazy val circeV = "0.12.0-RC4"
 lazy val playJsonV = "2.7.4"
 lazy val scalaTagsV = "0.7.0"
-lazy val sLoggingV = "0.6.1"
+lazy val sLoggingV = "0.6.2-SNAPSHOT"
 lazy val enumeratumV = "1.5.13"
 lazy val scalaCheckV = "1.14.0"
-lazy val scalaTestV = "3.2.0-SNAP10"
+lazy val scalaTestV = "3.0.8"
+
+scalaVersion := scalaV
 
 lazy val repositories = Seq(
   Resolver.jcenterRepo,
@@ -73,13 +75,13 @@ lazy val publishSettings = Seq(
 )
 
 lazy val releaseSettings = releaseProcess := Seq[ReleaseStep](
-  checkSnapshotDependencies,              // : ReleaseStep
+  checkSnapshotDependencies,                // : ReleaseStep
   //inquireVersions,                        // : ReleaseStep
   //setReleaseVersion,                      // : ReleaseStep
   //commitReleaseVersion,                   // : ReleaseStep, performs the initial git checks
   //tagRelease,                             // : ReleaseStep
   //releaseStepCommandAndRemaining("publish"),
-  publishArtifacts,                       // : ReleaseStep,
+  publishArtifacts,                         // : ReleaseStep,
   //setNextVersion,                         // : ReleaseStep
   //commitNextVersion,                      // : ReleaseStep
   //pushChanges                             // : ReleaseStep, also checks that an upstream branch is properly configured
@@ -96,7 +98,7 @@ val rules = Seq(
 	Wart.FinalVal,
 	Wart.IsInstanceOf,
 	Wart.JavaConversions,
-	Wart.JavaSerializable,
+	//Wart.JavaSerializable,
 	Wart.LeakingSealed,
 	Wart.OptionPartial)
 
@@ -153,7 +155,7 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       "io.circe"                %% "circe-core"          % circeV,
       "io.circe"                %% "circe-generic"       % circeV,
       "io.circe"                %% "circe-parser"        % circeV,
-      "io.circe"                %% "circe-java8"         % circeV,
+      //"io.circe"                %% "circe-java8"         % circeV,
       //parser / interpreter library. Used for our markup language
       "org.parboiled"           %% "parboiled"           % parboiledV,
       //cats is used for FP constructs
@@ -179,7 +181,7 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       "io.circe"                %%% "circe-core"           % circeV,
       "io.circe"                %%% "circe-generic"        % circeV,
       "io.circe"                %%% "circe-parser"         % circeV,
-      "io.circe"                %%% "circe-java8"          % circeV,
+      //"io.circe"                %%% "circe-java8"          % circeV,
       //parser / interpreter library. Used for our markup language
       "org.parboiled"           %%% "parboiled"            % parboiledV,
       //cats is used for FP constructs

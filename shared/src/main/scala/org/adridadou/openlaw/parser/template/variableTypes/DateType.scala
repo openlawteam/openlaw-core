@@ -36,9 +36,9 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => R
 
   override def plus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult:TemplateExecutionResult): Result[Option[OpenlawDateTime]] =
     combine(optLeft, optRight) {
-      case (left, period: Period) => VariableType.convert[OpenlawDateTime](left).map(x => plus(x, period))
+      case (left, period: org.adridadou.openlaw.parser.template.variableTypes.Period) => VariableType.convert[OpenlawDateTime](left).map(x => plus(x, period))
       case (left, OpenlawString(str)) =>
-        PeriodType
+				org.adridadou.openlaw.parser.template.variableTypes.PeriodType
           .cast(str, executionResult)
           .addMessageToFailure(s"you can only make an addition between a date and a period. You are making an addition between a ${left.getClass.getSimpleName} and ${str.getClass.getSimpleName}")
           .toResult
@@ -50,7 +50,7 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => R
     case _ => this
   }
 
-  def plus(d:OpenlawDateTime, p:Period):OpenlawDateTime = d
+  def plus(d:OpenlawDateTime, p:org.adridadou.openlaw.parser.template.variableTypes.Period):OpenlawDateTime = d
     .underlying
     .plusSeconds(p.seconds)
     .plusMinutes(p.minutes)
@@ -62,7 +62,7 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => R
 
   override def minus(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult:TemplateExecutionResult): Result[Option[OpenlawValue]] =
     combine(optLeft, optRight) {
-      case (left, period:Period) => VariableType.convert[OpenlawDateTime](left).map(x => minus(x, period))
+      case (left, period:org.adridadou.openlaw.parser.template.variableTypes.Period) => VariableType.convert[OpenlawDateTime](left).map(x => minus(x, period))
       case (left, date:OpenlawDateTime) => VariableType.convert[OpenlawDateTime](left).map(x => minus(x, date))
       case (left, OpenlawString(str)) =>
         PeriodType
@@ -72,7 +72,7 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => R
           .flatMap(period => VariableType.convert[OpenlawDateTime](left).map(x => minus(x, period)))
     }
 
-  private def minus(d:OpenlawDateTime, p:Period):OpenlawDateTime = d
+  private def minus(d:OpenlawDateTime, p:org.adridadou.openlaw.parser.template.variableTypes.Period):OpenlawDateTime = d
     .underlying
     .minusSeconds(p.seconds)
     .minusMinutes(p.minutes)
@@ -82,7 +82,7 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => R
     .minusMonths(p.months)
     .minusYears(p.years)
 
-  private def minus(d1: OpenlawDateTime, d2: OpenlawDateTime): Period = {
+  private def minus(d1: OpenlawDateTime, d2: OpenlawDateTime): org.adridadou.openlaw.parser.template.variableTypes.Period = {
     val (from, to) = d2.compareTo(d1) match {
       case 1 => (d1.underlying, d2.underlying)
       case _ => (d2.underlying, d1.underlying)
@@ -106,7 +106,7 @@ abstract class DateTypeTrait(varTypeName:String, converter: (String, Clock) => R
 
     val seconds = tempDateTime.until(to, ChronoUnit.SECONDS)
 
-    Period(
+		org.adridadou.openlaw.parser.template.variableTypes.Period(
       years = years.toInt,
       weeks = weeks.toInt,
       days = days.toInt,

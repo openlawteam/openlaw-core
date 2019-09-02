@@ -4,7 +4,7 @@ resolvers += "Typesafe Repository" at "https://repo.typesafe.com/typesafe/releas
 resolvers += "Bintray sbt-reactjs" at "https://dl.bintray.com/ddispaltro/sbt-plugins/"
 resolvers += Resolver.url("sbt-plugins", url("https://dl.bintray.com/ssidorenko/sbt-plugins/"))(Resolver.ivyStylePatterns)
 
-addSbtPlugin("org.lyranthe.sbt" % "partial-unification" % "1.1.0")
+//addSbtPlugin("org.lyranthe.sbt" % "partial-unification" % "1.1.0")
 addSbtPlugin("org.wartremover" % "sbt-wartremover" % "2.4.2")
 
 /* TODO: potentially move this to global install instead of project-specific */

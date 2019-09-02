@@ -72,15 +72,16 @@ object EthereumAddress {
 
   def apply(a: String): Result[EthereumAddress] = Option(a) match {
     case None => empty
+		case Some(address) if address.isEmpty => empty
     case Some(address) if address.startsWith("0x") => apply(address.substring(2))
-    case Some(address) if address.length =!= 40 => Failure("the address string should be 40 or 42 with '0x' prefix")
+    case Some(address) if address.length =!= 40 => Failure(s"error while parsing '$address'. The address string should be 40 or 42 with '0x' prefix")
     case Some(address) => apply(hex2bytes(address))
   }
 
   def empty: Result[EthereumAddress] = EthereumAddress(Array[Byte]())
 
   def hex2bytes(hex: String): Array[Byte] = {
-    hex.replaceAll("[^0-9A-Fa-f]", "").sliding(2, 2).toArray.map(Integer.parseInt(_, 16).toByte)
+    hex.replaceAll("[^0-9A-Fa-f]", "").toSeq.sliding(2, 2).map(_.unwrap).map(Integer.parseInt(_, 16).toByte).toArray
   }
 
   def bytes2hex(bytes: Array[Byte]): String = bytes

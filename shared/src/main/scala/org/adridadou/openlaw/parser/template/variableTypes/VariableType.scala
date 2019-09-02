@@ -414,7 +414,7 @@ object VariableType {
   }
 
   def sequence[L,R](seq:Seq[Result[R]]):Result[Seq[R]] = seq.partition(_.isLeft) match {
-    case (Nil,  values) => Right(for(Right(i) <- values.view) yield i)
+    case (Nil,  values) => Right(for(Right(i) <- values) yield i)
     case (errs, _) => errs.headOption match {
       case Some(Left(err)) => Left(err)
       case _ => Right(Seq())

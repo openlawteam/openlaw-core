@@ -455,7 +455,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
   it should "print a period properly" in {
     val mainTemplate =
       compile("""[[var:Period]]""".stripMargin)
-    engine.execute(mainTemplate, TemplateParameters("var" -> PeriodType.internalFormat(PeriodType.cast("3 minute 10 seconds").right.value).right.value), Map()) match {
+    engine.execute(mainTemplate, TemplateParameters("var" -> PeriodType.internalFormat(PeriodType.cast("3 minute 10 seconds").getOrThrow()).getOrThrow()), Map()) match {
       case Right(result) =>
         parser.forReview(result.agreements.head,ParagraphEdits()) shouldBe """<p class="no-section">3 minutes 10 seconds</p>"""
       case Left(ex) =>
@@ -466,7 +466,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
   it should "print a period containing a singular value properly" in {
     val mainTemplate =
       compile("""[[var:Period]]""".stripMargin)
-    engine.execute(mainTemplate, TemplateParameters("var" -> PeriodType.internalFormat(PeriodType.cast("1 minute 1 second").right.value).right.value), Map()) match {
+    engine.execute(mainTemplate, TemplateParameters("var" -> PeriodType.internalFormat(PeriodType.cast("1 minute 1 second").getOrThrow()).getOrThrow()), Map()) match {
       case Right(result) =>
         parser.forReview(result.agreements.head,ParagraphEdits()) shouldBe """<p class="no-section">1 minute 1 second</p>"""
       case Left(ex) =>
@@ -477,7 +477,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
   it should "print a period containing a singular and non-singular value properly" in {
     val mainTemplate =
       compile("""[[var:Period]]""".stripMargin)
-    engine.execute(mainTemplate, TemplateParameters("var" -> PeriodType.internalFormat(PeriodType.cast("1 minute 20 seconds").right.value).right.value), Map()) match {
+    engine.execute(mainTemplate, TemplateParameters("var" -> PeriodType.internalFormat(PeriodType.cast("1 minute 20 seconds").getOrThrow()).getOrThrow()), Map()) match {
       case Right(result) =>
         parser.forReview(result.agreements.head,ParagraphEdits()) shouldBe """<p class="no-section">1 minute 20 seconds</p>"""
       case Left(ex) =>
@@ -496,7 +496,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         """.stripMargin)
 
     val collectionType = AbstractCollectionType.createParameterInstance(TextType)
-    engine.execute(mainTemplate, TemplateParameters("title" -> "this is a test", "My Collection" -> collectionType.internalFormat(CollectionValue(size = 3, values = Map(0 -> "test1", 1 -> "test2", 2 -> "test3"), collectionType = collectionType)).right.value), Map()) match {
+    engine.execute(mainTemplate, TemplateParameters("title" -> "this is a test", "My Collection" -> collectionType.internalFormat(CollectionValue(size = 3, values = Map(0 -> "test1", 1 -> "test2", 2 -> "test3"), collectionType = collectionType)).getOrThrow()), Map()) match {
       case Right(result) =>
         result.state shouldBe ExecutionFinished
         val text = parser.forReview(result.agreements.head,ParagraphEdits())
@@ -519,7 +519,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
     val collectionType = AbstractCollectionType.createParameterInstance(DateType)
 
-    val result = engine.execute(mainTemplate, TemplateParameters("title" -> "this is a test", "My Collection" -> collectionType.internalFormat(CollectionValue(size = 0, values = Map(), collectionType = collectionType)).right.value), Map()).right.value
+    val result = engine.execute(mainTemplate, TemplateParameters("title" -> "this is a test", "My Collection" -> collectionType.internalFormat(CollectionValue(size = 0, values = Map(), collectionType = collectionType)).getOrThrow()), Map()).getOrThrow()
     val executionResult = result.getAllExecutionResults.head
 
     val initialValue = "1564660800000"
@@ -530,7 +530,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     val variable = result.getVariable("My Collection").value
     val varType = variable.varType(executionResult)
     val collection = VariableType.convert[CollectionValue](varType.cast(initialCollection, executionResult).getOrThrow()).getOrThrow()
-    initialValue should be(collection.valueInternalFormat(collection.list.head).right.value)
+    initialValue should be(collection.valueInternalFormat(collection.list.head).getOrThrow())
 
     val openlawValue = collection.castValue(newValue, executionResult).getOrThrow()
     val values: Map[Int, OpenlawValue] = collection.values ++ Map(1 -> openlawValue)
@@ -554,7 +554,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
     val collectionType = AbstractCollectionType.createParameterInstance(TextType)
 
-    engine.execute(mainTemplate, TemplateParameters("number" -> "10", "title" -> "this is a test", "My Collection" -> collectionType.internalFormat(CollectionValue(size = 3, values = Map(0 -> "test1", 1 -> "test2", 2 -> "test3"), collectionType = collectionType)).right.value), Map()) match {
+    engine.execute(mainTemplate, TemplateParameters("number" -> "10", "title" -> "this is a test", "My Collection" -> collectionType.internalFormat(CollectionValue(size = 3, values = Map(0 -> "test1", 1 -> "test2", 2 -> "test3"), collectionType = collectionType)).getOrThrow()), Map()) match {
       case Right(result) =>
         result.state shouldBe ExecutionFinished
         result.getAllExecutedVariables.map({case (_, variable) => variable.name}).toSet should contain theSameElementsAs Set("@@anonymous_1@@","@@anonymous_5@@","@@anonymous_3@@", "title", "number", "My Collection")
@@ -578,7 +578,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         result.state shouldBe ExecutionFinished
         result.getAllExecutedVariables.map({case (_, variable) => variable.name}).toSet should contain theSameElementsAs Set("Someone")
 
-        val map = result.getVariableValue[OpenlawMap[VariableName, OpenlawValue]](VariableName("Someone")).right.value.value.underlying
+        val map = result.getVariableValue[OpenlawMap[VariableName, OpenlawValue]](VariableName("Someone")).getOrThrow().value.underlying
         map.get(VariableName("name")).value.toString shouldBe "David"
         map.get(VariableName("number")).map { case OpenlawBigDecimal(v) => v }.value shouldBe BigDecimal(23)
       case Left(ex) =>
@@ -670,7 +670,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       """bla bla""".stripMargin)
 
     val colType = AbstractCollectionType.createParameterInstance(TextType)
-    val internalValue = colType.internalFormat(CollectionValue(2, Map(0 -> "hello", 1 -> "world"), colType)).right.value
+    val internalValue = colType.internalFormat(CollectionValue(2, Map(0 -> "hello", 1 -> "world"), colType)).getOrThrow()
     engine.execute(mainTemplate, TemplateParameters("employees" -> internalValue), Map(TemplateSourceIdentifier(TemplateTitle("template")) -> subTemplate,TemplateSourceIdentifier(TemplateTitle("template2")) -> subTemplate2)) match {
       case Right(result) =>
         result.agreements.size shouldBe 2
@@ -736,7 +736,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       """.stripMargin)
 
     val collectionType = AbstractCollectionType.createParameterInstance(TextType)
-    engine.execute(template, TemplateParameters("Directors" -> collectionType.internalFormat(CollectionValue(size = 3, values = Map(0 -> "test1", 1 -> "test2", 2 -> "test3"), collectionType = collectionType)).right.value), Map()) match {
+    engine.execute(template, TemplateParameters("Directors" -> collectionType.internalFormat(CollectionValue(size = 3, values = Map(0 -> "test1", 1 -> "test2", 2 -> "test3"), collectionType = collectionType)).getOrThrow()), Map()) match {
       case Right(result) =>
         result.state shouldBe ExecutionFinished
         val text = parser.forReview(result.agreements.head,ParagraphEdits())
@@ -826,7 +826,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
     val collectionType = AbstractCollectionType.createParameterInstance(TextType)
 
-    engine.execute(template, TemplateParameters("text" -> collectionType.internalFormat(CollectionValue(size = 3, values = Map(0 -> "hello", 1 -> "world", 2 -> "me"), collectionType = collectionType)).right.value), Map()) match {
+    engine.execute(template, TemplateParameters("text" -> collectionType.internalFormat(CollectionValue(size = 3, values = Map(0 -> "hello", 1 -> "world", 2 -> "me"), collectionType = collectionType)).getOrThrow()), Map()) match {
       case Right(result) =>
         result.state shouldBe ExecutionFinished
         val text = parser.forReview(result.agreements.head,ParagraphEdits())
@@ -867,7 +867,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         val Some(variable) = result.getVariable("var")
         variable.varType(result).getTypeClass shouldBe classOf[OpenlawString]
 
-        variable.evaluate(result).right.value.value.toString shouldBe "hello"
+        variable.evaluate(result).getOrThrow().value.toString shouldBe "hello"
 
       case Left(ex) =>
         fail(ex)
@@ -1329,7 +1329,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
     val template = compile(text)
     val collectionType = AbstractCollectionType.createParameterInstance(TextType)
-    val paramValue = collectionType.internalFormat(CollectionValue(size = 3, values = Map(0 -> "text1", 1 -> "text2", 2 -> "text3"), collectionType)).right.value
+    val paramValue = collectionType.internalFormat(CollectionValue(size = 3, values = Map(0 -> "text1", 1 -> "text2", 2 -> "text3"), collectionType)).getOrThrow()
 
     engine.execute(template, TemplateParameters("texts" -> paramValue)) match {
       case Right(result) =>

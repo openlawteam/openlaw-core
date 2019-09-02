@@ -112,7 +112,7 @@ trait TemplateExecutionResult {
         builder
       } else {
         builder.add(variable)
-      }).variables
+      }).variables.toSeq
 
   def getVariables(varTypes: VariableType*):Seq[(TemplateExecutionResult, VariableDefinition)] =
     getVariables
@@ -271,13 +271,13 @@ trait TemplateExecutionResult {
     builder
   } else {
     builder.add(variable)
-  }}).variables.map(_.name)
+  }}).variables.map(_.name).toSeq
 
   def getAllVariableNames:Seq[VariableName] = getAllVariables.foldLeft(DistinctVariableBuilder())({case (builder, (_, variable)) => if(builder.names.contains(variable.name)) {
     builder
   } else {
     builder.add(variable)
-  }}).variables.map(_.name)
+  }}).variables.map(_.name).toSeq
 
   def findVariableType(variableTypeDefinition: VariableTypeDefinition):Option[VariableType] = {
     val mainType = findVariableTypeInternal(variableTypeDefinition)
@@ -441,15 +441,15 @@ final case class OpenlawExecutionState(
                                     externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] = Map(),
                                     clock:Clock) extends TemplateExecutionResult {
 
-  def variables:Seq[VariableDefinition] = variablesInternal
-  def aliases:Seq[VariableAliasing] = aliasesInternal
-  def variableTypes:Seq[VariableType] = variableTypesInternal
-  def processedSections: Seq[(Section, Int)] = processedSectionsInternal
-  def executedVariables:Seq[VariableName] = executedVariablesInternal
-  def agreements:Seq[StructuredAgreement] = agreementsInternal
-  def variableSectionList:Seq[String] = variableSectionListInternal
+  def variables:Seq[VariableDefinition] = variablesInternal.toSeq
+  def aliases:Seq[VariableAliasing] = aliasesInternal.toSeq
+  def variableTypes:Seq[VariableType] = variableTypesInternal.toSeq
+  def processedSections: Seq[(Section, Int)] = processedSectionsInternal.toSeq
+  def executedVariables:Seq[VariableName] = executedVariablesInternal.toSeq
+  def agreements:Seq[StructuredAgreement] = agreementsInternal.toSeq
+  def variableSectionList:Seq[String] = variableSectionListInternal.toSeq
 
-  override def variableSections: Map[String, Seq[VariableName]] = variableSectionsInternal.toMap
+  override def variableSections: Map[String, Seq[VariableName]] = variableSectionsInternal.toMap.map({case (key, value) => key -> value.toSeq})
 
   override def sectionNameMappingInverse: Map[VariableName, String] = sectionNameMappingInverseInternal.toMap
 
@@ -497,7 +497,7 @@ final case class OpenlawExecutionState(
       sectionLevelStack appendAll newSectionValues
     }
 
-  def allSectionLevelStack:Seq[Int] =
+  def allSectionLevelStack:mutable.Buffer[Int] =
     if(embedded) {
       parentExecutionInternal match {
         case Some(parent) => parent.allSectionLevelStack ++ sectionLevelStack

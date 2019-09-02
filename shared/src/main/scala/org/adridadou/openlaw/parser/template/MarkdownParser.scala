@@ -19,7 +19,7 @@ object MarkdownParser {
 
     attempt(compiler.rootRule.run().toResult).flatten match {
       case Failure(parseError: ParseError, _) => Failure(compiler.formatError(parseError))
-      case Failure(ex, _) => Failure(ex.getClass + ":" + ex.getMessage)
+      case Failure(ex, _) => Failure(s"${ex.getClass}:${ex.getMessage}")
       case Success(result) => Success(result)
     }
   }

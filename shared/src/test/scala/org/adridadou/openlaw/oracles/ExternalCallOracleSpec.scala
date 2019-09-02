@@ -9,8 +9,8 @@ import org.adridadou.openlaw.result.{Failure, Success}
 import org.adridadou.openlaw.result.Implicits.RichResult
 import org.adridadou.openlaw.values.{ContractDefinition, TemplateId, TemplateParameters}
 import org.adridadou.openlaw.vm.{OpenlawExecutionEngine, OpenlawVmProvider, TestAccount, TestCryptoService}
-import org.scalatest.check.Checkers
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest._
+import org.scalatestplus.scalacheck.Checkers
 
 import scala.util.Random
 
