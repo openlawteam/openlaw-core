@@ -13,6 +13,7 @@ import io.circe.syntax._
 import cats.implicits._
 import cats.Eq
 import LocalDateTimeHelper._
+import org.adridadou.openlaw.values.ContractId
 import slogging.LazyLogging
 
 final case class ExternalCallOracle(crypto: CryptoService, externalSignatureAccounts: Map[ServiceName, EthereumAddress] = Map()) extends OpenlawOracle[ExternalCallEvent] with LazyLogging {
@@ -37,29 +38,19 @@ final case class ExternalCallOracle(crypto: CryptoService, externalSignatureAcco
   }
 
   private def handleSuccessEvent(vm: OpenlawVm, event: SuccessfulExternalCallEvent): Result[OpenlawVm] = {
-    val signedData = EthereumData(crypto.sha256(event.identifier.identifier))
-      .merge(EthereumData(crypto.sha256(event.result)))
-
-    val isValidSignature = (externalSignatureAccounts.get(event.serviceName) match {
+    (externalSignatureAccounts.get(event.serviceName) match {
       case Some(account) => Success(account)
       case None => Failure(s"unknown service ${event.serviceName}")
     })
-    .flatMap { externalServiceAccount =>
-      EthereumAddress(crypto.validateECSignature(signedData.data, event.signature.signature))
-        .map { derivedAddress => externalServiceAccount.withLeading0x === derivedAddress.withLeading0x }
-        .flatMap { isValid => if (isValid) Success("Valid event signature") else Failure("Invalid event signature") }
-    }
+      .flatMap { externalServiceAccount =>
+        val signedData = EthereumData(crypto.sha256(event.contractId.id))
+          .merge(EthereumData(crypto.sha256(event.identifier.identifier)))
+          .merge(EthereumData(crypto.sha256(event.result)))
 
-    isValidSignature match {
-      case Success(_) => handleEvent(vm, event)
-      case Failure(_, msg) => handleFailedEvent(vm, FailedExternalCallEvent(
-        event.identifier,
-        event.requestIdentifier,
-        event.executionDate,
-        event.executionDate,
-        msg
-      ))
-    }
+        EthereumAddress(crypto.validateECSignature(signedData.data, event.signature.signature))
+          .map { derivedAddress => externalServiceAccount.withLeading0x === derivedAddress.withLeading0x }
+          .flatMap { isValid => if (isValid) Success("Valid event signature") else Failure("Invalid event signature") }
+      }.flatMap { _ => handleEvent(vm, event) }
   }
 
   private def handleEvent(vm: OpenlawVm, event: ExternalCallEvent): Result[OpenlawVm] = {
@@ -123,6 +114,7 @@ object SuccessfulExternalCallEvent {
 }
 
 sealed trait ExternalCallEvent extends OpenlawVmEvent {
+  val contractId: ContractId
   val identifier: ActionIdentifier
   val requestIdentifier: RequestIdentifier
   val executionDate: LocalDateTime
@@ -130,7 +122,8 @@ sealed trait ExternalCallEvent extends OpenlawVmEvent {
   def toExecution(scheduledDate: LocalDateTime): ExternalCallExecution
 }
 
-final case class PendingExternalCallEvent(identifier: ActionIdentifier,
+final case class PendingExternalCallEvent(contractId: ContractId,
+                                          identifier: ActionIdentifier,
                                           requestIdentifier: RequestIdentifier,
                                           executionDate: LocalDateTime) extends ExternalCallEvent {
   override def typeIdentifier: String = className[PendingExternalCallEvent]
@@ -144,7 +137,8 @@ final case class PendingExternalCallEvent(identifier: ActionIdentifier,
   )
 }
 
-final case class FailedExternalCallEvent(identifier: ActionIdentifier,
+final case class FailedExternalCallEvent(contractId: ContractId,
+                                         identifier: ActionIdentifier,
                                          requestIdentifier: RequestIdentifier,
                                          executionDate: LocalDateTime,
                                          scheduledDate: LocalDateTime,
@@ -162,7 +156,8 @@ final case class FailedExternalCallEvent(identifier: ActionIdentifier,
 }
 
 
-final case class SuccessfulExternalCallEvent(identifier: ActionIdentifier,
+final case class SuccessfulExternalCallEvent(contractId: ContractId,
+                                             identifier: ActionIdentifier,
                                              requestIdentifier: RequestIdentifier,
                                              executionDate: LocalDateTime,
                                              result: String,
