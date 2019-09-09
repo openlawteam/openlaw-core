@@ -12,7 +12,7 @@ import org.adridadou.openlaw.parser.template.{ActionIdentifier, ExecutionFinishe
 import org.adridadou.openlaw.result.{Failure, Success}
 import org.adridadou.openlaw.result.Implicits.RichResult
 import org.adridadou.openlaw.values.{ContractDefinition, ContractId, TemplateId, TemplateParameters}
-import org.adridadou.openlaw.vm.{ContractCreated, OpenlawVm, OpenlawVmProvider, TestAccount, TestCryptoService}
+import org.adridadou.openlaw.vm.{ContractCreated, ContractStopped, OpenlawVm, OpenlawVmProvider, TestAccount, TestCryptoService}
 import play.api.libs.json.Json
 
 class ExternalCallTypeSpec extends FlatSpec with Matchers {
@@ -82,8 +82,7 @@ class ExternalCallTypeSpec extends FlatSpec with Matchers {
 
     vm.applyEvent(successfulExternalCallEvent)
     vm.allExecutions.exists {
-      case (actionId, execs) =>
-        actionId === identifier && execs.exists {
+      case (actionId, execs) => actionId === identifier && execs.exists {
           case _: SuccessfulExternalCallExecution => true
           case _ => false
         }
@@ -97,15 +96,14 @@ class ExternalCallTypeSpec extends FlatSpec with Matchers {
 
   }
 
-  it should "preserve the pending external call execution if the success external call does not have a valid event signature" in {
+  it should "stop contract if the success external call does not have a valid event signature" in {
     val (contractId: ContractId, abi: IntegratedServiceDefinition, serviceName: ServiceName, vm: OpenlawVm, identifier: ActionIdentifier, requestIdentifier: RequestIdentifier) =
       createAndSignContract
 
     val pendingExternalCallEvent = oracles.PendingExternalCallEvent(contractId, identifier, requestIdentifier, LocalDateTime.now)
     vm.applyEvent(pendingExternalCallEvent)
     vm.allExecutions.exists {
-      case (actionId, execs) =>
-        actionId === identifier && execs.exists {
+      case (actionId, execs) => actionId === identifier && execs.exists {
           case _: PendingExternalCallExecution => true
           case _ => false
         }
@@ -123,19 +121,13 @@ class ExternalCallTypeSpec extends FlatSpec with Matchers {
 
     vm.applyEvent(successfulExternalCallEvent)
     vm.allExecutions.exists {
-      case (actionId, execs) =>
-        actionId === identifier && execs.exists {
+      case (actionId, execs) => actionId === identifier && execs.exists {
           case _: SuccessfulExternalCallExecution => false
           case _: PendingExternalCallExecution => true
         }
     } shouldBe true
 
-    val Some((exec, varDef)) = vm.getAllExecutedVariables(ExternalCallType).headOption
-    varDef.varType(exec).keysType(Seq("result", "sum"), varDef, exec) match {
-      case Success(variableType) => variableType.name shouldBe "Number"
-      case Failure(_, msg) => fail(msg)
-    }
-
+    vm.executionState shouldBe ContractStopped
   }
 
   private def createAndSignContract = {

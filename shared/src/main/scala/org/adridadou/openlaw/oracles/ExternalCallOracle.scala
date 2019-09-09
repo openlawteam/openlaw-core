@@ -4,7 +4,7 @@ import java.time.LocalDateTime
 
 import org.adridadou.openlaw.parser.template.{ActionIdentifier, ActionInfo, TemplateExecutionResult, VariableName}
 import org.adridadou.openlaw.parser.template.variableTypes._
-import org.adridadou.openlaw.result.{Failure, Result, Success}
+import org.adridadou.openlaw.result._
 import org.adridadou.openlaw.vm.{OpenlawVm, OpenlawVmEvent}
 import org.adridadou.openlaw.{OpenlawMap, OpenlawValue}
 import io.circe._
@@ -27,6 +27,11 @@ final case class ExternalCallOracle(crypto: CryptoService, externalSignatureAcco
       handleEvent(vm, event)
   }
 
+  override def shouldExecute(event: OpenlawVmEvent): Boolean = event match {
+    case _: ExternalCallEvent => true
+    case _ => false
+  }
+
   private def handleFailedEvent(vm: OpenlawVm, event: FailedExternalCallEvent): Result[OpenlawVm] = {
     val failedExecution = FailedExternalCallExecution(
       scheduledDate = event.scheduledDate,
@@ -38,19 +43,20 @@ final case class ExternalCallOracle(crypto: CryptoService, externalSignatureAcco
   }
 
   private def handleSuccessEvent(vm: OpenlawVm, event: SuccessfulExternalCallEvent): Result[OpenlawVm] = {
-    (externalSignatureAccounts.get(event.serviceName) match {
-      case Some(account) => Success(account)
-      case None => Failure(s"unknown service ${event.serviceName}")
-    })
-      .flatMap { externalServiceAccount =>
-        val signedData = EthereumData(crypto.sha256(event.contractId.id))
-          .merge(EthereumData(crypto.sha256(event.identifier.identifier)))
-          .merge(EthereumData(crypto.sha256(event.result)))
-
-        EthereumAddress(crypto.validateECSignature(signedData.data, event.signature.signature))
-          .map { derivedAddress => externalServiceAccount.withLeading0x === derivedAddress.withLeading0x }
-          .flatMap { isValid => if (isValid) Success("Valid event signature") else Failure("Invalid event signature") }
-      }.flatMap { _ => handleEvent(vm, event) }
+    getExternalServiceAccount(event.serviceName).flatMap(account =>
+      getSignedData(event.contractId, event.identifier, event.result).flatMap(signedData =>
+        verify(signedData, account, event.signature))) match {
+      case Success(_) =>
+        handleEvent(vm, event)
+      case Failure(_, msg) =>
+        handleFailedEvent(vm, FailedExternalCallEvent(
+          event.contractId,
+          event.identifier,
+          event.requestIdentifier,
+          event.executionDate,
+          event.executionDate,
+          msg))
+    }
   }
 
   private def handleEvent(vm: OpenlawVm, event: ExternalCallEvent): Result[OpenlawVm] = {
@@ -92,10 +98,33 @@ final case class ExternalCallOracle(crypto: CryptoService, externalSignatureAcco
     }
   }
 
-  override def shouldExecute(event: OpenlawVmEvent): Boolean = event match {
-    case _: ExternalCallEvent => true
-    case _ => false
-  }
+  private def getExternalServiceAccount(serviceName: ServiceName): Result[EthereumAddress] =
+    externalSignatureAccounts.get(serviceName) match {
+      case Some(account) => Success(account)
+      case None => Failure(s"unknown service $serviceName")
+    }
+
+  private def getSignedData(contractId: ContractId, identifier: ActionIdentifier, data: String): Result[EthereumData] =
+    attempt(EthereumData(crypto.sha256(contractId.id))
+      .merge(EthereumData(crypto.sha256(identifier.identifier)))
+      .merge(EthereumData(crypto.sha256(data)))) match {
+      case Success(account) => Success(account)
+      case Failure(_, msg) => Failure(s"Unable to get signed data, error: $msg")
+    }
+
+  private def verify(signedData: EthereumData, account: EthereumAddress, signature: EthereumSignature): Result[String] =
+    EthereumAddress(crypto.validateECSignature(signedData.data, signature.signature))
+      .map { derivedAddress =>
+        account.withLeading0x === derivedAddress.withLeading0x
+      }
+      .flatMap { isValid =>
+        if (isValid) {
+          Success("Valid signature for result data")
+        } else {
+          Failure("Invalid signature for result data")
+        }
+      }
+
 }
 
 object PendingExternalCallEvent {
