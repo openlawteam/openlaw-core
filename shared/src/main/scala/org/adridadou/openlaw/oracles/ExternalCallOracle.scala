@@ -11,10 +11,10 @@ import io.circe._
 import io.circe.generic.semiauto._
 import io.circe.syntax._
 import cats.implicits._
-import cats.Eq
-import LocalDateTimeHelper._
-import org.adridadou.openlaw.values.ContractId
+import cats.kernel.Eq
 import slogging.LazyLogging
+
+import LocalDateTimeHelper._
 
 final case class ExternalCallOracle(crypto: CryptoService, externalSignatureAccounts: Map[ServiceName, EthereumAddress] = Map()) extends OpenlawOracle[ExternalCallEvent] with LazyLogging {
 
@@ -44,13 +44,13 @@ final case class ExternalCallOracle(crypto: CryptoService, externalSignatureAcco
 
   private def handleSuccessEvent(vm: OpenlawVm, event: SuccessfulExternalCallEvent): Result[OpenlawVm] = {
     getExternalServiceAccount(event.serviceName).flatMap(account =>
-      getSignedData(event.contractId, event.identifier, event.result).flatMap(signedData =>
+      getSignedData(event.caller, event.identifier, event.result).flatMap(signedData =>
         verify(signedData, account, event.signature))) match {
       case Success(_) =>
         handleEvent(vm, event)
       case Failure(_, msg) =>
         handleFailedEvent(vm, FailedExternalCallEvent(
-          event.contractId,
+          event.caller,
           event.identifier,
           event.requestIdentifier,
           event.executionDate,
@@ -104,11 +104,11 @@ final case class ExternalCallOracle(crypto: CryptoService, externalSignatureAcco
       case None => Failure(s"unknown service $serviceName")
     }
 
-  private def getSignedData(contractId: ContractId, identifier: ActionIdentifier, data: String): Result[EthereumData] =
-    attempt(EthereumData(crypto.sha256(contractId.id))
+  private def getSignedData(caller: Caller, identifier: ActionIdentifier, data: String): Result[EthereumData] =
+    attempt(EthereumData(crypto.sha256(caller.id))
       .merge(EthereumData(crypto.sha256(identifier.identifier)))
       .merge(EthereumData(crypto.sha256(data)))) match {
-      case Success(account) => Success(account)
+      case Success(signedData) => Success(signedData)
       case Failure(_, msg) => Failure(s"Unable to get signed data, error: $msg")
     }
 
@@ -127,23 +127,34 @@ final case class ExternalCallOracle(crypto: CryptoService, externalSignatureAcco
 
 }
 
+object Caller {
+  implicit val callerEnc: Encoder[Caller] = deriveEncoder
+  implicit val callerDec: Decoder[Caller] = deriveDecoder
+  implicit val callerEq:  Eq[Caller] = Eq.fromUniversalEquals
+}
+
 object PendingExternalCallEvent {
   implicit val pendingExternalCallEventEnc: Encoder[PendingExternalCallEvent] = deriveEncoder
   implicit val pendingExternalCallEventDec: Decoder[PendingExternalCallEvent] = deriveDecoder
+  implicit val pendingExternalCallEventEq:  Eq[PendingExternalCallEvent] = Eq.fromUniversalEquals
 }
 
 object FailedExternalCallEvent {
   implicit val failedExternalCallEventEnc: Encoder[FailedExternalCallEvent] = deriveEncoder
   implicit val failedExternalCallEventDec: Decoder[FailedExternalCallEvent] = deriveDecoder
+  implicit val failedExternalCallEventEq:  Eq[FailedExternalCallEvent] = Eq.fromUniversalEquals
 }
 
 object SuccessfulExternalCallEvent {
   implicit val successfulExternalCallEventEnc: Encoder[SuccessfulExternalCallEvent] = deriveEncoder
   implicit val successfulExternalCallEventDec: Decoder[SuccessfulExternalCallEvent] = deriveDecoder
+  implicit val successfulExternalCallEventEq:  Eq[SuccessfulExternalCallEvent] = Eq.fromUniversalEquals
 }
 
+final case class Caller(id: String)
+
 sealed trait ExternalCallEvent extends OpenlawVmEvent {
-  val contractId: ContractId
+  val caller: Caller
   val identifier: ActionIdentifier
   val requestIdentifier: RequestIdentifier
   val executionDate: LocalDateTime
@@ -151,7 +162,7 @@ sealed trait ExternalCallEvent extends OpenlawVmEvent {
   def toExecution(scheduledDate: LocalDateTime): ExternalCallExecution
 }
 
-final case class PendingExternalCallEvent(contractId: ContractId,
+final case class PendingExternalCallEvent(caller: Caller,
                                           identifier: ActionIdentifier,
                                           requestIdentifier: RequestIdentifier,
                                           executionDate: LocalDateTime) extends ExternalCallEvent {
@@ -166,7 +177,7 @@ final case class PendingExternalCallEvent(contractId: ContractId,
   )
 }
 
-final case class FailedExternalCallEvent(contractId: ContractId,
+final case class FailedExternalCallEvent(caller: Caller,
                                          identifier: ActionIdentifier,
                                          requestIdentifier: RequestIdentifier,
                                          executionDate: LocalDateTime,
@@ -185,7 +196,7 @@ final case class FailedExternalCallEvent(contractId: ContractId,
 }
 
 
-final case class SuccessfulExternalCallEvent(contractId: ContractId,
+final case class SuccessfulExternalCallEvent(caller: Caller,
                                              identifier: ActionIdentifier,
                                              requestIdentifier: RequestIdentifier,
                                              executionDate: LocalDateTime,

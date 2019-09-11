@@ -33,24 +33,19 @@ class ExternalCallOracleSpec extends FlatSpec with Matchers with Checkers {
     .flatMap(t => engine.execute(t))
 
   private val Some(structure) = executionResult.findVariableType(VariableTypeDefinition("MyCallType"))
-
   private val requestIdentifier = RequestIdentifier(Random.nextString(10))
-
   private val structureValues:OpenlawMap[VariableName, OpenlawValue] = OpenlawMap(Map(VariableName("computationResult") -> "value"))
-
   private val contractId = ContractId(Random.nextString(16))
-
   private val output = structure.internalFormat(structureValues).getOrThrow()
-
   private val serviceName = ServiceName("SomeIntegratedService")
-
   private val signature = EthereumSignature(EthereumData.empty.data)
+  private val caller = Caller(contractId.id)
 
-  private val failExecutionCallEvent = FailedExternalCallEvent(contractId, ActionIdentifier("failedExternalCall"),
+  private val failExecutionCallEvent = FailedExternalCallEvent(caller, ActionIdentifier("failedExternalCall"),
     requestIdentifier, LocalDateTime.parse("2018-12-12T00:00:00"), LocalDateTime.parse("2018-12-12T00:10:00"), "some error")
-  private val pendingExecutionCallEvent = PendingExternalCallEvent(contractId, ActionIdentifier("pendingExternalCall"),
+  private val pendingExecutionCallEvent = PendingExternalCallEvent(caller, ActionIdentifier("pendingExternalCall"),
     requestIdentifier, LocalDateTime.parse("2018-12-12T00:00:00"))
-  private val successExecutionCallEvent = SuccessfulExternalCallEvent(contractId, ActionIdentifier("successExternalCall"),
+  private val successExecutionCallEvent = SuccessfulExternalCallEvent(caller, ActionIdentifier("successExternalCall"),
     requestIdentifier, LocalDateTime.parse("2018-12-12T00:00:00"), output, serviceName, signature)
 
   private val template =

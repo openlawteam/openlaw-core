@@ -7,7 +7,7 @@ import org.scalatest.{FlatSpec, Matchers}
 import io.circe.parser._
 import io.circe.syntax._
 import org.adridadou.openlaw.{OpenlawBigDecimal, oracles}
-import org.adridadou.openlaw.oracles.{ExternalCallOracle, LoadTemplate, OpenlawSignatureOracle, UserId}
+import org.adridadou.openlaw.oracles.{Caller, ExternalCallOracle, LoadTemplate, OpenlawSignatureOracle, UserId}
 import org.adridadou.openlaw.parser.template.{ActionIdentifier, ExecutionFinished, ExpressionParserService, OpenlawTemplateLanguageParserService, VariableDefinition, VariableName, variableTypes}
 import org.adridadou.openlaw.result.{Failure, Success}
 import org.adridadou.openlaw.result.Implicits.RichResult
@@ -53,10 +53,10 @@ class ExternalCallTypeSpec extends FlatSpec with Matchers {
   }
 
   it should "process a successful external call and access the parameters from the output result" in {
-    val (contractId: ContractId, abi: IntegratedServiceDefinition, serviceName: ServiceName, vm: OpenlawVm, identifier: ActionIdentifier, requestIdentifier: RequestIdentifier) =
+    val (caller: Caller, abi: IntegratedServiceDefinition, serviceName: ServiceName, vm: OpenlawVm, identifier: ActionIdentifier, requestIdentifier: RequestIdentifier) =
       createAndSignContract
 
-    val pendingExternalCallEvent = oracles.PendingExternalCallEvent(contractId, identifier, requestIdentifier, LocalDateTime.now)
+    val pendingExternalCallEvent = oracles.PendingExternalCallEvent(caller, identifier, requestIdentifier, LocalDateTime.now)
     vm.applyEvent(pendingExternalCallEvent)
     vm.allExecutions.exists {
       case (actionId, execs) =>
@@ -72,11 +72,11 @@ class ExternalCallTypeSpec extends FlatSpec with Matchers {
       case Some(executionResult) =>
         val output = abi.definedOutput.internalFormat(abi.definedOutput.cast(jsonResponse.toString, executionResult).getOrThrow()).getOrThrow()
         val eventSignature = serverAccount.sign(
-          EthereumData(cryptoService.sha256(contractId.id))
+          EthereumData(cryptoService.sha256(caller.id))
             .merge(EthereumData(cryptoService.sha256(identifier.identifier))
               .merge(EthereumData(cryptoService.sha256(output)))))
 
-        oracles.SuccessfulExternalCallEvent(contractId, identifier, requestIdentifier, LocalDateTime.now, output, serviceName, eventSignature)
+        oracles.SuccessfulExternalCallEvent(caller, identifier, requestIdentifier, LocalDateTime.now, output, serviceName, eventSignature)
       case None => fail("no execution result found!")
     }
 
@@ -97,10 +97,10 @@ class ExternalCallTypeSpec extends FlatSpec with Matchers {
   }
 
   it should "stop contract if the success external call does not have a valid event signature" in {
-    val (contractId: ContractId, abi: IntegratedServiceDefinition, serviceName: ServiceName, vm: OpenlawVm, identifier: ActionIdentifier, requestIdentifier: RequestIdentifier) =
+    val (caller: Caller, abi: IntegratedServiceDefinition, serviceName: ServiceName, vm: OpenlawVm, identifier: ActionIdentifier, requestIdentifier: RequestIdentifier) =
       createAndSignContract
 
-    val pendingExternalCallEvent = oracles.PendingExternalCallEvent(contractId, identifier, requestIdentifier, LocalDateTime.now)
+    val pendingExternalCallEvent = oracles.PendingExternalCallEvent(caller, identifier, requestIdentifier, LocalDateTime.now)
     vm.applyEvent(pendingExternalCallEvent)
     vm.allExecutions.exists {
       case (actionId, execs) => actionId === identifier && execs.exists {
@@ -115,7 +115,7 @@ class ExternalCallTypeSpec extends FlatSpec with Matchers {
       case Some(executionResult) =>
         val output = abi.definedOutput.internalFormat(abi.definedOutput.cast(jsonResponse.toString, executionResult).getOrThrow()).getOrThrow()
         val invalidEventSignature = serverAccount.sign(EthereumData("Invalid data to sign"))
-        oracles.SuccessfulExternalCallEvent(contractId, identifier, requestIdentifier, LocalDateTime.now, output, serviceName, invalidEventSignature)
+        oracles.SuccessfulExternalCallEvent(caller, identifier, requestIdentifier, LocalDateTime.now, output, serviceName, invalidEventSignature)
       case None => fail("no execution result found!")
     }
 
@@ -190,7 +190,8 @@ class ExternalCallTypeSpec extends FlatSpec with Matchers {
 
     val identifier = ActionIdentifier("Sum Service#numberA->2#numberB->2")
     val requestIdentifier = RequestIdentifier("test exec hash")
-    (contractId, abi, serviceName, vm, identifier, requestIdentifier)
+    val caller = Caller(contractId.id)
+    (caller, abi, serviceName, vm, identifier, requestIdentifier)
   }
 
   private def sign(identity: Identity, contractId: ContractId): EthereumSignature =
