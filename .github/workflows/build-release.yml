@@ -22,11 +22,11 @@ jobs:
         PUSH_CACHE: "1"
     # tests. May take a bit of time to run 
     - name: Test
-      run: docker run openlaw/core:packager scripts/test.sh
+      run: docker run openlaw/core:latest scripts/test.sh
     # actual release stuffs
     - name: Release
       if: startsWith(github.ref, 'refs/tags/v')
-      run: docker run -e RELEASE_TRIGGER -e BINTRAY_USER -e BINTRAY_PASSWORD openlaw/core:packager scripts/release.sh
+      run: docker run -e RELEASE_TRIGGER -e BINTRAY_USER -e BINTRAY_PASSWORD openlaw/core:latest scripts/release.sh
       env:
         RELEASE_TRIGGER: "false"
         BINTRAY_USER: ${{ secrets.BINTRAY_USER }}
