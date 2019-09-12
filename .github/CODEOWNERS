@@ -1,0 +1,3 @@
+# Toolchain and dependency upgrades must be reviewed for infra
+build.sbt   @openlawteam/infra
+project/*   @openlawteam/infra
