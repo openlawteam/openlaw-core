@@ -2,54 +2,35 @@ package org.adridadou.openlaw.oracles
 
 import java.time.LocalDateTime
 
-import io.circe.{Decoder, Encoder}
-import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import org.adridadou.openlaw.parser.template.{ActionIdentifier, ActionInfo, TemplateExecutionResult, VariableName}
 import org.adridadou.openlaw.parser.template.variableTypes._
+import org.adridadou.openlaw.result._
 import org.adridadou.openlaw.vm.{OpenlawVm, OpenlawVmEvent}
-import slogging.LazyLogging
+import org.adridadou.openlaw.{OpenlawMap, OpenlawValue}
+import io.circe._
+import io.circe.generic.semiauto._
 import io.circe.syntax._
 import cats.implicits._
+import cats.kernel.Eq
+import slogging.LazyLogging
+
 import LocalDateTimeHelper._
-import org.adridadou.openlaw.{OpenlawMap, OpenlawValue}
-import org.adridadou.openlaw.result.{Failure, Result, Success}
 
-
-final case class ExternalCallOracle(crypto: CryptoService) extends OpenlawOracle[ExternalCallEvent] with LazyLogging {
+final case class ExternalCallOracle(crypto: CryptoService, externalSignatureAccounts: Map[ServiceName, EthereumAddress] = Map()) extends OpenlawOracle[ExternalCallEvent] with LazyLogging {
 
   override def incoming(vm: OpenlawVm, event: ExternalCallEvent): Result[OpenlawVm] = event match {
     case failedEvent: FailedExternalCallEvent =>
       handleFailedEvent(vm, failedEvent)
+    case successEvent: SuccessfulExternalCallEvent =>
+      handleSuccessEvent(vm, successEvent)
     case _ =>
       handleEvent(vm, event)
   }
 
-  private def handleEvent(vm: OpenlawVm, event: ExternalCallEvent): Result[OpenlawVm] =
-    //TODO check signatures
-    vm.allActions.flatMap { seq =>
-      seq
-          .toList
-          .map(info => info.identifier.map(identifier => (identifier, info)))
-          .sequence
-          .flatMap { seq =>
-            seq
-              .find { case (identifier, _) => identifier === event.identifier }
-              .map { case (_, actionInfo) =>
-                vm.executions[ExternalCallExecution](event.identifier).find(_.requestIdentifier === event.requestIdentifier) match {
-                  case Some(execution) =>
-                    Success(vm.newExecution(event.identifier, event.toExecution(execution.scheduledDate)))
-                  case None =>
-                    getScheduledDate(actionInfo, vm, event) flatMap {
-                      case Some(scheduleDate) =>
-                        Success(vm.newExecution(event.identifier, event.toExecution(scheduleDate)))
-                      case None =>
-                        logger.warn(s"the external call ${event.requestIdentifier} has not been scheduled yet")
-                        Success(vm)
-                    }
-                }
-              }.getOrElse(Failure(s"action not found for event ${event.typeIdentifier}"))
-          }
-    }
+  override def shouldExecute(event: OpenlawVmEvent): Boolean = event match {
+    case _: ExternalCallEvent => true
+    case _ => false
+  }
 
   private def handleFailedEvent(vm: OpenlawVm, event: FailedExternalCallEvent): Result[OpenlawVm] = {
     val failedExecution = FailedExternalCallExecution(
@@ -61,46 +42,128 @@ final case class ExternalCallOracle(crypto: CryptoService) extends OpenlawOracle
     Success(vm.newExecution(event.identifier, failedExecution))
   }
 
-  private def getScheduledDate(info: ActionInfo, vm: OpenlawVm, event: ExternalCallEvent): Result[Option[LocalDateTime]] = {
-    info.identifier.flatMap { id =>
-      vm.executions[ExternalCallExecution](id).find(_.requestIdentifier === event.requestIdentifier) match {
-        case Some(execution) =>
-          Success(Some(execution.scheduledDate))
-        case None =>
-          info.action.nextActionSchedule(info.executionResult, vm.executions(id))
-      }
+  private def handleSuccessEvent(vm: OpenlawVm, event: SuccessfulExternalCallEvent): Result[OpenlawVm] = {
+    getExternalServiceAccount(event.serviceName).flatMap(account =>
+      getSignedData(event.caller, event.identifier, event.result).flatMap(signedData =>
+        verify(signedData, account, event.signature))) match {
+      case Success(_) =>
+        handleEvent(vm, event)
+      case Failure(_, msg) =>
+        handleFailedEvent(vm, FailedExternalCallEvent(
+          event.caller,
+          event.identifier,
+          event.requestIdentifier,
+          event.executionDate,
+          event.executionDate,
+          msg))
     }
   }
 
-  override def shouldExecute(event: OpenlawVmEvent): Boolean = event match {
-    case _: ExternalCallEvent => true
-    case _ => false
+  private def handleEvent(vm: OpenlawVm, event: ExternalCallEvent): Result[OpenlawVm] = {
+    vm.allActions.flatMap { seq =>
+      seq
+        .toList
+        .map(info => info.identifier.map(identifier => (identifier, info)))
+        .sequence
+        .flatMap { seq =>
+          seq
+            .find { case (identifier, _) => identifier === event.identifier }
+            .map { case (_, actionInfo) =>
+              vm.executions[ExternalCallExecution](event.identifier).find(_.requestIdentifier === event.requestIdentifier) match {
+                case Some(execution) =>
+                  Success(vm.newExecution(event.identifier, event.toExecution(execution.scheduledDate)))
+                case None =>
+                  getScheduledDate(actionInfo, vm, event) flatMap {
+                    case Some(scheduleDate) =>
+                      Success(vm.newExecution(event.identifier, event.toExecution(scheduleDate)))
+                    case None =>
+                      logger.warn(s"the external call ${event.requestIdentifier} has not been scheduled yet")
+                      Success(vm)
+                  }
+              }
+            }.getOrElse(Failure(s"action not found for event ${event.typeIdentifier}"))
+        }
+    }
   }
+
+  private def getScheduledDate(info: ActionInfo, vm: OpenlawVm, event: ExternalCallEvent): Result[Option[LocalDateTime]] = {
+    info.identifier.flatMap {
+      id =>
+        vm.executions[ExternalCallExecution](id).find(_.requestIdentifier === event.requestIdentifier) match {
+          case Some(execution) =>
+            Success(Some(execution.scheduledDate))
+          case None =>
+            info.action.nextActionSchedule(info.executionResult, vm.executions(id))
+        }
+    }
+  }
+
+  private def getExternalServiceAccount(serviceName: ServiceName): Result[EthereumAddress] =
+    externalSignatureAccounts.get(serviceName) match {
+      case Some(account) => Success(account)
+      case None => Failure(s"unknown service $serviceName")
+    }
+
+  private def getSignedData(caller: Caller, identifier: ActionIdentifier, data: String): Result[EthereumData] =
+    attempt(EthereumData(crypto.sha256(caller.id))
+      .merge(EthereumData(crypto.sha256(identifier.identifier)))
+      .merge(EthereumData(crypto.sha256(data)))) match {
+      case Success(signedData) => Success(signedData)
+      case Failure(_, msg) => Failure(s"Unable to get signed data, error: $msg")
+    }
+
+  private def verify(signedData: EthereumData, account: EthereumAddress, signature: EthereumSignature): Result[String] =
+    EthereumAddress(crypto.validateECSignature(signedData.data, signature.signature))
+      .map { derivedAddress =>
+        account.withLeading0x === derivedAddress.withLeading0x
+      }
+      .flatMap { isValid =>
+        if (isValid) {
+          Success("Valid signature for result data")
+        } else {
+          Failure("Invalid signature for result data")
+        }
+      }
+
+}
+
+object Caller {
+  implicit val callerEnc: Encoder[Caller] = deriveEncoder
+  implicit val callerDec: Decoder[Caller] = deriveDecoder
+  implicit val callerEq:  Eq[Caller] = Eq.fromUniversalEquals
 }
 
 object PendingExternalCallEvent {
   implicit val pendingExternalCallEventEnc: Encoder[PendingExternalCallEvent] = deriveEncoder
   implicit val pendingExternalCallEventDec: Decoder[PendingExternalCallEvent] = deriveDecoder
+  implicit val pendingExternalCallEventEq:  Eq[PendingExternalCallEvent] = Eq.fromUniversalEquals
 }
 
 object FailedExternalCallEvent {
   implicit val failedExternalCallEventEnc: Encoder[FailedExternalCallEvent] = deriveEncoder
   implicit val failedExternalCallEventDec: Decoder[FailedExternalCallEvent] = deriveDecoder
+  implicit val failedExternalCallEventEq:  Eq[FailedExternalCallEvent] = Eq.fromUniversalEquals
 }
 
 object SuccessfulExternalCallEvent {
   implicit val successfulExternalCallEventEnc: Encoder[SuccessfulExternalCallEvent] = deriveEncoder
   implicit val successfulExternalCallEventDec: Decoder[SuccessfulExternalCallEvent] = deriveDecoder
+  implicit val successfulExternalCallEventEq:  Eq[SuccessfulExternalCallEvent] = Eq.fromUniversalEquals
 }
+
+final case class Caller(id: String)
 
 sealed trait ExternalCallEvent extends OpenlawVmEvent {
-  val identifier:ActionIdentifier
+  val caller: Caller
+  val identifier: ActionIdentifier
   val requestIdentifier: RequestIdentifier
   val executionDate: LocalDateTime
-  def toExecution(scheduledDate:LocalDateTime):ExternalCallExecution
+
+  def toExecution(scheduledDate: LocalDateTime): ExternalCallExecution
 }
 
-final case class PendingExternalCallEvent(identifier: ActionIdentifier,
+final case class PendingExternalCallEvent(caller: Caller,
+                                          identifier: ActionIdentifier,
                                           requestIdentifier: RequestIdentifier,
                                           executionDate: LocalDateTime) extends ExternalCallEvent {
   override def typeIdentifier: String = className[PendingExternalCallEvent]
@@ -114,7 +177,8 @@ final case class PendingExternalCallEvent(identifier: ActionIdentifier,
   )
 }
 
-final case class FailedExternalCallEvent(identifier: ActionIdentifier,
+final case class FailedExternalCallEvent(caller: Caller,
+                                         identifier: ActionIdentifier,
                                          requestIdentifier: RequestIdentifier,
                                          executionDate: LocalDateTime,
                                          scheduledDate: LocalDateTime,
@@ -132,21 +196,26 @@ final case class FailedExternalCallEvent(identifier: ActionIdentifier,
 }
 
 
-final case class SuccessfulExternalCallEvent(identifier: ActionIdentifier,
+final case class SuccessfulExternalCallEvent(caller: Caller,
+                                             identifier: ActionIdentifier,
                                              requestIdentifier: RequestIdentifier,
                                              executionDate: LocalDateTime,
-                                             result: String) extends ExternalCallEvent {
+                                             result: String,
+                                             serviceName: ServiceName,
+                                             signature: EthereumSignature) extends ExternalCallEvent {
+
   override def typeIdentifier: String = className[SuccessfulExternalCallEvent]
 
   override def serialize: String = this.asJson.noSpaces
 
-  def results(structure:DefinedStructureType, executionResult:TemplateExecutionResult): Result[OpenlawMap[VariableName, OpenlawValue]] =
+  def results(structure: DefinedStructureType, executionResult: TemplateExecutionResult): Result[OpenlawMap[VariableName, OpenlawValue]] =
     structure.cast(result, executionResult)
 
-  override def toExecution(scheduledDate:LocalDateTime): ExternalCallExecution = SuccessfulExternalCallExecution(
+  override def toExecution(scheduledDate: LocalDateTime): ExternalCallExecution = SuccessfulExternalCallExecution(
     scheduledDate = scheduledDate,
     executionDate = executionDate,
     result = result,
     requestIdentifier = requestIdentifier
   )
+
 }

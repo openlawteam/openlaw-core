@@ -7,21 +7,22 @@ import org.scalatest.{FlatSpec, Matchers}
 import io.circe.parser._
 import io.circe.syntax._
 import org.adridadou.openlaw.{OpenlawBigDecimal, oracles}
-import org.adridadou.openlaw.oracles.{LoadTemplate, OpenlawSignatureOracle, UserId}
+import org.adridadou.openlaw.oracles.{Caller, ExternalCallOracle, LoadTemplate, OpenlawSignatureOracle, UserId}
 import org.adridadou.openlaw.parser.template.{ActionIdentifier, ExecutionFinished, ExpressionParserService, OpenlawTemplateLanguageParserService, VariableDefinition, VariableName, variableTypes}
 import org.adridadou.openlaw.result.{Failure, Success}
 import org.adridadou.openlaw.result.Implicits.RichResult
 import org.adridadou.openlaw.values.{ContractDefinition, ContractId, TemplateId, TemplateParameters}
-import org.adridadou.openlaw.vm.{ContractCreated, OpenlawVmProvider, TestAccount, TestCryptoService}
+import org.adridadou.openlaw.vm.{ContractCreated, ContractStopped, OpenlawVm, OpenlawVmProvider, TestAccount, TestCryptoService}
 import play.api.libs.json.Json
 
 class ExternalCallTypeSpec extends FlatSpec with Matchers {
 
-  val parser:OpenlawTemplateLanguageParserService = new OpenlawTemplateLanguageParserService(Clock.systemUTC())
+  val parser: OpenlawTemplateLanguageParserService = new OpenlawTemplateLanguageParserService(Clock.systemUTC())
   val exprParser = new ExpressionParserService()
-  val vmProvider:OpenlawVmProvider = new OpenlawVmProvider(TestCryptoService, parser)
+  val vmProvider: OpenlawVmProvider = new OpenlawVmProvider(TestCryptoService, parser)
   val clock: Clock = Clock.systemUTC()
-  val serverAccount:TestAccount = TestAccount.newRandom
+  val serverAccount: TestAccount = TestAccount.newRandom
+  val cryptoService = TestCryptoService
 
   "ServiceName" should "be decoded from json" in {
     val json = ServiceName("this is a test").asJson.noSpaces
@@ -51,7 +52,85 @@ class ExternalCallTypeSpec extends FlatSpec with Matchers {
     }
   }
 
-  it should "access the parameters defined in the output abi" in {
+  it should "process a successful external call and access the parameters from the output result" in {
+    val (caller: Caller, abi: IntegratedServiceDefinition, serviceName: ServiceName, vm: OpenlawVm, identifier: ActionIdentifier, requestIdentifier: RequestIdentifier) =
+      createAndSignContract
+
+    val pendingExternalCallEvent = oracles.PendingExternalCallEvent(caller, identifier, requestIdentifier, LocalDateTime.now)
+    vm.applyEvent(pendingExternalCallEvent)
+    vm.allExecutions.exists {
+      case (actionId, execs) =>
+        actionId === identifier && execs.exists {
+          case _: PendingExternalCallExecution => true
+          case _ => false
+        }
+    } shouldBe true
+
+    val jsonResponse = Json.obj("sum" -> "4")
+
+    val successfulExternalCallEvent = vm.executionResult match {
+      case Some(executionResult) =>
+        val output = abi.definedOutput.internalFormat(abi.definedOutput.cast(jsonResponse.toString, executionResult).getOrThrow()).getOrThrow()
+        val eventSignature = serverAccount.sign(
+          EthereumData(cryptoService.sha256(caller.id))
+            .merge(EthereumData(cryptoService.sha256(identifier.identifier))
+              .merge(EthereumData(cryptoService.sha256(output)))))
+
+        oracles.SuccessfulExternalCallEvent(caller, identifier, requestIdentifier, LocalDateTime.now, output, serviceName, eventSignature)
+      case None => fail("no execution result found!")
+    }
+
+    vm.applyEvent(successfulExternalCallEvent)
+    vm.allExecutions.exists {
+      case (actionId, execs) => actionId === identifier && execs.exists {
+          case _: SuccessfulExternalCallExecution => true
+          case _ => false
+        }
+    } shouldBe true
+
+    val Some((exec, varDef)) = vm.getAllExecutedVariables(ExternalCallType).headOption
+    varDef.varType(exec).keysType(Seq("result", "sum"), varDef, exec) match {
+      case Success(variableType) => variableType.name shouldBe "Number"
+      case Failure(_, msg) => fail(msg)
+    }
+
+  }
+
+  it should "stop contract if the success external call does not have a valid event signature" in {
+    val (caller: Caller, abi: IntegratedServiceDefinition, serviceName: ServiceName, vm: OpenlawVm, identifier: ActionIdentifier, requestIdentifier: RequestIdentifier) =
+      createAndSignContract
+
+    val pendingExternalCallEvent = oracles.PendingExternalCallEvent(caller, identifier, requestIdentifier, LocalDateTime.now)
+    vm.applyEvent(pendingExternalCallEvent)
+    vm.allExecutions.exists {
+      case (actionId, execs) => actionId === identifier && execs.exists {
+          case _: PendingExternalCallExecution => true
+          case _ => false
+        }
+    } shouldBe true
+
+    val jsonResponse = Json.obj("sum" -> "4")
+
+    val successfulExternalCallEvent = vm.executionResult match {
+      case Some(executionResult) =>
+        val output = abi.definedOutput.internalFormat(abi.definedOutput.cast(jsonResponse.toString, executionResult).getOrThrow()).getOrThrow()
+        val invalidEventSignature = serverAccount.sign(EthereumData("Invalid data to sign"))
+        oracles.SuccessfulExternalCallEvent(caller, identifier, requestIdentifier, LocalDateTime.now, output, serviceName, invalidEventSignature)
+      case None => fail("no execution result found!")
+    }
+
+    vm.applyEvent(successfulExternalCallEvent)
+    vm.allExecutions.exists {
+      case (actionId, execs) => actionId === identifier && execs.exists {
+          case _: SuccessfulExternalCallExecution => false
+          case _: PendingExternalCallExecution => true
+        }
+    } shouldBe true
+
+    vm.executionState shouldBe ContractStopped
+  }
+
+  private def createAndSignContract = {
     val templateContent =
       """<%
         |[[numberA:Number]]
@@ -96,8 +175,11 @@ class ExternalCallTypeSpec extends FlatSpec with Matchers {
         |)]]
         |""".stripMargin
     )
+    val serviceName = ServiceName("Sum Service")
+    val executionOracles = Seq(ExternalCallOracle(TestCryptoService, Map(serviceName -> serverAccount.address)))
+    val externalCallStructures = Map(serviceName -> abi)
 
-    val vm = vmProvider.create(definition, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq(), Map(ServiceName("Sum Service") -> abi))
+    val vm = vmProvider.create(definition, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), executionOracles, externalCallStructures)
     vm(LoadTemplate(templateContent))
     vm.executionResultState shouldBe ExecutionFinished
     vm.executionState shouldBe ContractCreated
@@ -108,37 +190,14 @@ class ExternalCallTypeSpec extends FlatSpec with Matchers {
 
     val identifier = ActionIdentifier("Sum Service#numberA->2#numberB->2")
     val requestIdentifier = RequestIdentifier("test exec hash")
-
-    val pendingExternalCallEvent = oracles.PendingExternalCallEvent(identifier, requestIdentifier, LocalDateTime.now)
-    vm(pendingExternalCallEvent)
-
-    val jsonResponse = Json.obj("sum" -> "4")
-
-    val successfulExternalCallEvent = vm.executionResult match {
-      case Some(executionResult) =>
-        oracles.SuccessfulExternalCallEvent(identifier, requestIdentifier, LocalDateTime.now,
-          abi.definedOutput.internalFormat(abi.definedOutput.cast(jsonResponse.toString, executionResult).getOrThrow()).getOrThrow())
-      case None => fail("no execution result found!")
-    }
-
-    vm(successfulExternalCallEvent)
-    vm.getAllExecutedVariables(ExternalCallType).size shouldBe 1
-
-    val execution = variableTypes.SuccessfulExternalCallExecution(LocalDateTime.now, LocalDateTime.now, jsonResponse.toString, requestIdentifier)
-
-    val Some((exec, varDef)) = vm.newExecution(identifier, execution).getAllExecutedVariables(ExternalCallType).headOption
-
-    varDef.varType(exec).keysType(Seq("result", "sum"), varDef, exec) match {
-      case Success(variableType) => variableType.name shouldBe "Number"
-      case Failure(_, msg) => fail(msg)
-    }
-
+    val caller = Caller(contractId.id)
+    (caller, abi, serviceName, vm, identifier, requestIdentifier)
   }
 
   private def sign(identity: Identity, contractId: ContractId): EthereumSignature =
     signByEmail(identity.email, contractId.data)
 
-  private def signByEmail(email:Email, data:EthereumData):EthereumSignature =
+  private def signByEmail(email: Email, data: EthereumData): EthereumSignature =
     EthereumSignature(serverAccount.sign(EthereumData(TestCryptoService.sha256(email.email))
       .merge(EthereumData(TestCryptoService.sha256(data.data)))).signature)
 

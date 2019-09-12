@@ -4,7 +4,7 @@ import java.time.{Clock, LocalDateTime}
 
 import org.adridadou.openlaw.{OpenlawMap, OpenlawString, oracles}
 import org.adridadou.openlaw.oracles._
-import org.adridadou.openlaw.parser.template.{ActionIdentifier, ExecutionFinished, ExpressionParserService, OpenlawTemplateLanguageParserService, VariableDefinition, VariableName, variableTypes}
+import org.adridadou.openlaw.parser.template.{ActionIdentifier, ExecutionFinished, ExpressionParserService, OpenlawTemplateLanguageParserService, VariableName, variableTypes}
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.result.{Failure, Success}
 import org.adridadou.openlaw.result.Implicits.RichResult
@@ -79,7 +79,6 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
 
     val result2 = sign(identity1, vm2.contractId)
     val signature2 = EthereumSignature(result2.signature)
-
 
     vm1(signatureEvent)
     vm1(oracles.OpenlawSignatureEvent(definition2.id(TestCryptoService), identity1.email, "", signature2, EthereumHash.empty))
@@ -515,7 +514,9 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
         |""".stripMargin
       )
 
-    val vm = vmProvider.create(definition, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq(), Map(ServiceName("SomeIntegratedService") -> abi))
+    val serviceName = ServiceName("SomeIntegratedService")
+    val executionOracles = Seq(ExternalCallOracle(TestCryptoService, Map(serviceName -> serverAccount.address)))
+    val vm = vmProvider.create(definition, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), executionOracles, Map(serviceName -> abi))
     vm(LoadTemplate(templateContent))
     vm.executionResultState shouldBe ExecutionFinished
     vm.executionState shouldBe ContractCreated
@@ -526,17 +527,18 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
 
     val identifier = ActionIdentifier("SomeIntegratedService#param1->test value 1#param2->test value 2")
     val requestIdentifier = RequestIdentifier("test exec hash")
-
-    val pendingExternalCallEvent = oracles.PendingExternalCallEvent(identifier, requestIdentifier, LocalDateTime.now)
+    val caller = Caller(contractId.id)
+    val pendingExternalCallEvent = oracles.PendingExternalCallEvent(caller, identifier, requestIdentifier, LocalDateTime.now)
     vm(pendingExternalCallEvent)
 
-    val externalResult = abi.definedOutput.internalFormat(OpenlawMap(Map(VariableName("computationResult") -> OpenlawString("Hello World")))).getOrThrow()
-    val successfulExternalCallEvent = oracles.SuccessfulExternalCallEvent(identifier, requestIdentifier, LocalDateTime.now, externalResult)
+    val output = abi.definedOutput.internalFormat(OpenlawMap(Map(VariableName("computationResult") -> OpenlawString("Hello World")))).getOrThrow()
+    val eventSignature = serverAccount.sign(contractId.data.merge(EthereumData(identifier.identifier)).merge(EthereumData(output)))
+    val successfulExternalCallEvent = oracles.SuccessfulExternalCallEvent(caller, identifier, requestIdentifier, LocalDateTime.now, output, serviceName, eventSignature)
     vm(successfulExternalCallEvent)
 
     vm.getAllExecutedVariables(ExternalCallType).size shouldBe 1
 
-    val execution = variableTypes.SuccessfulExternalCallExecution(LocalDateTime.now, LocalDateTime.now, externalResult, requestIdentifier)
+    val execution = variableTypes.SuccessfulExternalCallExecution(LocalDateTime.now, LocalDateTime.now, output, requestIdentifier)
     vm.newExecution(identifier, execution)
 
     vm.evaluate[OpenlawString]("externalCall.result.computationResult") match {
