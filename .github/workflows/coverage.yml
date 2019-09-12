@@ -1,0 +1,27 @@
+on: push
+name: Coverage on push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    # https://github.com/actions/docker does not currently have any release tags
+    # at all! avoid using it since pinning to `master` is too risky because
+    # inputs may be refactored when they migrate it to new style yaml format.
+    - name: Docker Registry Login
+      run: echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+      env:
+        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+    # TODO(mroth): potentially refactor the distributed cache docker build
+    # script shared across a few repos into a reusable GH action.
+    - name: Cached Build
+      run: sh -c "BRANCH=$GITHUB_REF ID=gh ci/build.sh"
+      env:
+        PUSH_CACHE: "0"
+    - name: Coverage
+      run: scripts/coverage_report.sh
+      env:
+        CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
+        UPLOAD_RESULTS: "1"
