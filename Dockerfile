@@ -17,6 +17,5 @@ COPY shared ./shared
 RUN sbt compile test:compile fastOptJS
 
 # put a copy of local CI scripts directly in image, so we don't have to rely
-# upon mounting it in CI environments (kind of a pain in CircleCI due to remote
-# docker setup)
+# upon mounting it in CI environments 
 COPY scripts ./scripts
