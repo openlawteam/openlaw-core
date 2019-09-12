@@ -10,7 +10,16 @@ lazy val repo     = "openlaw-core"
 
 licenses += ("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0"))
 
-lazy val scalaV = "2.12.9"
+/*
+The Scala and SBT versions must be matched to the version of scala-builder used
+as the base image of the container. We try to standardize across projects and
+always upgrade in a controlled fashion.
+
+If you wish to update either Scala or SBT, please open an issue and and tag
+@openlawteam/infra.
+*/
+lazy val scalaV = "2.12.10"
+
 lazy val scalaJavaTimeV = "2.0.0-RC3"
 lazy val catsV = "1.6.1"
 lazy val parboiledV = "2.1.8"
