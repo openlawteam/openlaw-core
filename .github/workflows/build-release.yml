@@ -24,11 +24,9 @@ jobs:
       run: scripts/test.sh
     # actual release stuffs
     - name: SemVer Tag Filterd
-      uses: actions/bin/filter@master
-      with:
-        args: tag v*
     - name: Release
-      run: scripts/release.sh
+      if: startsWith(github.ref, 'refs/tags/v')
+      run: docker run -e RELEASE_TRIGGER -e BINTRAY_USER -e BINTRAY_PASSWORD openlaw/core:packager scripts/release.sh
       env:
         RELEASE_TRIGGER: "false"
         BINTRAY_USER: ${{ secrets.BINTRAY_USER }}
