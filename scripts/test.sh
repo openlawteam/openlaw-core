@@ -3,4 +3,4 @@
 #
 # Dependencies:
 #   None.
-sbt test
+sbt "project openlawCore" test
