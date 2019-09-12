@@ -23,7 +23,6 @@ jobs:
     - name: Test
       run: scripts/test.sh
     # actual release stuffs
-    - name: SemVer Tag Filterd
     - name: Release
       if: startsWith(github.ref, 'refs/tags/v')
       run: docker run -e RELEASE_TRIGGER -e BINTRAY_USER -e BINTRAY_PASSWORD openlaw/core:packager scripts/release.sh
