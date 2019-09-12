@@ -20,8 +20,9 @@ jobs:
       run: sh -c "BRANCH=$GITHUB_REF ID=gh ci/build.sh"
       env:
         PUSH_CACHE: "1"
+    # tests. May take a bit of time to run 
     - name: Test
-      run: scripts/test.sh
+      run: docker run openlaw/core:packager scripts/test.sh
     # actual release stuffs
     - name: Release
       if: startsWith(github.ref, 'refs/tags/v')
