@@ -17,7 +17,7 @@ jobs:
     # TODO(mroth): potentially refactor the distributed cache docker build
     # script shared across a few repos into a reusable GH action.
     - name: Caching Build
-      run: sh -c "BRANCH=$GITHUB_REF ID=gh ci/build.sh"
+      run: sh -c "BRANCH=${GITHUB_REF##*/} id=gh ci/build.sh"
       env:
         PUSH_CACHE: "1"
     # tests. May take a bit of time to run 
