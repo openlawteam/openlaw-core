@@ -29,7 +29,7 @@ trait AgreementPrinter[T] {
   def paragraphHeader(docParagraph:Paragraph):AgreementPrinter[T]
   def paragraphFooter:AgreementPrinter[T]
 
-  def image(image: ImageElement): AgreementPrinter[T]
+  def image(image: ImageElement): Result[AgreementPrinter[T]]
 
   def table(table:TableElement)(renderCell:(AgreementElement, AgreementPrinter[T]) => Unit): AgreementPrinter[T]
 

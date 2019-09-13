@@ -192,7 +192,7 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
       case (txt:FreeText,_) =>
         Success(agreementPrinter.text(txt.elem))
       case (image:ImageElement,_) =>
-        Success(agreementPrinter.image(image))
+        agreementPrinter.image(image)
       case (link:Link,_) =>
         Success(agreementPrinter.link(link))
       case (variable:VariableElement,_) if variable.dependencies.forall(variable => !hiddenVariables.contains(variable)) =>

@@ -28,4 +28,10 @@ class PackageSpec extends FlatSpec with Matchers with Checkers {
 		val bigDecimal: BigDecimal = OpenlawBigDecimal(BigDecimal(1L))
 		bigDecimal should be (BigDecimal(1L))
 	}
+
+	it should "check that a private URL is disallowed by the check" in {
+		checkIfPrivateUrl("http://localhost/test") shouldBe 'left
+		checkIfPrivateUrl("http://127.0.0.1/test") shouldBe 'left
+		checkIfPrivateUrl("http://www.openlaw.com/test") shouldBe 'right
+	}
 }

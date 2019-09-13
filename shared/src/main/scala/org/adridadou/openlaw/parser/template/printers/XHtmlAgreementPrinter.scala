@@ -4,7 +4,9 @@ package org.adridadou.openlaw.parser.template.printers
 import java.util.concurrent.atomic.AtomicInteger
 
 import cats.implicits._
+import org.adridadou.openlaw.checkIfPrivateUrl
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
+import org.adridadou.openlaw.result.Implicits.RichResult
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes.IdentityType
 import scalatags.Text.all._
@@ -197,6 +199,7 @@ final case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: Paragra
           tailRecurse(xs, conditionalBlockDepth, inSection, { elems => continue(frags ++ elems) })
 
         case ImageElement(url) =>
+          checkIfPrivateUrl(url).getOrThrow()
           tailRecurse(xs, conditionalBlockDepth, inSection, { elems => continue(img(`class` := "markdown-embedded-image", src := url) +: elems) })
 
         case ConditionalStart(dependencies) =>

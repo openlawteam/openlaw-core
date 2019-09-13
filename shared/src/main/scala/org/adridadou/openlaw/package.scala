@@ -1,12 +1,28 @@
 package org.adridadou
 
+import java.net.{InetAddress, URL}
 import java.time.LocalDateTime
 
 import org.adridadou.openlaw.parser.template.AgreementElement
+import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 
 import scala.language.implicitConversions
 
 package object openlaw {
+
+  /** Verifies that the provided URL does not resolve to a localhost IP address. This is to prevent
+    * leaking server-side resources and information through maliciously constructed templates.
+    *
+    * Returns a failure if the URL resolves to a local address, or the URL is invalid.
+    */
+  def checkIfPrivateUrl(url: String): Result[Unit] =
+    attempt {
+      val address = InetAddress.getByName(new URL(url).getHost)
+      address.isSiteLocalAddress || address.isLinkLocalAddress || address.isLoopbackAddress
+    }.flatMap {
+      case true => Failure(s"invalid URL provided")
+      case false => Success(())
+    }
 
   trait OpenlawValue {
     type T
