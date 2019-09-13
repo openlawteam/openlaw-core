@@ -1,0 +1,33 @@
+on: push
+name: Build, test, and (optionally) release on push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    # https://github.com/actions/docker does not currently have any release tags
+    # at all! avoid using it since pinning to `master` is too risky because
+    # inputs may be refactored when they migrate it to new style yaml format.
+    - name: Docker Registry Login
+      run: echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+      env:
+        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+    # TODO(mroth): potentially refactor the distributed cache docker build
+    # script shared across a few repos into a reusable GH action.
+    - name: Caching Build
+      run: sh -c "BRANCH=${GITHUB_REF##*/} id=gh ci/build.sh"
+      env:
+        PUSH_CACHE: "1"
+    # tests. May take a bit of time to run 
+    - name: Test
+      run: docker run openlaw/core:latest scripts/test.sh
+    # actual release stuffs
+    - name: Release
+      if: startsWith(github.ref, 'refs/tags/v')
+      run: docker run -e RELEASE_TRIGGER -e BINTRAY_USER -e BINTRAY_PASSWORD openlaw/core:latest scripts/release.sh
+      env:
+        RELEASE_TRIGGER: "false"
+        BINTRAY_USER: ${{ secrets.BINTRAY_USER }}
+        BINTRAY_PASSWORD: ${{ secrets.BINTRAY_PASSWORD }}
