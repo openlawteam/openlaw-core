@@ -10,7 +10,8 @@ final case class ContractDefinition(
                                mainTemplate:TemplateId,
                                templates:Map[TemplateSourceIdentifier, TemplateId] = Map(),
                                parameters:TemplateParameters,
-                               paragraphs: Map[Int, ParagraphEdits] = Map()) {
+                               paragraphs: Map[Int, ParagraphEdits] = Map(),
+                               instances: Map[TemplateId, InstanceId] = Map()) {
 
   def id(crypto:CryptoService):ContractId =
     ContractId(EthereumData(crypto.sha256(idString)).toString)
@@ -33,6 +34,15 @@ final case class ContractDefinition(
 
   private def editsToChecksum(edits:ParagraphEdits):String = edits.edits.toSeq.sortBy({case (key,_) => key})
     .map({case (key, value) => s"$key||$value"}).mkString("#")
+
+  /**
+    *
+    * @param templateId
+    * @return
+    */
+  def getTemplateIdInstance(templateId: TemplateId): Option[InstanceId] = {
+    instances.get(templateId)
+  }
 }
 
 final case class TemplateScope(parameters:TemplateParameters = TemplateParameters(), paragraphEdits: ParagraphEdits = ParagraphEdits())
