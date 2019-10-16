@@ -168,7 +168,11 @@ object EthereumHash {
 
   val empty:EthereumHash = EthereumHash(Array[Byte]())
 
-  def apply(hash:String):EthereumHash = new EthereumHash(EthereumAddress.hex2bytes(hash))
+  def apply(hash: String):EthereumHash = Option(hash) match {
+    case Some(value) if value.startsWith("0x") => new EthereumHash(EthereumAddress.hex2bytes(value.substring(2)))
+    case Some(value) => new EthereumHash(EthereumAddress.hex2bytes(value))
+    case None => EthereumHash.empty
+  }
 
 }
 
