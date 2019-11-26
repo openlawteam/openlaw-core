@@ -133,7 +133,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
         |contract:"0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAe";
         |interface:'ipfs:5ihruiherg34893zf';
         |startDate: '2018-12-12 00:00:00';
-        |ethereum value: 2345678;
+        |value: 2345678;
         |function:'callFunction';
         |arguments:'hello';
         |repeatEvery:'1 minute 12 seconds')]]
