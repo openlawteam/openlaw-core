@@ -1,3 +1,8 @@
 # Toolchain and dependency upgrades must be reviewed for infra
 build.sbt   @openlawteam/infra
 project/*   @openlawteam/infra
+
+# scripts for CI/CD builds
+.github/*   @openlawteam/infra
+scripts/*   @openlawteam/infra
+ci/*        @openlawteam/infra
