@@ -50,18 +50,17 @@ trait TemplateExecutionResult {
   def hasSigned(email: Email):Boolean =
     if(signatureProofs.contains(email)) true else parentExecution.exists(_.hasSigned(email))
 
-  def findExecutionResult(executionResultId: TemplateExecutionResultId): Option[TemplateExecutionResult] = {
+  def findExecutionResult(executionResultId: TemplateExecutionResultId): Option[TemplateExecutionResult] =
     if(id === executionResultId) {
       Some(this)
     } else {
       subExecutions.values.flatMap(_.findExecutionResult(executionResultId)).headOption
     }
-  }
 
   def getVariable(variable:VariableDefinition):Option[VariableDefinition] =
     getVariable(variable.name)
 
-  def getVariable(name:VariableName):Option[VariableDefinition] = {
+  def getVariable(name:VariableName):Option[VariableDefinition] =
     if(this.sectionNameMappingInverse.contains(name)) {
       this.variables.find(definition => definition.name === name && definition.varType(this) === SectionType)
     } else {
@@ -78,7 +77,6 @@ trait TemplateExecutionResult {
             .flatMap(_.getVariable(name))
       }
     }
-  }
 
   def getVariable(name:String):Option[VariableDefinition] =
     getVariable(VariableName(name))
@@ -100,11 +98,10 @@ trait TemplateExecutionResult {
   def getAlias(name:String):Option[Expression] =
     getAlias(VariableName(name))
 
-  def getAliasOrVariableType(name:VariableName): Result[VariableType] = {
+  def getAliasOrVariableType(name:VariableName): Result[VariableType] =
     getExpression(name)
       .map(_.expressionType(this))
       .getOrElse(Failure(s"${name.name} cannot be resolved!"))
-  }
 
   def getVariables:Seq[VariableDefinition] =
     variables
@@ -410,7 +407,7 @@ trait TemplateExecutionResult {
   def getAllExecutionResults:Seq[TemplateExecutionResult] =
     subExecutions.values.flatMap(_.getAllExecutionResults).toSeq ++ Seq(this)
 
-  def startEphemeralExecution(name:VariableName, value:OpenlawValue, varType:VariableType): Result[TemplateExecutionResult] =
+  def withVariable(name:VariableName, value:OpenlawValue, varType:VariableType): Result[OpenlawExecutionState] =
     this.getAliasOrVariableType(name) match {
       case Success(_) =>
         Failure(s"${name.name} has already been defined!")
@@ -426,8 +423,7 @@ trait TemplateExecutionResult {
             clock = clock,
             parentExecution = Some(this),
             executions = this.executions,
-            variableRedefinition = VariableRedefinition()
-          )
+            variableRedefinition = VariableRedefinition())
 
 					val r = result.registerNewType(varType) match {
 						case Success(newResult) => newResult

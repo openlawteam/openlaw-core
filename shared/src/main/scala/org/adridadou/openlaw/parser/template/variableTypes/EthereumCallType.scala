@@ -1,6 +1,5 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
-import cats.implicits._
 import io.circe._
 import io.circe.syntax._
 import io.circe.parser._
@@ -10,7 +9,7 @@ import org.adridadou.openlaw.{OpenlawString, OpenlawValue}
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
-import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success, attempt}
+import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success}
 
 object SignatureRSVParameter {
   implicit val signatureRSVParameterEnc: Encoder[SignatureRSVParameter] = deriveEncoder
