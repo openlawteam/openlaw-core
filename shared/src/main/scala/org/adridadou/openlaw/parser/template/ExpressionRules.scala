@@ -138,7 +138,7 @@ trait ExpressionRules extends JsonRules {
 
   def parametersMapDefinition:Rule1[Parameters] = rule {
     oneOrMore(ws ~ charsKeyAST ~ ws ~ ":" ~ ws ~ (MappingParameterEntry | parameterEntry) ~ ws ~> ((key,value) => key -> value))
-      .separatedBy(";") ~> ((values:Seq[(String, Parameter)]) => Parameters(values))
+      .separatedBy(";") ~> ((values:Seq[(String, Parameter)]) => Parameters(values.toList))
   }
 
   def parameterEntry:Rule1[Parameter] = rule {
@@ -263,7 +263,7 @@ final case class ListParameter(exprs:Seq[Expression]) extends Parameter {
   override def serialize: Json = this.asJson
 }
 
-final case class Parameters(parameterMap:Seq[(String, Parameter)]) extends Parameter {
+final case class Parameters(parameterMap:List[(String, Parameter)]) extends Parameter {
   override def variables(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =
     parameterMap.toList.map { case (_,param) => param.variables(executionResult) }.sequence.map(_.flatten.distinct)
 

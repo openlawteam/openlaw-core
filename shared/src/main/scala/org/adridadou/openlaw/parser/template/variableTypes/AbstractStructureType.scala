@@ -18,7 +18,7 @@ object Structure {
   implicit val structureDecEq:Eq[Structure] = Eq.fromUniversalEquals
 }
 
-final case class Structure(typeDefinition: Map[VariableName, VariableDefinition], names:Seq[VariableName], types:Map[VariableName, VariableType]) extends OpenlawNativeValue
+final case class Structure(typeDefinition: Map[VariableName, VariableDefinition], names:List[VariableName], types:Map[VariableName, VariableType]) extends OpenlawNativeValue
 
 case object AbstractStructureType extends VariableType(name = "Structure") with TypeGenerator[Structure] {
   override def construct(param:Parameter, executionResult: TemplateExecutionResult): Result[Option[Structure]] = param match {
@@ -70,7 +70,6 @@ object DefinedStructureType {
 }
 
 final case class DefinedStructureType(structure:Structure, typeName:String) extends VariableType(name = typeName) {
-
 
   override def serialize: Json = {
     Json.obj(

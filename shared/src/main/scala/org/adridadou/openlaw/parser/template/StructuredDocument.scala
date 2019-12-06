@@ -26,6 +26,9 @@ import cats.data.NonEmptyList
 import cats.data.Validated.{Invalid, Valid}
 
 trait TemplateExecutionResult {
+
+	private val expressionParser = new ExpressionParserService
+
   def id:TemplateExecutionResultId
   def clock:Clock
   def templateDefinition:Option[TemplateDefinition]
@@ -47,7 +50,23 @@ trait TemplateExecutionResult {
   def executions:Map[ActionIdentifier, Executions]
   def info:OLInformation
   def externalCallStructures: Map[ServiceName, IntegratedServiceDefinition]
-  def hasSigned(email: Email):Boolean =
+
+	def evaluate[T](variableName:VariableName)(implicit classTag:ClassTag[T]): Result[T] =
+		evaluate(variableName.name)
+
+	def evaluate[T](expr:String)(implicit classTag:ClassTag[T]): Result[T] =
+		parseExpression(expr).flatMap(evaluate[T])
+
+	def evaluate[T](expr:Expression)(implicit classTag:ClassTag[T]): Result[T] =
+		expr.evaluate(this).flatMap {
+			case Some(value:T) => Success(value)
+			case Some(value) => Failure(s"conversion error. Was expecting ${classTag.runtimeClass.getName} but got ${value.getClass.getName}")
+			case None => Failure(s"could not resolve ${expr.toString}")
+		}
+
+	def parseExpression(expr:String): Result[Expression] = expressionParser.parseExpression(expr)
+
+	def hasSigned(email: Email):Boolean =
     if(signatureProofs.contains(email)) true else parentExecution.exists(_.hasSigned(email))
 
   def findExecutionResult(executionResultId: TemplateExecutionResultId): Option[TemplateExecutionResult] =
@@ -483,6 +502,21 @@ case object TemplateExecution extends ExecutionType
 case object ClauseExecution extends ExecutionType
 case object BlockExecution extends ExecutionType
 
+object OpenlawExecutionState {
+	val empty = OpenlawExecutionState(
+		id = TemplateExecutionResultId(s"@@anonymous_main_template_id@@"),
+		info = OLInformation(),
+		template = CompiledAgreement(),
+		executions = Map(),
+		executionType = TemplateExecution,
+		remainingElements = mutable.Buffer(),
+		clock = Clock.systemDefaultZone,
+		signatureProofs = Map(),
+		parameters = TemplateParameters(),
+		variableRedefinition = VariableRedefinition()
+	)
+}
+
 final case class OpenlawExecutionState(
                                     id:TemplateExecutionResultId,
                                     parameters:TemplateParameters,
@@ -823,6 +857,20 @@ final case class OpenlawExecutionState(
       subExecutionsInternal.values.flatMap(_.findExecutionResultInternal(executionResultId)).headOption
     }
   }
+
+	def buildStructureValueFromVariables:Result[OpenlawMap[VariableName, OpenlawValue]] =
+		for {
+			values <- variablesInternal.map(variable => variable.evaluate(this).map(variable.name -> _)).toList.sequence
+		} yield OpenlawMap(values.flatMap({case (name, optValue) => optValue.map(name -> _)}).toMap)
+
+	def buildStructureFromVariables: Structure = {
+		val typeDefinition = variablesInternal.map(variable => variable.name -> variable).toMap
+		Structure(
+			typeDefinition = typeDefinition,
+			names = typeDefinition.keys.toList,
+			types = typeDefinition.map({case (name, variable) => name -> variable.varType(this)})
+		)
+	}
 
 }
 
