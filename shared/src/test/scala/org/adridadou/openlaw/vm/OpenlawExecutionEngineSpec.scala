@@ -1771,7 +1771,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 			case Success(result) =>
 				result.state shouldBe ExecutionFinished
 				val structure = result.buildStructureFromVariables
-				val structureType = DefinedStructureType(structure, UUID.randomUUID().toString)
+				val structureType = AbstractStructureType.generateType(VariableName(UUID.randomUUID().toString), structure)
 				structure.names shouldBe List(VariableName("text var"), VariableName("num var"))
 				val Success(values) = result.buildStructureValueFromVariables
 				values.underlying shouldBe Map[VariableName, OpenlawValue](VariableName("text var") -> OpenlawString("hello world"), VariableName("num var") -> OpenlawBigDecimal(21213))
@@ -1779,7 +1779,8 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
 				newDefinedResult.variables.map(_.name.name) shouldBe List("parameters")
 				println(newDefinedResult.variables.filter(_.name.name === "parameters").flatMap(_.variableTypeDefinition))
-				newDefinedResult.evaluate[String]("parameters.text var") shouldBe "hello world"
+				val Success(text) = newDefinedResult.evaluate[OpenlawString]("parameters.text var")
+				text.underlying shouldBe "hello world"
 			case Failure(ex, message) =>
 				fail(message, ex)
 		}
