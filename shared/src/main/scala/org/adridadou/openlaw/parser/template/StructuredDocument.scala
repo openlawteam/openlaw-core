@@ -13,7 +13,7 @@ import io.circe.syntax._
 import org.adridadou.openlaw.values.{ContractId, TemplateParameters, TemplateTitle}
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.variableTypes._
-import org.adridadou.openlaw.{OpenlawMap, OpenlawValue}
+import org.adridadou.openlaw.{OpenlawMap, OpenlawNativeValue, OpenlawValue}
 import org.adridadou.openlaw.oracles.{ExternalSignatureProof, OpenlawSignatureProof}
 import org.adridadou.openlaw.result.{Failure, FailureCause, Result, ResultNel, Success}
 import org.adridadou.openlaw.vm.Executions
@@ -59,10 +59,19 @@ trait TemplateExecutionResult {
 
 	def evaluate[T](expr:Expression)(implicit classTag:ClassTag[T]): Result[T] =
 		expr.evaluate(this).flatMap {
-			case Some(value:T) => Success(value)
-			case Some(value) => Failure(s"conversion error. Was expecting ${classTag.runtimeClass.getName} but got ${value.getClass.getName}")
-			case None => Failure(s"could not resolve ${expr.toString}")
+			case Some(value) =>
+				convert[T](value)
+			case None =>
+				Failure(s"could not resolve ${expr.toString}")
 		}
+
+	@tailrec
+	private def convert[T](value: Any)(implicit classTag:ClassTag[T]): Result[T] = value match {
+		case v:T => Success(v)
+		case v: OpenlawNativeValue => Failure(s"conversion error. Was expecting ${classTag.runtimeClass.getName} but got ${value.getClass.getName}")
+		case v:OpenlawValue => convert[T](v.underlying)
+		case _ => Failure(s"conversion error. Was expecting ${classTag.runtimeClass.getName} but got ${value.getClass.getName}")
+	}
 
 	def parseExpression(expr:String): Result[Expression] = expressionParser.parseExpression(expr)
 
@@ -202,7 +211,6 @@ trait TemplateExecutionResult {
                   .names
                   .filter(name => structureType.structure.typeDefinition(name).varType(result) === IdentityType)
                   .map(name => VariableType.convert[Identity](values(name)))
-                  .toList
                   .sequence
               }
 
@@ -216,7 +224,6 @@ trait TemplateExecutionResult {
                   .names
                   .filter(name => structureType.structure.typeDefinition(name).varType(result) === ExternalSignatureType)
                   .map(name => VariableType.convert[ExternalSignature](values(name)))
-                  .toList
                   .sequence
                   .map(_.flatMap(_.identity))
               }
@@ -503,7 +510,7 @@ case object ClauseExecution extends ExecutionType
 case object BlockExecution extends ExecutionType
 
 object OpenlawExecutionState {
-	val empty = OpenlawExecutionState(
+	val empty: OpenlawExecutionState = OpenlawExecutionState(
 		id = TemplateExecutionResultId(s"@@anonymous_main_template_id@@"),
 		info = OLInformation(),
 		template = CompiledAgreement(),
