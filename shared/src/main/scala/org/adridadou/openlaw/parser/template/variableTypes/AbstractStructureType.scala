@@ -1,5 +1,7 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
+import java.util.UUID
+
 import cats.implicits._
 import io.circe.{Decoder, Encoder, HCursor, Json}
 import cats.kernel.Eq

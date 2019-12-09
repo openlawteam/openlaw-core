@@ -1,7 +1,6 @@
 package org.adridadou.openlaw.vm
 
 import java.time.{Clock, LocalDateTime}
-import java.util.UUID
 
 import org.adridadou.openlaw.result.Implicits.failureCause2Exception
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
@@ -1771,7 +1770,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 			case Success(result) =>
 				result.state shouldBe ExecutionFinished
 				val structure = result.buildStructureFromVariables
-				val structureType = AbstractStructureType.generateType(VariableName(UUID.randomUUID().toString), structure)
+				val structureType = AbstractStructureType.generateType(structure)
 				structure.names shouldBe List(VariableName("text var"), VariableName("num var"))
 				val Success(values) = result.buildStructureValueFromVariables
 				values.underlying shouldBe Map[VariableName, OpenlawValue](VariableName("text var") -> OpenlawString("hello world"), VariableName("num var") -> OpenlawBigDecimal(21213))

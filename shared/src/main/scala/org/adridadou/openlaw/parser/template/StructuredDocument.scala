@@ -870,15 +870,16 @@ final case class OpenlawExecutionState(
 			values <- variablesInternal.map(variable => variable.evaluate(this).map(variable.name -> _)).toList.sequence
 		} yield OpenlawMap(values.flatMap({case (name, optValue) => optValue.map(name -> _)}).toMap)
 
-	def buildStructureFromVariables: Structure = {
-		val typeDefinition = variablesInternal.map(variable => variable.name -> variable).toMap
+	def buildStructureFromVariables: Structure =
+		buildStructure(variablesInternal.map(variable => variable.name -> variable).toMap)
+
+	def buildStructure(typeDefinition: Map[VariableName, VariableDefinition]): Structure = {
 		Structure(
 			typeDefinition = typeDefinition,
 			names = typeDefinition.keys.toList,
 			types = typeDefinition.map({case (name, variable) => name -> variable.varType(this)})
 		)
 	}
-
 }
 
 final case class StructuredAgreementId(id:String)
