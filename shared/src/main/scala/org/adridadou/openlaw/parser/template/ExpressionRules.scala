@@ -21,15 +21,15 @@ import scala.reflect.ClassTag
 trait ExpressionRules extends JsonRules {
 
   def ExpressionRule: Rule1[Expression] = rule {
-      Term ~ ws ~ zeroOrMore(operation ~ ws ~ Term ~ ws ~> ((op, expr) => PartialOperation(op, expr))) ~> ((left: Expression, others: Seq[PartialOperation]) => others.foldLeft(left)({
+      Term ~ wsNoReturn ~ zeroOrMore(operation ~ wsNoReturn ~ Term ~ wsNoReturn ~> ((op, expr) => PartialOperation(op, expr))) ~> ((left: Expression, others: Seq[PartialOperation]) => others.foldLeft(left)({
         case (expr, op) => createOperation(expr, op).getOrThrow() // TODO: Convert this to use fail()
       }))
     }
     //.recoverMerge { case failure => fail(failure.message) }
 
   def Term:Rule1[Expression] = rule {
-    ws ~ Factor ~ ws ~ zeroOrMore(
-      operation ~ ws ~ Factor ~ ws ~> ((op, expr) => PartialOperation(op,expr))
+    wsNoReturn ~ Factor ~ wsNoReturn ~ zeroOrMore(
+      operation ~ wsNoReturn ~ Factor ~ wsNoReturn ~> ((op, expr) => PartialOperation(op,expr))
     ) ~> ((left:Expression, others:Seq[PartialOperation]) => others.foldLeft(left)({
       case (expr, op) => createOperation(expr,op).getOrThrow() // TODO: Convert this to use fail()
     }))
@@ -52,7 +52,7 @@ trait ExpressionRules extends JsonRules {
 
   def Factor:Rule1[Expression] = rule {constant | conditionalVariableDefinition | variableMemberInner | variableName | Parens | UnaryMinus | UnaryNot }
 
-  def Parens:Rule1[Expression] = rule { '(' ~ ws ~ ExpressionRule ~ ws ~ ')' ~> ((expr:Expression) => ParensExpression(expr)) }
+  def Parens:Rule1[Expression] = rule { '(' ~ wsNoReturn ~ ExpressionRule ~ wsNoReturn ~ ')' ~> ((expr:Expression) => ParensExpression(expr)) }
 
   def UnaryMinus:Rule1[Expression] = rule { '-' ~ ExpressionRule ~> ((expr: Expression) => ValueExpression(NumberConstant(BigDecimal(-1)), expr, Multiple))}
 
