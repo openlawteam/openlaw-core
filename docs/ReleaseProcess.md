@@ -18,11 +18,13 @@ New code changes should always be introduced via a Pull Request branch:
 
 The `master` branch represents the current stable set of the code, and should be considered "release-able" at any point in time.
 
-New _releases_ are cut from the `master` branch, and managed via GitHub Releases with [Semantic Versioning](https://semver.org/spec/v2.0.0.html) formatted tags. <!-- As a developer, this process is largely automated for you. -->
+New _releases_ are cut from the `master` branch, and managed via GitHub Releases with [Semantic Versioning](https://semver.org/spec/v2.0.0.html) formatted tags. As a developer, this process is largely automated for you.
 
 To make a release of the current status of `master`, follow these steps:
 
 ### Drafting the release
+
+#### Manually drafting a release
 
 1. On GitHub, navigate to the main page of the repository. Under your repository name, click **Releases**:
 
@@ -52,31 +54,26 @@ To make a release of the current status of `master`, follow these steps:
 3. When you're ready to publish your release, click **Publish release**. To work on the release later, click **Save draft**.
    ![screenshot](https://help.github.com/assets/images/help/releases/release_buttons.png)
 
-<!--
-Steps for open-law client below. Preserving in comments here since hopefully we can have something similar in future.
+#### Assisted release drafting with `bump` :sunflower:
 
-1. Switch to `master` and pull the latest.
+You can now also automate the entire above process by installing
+the [bump](https://github.com/mroth/bump) tool on your workstation and simply
+typing `bump` while in the project directory and then following the interactive prompts. :tada:
 
-1. Run `npm run release` to start the release process.
-
-1. A prompt will appear in your console allowing you to pick what sort of Semantic Version increment to pick. In most cases, you will be selecting a `patch` release. _(Note: you can skip the interactive prompt for a patch by substituting `npm run release:patch` in the step above.)_
-
-1. You'll see the release steps going through in your console.<sup>§</sup> When that's done the `openlaw-client` repo should open in your web browser with a draft release. All you have to do there is verify the release notes and click publish.
--->
+_Note that you should be comfortable with how the manual process works before
+attempting usage of this tool!_
 
 ### Publishing the release to BinTray
 
-#### Automatically (coming soon!)
+#### Automatically
 
-1. Once a GitHub Release is published, our CI system will automatically start the process to publish the package to BinTray. You can [monitor the progress for that process](#TODO_URL) and see when it completes.
+1. Once a GitHub Release is published, our CI system will automatically start the process to publish the package to BinTray. You can [monitor the progress for that process](https://github.com/openlawteam/openlaw-core/actions) and see when it completes.
 
 2. Confirm that the package was successfully published with the latest version number by [checking the BinTray listing](https://bintray.com/openlawos/openlaw-core/openlaw-core).
 
 #### Manually
 
-<!-- If for some reason, the publish to BinTray must be done manually in your local environment, you can do it via the following steps in an emergency: -->
-
-In the very near future, the following steps will be automated and done in CI, but for _right now_ we're doing them manually while we test:
+If for some reason, the publish to BinTray must be done manually in your local environment, you can do it via the following steps in an emergency:
 
 1. Switch to `master` and pull the latest. You should then also run `git fetch` to ensure you have the latest tags.
 
