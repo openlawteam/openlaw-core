@@ -21,14 +21,14 @@ If you wish to update either Scala or SBT, please open an issue and and tag
 lazy val scalaV = "2.12.10"
 
 lazy val scalaJavaTimeV = "2.0.0-RC3"
-lazy val catsV = "2.0.0"
+lazy val catsV = "1.6.1"
 lazy val parboiledV = "2.1.8"
-lazy val circeV = "0.12.3"
-lazy val playJsonV = "2.8.0"
+lazy val circeV = "0.11.1"
+lazy val playJsonV = "2.7.4"
 lazy val scalaTagsV = "0.7.0"
 lazy val sLoggingV = "0.6.1"
 lazy val enumeratumV = "1.5.13"
-lazy val scalaCheckV = "1.14.2"
+lazy val scalaCheckV = "1.14.0"
 lazy val scalaTestV = "3.2.0-SNAP10"
 
 lazy val repositories = Seq(
@@ -162,6 +162,7 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       "io.circe"                %% "circe-core"          % circeV,
       "io.circe"                %% "circe-generic"       % circeV,
       "io.circe"                %% "circe-parser"        % circeV,
+      "io.circe"                %% "circe-java8"         % circeV,
       //parser / interpreter library. Used for our markup language
       "org.parboiled"           %% "parboiled"           % parboiledV,
       //cats is used for FP constructs
@@ -187,6 +188,7 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       "io.circe"                %%% "circe-core"           % circeV,
       "io.circe"                %%% "circe-generic"        % circeV,
       "io.circe"                %%% "circe-parser"         % circeV,
+      "io.circe"                %%% "circe-java8"          % circeV,
       //parser / interpreter library. Used for our markup language
       "org.parboiled"           %%% "parboiled"            % parboiledV,
       //cats is used for FP constructs
