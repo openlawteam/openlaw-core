@@ -117,10 +117,6 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
             case _ =>
               Success.unit
           }
-        } else if(executionResult.executionType === ClauseExecution) {
-          parent.variablesInternal.appendAll(executionResult.variablesInternal)
-          parent.executedVariablesInternal.appendAll(executionResult.executedVariablesInternal)
-          Success.unit
         } else {
           Success.unit
         }
