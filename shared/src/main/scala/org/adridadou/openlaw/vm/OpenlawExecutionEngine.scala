@@ -245,7 +245,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
               sectionValue <- SectionHelper.generateListNumber(section.lvl, numbering, overrideSymbol, overrideFormat)
               referenceValue <- SectionHelper.generateReferenceValue(section.lvl, numbering, overrideSymbol)
             } yield {
-              val params = Seq(
+              val params = List(
                 "reference value" -> OneValueParameter(StringConstant(generateFullSectionValue(section, referenceValue, executionResult))),
                 "numbering" -> OneValueParameter(StringConstant(sectionValue))
               )
