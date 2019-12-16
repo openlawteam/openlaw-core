@@ -265,7 +265,7 @@ final case class ListParameter(exprs:Seq[Expression]) extends Parameter {
 
 final case class Parameters(parameterMap:List[(String, Parameter)]) extends Parameter {
   override def variables(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =
-    parameterMap.toList.map { case (_,param) => param.variables(executionResult) }.sequence.map(_.flatten.distinct)
+    parameterMap.map { case (_,param) => param.variables(executionResult) }.sequence.map(_.flatten.distinct)
 
   override def serialize: Json = this.asJson
 }
