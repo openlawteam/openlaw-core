@@ -25,6 +25,7 @@ final case class EthereumSmartContractCall(
     network: Expression,
     signatureParameter: Option[Expression],
     signatureRSVParameter: Option[SignatureRSVParameter],
+		value: Option[Expression],
     functionName: Expression,
     arguments: Seq[Expression],
     startDate: Option[Expression],

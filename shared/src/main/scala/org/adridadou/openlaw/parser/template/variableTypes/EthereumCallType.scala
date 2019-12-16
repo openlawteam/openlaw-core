@@ -122,6 +122,7 @@ case object EthereumCallType extends VariableType("EthereumCall") with ActionTyp
           endDate <- getParameter(values, "endDate").map(getExpression).sequence
           every <- getParameter(values, "repeatEvery").map(getExpression).sequence
           from <- getParameter(values, "from").map(getExpression).sequence
+					value <- getParameter(values, "value").map(getExpression).sequence
         } yield
           Some(EthereumSmartContractCall(
             address = address,
@@ -129,6 +130,7 @@ case object EthereumCallType extends VariableType("EthereumCall") with ActionTyp
             network = optNetwork,
             signatureParameter = signatureParameter,
             signatureRSVParameter = signatureRSVParameter,
+						value = value,
             functionName = functionName,
             arguments = expressionList,
             startDate = startDate,
