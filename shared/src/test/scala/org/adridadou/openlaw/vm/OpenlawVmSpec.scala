@@ -106,7 +106,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     val vm = vmProvider.create(definition, None,
       OpenlawSignatureOracle(TestCryptoService, serverAccount.address, Map(serviceName -> serviceAccount.address)),
       Seq(),
-      Map(serviceName -> SignatureServiceDefinition().abi))
+      Map(serviceName -> IntegratedServiceDefinition.signatureDefinition))
 
     vm(LoadTemplate(template))
     vm.executionState shouldBe ContractCreated

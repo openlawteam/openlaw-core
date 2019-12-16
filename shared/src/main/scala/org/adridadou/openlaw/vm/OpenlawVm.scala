@@ -120,7 +120,6 @@ final case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
 final case class OpenlawVm(contractDefinition: ContractDefinition, profileAddress:Option[EthereumAddress], crypto: CryptoService, parser:OpenlawTemplateLanguageParserService, identityOracle:OpenlawSignatureOracle, oracles:Seq[OpenlawOracle[_]], externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] = Map()) extends LazyLogging {
   private val templateOracle = TemplateLoadOracle(crypto)
   val contractId:ContractId = contractDefinition.id(crypto)
-  private val expressionParser = new ExpressionParserService
 
   private var state:OpenlawVmState = OpenlawVmState(
     state = contractDefinition.parameters,
@@ -292,8 +291,6 @@ final case class OpenlawVm(contractDefinition: ContractDefinition, profileAddres
       .sequence
       .map(_.flatten)
 
-  def parseExpression(expr:String): Result[Expression] = expressionParser.parseExpression(expr)
-
   def executedValues[T](variableType:VariableType)(implicit classTag:ClassTag[T]): Seq[T] = {
    getAllExecutedVariables(variableType)
       .filter({
@@ -316,7 +313,7 @@ final case class OpenlawVm(contractDefinition: ContractDefinition, profileAddres
   def evaluate[T](expr:String)(implicit classTag:ClassTag[T]): Result[T] = {
     executionResult match {
       case Some(result) =>
-        parseExpression(expr).flatMap(evaluate(result, _))
+        result.evaluate(expr)
       case None =>
         Failure("the VM has not been executed yet!")
     }
@@ -325,21 +322,11 @@ final case class OpenlawVm(contractDefinition: ContractDefinition, profileAddres
   def evaluate[T](expr:Expression)(implicit classTag:ClassTag[T]): Result[T] = {
     executionResult match {
       case Some(result) =>
-        evaluate(result, expr)
+        result.evaluate(expr)
       case None =>
         Failure("the VM has not been executed yet!")
     }
   }
-
-  def evaluate[T](executionResult: TemplateExecutionResult, expr:String)(implicit classTag:ClassTag[T]): Result[T] = parseExpression(expr)
-    .flatMap(evaluate[T](executionResult,_))
-
-  def evaluate[T](executionResult: TemplateExecutionResult, expr:Expression)(implicit classTag:ClassTag[T]): Result[T] =
-    expr.evaluate(executionResult).flatMap {
-      case Some(value:T) => Success(value)
-      case Some(value) => Failure(s"conversion error. Was expecting ${classTag.runtimeClass.getName} but got ${value.getClass.getName}")
-      case None => Failure(s"could not resolve ${expr.toString}")
-    }
 
   def applyEvent(event:OpenlawVmEvent): Result[OpenlawVm] = state.executionState match {
     case ContractCreated =>

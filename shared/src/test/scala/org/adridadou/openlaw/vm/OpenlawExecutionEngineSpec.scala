@@ -1761,4 +1761,27 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         fail(message, ex)
     }
   }
+
+	it should "extract all the variables and define a Structure out of it" in {
+		val template =
+			compile("""[[text var:Text]]  [[num var:Number]]""".stripMargin)
+
+		engine.execute(template, TemplateParameters("text var" -> "hello world", "num var" -> "21213")) match {
+			case Success(result) =>
+				result.state shouldBe ExecutionFinished
+				val structure = result.buildStructureFromVariables
+				val structureType = AbstractStructureType.generateType(structure)
+				structure.names shouldBe List(VariableName("text var"), VariableName("num var"))
+				val Success(values) = result.buildStructureValueFromVariables
+				values.underlying shouldBe Map[VariableName, OpenlawValue](VariableName("text var") -> OpenlawString("hello world"), VariableName("num var") -> OpenlawBigDecimal(21213))
+				val Success(newDefinedResult) = OpenlawExecutionState.empty.withVariable(VariableName("parameters"), values, structureType)
+
+				newDefinedResult.variables.map(_.name.name) shouldBe List("parameters")
+				println(newDefinedResult.variables.filter(_.name.name === "parameters").flatMap(_.variableTypeDefinition))
+				val Success(text) = newDefinedResult.evaluate[OpenlawString]("parameters.text var")
+				text.underlying shouldBe "hello world"
+			case Failure(ex, message) =>
+				fail(message, ex)
+		}
+	}
 }

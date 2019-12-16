@@ -13,7 +13,7 @@ import org.adridadou.openlaw.result.Implicits._
 
 final case class DomainInformation(typeDefinition: VariableType, validation:Validation) extends OpenlawNativeValue {
 	def validate(value:OpenlawValue, executionResult: TemplateExecutionResult):ResultNel[Unit] =
-		executionResult.startEphemeralExecution(VariableName("this"), value, typeDefinition).toResultNel
+		executionResult.withVariable(VariableName("this"), value, typeDefinition).toResultNel
 			.andThen(validation.validate)
 }
 
