@@ -24,9 +24,21 @@ jobs:
     - name: Test
       run: docker run openlaw/core:latest scripts/test.sh
     # actual release stuffs
+    #
+    # This requires the .git directory to be volume mounted so that sbt-git can
+    # use it to calculate the current version string.
+    #
+    # TODO: in the future, we may wish to modify the release script to
+    # allow the branch to be passed manually and have it sent from CI (as we do
+    # in some other repos), rather than volume mounting the entire .git directory,
+    # and relying on sbt-git, but this should be fine for now.
     - name: Release
       if: startsWith(github.ref, 'refs/tags/v')
-      run: docker run -e RELEASE_TRIGGER -e BINTRAY_USER -e BINTRAY_PASSWORD openlaw/core:latest scripts/release.sh
+      run: |
+        docker run \
+          -e RELEASE_TRIGGER -e BINTRAY_USER -e BINTRAY_PASSWORD \
+          -v ${PWD}/.git:/src/.git \
+          openlaw/core:latest scripts/release.sh
       env:
         RELEASE_TRIGGER: "true"
         BINTRAY_USER: ${{ secrets.BINTRAY_USER }}
