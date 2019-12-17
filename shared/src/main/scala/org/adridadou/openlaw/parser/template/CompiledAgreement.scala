@@ -16,7 +16,7 @@ final case class CompiledAgreement(
   clock: Clock = Clock.systemDefaultZone,
 ) extends CompiledTemplate {
 
-  private val endOfParagraph = "(.)*[\\ |\t|\r]*\n[\\ |\t|\r]*\n[\\ |\t|\r|\n]*".r
+  private val endOfParagraph = "(.)*[ |\t|\r]*\n[ |\t|\r]*\n[ |\t|\r|\n]*".r
 
   def structuredMainTemplate(executionResult:OpenlawExecutionState): Result[StructuredAgreement] =
     structured(executionResult, None, mainTemplate = true)
@@ -127,13 +127,13 @@ final case class CompiledAgreement(
         getAgreementElementsFromElement(renderedElements, variableDefinition.copy(name = VariableName(executionResult.generateAnonymousName(nbAnonymous + 1))), executionResult)
       case variableDefinition:VariableDefinition if !variableDefinition.isHidden =>
         executionResult.getAliasOrVariableType(variableDefinition.name) match {
-          case Right(variableType: NoShowInFormButRender) =>
+          case Success(variableType: NoShowInFormButRender) =>
            getDependencies(variableDefinition.name, executionResult).flatMap { dependencies =>
              generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult).map { list =>
                renderedElements :+ VariableElement(variableDefinition.name, Some(variableType), list, dependencies)
              }
            }
-          case Right(ClauseType) =>
+          case Success(ClauseType) =>
             executionResult.subExecutionsInternal.get(variableDefinition.name) match {
               case Some(subExecution) =>
                 getAgreementElements(renderedElements, subExecution.template.block.elems.toList, subExecution)
@@ -141,7 +141,7 @@ final case class CompiledAgreement(
                 Success(renderedElements)
             }
 
-          case Right(_:NoShowInForm) =>
+          case Success(_:NoShowInForm) =>
             Success(renderedElements)
           case Right(variableType) =>
            getDependencies(variableDefinition.name, executionResult).flatMap { dependencies =>
@@ -149,7 +149,7 @@ final case class CompiledAgreement(
                renderedElements :+ VariableElement(variableDefinition.name, Some(variableType), list, dependencies)
              }
            }
-          case Left(_) =>
+          case Failure(_,_) =>
             // TODO: Should ignore failure?
             Success(renderedElements)
         }
