@@ -117,6 +117,9 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
             case _ =>
               Success.unit
           }
+        } else if(executionResult.executionType === ClauseExecution) {
+          parent.executedVariablesInternal.appendAll(executionResult.executedVariablesInternal.filter(parent.variablesInternal.map(_.name).contains))
+          Success.unit
         } else {
           Success.unit
         }

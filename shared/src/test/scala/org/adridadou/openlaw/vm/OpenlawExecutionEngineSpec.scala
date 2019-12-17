@@ -137,6 +137,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         |<%
         |[[My Variable:Text]]
         |[[Other one:Number]]
+        |[[County of Venue:Text]]
         |%>
         |
         |[[My Variable]] - [[Other one]]
@@ -160,8 +161,8 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
           case Right(newResult) =>
             newResult.state shouldBe ExecutionFinished
             newResult.subExecutions.size shouldBe 1
-            newResult.variables.map(_.name) should contain allElementsOf Seq(VariableName("My Variable"), VariableName("Other one"))
-            newResult.executedVariables should contain allElementsOf Seq(VariableName("My Variable"), VariableName("Other one"))
+            newResult.variables.map(_.name) should contain theSameElementsAs  Seq(VariableName("My Variable"), VariableName("Other one"), VariableName("County of Venue"), VariableName("@@anonymous_1@@"))
+            newResult.executedVariables.toSet should contain theSameElementsAs Seq(VariableName("My Variable"), VariableName("Other one"), VariableName("County of Venue"), VariableName("@@anonymous_1@@"))
             parser.forReview(newResult.agreements.head) shouldBe "<p class=\"no-section\"><br /></p><p class=\"no-section\">[[My Variable]] - 334</p><p class=\"no-section\"><br /><strong>Choice of Law and Venue.</strong> The parties agree that this Agreement is to be governed by and construed under the law of the State of [[State of Governing Law]] without regard to its conflicts of law provisions. The parties further agree that all disputes shall be resolved exclusively in state or federal court in [[County of Venue]], [[State of Venue]].</p><p class=\"no-section\">it is just another template hello<br />      </p>"
           case Left(ex) =>
             fail(ex)
