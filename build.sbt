@@ -56,6 +56,7 @@ lazy val publishSettings = Seq(
   bintrayOrganization := Some("openlawos"),
   bintrayRepository := "openlaw-core",
   bintrayPackageLabels := Seq("openlaw-core"),
+  bintrayVcsUrl := Some(s"git@github.com:$username/$repo.git"),
   scmInfo := Some(ScmInfo(url(s"https://github.com/$username/$repo"), s"git@github.com:$username/$repo.git")),
   releaseCrossBuild := true,
   developers := List(
