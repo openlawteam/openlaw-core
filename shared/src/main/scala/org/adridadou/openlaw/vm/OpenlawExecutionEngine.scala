@@ -118,14 +118,18 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
               Success.unit
           }
         } else if(executionResult.executionType === ClauseExecution) {
-          val possibleVariablesFromParent = executionResult.executedVariablesInternal.flatMap({
-            case name if executionResult.mapping.contains(name) =>
-              executionResult.mapping(name).variables(parent).getOrElse(Seq())
-            case name =>
-              Seq(name)
-          }).filter(parent.variablesInternal.map(_.name).contains)
+          val variablesToAdd = executionResult.variablesInternal.filter(variable => variable.varType(executionResult) match {
+            case _:NoShowInForm => false
+            case _ => true
+          })
 
-          parent.executedVariablesInternal.appendAll(executionResult.executedVariablesInternal.filter(possibleVariablesFromParent.contains))
+          val executedVariablesToAdd = executionResult.executedVariablesInternal.filter(name => executionResult.getAliasOrVariableType(name) match {
+            case Success(_:NoShowInForm) => false
+            case Success(_) => true
+            case _ => false
+          })
+          parent.variablesInternal.appendAll(variablesToAdd)
+          parent.executedVariablesInternal.appendAll(executedVariablesToAdd)
           Success.unit
         } else {
           Success.unit
