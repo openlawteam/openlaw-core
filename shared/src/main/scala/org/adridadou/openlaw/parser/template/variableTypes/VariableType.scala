@@ -276,7 +276,7 @@ abstract class VariableType(val name: String) {
 
   def cast(value: String, executionResult:TemplateExecutionResult):Result[OpenlawValue]
 
-  def missingValueFormat(name: String): Seq[AgreementElement] = Seq(FreeText(Text(s"[[${name}]]")))
+  def missingValueFormat(name: String): List[AgreementElement] = List(FreeText(Text(s"[[${name}]]")))
 
   def internalFormat(value: OpenlawValue): Result[String]
 
@@ -412,14 +412,6 @@ object VariableType {
         classTag.runtimeClass.getSimpleName +
         s".value:$other"
       Failure(msg)
-  }
-
-  def sequence[L,R](seq:Seq[Result[R]]):Result[Seq[R]] = seq.partition(_.isLeft) match {
-    case (Nil,  values) => Right(for(Right(i) <- values.view) yield i)
-    case (errs, _) => errs.headOption match {
-      case Some(Left(err)) => Left(err)
-      case _ => Right(Seq())
-    }
   }
 
   implicit val variableTypeEnc: Encoder[VariableType] = (a: VariableType) =>

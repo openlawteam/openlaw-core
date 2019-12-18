@@ -544,8 +544,8 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
 
     executeTemplate(clauseText).toOption.flatMap(_.getVariable("contractor").flatMap(_.defaultValue)) match {
       case Some(ListParameter(vector)) =>
-				val list = VariableType.sequence(vector.map(_.evaluate(emptyExecutionResult)))
-				list.map(_.flatten) shouldBe Right(List("First option", "Second option"))
+				val list = vector.map(_.evaluate(emptyExecutionResult))
+				list.map({case Success(Some(value)) => value}) shouldBe List("First option", "Second option")
       case result =>
 				fail(result.toString)
     }

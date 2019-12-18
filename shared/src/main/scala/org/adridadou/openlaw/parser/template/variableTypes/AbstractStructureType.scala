@@ -1,7 +1,5 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
-import java.util.UUID
-
 import cats.implicits._
 import io.circe.{Decoder, Encoder, HCursor, Json}
 import cats.kernel.Eq
@@ -25,8 +23,8 @@ final case class Structure(typeDefinition: Map[VariableName, VariableDefinition]
 case object AbstractStructureType extends VariableType(name = "Structure") with TypeGenerator[Structure] {
   override def construct(param:Parameter, executionResult: TemplateExecutionResult): Result[Option[Structure]] = param match {
     case Parameters(values) =>
-      VariableType.sequence(values
-        .map({case (key,value) => getField(key, value, executionResult).map(VariableName(key) -> _)}))
+      values
+        .map({case (key,value) => getField(key, value, executionResult).map(VariableName(key) -> _)}).sequence
         .map(fields => {
           val types = fields.map({case (key,definition) => key -> definition.varType(executionResult)})
           Some(

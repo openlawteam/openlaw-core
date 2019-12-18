@@ -176,7 +176,7 @@ class ExternalCallTypeSpec extends FlatSpec with Matchers {
         |""".stripMargin
     )
     val serviceName = ServiceName("Sum Service")
-    val executionOracles = Seq(ExternalCallOracle(TestCryptoService, Map(serviceName -> serverAccount.address)))
+    val executionOracles = List(ExternalCallOracle(TestCryptoService, Map(serviceName -> serverAccount.address)))
     val externalCallStructures = Map(serviceName -> abi)
 
     val vm = vmProvider.create(definition, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), executionOracles, externalCallStructures)

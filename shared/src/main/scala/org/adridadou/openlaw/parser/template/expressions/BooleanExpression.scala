@@ -49,7 +49,7 @@ final case class BooleanExpression(left:Expression, right:Expression, op:Boolean
 		}
 	}
 
-  override def variables(executionResult:TemplateExecutionResult): Result[Seq[VariableName]] =
+  override def variables(executionResult:TemplateExecutionResult): Result[List[VariableName]] =
     left.evaluate(executionResult).flatMap { value =>
       op match {
         case And =>
@@ -75,7 +75,7 @@ final case class BooleanExpression(left:Expression, right:Expression, op:Boolean
 
   override def toString: String = left.toString + op.toString + right.toString
 
-  override def missingInput(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] = for {
+  override def missingInput(executionResult: TemplateExecutionResult): Result[List[VariableName]] = for {
       leftMissing <- left.missingInput(executionResult)
       rightMissing <- right.missingInput(executionResult)
     } yield leftMissing ++ rightMissing
@@ -108,9 +108,9 @@ final case class BooleanUnaryExpression(expr:Expression, op:BooleanUnaryOperatio
     }
   }
 
-  override def variables(executionResult:TemplateExecutionResult): Result[Seq[VariableName]] = expr.variables(executionResult)
+  override def variables(executionResult:TemplateExecutionResult): Result[List[VariableName]] = expr.variables(executionResult)
 
-  override def missingInput(executionResult:TemplateExecutionResult): Result[Seq[VariableName]] =
+  override def missingInput(executionResult:TemplateExecutionResult): Result[List[VariableName]] =
     expr.missingInput(executionResult)
 
   override def toString: String = op.toString(expr)

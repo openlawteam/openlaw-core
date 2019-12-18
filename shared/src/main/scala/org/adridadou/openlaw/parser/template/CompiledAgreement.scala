@@ -26,7 +26,7 @@ final case class CompiledAgreement(
     structured(executionResult, path, mainTemplate = false)
 
   private def structured(executionResult: OpenlawExecutionState, path:Option[TemplatePath], mainTemplate:Boolean): Result[StructuredAgreement] =
-    getAgreementElements(List(), block.elems.toList, executionResult).map { elements =>
+    getAgreementElements(List(), block.elems, executionResult).map { elements =>
       val paragraphs = cleanupParagraphs(generateParagraphs(elements))
       StructuredAgreement(
         executionResultId = executionResult.id,
@@ -110,7 +110,7 @@ final case class CompiledAgreement(
           }
         }
 
-      case TemplateText(textElements) => getAgreementElements(renderedElements, textElements.toList, executionResult)
+      case TemplateText(textElements) => getAgreementElements(renderedElements, textElements, executionResult)
       case Text(str) => Success(renderedElements :+ FreeText(Text(str)))
       case Em => Success(renderedElements :+ FreeText(Em))
       case Strong => Success(renderedElements :+ FreeText(Strong))
@@ -137,7 +137,7 @@ final case class CompiledAgreement(
           case Success(ClauseType) =>
             executionResult.subExecutionsInternal.get(variableDefinition.name) match {
               case Some(subExecution) =>
-                getAgreementElements(renderedElements, subExecution.template.block.elems.toList, subExecution)
+                getAgreementElements(renderedElements, subExecution.template.block.elems, subExecution)
               case None =>
                 Success(renderedElements)
             }
@@ -156,7 +156,7 @@ final case class CompiledAgreement(
         }
 
       case ConditionalBlockSet(blocks) =>
-        val result = blocks.toList.map { case block@ConditionalBlock(_, _, conditionalExpression) =>
+        val result = blocks.map { case block@ConditionalBlock(_, _, conditionalExpression) =>
           conditionalExpression.evaluate(executionResult).flatMap(_.map(VariableType.convert[OpenlawBoolean](_).map(boolean => block -> boolean)).sequence)
         }.sequence
 
@@ -179,14 +179,14 @@ final case class CompiledAgreement(
           case Some(true) =>
             conditionalExpression.variables(executionResult).flatMap { variables =>
               val dependencies = variables.map(_.name)
-              getAgreementElements(renderedElements ++ List(ConditionalStart(dependencies = dependencies)), subBlock.elems.toList, executionResult).map(_ ++ List(ConditionalEnd(dependencies)))
+              getAgreementElements(renderedElements ++ List(ConditionalStart(dependencies = dependencies)), subBlock.elems, executionResult).map(_ ++ List(ConditionalEnd(dependencies)))
             }
 
           case _ =>
             conditionalExpression.variables(executionResult).flatMap { variables =>
               val dependencies = variables.map(_.name)
               elseBlock
-                .map(block => getAgreementElements(renderedElements ++ List(ConditionalStart(dependencies = dependencies)), block.elems.toList, executionResult).map(_ ++ List(ConditionalEnd(dependencies))))
+                .map(block => getAgreementElements(renderedElements ++ List(ConditionalStart(dependencies = dependencies)), block.elems, executionResult).map(_ ++ List(ConditionalEnd(dependencies))))
                 .getOrElse(Success(renderedElements))
             }
         }
@@ -199,7 +199,7 @@ final case class CompiledAgreement(
           val collection = list.getOrElse(Seq())
           collection.foldLeft(Success(renderedElements))((subElements, _) => {
             val subExecution = executionResult.finishedEmbeddedExecutions.remove(0)
-            subElements.flatMap(getAgreementElements(_, subBlock.elems.toList, subExecution))
+            subElements.flatMap(getAgreementElements(_, subBlock.elems, subExecution))
           })
         }).flatten
 

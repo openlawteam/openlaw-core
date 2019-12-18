@@ -117,7 +117,7 @@ final case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
   }
 }
 
-final case class OpenlawVm(contractDefinition: ContractDefinition, profileAddress:Option[EthereumAddress], crypto: CryptoService, parser:OpenlawTemplateLanguageParserService, identityOracle:OpenlawSignatureOracle, oracles:Seq[OpenlawOracle[_]], externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] = Map()) extends LazyLogging {
+final case class OpenlawVm(contractDefinition: ContractDefinition, profileAddress:Option[EthereumAddress], crypto: CryptoService, parser:OpenlawTemplateLanguageParserService, identityOracle:OpenlawSignatureOracle, oracles:List[OpenlawOracle[_]], externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] = Map()) extends LazyLogging {
   private val templateOracle = TemplateLoadOracle(crypto)
   val contractId:ContractId = contractDefinition.id(crypto)
 
@@ -139,20 +139,19 @@ final case class OpenlawVm(contractDefinition: ContractDefinition, profileAddres
     identityOracle.isSignatureValid(data, event)
   }
 
-  def allIdentities: Result[Seq[Identity#T]] =
+  def allIdentities: Result[List[Identity#T]] =
     state
       .executionResult
       .map { executionResult =>
         executionResult.allIdentities()
-      }.getOrElse(Success(Seq()))
+      }.getOrElse(Success(Nil))
 
-  def allNextActions: Result[Seq[ActionInfo]] =
+  def allNextActions: Result[List[ActionInfo]] =
     allActions.flatMap { actions =>
       actions
         .map { info =>
           info.identifier.flatMap { id => info.action.nextActionSchedule(info.executionResult, executions(id)).map(_.map(nextDate => (info, nextDate))) }
         }
-        .toList
         .sequence
         .map(_.flatten)
     }
@@ -213,50 +212,50 @@ final case class OpenlawVm(contractDefinition: ContractDefinition, profileAddres
     this
   }
 
-  def allExecutions: Map[ActionIdentifier, Seq[OpenlawExecution]] = state.executions.map({case (identifier, executions) => identifier -> executions.executionMap.values.toSeq.sortBy(_.scheduledDate.toEpochSecond(ZoneOffset.UTC))})
+  def allExecutions: Map[ActionIdentifier, List[OpenlawExecution]] = state.executions.map({case (identifier, executions) => identifier -> executions.executionMap.values.toList.sortBy(_.scheduledDate.toEpochSecond(ZoneOffset.UTC))})
 
-  def executions[T <: OpenlawExecution](identifier: ActionIdentifier)(implicit classTag: ClassTag[T]): Seq[T] = allExecutions.getOrElse(identifier, Seq()).map(_.asInstanceOf[T])
+  def executions[T <: OpenlawExecution](identifier: ActionIdentifier)(implicit classTag: ClassTag[T]): List[T] = allExecutions.getOrElse(identifier, Nil).map(_.asInstanceOf[T])
 
   def allSignatures:Map[Email, SignatureEvent] = state.signatures
   def signature(email:Email):Option[SignatureEvent] = allSignatures.get(email)
 
-  def events: Seq[OpenlawVmEvent] = state.events
+  def events: List[OpenlawVmEvent] = state.events
 
   def nextAction: Result[Option[ActionInfo]] = allNextActions.map(_.headOption)
 
-  def agreements:Seq[StructuredAgreement] =
-    executionResult.map(_.agreements).getOrElse(Seq())
+  def agreements:List[StructuredAgreement] =
+    executionResult.map(_.agreements).getOrElse(Nil)
 
   def executionResultState:TemplateExecutionState =
     executionResult.map(_.state).getOrElse(ExecutionReady)
 
-  def allActions: Result[Seq[ActionInfo]] = executionState match {
+  def allActions: Result[List[ActionInfo]] = executionState match {
     case ContractCreated =>
       executionResult
         .map(_.allIdentityEmails)
         .sequence
         .map {
-          _.getOrElse(Seq()).flatMap(email => generateSignatureAction(email))
+          _.getOrElse(Nil).flatMap(email => generateSignatureAction(email))
         }
     case ContractRunning =>
-      executionResult.map(_.allActions).getOrElse(Success(Seq()))
+      executionResult.map(_.allActions).getOrElse(Success(Nil))
     case ContractResumed =>
-      executionResult.map(_.allActions).getOrElse(Success(Seq()))
+      executionResult.map(_.allActions).getOrElse(Success(Nil))
     case _ =>
-      Success(Seq())
+      Success(Nil)
   }
 
   private def generateSignatureAction(email:Email):Option[ActionInfo] = {
     val services = (executedValues[ExternalSignature](ExternalSignatureType) match {
-      case Seq() => Seq()
+      case Nil => Nil
       case values => values.filter(_.identity.exists(_.email === email)).map(_.serviceName)
     }) ++ (executedValues[Identity](IdentityType) match {
-      case Seq() => Seq()
-      case values if values.exists(_.email === email) => Seq(ServiceName.openlawServiceName)
+      case Nil => Nil
+      case values if values.exists(_.email === email) => List(ServiceName.openlawServiceName)
     })
 
     this.executionResult
-			.map(executionResult => ActionInfo(SignatureAction(email, services.toList), executionResult))
+			.map(executionResult => ActionInfo(SignatureAction(email, services), executionResult))
   }
 
   def template(definition: TemplateSourceIdentifier):CompiledTemplate = state.templates(contractDefinition.templates(definition))
@@ -269,11 +268,11 @@ final case class OpenlawVm(contractDefinition: ContractDefinition, profileAddres
 
   def content(templateId: TemplateId): String = state.contents(templateId)
 
-  def getAllExecutedVariables(varType: VariableType): Seq[(TemplateExecutionResult, VariableDefinition)] =
+  def getAllExecutedVariables(varType: VariableType): List[(TemplateExecutionResult, VariableDefinition)] =
     state
       .executionResult
       .map(_.getAllExecutedVariables)
-      .getOrElse(Seq())
+      .getOrElse(Nil)
       .flatMap { case (result, variable) => variable.aliasOrVariable(result).map(expr => (result, expr)).toOption }
       .flatMap {
           case (r, variable: VariableDefinition) =>
@@ -281,17 +280,16 @@ final case class OpenlawVm(contractDefinition: ContractDefinition, profileAddres
           case (_, _) => None
       }
 
-  def getAllVariables(varTypes: VariableType*):Seq[(TemplateExecutionResult, VariableDefinition)] =
-    state.executionResult.map(_.getVariables(varTypes:_*)).getOrElse(Seq())
+  def getAllVariables(varTypes: VariableType*):List[(TemplateExecutionResult, VariableDefinition)] =
+    state.executionResult.map(_.getVariables(varTypes:_*)).getOrElse(Nil)
 
-  def getAllVariableValues[U <: OpenlawValue](varType: VariableType)(implicit classTag:ClassTag[U]): Result[Seq[(U#T, TemplateExecutionResult)]] =
+  def getAllVariableValues[U <: OpenlawValue](varType: VariableType)(implicit classTag:ClassTag[U]): Result[List[(U#T, TemplateExecutionResult)]] =
     getAllVariables(varType)
-      .toList
       .map { case (executionResult, variable) => variable.evaluate(executionResult).flatMap(_.map(VariableType.convert[U](_).map(u => u -> executionResult)).sequence) }
       .sequence
       .map(_.flatten)
 
-  def executedValues[T](variableType:VariableType)(implicit classTag:ClassTag[T]): Seq[T] = {
+  def executedValues[T](variableType:VariableType)(implicit classTag:ClassTag[T]): List[T] = {
    getAllExecutedVariables(variableType)
       .filter({
         case (executionResult, variable) => variable.varType(executionResult) === variableType

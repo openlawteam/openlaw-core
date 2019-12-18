@@ -11,8 +11,8 @@ import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 import scala.reflect.ClassTag
 
-final case class VariableMember(name:VariableName, keys:Seq[String], formatter:Option[FormatterDefinition]) extends TemplatePart with Expression {
-  override def missingInput(executionResult:TemplateExecutionResult): Result[Seq[VariableName]] =
+final case class VariableMember(name:VariableName, keys:List[String], formatter:Option[FormatterDefinition]) extends TemplatePart with Expression {
+  override def missingInput(executionResult:TemplateExecutionResult): Result[List[VariableName]] =
     name.missingInput(executionResult)
 
   override def validate(executionResult:TemplateExecutionResult): Result[Unit] =
@@ -42,7 +42,7 @@ final case class VariableMember(name:VariableName, keys:Seq[String], formatter:O
         .map(_.flatten)
     }).flatten
 
-  override def variables(executionResult:TemplateExecutionResult): Result[Seq[VariableName]] =
+  override def variables(executionResult:TemplateExecutionResult): Result[List[VariableName]] =
     name.variables(executionResult)
 
   override def toString: String =
@@ -74,33 +74,33 @@ final case class VariableName(name:String) extends Expression {
           .map(_.flatten)
     }
 
-  override def variables(executionResult:TemplateExecutionResult): Result[Seq[VariableName]] =
+  override def variables(executionResult:TemplateExecutionResult): Result[List[VariableName]] =
     executionResult.getExpression(this) match {
       case Some(variable:VariableDefinition) =>
         variable
           .defaultValue
           .map(_.variables(executionResult))
           .sequence
-          .map(_.getOrElse(Seq()))
-          .map(Seq(this) ++ _)
+          .map(_.getOrElse(Nil))
+          .map(List(this) ++ _)
       case Some(alias:VariableAliasing) =>
         alias.variables(executionResult)
       case Some(expression:Expression) =>
         expression.variables(executionResult)
       case None =>
-        Success(Seq(this))
+        Success(List(this))
     }
 
   override def toString:String = name
 
-  override def missingInput(executionResult:TemplateExecutionResult): Result[Seq[VariableName]] = executionResult.getAliasOrVariableType(this) map {
-    case _:NoShowInForm => Seq()
+  override def missingInput(executionResult:TemplateExecutionResult): Result[List[VariableName]] = executionResult.getAliasOrVariableType(this) map {
+    case _:NoShowInForm => Nil
     case _ =>
       executionResult.getParameter(name) match {
-        case Some(_) => Seq()
+        case Some(_) => Nil
         case None => executionResult.getAlias(name) match {
-          case Some(_) => Seq()
-          case None => Seq(this)
+          case Some(_) => Nil
+          case None => List(this)
         }
       }
   }
@@ -295,13 +295,13 @@ final case class VariableDefinition(name: VariableName, variableTypeDefinition:O
     }
   }
 
-  override def variables(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =
+  override def variables(executionResult: TemplateExecutionResult): Result[List[VariableName]] =
     name.variables(executionResult)
 
-  override def missingInput(executionResult:TemplateExecutionResult): Result[Seq[VariableName]] = {
+  override def missingInput(executionResult:TemplateExecutionResult): Result[List[VariableName]] = {
     val eitherMissing = name.missingInput(executionResult)
     val eitherMissingFromParameters = defaultValue
-      .map(getMissingValuesFromParameter(executionResult, _)).getOrElse(Success(Seq()))
+      .map(getMissingValuesFromParameter(executionResult, _)).getOrElse(Success(Nil))
 
     for {
       missing <- eitherMissing
@@ -310,11 +310,11 @@ final case class VariableDefinition(name: VariableName, variableTypeDefinition:O
   }
 
 
-  private def getMissingValuesFromParameter(executionResult:TemplateExecutionResult, param:Parameter): Result[Seq[VariableName]] = param match {
+  private def getMissingValuesFromParameter(executionResult:TemplateExecutionResult, param:Parameter): Result[List[VariableName]] = param match {
     case OneValueParameter(expr) => expr.missingInput(executionResult)
-    case ListParameter(exprs) => VariableType.sequence(exprs.map(_.missingInput(executionResult))).map(_.flatten)
-    case Parameters(params) => VariableType.sequence(params.map({case (_,value) => getMissingValuesFromParameter(executionResult, value)})).map(_.flatten)
-    case MappingParameter(mapping) => VariableType.sequence(mapping.values.map(_.missingInput(executionResult)).toSeq).map(_.flatten)
+    case ListParameter(exprs) => exprs.map(_.missingInput(executionResult)).sequence.map(_.flatten)
+    case Parameters(params) => params.map({case (_,value) => getMissingValuesFromParameter(executionResult, value)}).sequence.map(_.flatten)
+    case MappingParameter(mapping) => mapping.values.map(_.missingInput(executionResult)).toList.sequence.map(_.flatten)
   }
 
   override def toString: String = name.name + variableTypeDefinition.map(definition => ":" + definition.name).getOrElse("")
