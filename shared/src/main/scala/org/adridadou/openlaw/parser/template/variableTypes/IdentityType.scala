@@ -40,7 +40,7 @@ case object IdentityType extends VariableType(name = "Identity") {
     }
 
 
-  override def missingValueFormat(name: VariableName): Seq[AgreementElement] = Seq(FreeText(Text("")))
+  override def missingValueFormat(name: String): Seq[AgreementElement] = Seq(FreeText(Text("")))
 
   override def internalFormat(value: OpenlawValue): Result[String] = VariableType.convert[Identity](value).map(_.asJson.noSpaces)
 

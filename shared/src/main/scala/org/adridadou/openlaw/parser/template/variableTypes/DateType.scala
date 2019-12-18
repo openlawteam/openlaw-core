@@ -205,9 +205,9 @@ object DateConverter {
 class PatternFormat(pattern: String) extends Formatter {
   val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern(pattern, Locale.ENGLISH)
 
-  override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] =
+  override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[List[AgreementElement]] =
     DateHelper.convertToDate(value, executionResult.clock).map { zonedDate =>
-      Seq(FreeText(Text(formatter.format(zonedDate.underlying))))
+      List(FreeText(Text(formatter.format(zonedDate.underlying))))
     }
 }
 
@@ -218,14 +218,14 @@ class MonthFormatter extends PatternFormat("M")
 class MonthNameFormatter extends PatternFormat("MMMM")
 
 class SimpleDateFormatter extends Formatter {
-  override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] = DateHelper.convertToDate(value, executionResult.clock).map(zonedDate => {
+  override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[List[AgreementElement]] = DateHelper.convertToDate(value, executionResult.clock).map(zonedDate => {
     val month = zonedDate.underlying.getMonth.getDisplayName(TextStyle.FULL, Locale.ENGLISH)
-    Seq(FreeText(Text(s"$month ${zonedDate.underlying.getDayOfMonth}, ${zonedDate.underlying.getYear}")))
+    List(FreeText(Text(s"$month ${zonedDate.underlying.getDayOfMonth}, ${zonedDate.underlying.getYear}")))
   })
 }
 
 class SimpleDateTimeFormatter extends Formatter {
-  override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] =
+  override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[List[AgreementElement]] =
     DateHelper
       .convertToDate(value, executionResult.clock)
       .flatMap { zonedDate =>
@@ -238,7 +238,7 @@ class SimpleDateTimeFormatter extends Formatter {
           val minute = formatNumber(minuteInt)
           val second = formatNumber(secondInt)
           val month = zonedDate.underlying.getMonth.getDisplayName(TextStyle.FULL, Locale.ENGLISH)
-          Seq(FreeText(Text(s"$month ${zonedDate.underlying.getDayOfMonth}, ${zonedDate.underlying.getYear} $hour:$minute:$second")))
+          List(FreeText(Text(s"$month ${zonedDate.underlying.getDayOfMonth}, ${zonedDate.underlying.getYear} $hour:$minute:$second")))
         }
       }
 

@@ -3,6 +3,7 @@ package org.adridadou.openlaw.parser.template
 import java.time.Clock
 
 import cats.implicits._
+import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.{OpenlawBigDecimal, OpenlawBoolean}
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.result.{Failure, Result, Success}
@@ -127,13 +128,13 @@ final case class CompiledAgreement(
         getAgreementElementsFromElement(renderedElements, variableDefinition.copy(name = VariableName(executionResult.generateAnonymousName(nbAnonymous + 1))), executionResult)
       case variableDefinition:VariableDefinition if !variableDefinition.isHidden =>
         executionResult.getAliasOrVariableType(variableDefinition.name) match {
-          case Right(variableType: NoShowInFormButRender) =>
+          case Success(variableType: NoShowInFormButRender) =>
            getDependencies(variableDefinition.name, executionResult).flatMap { dependencies =>
              generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult).map { list =>
                renderedElements :+ VariableElement(variableDefinition.name, Some(variableType), list, dependencies)
              }
            }
-          case Right(ClauseType) =>
+          case Success(ClauseType) =>
             executionResult.subExecutionsInternal.get(variableDefinition.name) match {
               case Some(subExecution) =>
                 getAgreementElements(renderedElements, subExecution.template.block.elems.toList, subExecution)
@@ -141,9 +142,9 @@ final case class CompiledAgreement(
                 Success(renderedElements)
             }
 
-          case Right(_:NoShowInForm) =>
+          case Success(_:NoShowInForm) =>
             Success(renderedElements)
-          case Right(variableType) =>
+          case Success(variableType) =>
            getDependencies(variableDefinition.name, executionResult).flatMap { dependencies =>
              generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult).map { list =>
                renderedElements :+ VariableElement(variableDefinition.name, Some(variableType), list, dependencies)
@@ -268,6 +269,8 @@ final case class CompiledAgreement(
             renderedElements.:+(VariableElement(name, definition, variable, seq))
           }
         }
+      case ExpressionElement(expr, formatter) =>
+        generateExpression(expr, formatter, executionResult)
       case _ =>
         Success(renderedElements)
     }
@@ -281,6 +284,14 @@ final case class CompiledAgreement(
         case None => Success(Seq())
       }
     }
+
+  private def generateExpression(expression: Expression, formatter:Option[FormatterDefinition], executionResult: TemplateExecutionResult):Result[List[AgreementElement]] =
+    for {
+      valueOpt <- expression.evaluate(executionResult)
+      expressionType <- expression.expressionType(executionResult)
+      result <- valueOpt.map(expressionType.format(formatter, _, executionResult))
+        .getOrElse(Success(expressionType.missingValueFormat(expression.toString).toList))
+    } yield result
 
   private def generateVariable(name: VariableName, keys:Seq[String], formatter:Option[FormatterDefinition], executionResult: TemplateExecutionResult): Result[List[AgreementElement]] =
     executionResult.getAliasOrVariableType(name).flatMap { varType =>
@@ -302,7 +313,7 @@ final case class CompiledAgreement(
         }
         .sequence
       }
-      option.getOrElse(Success(varType.missingValueFormat(name).toList))
+      option.getOrElse(Success(varType.missingValueFormat(name.name).toList))
     }
 
   override def withRedefinition(redefinition: VariableRedefinition): CompiledAgreement = this.copy(redefinition = redefinition)

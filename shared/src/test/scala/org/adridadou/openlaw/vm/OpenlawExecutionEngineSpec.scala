@@ -1784,4 +1784,41 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 				fail(message, ex)
 		}
 	}
+
+  it should "be possible to define expression directly between [[ ]]" in {
+    val template =
+      compile(
+        """<%[[first name:Text]] [[last name:Text]]%>
+          |[[first name + " and " + last name]]""".stripMargin)
+
+    val Success(result) = engine.execute(template, TemplateParameters("first name" -> "David", "last name" -> "Roon"))
+    result.state shouldBe ExecutionFinished
+    val text = parser.forReview(result.agreements.head,ParagraphEdits())
+    text shouldBe "<p class=\"no-section\">David and Roon</p>"
+  }
+
+  it should "be able to define a function type" in {
+    val template =
+      compile(
+        """[[function variable:Function(
+          |(first name, last name) => first name + " " + last name
+          |)]]
+          |
+          |[[function variable("David", "Roon")]]
+          |""".stripMargin)
+
+    val Success(result) = engine.execute(template, TemplateParameters("text var" -> "hello world", "num var" -> "21213"))
+    result.state shouldBe ExecutionFinished
+    val structure = result.buildStructureFromVariables
+    val structureType = AbstractStructureType.generateType(structure)
+    structure.names shouldBe List(VariableName("text var"), VariableName("num var"))
+    val Success(values) = result.buildStructureValueFromVariables
+    values.underlying shouldBe Map[VariableName, OpenlawValue](VariableName("text var") -> OpenlawString("hello world"), VariableName("num var") -> OpenlawBigDecimal(21213))
+    val Success(newDefinedResult) = OpenlawExecutionState.empty.withVariable(VariableName("parameters"), values, structureType)
+
+    newDefinedResult.variables.map(_.name.name) shouldBe List("parameters")
+    println(newDefinedResult.variables.filter(_.name.name === "parameters").flatMap(_.variableTypeDefinition))
+    val Success(text) = newDefinedResult.evaluate[OpenlawString]("parameters.text var")
+    text.underlying shouldBe "hello world"
+  }
 }

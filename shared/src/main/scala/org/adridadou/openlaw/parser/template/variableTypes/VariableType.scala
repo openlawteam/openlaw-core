@@ -276,7 +276,7 @@ abstract class VariableType(val name: String) {
 
   def cast(value: String, executionResult:TemplateExecutionResult):Result[OpenlawValue]
 
-  def missingValueFormat(name: VariableName): Seq[AgreementElement] = Seq(FreeText(Text(s"[[${name.name}]]")))
+  def missingValueFormat(name: String): Seq[AgreementElement] = Seq(FreeText(Text(s"[[${name}]]")))
 
   def internalFormat(value: OpenlawValue): Result[String]
 
@@ -330,7 +330,7 @@ abstract class VariableType(val name: String) {
     case _ => Failure("invalid parameter type " + param.getClass.getSimpleName + " expecting single expression")
   }
 
-  def format(formatter:Option[FormatterDefinition], value:OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] =
+  def format(formatter:Option[FormatterDefinition], value:OpenlawValue, executionResult: TemplateExecutionResult): Result[List[AgreementElement]] =
     formatter
       .map(getFormatter(_, executionResult))
       .getOrElse(Success(defaultFormatter))

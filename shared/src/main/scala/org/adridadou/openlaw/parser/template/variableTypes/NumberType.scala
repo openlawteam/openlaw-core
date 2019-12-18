@@ -1,6 +1,5 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
-import cats.implicits._
 import VariableType._
 import org.adridadou.openlaw.parser.template.formatters.Formatter
 import cats.implicits._
@@ -108,17 +107,17 @@ trait NumberFormatter {
 }
 
 case object NoTrailingZerosFormatter extends Formatter with NumberFormatter {
-  override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] =
-    VariableType.convert[OpenlawBigDecimal](value).map(_.bigDecimal.stripTrailingZeros()).map(bd => Seq(FreeText(Text(formatNumber(bd)))))
+  override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[List[AgreementElement]] =
+    VariableType.convert[OpenlawBigDecimal](value).map(_.bigDecimal.stripTrailingZeros()).map(bd => List(FreeText(Text(formatNumber(bd)))))
 }
 
 case object RawNumberFormatter extends Formatter with NumberFormatter {
-  override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] =
-    VariableType.convert[OpenlawBigDecimal](value).map(_.bigDecimal.stripTrailingZeros().toPlainString).map(str => Seq(FreeText(Text(str))))
+  override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[List[AgreementElement]] =
+    VariableType.convert[OpenlawBigDecimal](value).map(_.bigDecimal.stripTrailingZeros().toPlainString).map(str => List(FreeText(Text(str))))
 }
 
 final case class Rounding(expr:Expression) extends Formatter with NumberFormatter {
-  override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] = {
+  override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[List[AgreementElement]] = {
     expr
       .evaluate(executionResult)
       .flatMap { valueOpt =>
@@ -130,8 +129,8 @@ final case class Rounding(expr:Expression) extends Formatter with NumberFormatte
               .flatMap(rounding => VariableType.convert[OpenlawBigDecimal](value).map(_.setScale(rounding, RoundingMode.HALF_UP)))
             x
           } match {
-            case None => Success(Seq(FreeText(Text(value.toString))))
-            case Some(Success(result)) => Success(Seq(FreeText(Text(result.toString))))
+            case None => Success(List(FreeText(Text(value.toString))))
+            case Some(Success(result)) => Success(List(FreeText(Text(result.toString))))
             case Some(Failure(e, message)) => Failure(e, message)
           }
       }

@@ -112,6 +112,10 @@ trait ExpressionRules extends JsonRules {
     openS ~ zeroOrMore(" ") ~ variableDefinition ~ zeroOrMore(" ") ~ closeS
   }
 
+  def expression: Rule1[ExpressionElement] = rule {
+    openS ~ ExpressionRule ~ ws ~ optional( ws ~ "|" ~ formatterDefinition) ~ closeS ~> ((expr:Expression, formatter: Option[FormatterDefinition]) => ExpressionElement(expr, formatter))
+  }
+
   def variableMember: Rule1[VariableMember] = rule {
     openS ~ zeroOrMore(" ") ~ charsKeyAST ~ oneOrMore("." ~ charsKeyAST) ~ optional( ws ~ "|" ~ formatterDefinition) ~ closeS ~>((name:String, member:Seq[String], formatter:Option[FormatterDefinition]) => VariableMember(VariableName(name), member.map(_.trim), formatter))
   }
@@ -121,6 +125,8 @@ trait ExpressionRules extends JsonRules {
   }
 
   def varKey: Rule1[VariableDefinition] = rule { &(openS) ~ variable }
+
+  def expressionKey: Rule1[ExpressionElement] = rule {&(openS) ~ expression}
 
   def varMemberKey: Rule1[VariableMember] = rule { &(openS) ~  variableMember}
 

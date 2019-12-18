@@ -86,8 +86,8 @@ object Address{
 }
 
 object AddressFormatter extends Formatter {
-  override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] = value match {
-    case address:Address => Success(Seq(FreeText(Text(address.formattedAddress))))
+  override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[List[AgreementElement]] = value match {
+    case address:Address => Success(List(FreeText(Text(address.formattedAddress))))
     case _ => Failure(s"incompatible type. Expecting address, got ${value.getClass.getSimpleName}")
   }
 }
