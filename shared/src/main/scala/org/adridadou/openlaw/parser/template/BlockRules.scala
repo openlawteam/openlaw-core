@@ -14,20 +14,20 @@ import scala.annotation.tailrec
   */
 trait BlockRules extends Parser with ExpressionRules with GlobalRules {
 
-  def blockRule:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | pageBreak | sectionBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | expressionKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | headerAnnotationPart | noteAnnotationPart | textPart) ~> ((s: Seq[TemplatePart]) => Block(s))}
+  def blockRule:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | pageBreak | sectionBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | expressionKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | headerAnnotationPart | noteAnnotationPart | textPart) ~> ((s: Seq[TemplatePart]) => Block(s.toList))}
 
-  def blockInConditionalRule:Rule1[Block] = rule { zeroOrMore( centeredLine | rightThreeQuartersLine | rightLine | pageBreak | sectionBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | expressionKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | headerAnnotationPart | noteAnnotationPart | textPartNoColons) ~> ((s: Seq[TemplatePart]) => Block(s))}
-  def blockInConditionalElseRule:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | pageBreak | sectionBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | expressionKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | headerAnnotationPart | noteAnnotationPart | textPartNoColons) ~> ((s: Seq[TemplatePart]) => Block(s))}
+  def blockInConditionalRule:Rule1[Block] = rule { zeroOrMore( centeredLine | rightThreeQuartersLine | rightLine | pageBreak | sectionBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | expressionKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | headerAnnotationPart | noteAnnotationPart | textPartNoColons) ~> ((s: Seq[TemplatePart]) => Block(s.toList))}
+  def blockInConditionalElseRule:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | pageBreak | sectionBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | expressionKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | headerAnnotationPart | noteAnnotationPart | textPartNoColons) ~> ((s: Seq[TemplatePart]) => Block(s.toList))}
 
-  def blockNoStrong:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | indentLine | varAliasKey | varKey | varMemberKey | headerAnnotationPart | noteAnnotationPart | textPartNoStrong) ~> ((s: Seq[TemplatePart]) => Block(s))}
+  def blockNoStrong:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | indentLine | varAliasKey | varKey | varMemberKey | headerAnnotationPart | noteAnnotationPart | textPartNoStrong) ~> ((s: Seq[TemplatePart]) => Block(s.toList))}
 
-  def blockNoEm:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | indentLine | varAliasKey | varKey | varMemberKey | headerAnnotationPart | noteAnnotationPart | textPartNoEm) ~> ((s: Seq[TemplatePart]) => Block(s))}
+  def blockNoEm:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | indentLine | varAliasKey | varKey | varMemberKey | headerAnnotationPart | noteAnnotationPart | textPartNoEm) ~> ((s: Seq[TemplatePart]) => Block(s.toList))}
 
-  def blockNoUnder:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | indentLine | varAliasKey | varKey | varMemberKey | headerAnnotationPart | noteAnnotationPart | textPartNoUnder) ~> ((s: Seq[TemplatePart]) => Block(s))}
+  def blockNoUnder:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | indentLine | varAliasKey | varKey | varMemberKey | headerAnnotationPart | noteAnnotationPart | textPartNoUnder) ~> ((s: Seq[TemplatePart]) => Block(s.toList))}
 
-  def blockNoStrongNoEmNoUnder:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | indentLine | varAliasKey | varKey | varMemberKey | headerAnnotationPart | noteAnnotationPart | textPartNoStrongNoEmNoUnder) ~> ((s: Seq[TemplatePart]) => Block(s))}
+  def blockNoStrongNoEmNoUnder:Rule1[Block] = rule { zeroOrMore(centeredLine | rightThreeQuartersLine | rightLine | indentLine | varAliasKey | varKey | varMemberKey | headerAnnotationPart | noteAnnotationPart | textPartNoStrongNoEmNoUnder) ~> ((s: Seq[TemplatePart]) => Block(s.toList))}
 
-  def conditionalBlockSetKey:Rule1[ConditionalBlockSet]= rule { openB ~ oneOrMore(ws ~ conditionalBlockKey ~ ws) ~ closeB ~> ((blocks:Seq[ConditionalBlock]) => ConditionalBlockSet(blocks)) }
+  def conditionalBlockSetKey:Rule1[ConditionalBlockSet]= rule { openB ~ oneOrMore(ws ~ conditionalBlockKey ~ ws) ~ closeB ~> ((blocks:Seq[ConditionalBlock]) => ConditionalBlockSet(blocks.toList)) }
 
   def foreachBlockKey:Rule1[ForEachBlock]= rule { &(openB) ~ foreachBlock }
 
@@ -51,7 +51,7 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
 
   def codeBlockKey:Rule1[CodeBlock] = rule {&(openA) ~ codeBlock}
 
-  def codeBlock:Rule1[CodeBlock] = rule {openA ~  zeroOrMore( ws ~ (varAliasKey | varMemberKey | varKey | comment | variableSectionKey) ~ ws) ~ closeA ~> ((s:Seq[TemplatePart]) => CodeBlock(s))}
+  def codeBlock:Rule1[CodeBlock] = rule {openA ~  zeroOrMore( ws ~ (varAliasKey | varMemberKey | varKey | comment | variableSectionKey) ~ ws) ~ closeA ~> ((s:Seq[TemplatePart]) => CodeBlock(s.toList))}
 
   def comment:Rule1[EmptyTemplatePart.type ] = rule { &("#" | "//") ~ capture(commentsChar) ~ "\n" ~>((s:String) => EmptyTemplatePart )}
 
@@ -60,7 +60,7 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   }
 
   def section:Rule1[Section] = rule {
-    capture(oneOrMore("^")) ~ optional(sectionDefinition) ~ optional(capture(zeroOrMore("\\sectionbreak"))) ~> ((elems:String, namedSection:Option[SectionDefinition], break:Option[String]) => Section(UUID.randomUUID().toString, namedSection, elems.length))
+    capture(oneOrMore("^")) ~ optional(sectionDefinition) ~ optional(capture(zeroOrMore("\\sectionbreak"))) ~> ((elems:String, namedSection:Option[SectionDefinition], _:Option[String]) => Section(UUID.randomUUID().toString, namedSection, elems.length))
   }
 
   def sectionDefinition:Rule1[SectionDefinition] = rule {
@@ -72,50 +72,50 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   }
 
   def variableSection:Rule1[VariableSection] = rule {
-    variableSectionChar ~ capture(characters) ~ variableSectionChar ~ ws ~ oneOrMore(wsNoReturn ~ variable ~ wsNoReturn).separatedBy("\n") ~> ((name:String, variables:Seq[VariableDefinition]) => VariableSection(name, variables))
+    variableSectionChar ~ capture(characters) ~ variableSectionChar ~ ws ~ oneOrMore(wsNoReturn ~ variable ~ wsNoReturn).separatedBy("\n") ~> ((name:String, variables:Seq[VariableDefinition]) => VariableSection(name, variables.toList))
   }
 
   def centeredLine: Rule1[TemplateText] = rule {
-    capture(centered) ~> ((_: String) => TemplateText(Seq(Centered)))
+    capture(centered) ~> ((_: String) => TemplateText(List(Centered)))
   }
 
   def rightLine: Rule1[TemplateText] = rule {
-    capture(right) ~> ((_: String) => TemplateText(Seq(RightAlign)))
+    capture(right) ~> ((_: String) => TemplateText(List(RightAlign)))
   }
 
   def rightThreeQuartersLine: Rule1[TemplateText] = rule {
-    capture(rightThreeQuarters) ~> ((_: String) => TemplateText(Seq(RightThreeQuarters)))
+    capture(rightThreeQuarters) ~> ((_: String) => TemplateText(List(RightThreeQuarters)))
   }
 
   def pageBreak: Rule1[TemplateText] = rule {
-    capture(pagebreak) ~ "\n" ~> ((_: String) => TemplateText(Seq(PageBreak)))
+    capture(pagebreak) ~ "\n" ~> ((_: String) => TemplateText(List(PageBreak)))
   }
 
    def sectionBreak: Rule1[TemplateText] = rule {
-    capture(sectionbreak) ~> ((_: String) => TemplateText(Seq(SectionBreak)))
+    capture(sectionbreak) ~> ((_: String) => TemplateText(List(SectionBreak)))
   }
 
   def indentLine: Rule1[TemplateText] = rule {
-    capture(indent) ~> ((_: String) => TemplateText(Seq(Indent)))
+    capture(indent) ~> ((_: String) => TemplateText(List(Indent)))
   }
 
   def textPart: Rule1[TemplateText] = rule {
-    textElement ~> ((s: Seq[TemplatePart]) => TemplateText(s)) }
+    textElement ~> ((s: Seq[TemplatePart]) => TemplateText(s.toList)) }
 
   def textPartNoColons: Rule1[TemplateText] = rule {
-    textElementNoColons ~> ((s: Seq[TemplatePart]) => TemplateText(s)) }
+    textElementNoColons ~> ((s: Seq[TemplatePart]) => TemplateText(s.toList)) }
 
   def textPartNoStrong: Rule1[TemplateText] = rule {
-    textElementNoStrong ~> ((s: Seq[TemplatePart]) => TemplateText(s)) }
+    textElementNoStrong ~> ((s: Seq[TemplatePart]) => TemplateText(s.toList)) }
 
   def textPartNoEm: Rule1[TemplateText] = rule {
-    textElementNoEm ~> ((s: Seq[TemplatePart]) => TemplateText(s)) }
+    textElementNoEm ~> ((s: Seq[TemplatePart]) => TemplateText(s.toList)) }
 
   def textPartNoUnder: Rule1[TemplateText] = rule {
-    textElementNoUnder ~> ((s: Seq[TemplatePart]) => TemplateText(s)) }
+    textElementNoUnder ~> ((s: Seq[TemplatePart]) => TemplateText(s.toList)) }
 
   def textPartNoStrongNoEmNoUnder: Rule1[TemplateText] = rule {
-    textNoReturn ~> ((s: Seq[TemplatePart]) => TemplateText(s)) }
+    textNoReturn ~> ((s: Seq[TemplatePart]) => TemplateText(s.toList)) }
 
   def textElement: Rule1[Seq[TemplatePart]] = rule {
     tableKey | strongWord | emWord | underWord | text | pipeText | starText | underLineText
@@ -141,46 +141,46 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   def twoStarcontents: Rule1[Block] = rule { !twoStar ~ blockNoStrong }
   def innerTwoStarcontents: Rule1[Block] = rule { !twoStar ~ blockNoStrongNoEmNoUnder }
 
-  def strongWord: Rule1[Seq[TemplatePart]] = rule { twoStar ~ twoStarcontents ~ twoStar ~> ((block: Block) => Seq(Strong) ++ block.elems ++ Seq(Strong)) }
-  def innerStrongWord: Rule1[Seq[TemplatePart]] = rule { twoStar ~ innerTwoStarcontents ~ twoStar ~> ((block: Block) => Seq(Strong) ++ block.elems ++ Seq(Strong)) }
+  def strongWord: Rule1[List[TemplatePart]] = rule { twoStar ~ twoStarcontents ~ twoStar ~> ((block: Block) => List(Strong) ++ block.elems ++ List(Strong)) }
+  def innerStrongWord: Rule1[List[TemplatePart]] = rule { twoStar ~ innerTwoStarcontents ~ twoStar ~> ((block: Block) => List(Strong) ++ block.elems ++ List(Strong)) }
 
   def oneStar: Rule0 = rule(em)
-  def oneStarcontents: Rule1[Seq[TemplatePart]] = rule { !oneStar ~ blockNoEm ~> ((block: Block) => block.elems) }
-  def innerOneStarcontents: Rule1[Seq[TemplatePart]] = rule { !oneStar ~ blockNoStrongNoEmNoUnder ~> ((block: Block) => block.elems) }
+  def oneStarcontents: Rule1[List[TemplatePart]] = rule { !oneStar ~ blockNoEm ~> ((block: Block) => block.elems) }
+  def innerOneStarcontents: Rule1[List[TemplatePart]] = rule { !oneStar ~ blockNoStrongNoEmNoUnder ~> ((block: Block) => block.elems) }
 
-  def emWord: Rule1[Seq[TemplatePart]] = rule { oneStar ~ oneStarcontents ~ oneStar ~> ((elems: Seq[TemplatePart]) => Seq(Em) ++ elems ++ Seq(Em)) }
-  def innerEmWord: Rule1[Seq[TemplatePart]] = rule { oneStar ~ innerOneStarcontents ~ oneStar ~> ((elems: Seq[TemplatePart]) => Seq(Em) ++ elems ++ Seq(Em)) }
+  def emWord: Rule1[List[TemplatePart]] = rule { oneStar ~ oneStarcontents ~ oneStar ~> ((elems: List[TemplatePart]) => List(Em) ++ elems ++ List(Em)) }
+  def innerEmWord: Rule1[List[TemplatePart]] = rule { oneStar ~ innerOneStarcontents ~ oneStar ~> ((elems: List[TemplatePart]) => List(Em) ++ elems ++ List(Em)) }
 
   def underLines: Rule0 = rule(under)
-  def underLinescontents: Rule1[Seq[TemplatePart]] = rule { !underLines ~ blockNoUnder ~> ((block: Block) => block.elems) }
-  def innerUnderLinescontents: Rule1[Seq[TemplatePart]] = rule { !underLines ~ blockNoStrongNoEmNoUnder ~> ((block: Block) => block.elems) }
+  def underLinescontents: Rule1[List[TemplatePart]] = rule { !underLines ~ blockNoUnder ~> ((block: Block) => block.elems) }
+  def innerUnderLinescontents: Rule1[List[TemplatePart]] = rule { !underLines ~ blockNoStrongNoEmNoUnder ~> ((block: Block) => block.elems) }
 
-  def underWord: Rule1[Seq[TemplatePart]] = rule { underLines ~ underLinescontents ~ underLines ~> ((elems: Seq[TemplatePart]) => Seq(Under) ++ elems ++ Seq(Under)) }
-  def innerUnderWord: Rule1[Seq[TemplatePart]] = rule { underLines ~ underLinescontents ~ underLines ~> ((elems: Seq[TemplatePart]) => Seq(Under) ++ elems ++ Seq(Under)) }
+  def underWord: Rule1[List[TemplatePart]] = rule { underLines ~ underLinescontents ~ underLines ~> ((elems: List[TemplatePart]) => List(Under) ++ elems ++ List(Under)) }
+  def innerUnderWord: Rule1[List[TemplatePart]] = rule { underLines ~ underLinescontents ~ underLines ~> ((elems: List[TemplatePart]) => List(Under) ++ elems ++ List(Under)) }
 
 
-  def text: Rule1[Seq[TemplatePart]] = rule {
-    capture(characters) ~> ((s: String) => Seq(Text(TextCleaning.dots(s))))
+  def text: Rule1[List[TemplatePart]] = rule {
+    capture(characters) ~> ((s: String) => List(Text(TextCleaning.dots(s))))
   }
 
-  def textNoReturn: Rule1[Seq[TemplatePart]] = rule {
-    capture(charactersNoReturn) ~> ((s: String) => Seq(Text(TextCleaning.dots(s))))
+  def textNoReturn: Rule1[List[TemplatePart]] = rule {
+    capture(charactersNoReturn) ~> ((s: String) => List(Text(TextCleaning.dots(s))))
   }
 
-  def textNoColons: Rule1[Seq[TemplatePart]] = rule {
-    capture(charactersNoColons) ~> ((s: String) => Seq(Text(TextCleaning.dots(s))))
+  def textNoColons: Rule1[List[TemplatePart]] = rule {
+    capture(charactersNoColons) ~> ((s: String) => List(Text(TextCleaning.dots(s))))
   }
 
-  def starText: Rule1[Seq[TemplatePart]] = rule {
-    capture(em) ~> ((s: String) => Seq(Text(TextCleaning.dots(s))))
+  def starText: Rule1[List[TemplatePart]] = rule {
+    capture(em) ~> ((s: String) => List(Text(TextCleaning.dots(s))))
   }
 
-  def underLineText: Rule1[Seq[TemplatePart]] = rule {
-    capture(under) ~> ((s: String) => Seq(Text(TextCleaning.dots(s))))
+  def underLineText: Rule1[List[TemplatePart]] = rule {
+    capture(under) ~> ((s: String) => List(Text(TextCleaning.dots(s))))
   }
 
-  def pipeText: Rule1[Seq[TemplatePart]] = rule {
-    capture(pipe) ~> ((s: String) => Seq(Text(TextCleaning.dots(s))))
+  def pipeText: Rule1[List[TemplatePart]] = rule {
+    capture(pipe) ~> ((s: String) => List(Text(TextCleaning.dots(s))))
   }
 
   def tableText: Rule1[TemplatePart] = rule {
@@ -273,5 +273,5 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   }
 }
 
-final case class VariableSection(name:String, variables:Seq[VariableDefinition]) extends TemplatePart
+final case class VariableSection(name:String, variables:List[VariableDefinition]) extends TemplatePart
 final case class SectionDefinition(name:String, parameters:Option[Parameters])
