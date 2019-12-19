@@ -1799,23 +1799,16 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
   it should "be able to define a function type" in {
     val template =
       compile(
-        """[[function variable:Function<Text>(name => name + " and ")]]
+        """[[function variable:Function<Text>(name => name + " and all")]]
           |
-          |[[function variable("David Roon")]]
-          |""".stripMargin)
+          |[[function variable("David Roon")]]""".stripMargin)
 
-    val Success(result) = engine.execute(template, TemplateParameters("text var" -> "hello world", "num var" -> "21213"))
+    val Success(result) = engine.execute(template, TemplateParameters())
     result.state shouldBe ExecutionFinished
-    val structure = result.buildStructureFromVariables
-    val structureType = AbstractStructureType.generateType(structure)
-    structure.names shouldBe List(VariableName("text var"), VariableName("num var"))
-    val Success(values) = result.buildStructureValueFromVariables
-    values.underlying shouldBe Map[VariableName, OpenlawValue](VariableName("text var") -> OpenlawString("hello world"), VariableName("num var") -> OpenlawBigDecimal(21213))
-    val Success(newDefinedResult) = OpenlawExecutionState.empty.withVariable(VariableName("parameters"), values, structureType)
 
-    newDefinedResult.variables.map(_.name.name) shouldBe List("parameters")
-    val Success(text) = newDefinedResult.evaluate[OpenlawString]("parameters.text var")
-    text.underlying shouldBe "hello world"
+    val text = parser.forReview(result.agreements.head,ParagraphEdits())
+    println(text)
+    text shouldBe "<p class=\"no-section\">David Roon and all</p>"
   }
 
 }

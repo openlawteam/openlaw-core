@@ -20,6 +20,13 @@ import scala.reflect.ClassTag
   */
 trait ExpressionRules extends JsonRules {
 
+
+  //TODO: create function rule
+
+  def FunctionRule: Rule1[OLFunction] = rule {
+    wsNoReturn ~ variableName ~ wsNoReturn ~ "=>" ~ wsNoReturn ~ ExpressionRule ~> ((name:VariableName, expression:Expression) => OLFunction(VariableDefinition(name), expression))
+  }
+
   def ExpressionRule: Rule1[Expression] = rule {
       Term ~ wsNoReturn ~ zeroOrMore(operation ~ wsNoReturn ~ Term ~ wsNoReturn ~> ((op, expr) => PartialOperation(op, expr))) ~> ((left: Expression, others: Seq[PartialOperation]) => others.foldLeft(left)({
         case (expr, op) => createOperation(expr, op).getOrThrow() // TODO: Convert this to use fail()
@@ -50,7 +57,7 @@ trait ExpressionRules extends JsonRules {
     case _ => Failure(s"unknown operation ${op.op}")
   }
 
-  def Factor:Rule1[Expression] = rule {constant | conditionalVariableDefinition | variableMemberInner | variableName | Parens | UnaryMinus | UnaryNot }
+  def Factor:Rule1[Expression] = rule {constant | conditionalVariableDefinition | variableMemberInner | functionCall | variableName | Parens | UnaryMinus | UnaryNot }
 
   def Parens:Rule1[Expression] = rule { '(' ~ wsNoReturn ~ ExpressionRule ~ wsNoReturn ~ ')' ~> ((expr:Expression) => ParensExpression(expr)) }
 
@@ -72,6 +79,10 @@ trait ExpressionRules extends JsonRules {
       ((aKey:String, expression:Expression) => {
         VariableAliasing(VariableName(aKey.trim), expression)
       })
+  }
+
+  def functionCall:Rule1[OLFunctionCall] = rule {
+    variableName ~ "(" ~ ExpressionRule ~ ")" ~> ((name:VariableName, expression:Expression) => OLFunctionCall(name, expression))
   }
 
   def variableName:Rule1[VariableName] = rule {
@@ -132,7 +143,7 @@ trait ExpressionRules extends JsonRules {
 
   def parametersDefinition:Rule1[Parameter] = rule {
     parametersMapDefinition |
-    (oneOrMore(ws ~ ExpressionRule ~ ws).separatedBy(",") ~> {
+    (oneOrMore(ws ~ (FunctionRule | ExpressionRule) ~ ws).separatedBy(",") ~> {
      s: Seq[Expression] =>
       s.toList match {
         // the typical match for Seq() triggers a compiler bug, so this is a workaround

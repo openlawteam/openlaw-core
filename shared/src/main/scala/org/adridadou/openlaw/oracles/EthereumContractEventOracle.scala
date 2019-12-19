@@ -35,7 +35,6 @@ final case class EthereumEventFilterOracle(parser: OpenlawTemplateLanguageParser
   override def incoming(vm: OpenlawVm, event: EthereumEventFilterEvent): Result[OpenlawVm] = {
     vm.getAllVariableValues[EventFilterDefinition](EthereumEventFilterType).flatMap { values =>
       values
-        .toList
         .map { case (eventFilterDefinition, executionResult) => eventFilterDefinition.identifier(executionResult).map((eventFilterDefinition, executionResult, _)) }
         .sequence
         .flatMap { list =>

@@ -407,7 +407,7 @@ trait TemplateExecutionResult {
 						dtr <- domainTypeResult
 					} yield dtr.domain.validate(dtv, executionResult)).getOrElse(Valid(()))
 				}
-		}).toList.sequence
+		}).sequence
 
 		result
 			.map(_.reduceOption(_ combine _).getOrElse(Valid(()))) match {
@@ -430,16 +430,24 @@ trait TemplateExecutionResult {
     subExecutions.values.flatMap(_.getAllExecutionResults).toList ++ List(this)
 
   def withVariable(name:VariableName, value:OpenlawValue, varType:VariableType): Result[OpenlawExecutionState] =
+    withVariable(name, Some(value), varType)
+
+  def withVariable(name:VariableName, value:Option[OpenlawValue], varType:VariableType): Result[OpenlawExecutionState] =
     this.getAliasOrVariableType(name) match {
       case Success(_) =>
         Failure(s"${name.name} has already been defined!")
       case Failure(_,_) =>
-        varType.internalFormat(value).map { internalFormat =>
+        for {
+          parameters <- value
+            .map(varType.internalFormat)
+            .map(_.map(internalFormat => TemplateParameters(name.name -> internalFormat)))
+            .getOrElse(Success(TemplateParameters()))
+        } yield {
           val result = OpenlawExecutionState(
             id = TemplateExecutionResultId(UUID.randomUUID().toString),
             info = info,
             executionType = BlockExecution,
-            parameters = TemplateParameters(name.name -> internalFormat),
+            parameters = parameters,
             sectionLevelStack = mutable.Buffer(),
             template = CompiledAgreement(header = TemplateHeader()),
             clock = clock,
@@ -447,14 +455,14 @@ trait TemplateExecutionResult {
             executions = this.executions,
             variableRedefinition = VariableRedefinition())
 
-					val r = result.registerNewType(varType) match {
-						case Success(newResult) => newResult
-						case Failure(_,_) => result
-					}
+          val r = result.registerNewType(varType) match {
+            case Success(newResult) => newResult
+            case Failure(_, _) => result
+          }
 
-					r.variablesInternal.append(VariableDefinition(name, Some(VariableTypeDefinition(name = varType.name, None))))
-					r.executedVariablesInternal.append(name)
-					r
+          r.variablesInternal.append(VariableDefinition(name, Some(VariableTypeDefinition(name = varType.name, None))))
+          r.executedVariablesInternal.append(name)
+          r
         }
     }
 }
@@ -654,11 +662,11 @@ final case class OpenlawExecutionState(
           case collectionType: CollectionType if IdentityType.identityTypes.contains(collectionType.typeParameter) =>
             result.getVariableValue[CollectionValue](variable.name).map {
               case Some(value) if value.size =!= value.values.size =>
-                (Seq(variable.name), Seq())
+                (List(variable.name), Nil)
               case Some(_) =>
-                (Seq(), Seq())
+                (Nil, Nil)
               case None =>
-                (Seq(variable.name), Seq())
+                (List(variable.name), Nil)
             }
 
           case structureType: DefinedStructureType if structureType.structure.typeDefinition.values.exists(s => IdentityType.identityTypes.contains(s.varType(this))) =>
@@ -668,17 +676,15 @@ final case class OpenlawExecutionState(
                 .map({ case (propertyName, _) => propertyName }).toSeq
 
               if (identityProperties.forall(values.getOrElse(Map()).contains)) {
-                (Seq(), Seq())
+                (Nil, Nil)
               } else {
-                (Seq(variable.name), Seq())
+                (List(variable.name), Nil)
               }
             }
           case _ =>
-            Success((Seq(), Seq()))
+            Success((Nil, Nil))
         }
-      }
-      .toList
-      .sequence
+      }.sequence
     }
 
     missingIdentitiesResult.map { missingIdentitiesValue =>
@@ -734,11 +740,11 @@ final case class OpenlawExecutionState(
     )
   }
 
-  private def getSubExecutions:Seq[OpenlawExecutionState] = subExecutionsInternal.values.toSeq
+  private def getSubExecutions:List[OpenlawExecutionState] = subExecutionsInternal.values.toList
 
-  private def resultFromMissingInput(seq:Result[Seq[VariableName]]): (Seq[VariableName], Seq[String]) = seq match {
-    case Right(inputs) => (inputs, Seq())
-    case Left(ex) => (Seq(), Seq(ex.message))
+  private def resultFromMissingInput(seq:Result[List[VariableName]]): (List[VariableName], List[String]) = seq match {
+    case Success(inputs) => (inputs, Nil)
+    case Failure(_, message) => (Nil, List(message))
   }
 
   private def executionLevel(parent:Option[TemplateExecutionResult], acc:Int):Int =
@@ -1082,10 +1088,10 @@ trait SignatureProof {
 }
 
 final case class ValidationResult(
-                             identities:Seq[VariableDefinition],
-                             missingInputs:Seq[VariableName],
-                             missingIdentities:Seq[VariableName],
-                             validationExpressionErrors:Seq[String]) {
+                             identities:List[VariableDefinition],
+                             missingInputs:List[VariableName],
+                             missingIdentities:List[VariableName],
+                             validationExpressionErrors:List[String]) {
   def successful:Boolean = identities.nonEmpty && missingInputs.isEmpty && missingIdentities.isEmpty && validationExpressionErrors.isEmpty
 }
 
