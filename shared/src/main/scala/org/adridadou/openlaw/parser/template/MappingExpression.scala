@@ -20,5 +20,5 @@ final case class MappingExpression(expression: Expression, scopeExecutionResult:
     expression.evaluate(scopeExecutionResult)
 
   override def variables(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =
-    Success(Seq())
+    expression.variables(scopeExecutionResult)
 }

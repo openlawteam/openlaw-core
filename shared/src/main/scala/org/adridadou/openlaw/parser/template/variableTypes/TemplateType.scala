@@ -10,12 +10,10 @@ import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawString, OpenlawValue}
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
-import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success, attempt}
+import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success}
 import org.adridadou.openlaw.values._
 
-final case class TemplateDefinition(name:TemplateSourceIdentifier, mappingInternal:Map[VariableName, Expression] = Map(), path:Option[TemplatePath] = None) extends OpenlawNativeValue {
-  lazy val mapping: Map[VariableName, Expression] = mappingInternal.map({case (key,value) => key -> value})
-}
+final case class TemplateDefinition(name:TemplateSourceIdentifier, mapping:Map[VariableName, Expression] = Map(), path:Option[TemplatePath] = None) extends OpenlawNativeValue
 
 final case class TemplateSourceIdentifier(name:TemplateTitle)
 
@@ -72,7 +70,7 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
 
   private def prepareTemplateName(mappingParameter: Parameters, executionResult: TemplateExecutionResult):Result[Option[TemplateSourceIdentifier]] = {
 
-    val unknownParameters = mappingParameter.parameterMap.map({case (key,_) => key})
+    val unknownParameters = mappingParameter.parameterMap.map({case (key,_) => key.trim})
       .filter(elem => !availableParameters.contains(elem))
 
     if(unknownParameters.nonEmpty) {
@@ -119,7 +117,7 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
   def prepareTemplateSource(mappingParameter: Parameters, executionResult: TemplateExecutionResult, parameters: Map[VariableName, Expression], path: Option[TemplatePath]):Result[TemplateDefinition] = {
     prepareTemplateName(mappingParameter, executionResult).flatMap({
       case Some(source) =>
-        Success(TemplateDefinition(name = source, path = path, mappingInternal = parameters))
+        Success(TemplateDefinition(name = source, path = path, mapping = parameters))
       case None =>
         Failure("name cannot be resolved yet!")
     })

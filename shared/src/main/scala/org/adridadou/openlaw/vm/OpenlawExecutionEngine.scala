@@ -117,6 +117,20 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
             case _ =>
               Success.unit
           }
+        } else if(executionResult.executionType === ClauseExecution) {
+          val variablesToAdd = executionResult.variablesInternal.filter(variable => variable.varType(executionResult) match {
+            case _:NoShowInForm => false
+            case _ => true
+          })
+
+          val executedVariablesToAdd = executionResult.executedVariablesInternal.filter(name => executionResult.getAliasOrVariableType(name) match {
+            case Success(_:NoShowInForm) => false
+            case Success(_) => true
+            case _ => false
+          })
+          parent.variablesInternal.appendAll(variablesToAdd)
+          parent.executedVariablesInternal.appendAll(executedVariablesToAdd)
+          Success.unit
         } else {
           Success.unit
         }
@@ -429,7 +443,13 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
             mappingExpression.expression.variables(parent).map { vars =>
               vars
                 .flatMap(name => parent.getVariable(name))
-                .foldLeft(initialValue)((parentExecution, subVariable) => parentExecution.flatMap(pe => executeVariable(pe, subVariable)))
+                .foldLeft(initialValue)((parentExecution, subVariable) => parentExecution.flatMap(pe => {
+                  if(pe.variablesInternal.map(_.name).contains(subVariable.name)) {
+                    executeVariable(pe, subVariable)
+                  } else {
+                    Success(pe)
+                  }
+                }))
             }
           })
         }
