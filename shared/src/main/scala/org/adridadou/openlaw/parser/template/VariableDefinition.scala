@@ -11,7 +11,20 @@ import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 import scala.reflect.ClassTag
 
-final case class VariableMember(name:VariableName, keys:List[String], formatter:Option[FormatterDefinition]) extends TemplatePart with Expression {
+object VariableMemberKey {
+  def apply(name:String):VariableMemberKey = VariableMemberKey(Left(VariableName(name)))
+  def apply(name:VariableName):VariableMemberKey = VariableMemberKey(Left(name))
+  def apply(funcCall:OLFunctionCall):VariableMemberKey = VariableMemberKey(Right(funcCall))
+}
+
+final case class VariableMemberKey(key:Either[VariableName, OLFunctionCall]) {
+  override def toString: String = key match {
+    case Left(name) => name.toString
+    case Right(f) => f.toString
+  }
+}
+
+final case class VariableMember(name:VariableName, keys:List[VariableMemberKey], formatter:Option[FormatterDefinition]) extends TemplatePart with Expression {
   override def missingInput(executionResult:TemplateExecutionResult): Result[List[VariableName]] =
     name.missingInput(executionResult)
 
@@ -46,7 +59,10 @@ final case class VariableMember(name:VariableName, keys:List[String], formatter:
     name.variables(executionResult)
 
   override def toString: String =
-    (Seq(name.name) ++ keys).mkString(".")
+    (Seq(name.name) ++ keys.map({
+      case VariableMemberKey(Left(v)) => v.toString
+      case VariableMemberKey(Right(v)) => v.toString
+    })).mkString(".")
 }
 
 final case class VariableName(name:String) extends Expression {

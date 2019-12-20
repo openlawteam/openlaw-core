@@ -92,22 +92,22 @@ final case class OLFunctionCall(name:VariableName, parameter: Expression) extend
   }
 
   override def expressionType(executionResult: TemplateExecutionResult): Result[VariableType] = for {
-    variable <- executionResult.getVariable(name).toResult(s"function definition ${name.name} cannot be found")
-    func <- variable.evaluateT[OLFunction](executionResult).flatMap(_.toResult(s"function definition missing for variable ${name.name}"))
+    variable <- executionResult.getVariable(name).toResult(s"function definition '${name.name}' cannot be found")
+    func <- variable.evaluateT[OLFunction](executionResult).flatMap(_.toResult(s"function definition missing for variable '${name.name}''"))
     ier <- innerExecutionResult(func, executionResult)
     eType <- func.expression.expressionType(ier)
   } yield eType
 
   override def evaluate(executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = for {
-    variable <- executionResult.getVariable(name).toResult(s"function definition ${name.name} cannot be found")
-    func <- variable.evaluateT[OLFunction](executionResult).flatMap(_.toResult(s"function definition missing for variable ${name.name}"))
+    variable <- executionResult.getVariable(name).toResult(s"function definition '${name.name}' cannot be found")
+    func <- variable.evaluateT[OLFunction](executionResult).flatMap(_.toResult(s"function definition missing for variable '${name.name}''"))
     ier <- innerExecutionResult(func, executionResult)
     value <- func.expression.evaluate(ier)
   } yield value
 
   override def variables(executionResult: TemplateExecutionResult): Result[List[VariableName]] = for {
-    variable <- executionResult.getVariable(name).toResult(s"function definition ${name.name} cannot be found")
-    func <- variable.evaluateT[OLFunction](executionResult).flatMap(_.toResult(s"function definition missing for variable ${name.name}"))
+    variable <- executionResult.getVariable(name).toResult(s"function definition '${name.name}' cannot be found")
+    func <- variable.evaluateT[OLFunction](executionResult).flatMap(_.toResult(s"function definition missing for variable '${name.name}''"))
     variables <- func.expression.variables(executionResult)
   } yield variables.filter(_ =!= func.parameter.name)
 
@@ -116,6 +116,7 @@ final case class OLFunctionCall(name:VariableName, parameter: Expression) extend
     ier <- executionResult.withVariable(func.parameter.name, value, func.parameter.varType(executionResult))
   } yield ier
 
+  override def toString: String = s"$name($parameter)"
 }
 
 final case class OLFunction(parameter:VariableDefinition, expression:Expression) extends OpenlawNativeValue with Expression {
@@ -146,4 +147,6 @@ final case class OLFunction(parameter:VariableDefinition, expression:Expression)
 
   private def innerExecutionResult(executionResult: TemplateExecutionResult) =
     executionResult.withVariable(parameter.name, None, parameter.varType(executionResult))
+
+  override def toString: String = s"${parameter.name} => $expression"
 }

@@ -130,7 +130,7 @@ final case class CompiledAgreement(
         executionResult.getAliasOrVariableType(variableDefinition.name) match {
           case Success(variableType: NoShowInFormButRender) =>
            getDependencies(variableDefinition.name, executionResult).flatMap { dependencies =>
-             generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult).map { list =>
+             generateVariable(variableDefinition.name, Nil, variableDefinition.formatter, executionResult).map { list =>
                renderedElements :+ VariableElement(variableDefinition.name, Some(variableType), list, dependencies)
              }
            }
@@ -146,7 +146,7 @@ final case class CompiledAgreement(
             Success(renderedElements)
           case Success(variableType) =>
            getDependencies(variableDefinition.name, executionResult).flatMap { dependencies =>
-             generateVariable(variableDefinition.name, Seq(), variableDefinition.formatter, executionResult).map { list =>
+             generateVariable(variableDefinition.name, Nil, variableDefinition.formatter, executionResult).map { list =>
                renderedElements :+ VariableElement(variableDefinition.name, Some(variableType), list, dependencies)
              }
            }
@@ -290,10 +290,10 @@ final case class CompiledAgreement(
       valueOpt <- expression.evaluate(executionResult)
       expressionType <- expression.expressionType(executionResult)
       result <- valueOpt.map(expressionType.format(formatter, _, executionResult))
-        .getOrElse(Success(expressionType.missingValueFormat(expression.toString).toList))
+        .getOrElse(Success(expressionType.missingValueFormat(expression.toString)))
     } yield result
 
-  private def generateVariable(name: VariableName, keys:Seq[String], formatter:Option[FormatterDefinition], executionResult: TemplateExecutionResult): Result[List[AgreementElement]] =
+  private def generateVariable(name: VariableName, keys:List[VariableMemberKey], formatter:Option[FormatterDefinition], executionResult: TemplateExecutionResult): Result[List[AgreementElement]] =
     executionResult.getAliasOrVariableType(name).flatMap { varType =>
       val option = executionResult.getExpression(name).flatMap { expression =>
         expression.evaluate(executionResult).flatMap { valueOpt =>

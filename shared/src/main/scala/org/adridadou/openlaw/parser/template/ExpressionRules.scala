@@ -20,9 +20,6 @@ import scala.reflect.ClassTag
   */
 trait ExpressionRules extends JsonRules {
 
-
-  //TODO: create function rule
-
   def FunctionRule: Rule1[OLFunction] = rule {
     wsNoReturn ~ variableName ~ wsNoReturn ~ "=>" ~ wsNoReturn ~ ExpressionRule ~> ((name:VariableName, expression:Expression) => OLFunction(VariableDefinition(name), expression))
   }
@@ -82,7 +79,7 @@ trait ExpressionRules extends JsonRules {
   }
 
   def functionCall:Rule1[OLFunctionCall] = rule {
-    variableName ~ "(" ~ ExpressionRule ~ ")" ~> ((name:VariableName, expression:Expression) => OLFunctionCall(name, expression))
+    variableName ~ "(" ~ (FunctionRule | ExpressionRule) ~ ")" ~> ((name:VariableName, expression:Expression) => OLFunctionCall(name, expression))
   }
 
   def variableName:Rule1[VariableName] = rule {
@@ -120,19 +117,24 @@ trait ExpressionRules extends JsonRules {
   }
 
   def variable : Rule1[VariableDefinition] = rule {
-    openS ~ zeroOrMore(" ") ~ variableDefinition ~ zeroOrMore(" ") ~ closeS
+    openS ~ wsNoReturn ~ variableDefinition ~ wsNoReturn ~ closeS
   }
 
   def expression: Rule1[ExpressionElement] = rule {
-    openS ~ ExpressionRule ~ ws ~ optional( ws ~ "|" ~ formatterDefinition) ~ closeS ~> ((expr:Expression, formatter: Option[FormatterDefinition]) => ExpressionElement(expr, formatter))
+    openS ~ ExpressionRule ~ wsNoReturn ~ optional( wsNoReturn ~ "|" ~ formatterDefinition) ~ closeS ~> ((expr:Expression, formatter: Option[FormatterDefinition]) => ExpressionElement(expr, formatter))
   }
 
   def variableMember: Rule1[VariableMember] = rule {
-    openS ~ zeroOrMore(" ") ~ charsKeyAST ~ oneOrMore("." ~ charsKeyAST) ~ optional( ws ~ "|" ~ formatterDefinition) ~ closeS ~>((name:String, member:Seq[String], formatter:Option[FormatterDefinition]) => VariableMember(VariableName(name), member.map(_.trim).toList, formatter))
+    openS ~ wsNoReturn ~ variableMemberInner ~ optional( wsNoReturn ~ "|" ~ formatterDefinition) ~ closeS ~>((member:VariableMember, formatter:Option[FormatterDefinition]) => member.copy(formatter = formatter))
   }
 
   def variableMemberInner: Rule1[VariableMember] = rule {
-    charsKeyAST ~ oneOrMore("." ~ charsKeyAST) ~>((name:String, member:Seq[String]) => VariableMember(VariableName(name),member.map(_.trim).toList, None))
+    charsKeyAST ~ oneOrMore("." ~ variableMemberKey) ~>((name:String, member:Seq[VariableMemberKey]) => VariableMember(VariableName(name),member.toList, None))
+  }
+
+  def variableMemberKey:Rule1[VariableMemberKey] = rule {
+    functionCall ~> ((funcCall:OLFunctionCall) => VariableMemberKey(funcCall)) |
+    variableName ~> ((name:VariableName) => VariableMemberKey(name))
   }
 
   def varKey: Rule1[VariableDefinition] = rule { &(openS) ~ variable }

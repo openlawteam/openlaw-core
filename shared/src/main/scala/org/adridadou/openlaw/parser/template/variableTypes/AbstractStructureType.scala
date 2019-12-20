@@ -80,56 +80,56 @@ final case class DefinedStructureType(structure:Structure, typeName:String) exte
 
   override def defaultFormatter: Formatter = new NoopFormatter
 
-  override def access(value: OpenlawValue, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = {
-    keys.toList match {
+  override def access(value: OpenlawValue, name:VariableName, keys: List[VariableMemberKey], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = {
+    keys match {
       case Nil =>
         Success(Some(value))
-      case head :: tail =>
-        val headName = VariableName(head)
+      case VariableMemberKey(Left(head)) :: tail =>
         VariableType.convert[OpenlawMap[VariableName, OpenlawValue]](value).flatMap { values =>
           (for {
-            result <- values.get(headName)
-            keyType <- structure.typeDefinition.get(headName)
+            result <- values.get(head)
+            keyType <- structure.typeDefinition.get(head)
           } yield keyType.varType(executionResult).access(result, name, tail, executionResult)) match {
             case Some(result) => result
-            case None if structure.names.contains(headName) =>
+            case None if structure.names.contains(head) =>
               Success(None)
             case None =>
               Failure(s"properties '${keys.mkString(".")}' could not be resolved for the structured type $typeName. available properties ${structure.names.map(name => s"'${name.name}'").mkString(",")}")
           }
         }
+      case _ => Failure("Structure doesn't handle functions yet")
     }
   }
 
   override def getTypeClass: Class[OpenlawMap[VariableName, OpenlawValue]] = classOf[OpenlawMap[VariableName, OpenlawValue]]
 
-  override def keysType(keys: Seq[String], expression: Expression, executionResult: TemplateExecutionResult): Result[VariableType] =
-    keys.toList match {
+  override def keysType(keys: List[VariableMemberKey], expression: Expression, executionResult: TemplateExecutionResult): Result[VariableType] =
+    keys match {
       case Nil =>
         Success(AbstractStructureType)
-      case head::tail =>
-        val name = VariableName(head)
+      case VariableMemberKey(Left(name))::tail =>
         structure.typeDefinition.get(name) match {
           case Some(varDefinition) =>
             varDefinition.varType(executionResult).keysType(tail, expression, executionResult)
           case None =>
-            Failure(s"property '${keys.mkString(".")}' could not be resolved in structure value '$head'")
+            Failure(s"property '${keys.mkString(".")}' could not be resolved in structure value '$name'")
         }
+      case _ => Failure("Structure doesn't handle functions yet")
     }
 
-  override def validateKeys(name:VariableName, keys: Seq[String], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] = keys.toList match {
+  override def validateKeys(name:VariableName, keys: List[VariableMemberKey], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] = keys match {
     case Nil =>
-      Success(())
-    case head::tail =>
-      val name = VariableName(head)
+      Success.unit
+    case VariableMemberKey(Left(name))::tail =>
       structure.typeDefinition.get(name).map(_.varType(executionResult)) match {
         case Some(variableType:NoShowInForm) =>
           Failure(s"invalid type in structure ${variableType.name} only types that should be shown in the input form are allowed (Text, YesNo, Address ...)")
         case Some(variableType) =>
           variableType.validateKeys(name, tail, expression, executionResult)
         case None =>
-          Failure(s"property '${tail.mkString(".")}' could not be resolved in structure value '$head'")
+          Failure(s"property '${tail.mkString(".")}' could not be resolved in structure value '$name'")
       }
+    case _ => Failure("Structure doesn't handle functions yet")
   }
 
   override def cast(value: String, executionResult: TemplateExecutionResult): Result[OpenlawMap[VariableName, OpenlawValue]] =

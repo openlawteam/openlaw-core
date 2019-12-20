@@ -78,12 +78,11 @@ final case class EventFilterDefinition(
   def convertVariableScalaTypes(param: AbiParam): Result[Class[_]] =
     attempt(AbiType.withName(param.`type`)).map { variableType => variableType.scalaType }
 
-  def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions: Seq[OpenlawExecution]): Result[Option[LocalDateTime]] = {
+  def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions: List[OpenlawExecution]): Result[Option[LocalDateTime]] =
     pastExecutions match {
-      case Seq() => Success(Some(LocalDateTime.now))
+      case Nil => Success(Some(LocalDateTime.now))
       case _ => Success(None)
     }
-  }
 
   override def identifier(executionResult:TemplateExecutionResult): Result[ActionIdentifier] =
     for {

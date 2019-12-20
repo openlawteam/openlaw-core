@@ -58,19 +58,23 @@ case object EthereumCallType extends VariableType("EthereumCall") with ActionTyp
     case call:EthereumSmartContractCall => Success(call.asJson.noSpaces)
   }
 
-  override def validateKeys(variableName:VariableName, keys:Seq[String], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] =
+  override def validateKeys(variableName:VariableName, keys:List[VariableMemberKey], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] =
     keys.headOption
       .map(checkIfHasProperty)
       .getOrElse(Success.unit)
 
-  private def checkIfHasProperty(key:String):Result[Unit] =
-    propertyDef.get(key).map(_ => Success.unit)
-      .getOrElse(Failure(s"Ethereum Call type does not have the property $key defined"))
+  private def checkIfHasProperty(key:VariableMemberKey):Result[Unit] = key match {
+    case VariableMemberKey(Left(VariableName(k))) =>
+      propertyDef.get(k).map(_ => Success.unit)
+        .getOrElse(Failure(s"Ethereum Call type does not have the property $key defined"))
+    case _ =>
+      Failure(s"Ethereum Call type does not have the property $key defined")
+  }
 
-  override def keysType(keys: Seq[String], expression: Expression, executionResult: TemplateExecutionResult): Result[VariableType] = {
-    keys.toList match {
+  override def keysType(keys: List[VariableMemberKey], expression: Expression, executionResult: TemplateExecutionResult): Result[VariableType] = {
+    keys match {
       case Nil => Success(thisType)
-      case prop::Nil => propertyDef.get(prop) match {
+      case VariableMemberKey(Left(VariableName(prop)))::Nil => propertyDef.get(prop) match {
         case Some(propDef) => Success(propDef.typeDef)
         case None => Failure(s"unknown property $prop for EthereumCall type")
       }
@@ -79,10 +83,10 @@ case object EthereumCallType extends VariableType("EthereumCall") with ActionTyp
     }
   }
 
-  override def access(value: OpenlawValue, name: VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = {
-    keys.toList match {
+  override def access(value: OpenlawValue, name: VariableName, keys: List[VariableMemberKey], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = {
+    keys match {
       case Nil => Success(Some(value))
-      case prop::Nil => propertyDef.get(prop) match {
+      case VariableMemberKey(Left(VariableName(prop)))::Nil => propertyDef.get(prop) match {
         case Some(propDef) =>
           (for {
             call <- VariableType.convert[EthereumSmartContractCall](value)

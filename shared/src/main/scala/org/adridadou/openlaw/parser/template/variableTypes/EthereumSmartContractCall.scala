@@ -106,8 +106,8 @@ final case class EthereumSmartContractCall(
       }
     } yield result).getOrElse(Success(Nil))
 
-  override def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions:Seq[OpenlawExecution]): Result[Option[LocalDateTime]] = for {
-      executions <- pastExecutions.toList.map(VariableType.convert[EthereumSmartContractExecution]).sequence
+  override def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions:List[OpenlawExecution]): Result[Option[LocalDateTime]] = for {
+      executions <- pastExecutions.map(VariableType.convert[EthereumSmartContractExecution]).sequence
       result <- {
         val callToRerun: Option[LocalDateTime] = executions
           .find { execution =>
