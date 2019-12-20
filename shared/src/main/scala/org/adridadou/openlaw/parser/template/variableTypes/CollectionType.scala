@@ -91,7 +91,7 @@ final case class CollectionType(typeParameter:VariableType) extends VariableType
     keys match {
       case Nil =>
         Success(AbstractStructureType)
-      case VariableMemberKey(Right(OLFunctionCall(VariableName("map"), expr)))::Nil =>
+      case VariableMemberKey(Right(OLFunctionCall(VariableName("map"), _)))::Nil =>
         Success(AbstractFunctionType)
       case _ =>
         Failure(s"property '${keys.mkString(".")}' could not be resolved in collection type")
@@ -100,7 +100,7 @@ final case class CollectionType(typeParameter:VariableType) extends VariableType
   override def validateKeys(name:VariableName, keys: List[VariableMemberKey], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] = keys match {
     case Nil =>
       Success.unit
-    case VariableMemberKey(Right(OLFunctionCall(VariableName("map"), expr)))::Nil =>
+    case VariableMemberKey(Right(OLFunctionCall(VariableName("map"), func:OLFunction)))::Nil =>
       Success.unit
     case _ =>
       Failure(s"property '${keys.mkString(".")}' could not be resolved in collection type")
