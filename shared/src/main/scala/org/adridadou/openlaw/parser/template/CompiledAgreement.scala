@@ -17,7 +17,7 @@ final case class CompiledAgreement(
   clock: Clock = Clock.systemDefaultZone,
 ) extends CompiledTemplate {
 
-  private val endOfParagraph = "(.)*[\\ |\t|\r]*\n[\\ |\t|\r]*\n[\\ |\t|\r|\n]*".r
+  private val endOfParagraph = "(.)*[ |\t|\r]*\n[ |\t|\r]*\n[ |\t|\r|\n]*".r
 
   def structuredMainTemplate(executionResult:OpenlawExecutionState): Result[StructuredAgreement] =
     structured(executionResult, None, mainTemplate = true)
@@ -150,7 +150,7 @@ final case class CompiledAgreement(
                renderedElements :+ VariableElement(variableDefinition.name, Some(variableType), list, dependencies)
              }
            }
-          case Left(_) =>
+          case Failure(_,_) =>
             // TODO: Should ignore failure?
             Success(renderedElements)
         }

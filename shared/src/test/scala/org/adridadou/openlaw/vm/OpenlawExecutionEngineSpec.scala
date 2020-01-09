@@ -137,6 +137,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         |<%
         |[[My Variable:Text]]
         |[[Other one:Number]]
+        |[[County of Venue:Text]]
         |%>
         |
         |[[My Variable]] - [[Other one]]
@@ -160,8 +161,54 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
           case Right(newResult) =>
             newResult.state shouldBe ExecutionFinished
             newResult.subExecutions.size shouldBe 1
-            newResult.variables.map(_.name) should contain allElementsOf Seq(VariableName("My Variable"), VariableName("Other one"))
-            newResult.executedVariables should contain allElementsOf Seq(VariableName("My Variable"), VariableName("Other one"))
+            newResult.variables.map(_.name) should contain allElementsOf Seq(VariableName("My Variable"), VariableName("Other one"), VariableName("State of Governing Law"), VariableName("County of Venue"), VariableName("State of Venue"))
+            newResult.executedVariables should contain allElementsOf Seq(VariableName("My Variable"), VariableName("Other one"), VariableName("State of Governing Law"), VariableName("County of Venue"), VariableName("State of Venue"))
+            parser.forReview(newResult.agreements.head) shouldBe "<p class=\"no-section\"><br /></p><p class=\"no-section\">[[My Variable]] - 334</p><p class=\"no-section\"><br /><strong>Choice of Law and Venue.</strong> The parties agree that this Agreement is to be governed by and construed under the law of the State of [[State of Governing Law]] without regard to its conflicts of law provisions. The parties further agree that all disputes shall be resolved exclusively in state or federal court in [[County of Venue]], [[State of Venue]].</p><p class=\"no-section\">it is just another template hello<br />      </p>"
+          case Left(ex) =>
+            fail(ex)
+        }
+
+      case Left(ex) =>
+        fail(ex.message, ex)
+    }
+  }
+
+  it should "wait for a clause and then finish its execution and mark relevant variables as executed in mapping" in {
+    val text =
+      """
+        |<%
+        |[[My Variable:Text]]
+        |[[Other one:Number]]
+        |[[County of Venue 2:Text]]
+        |%>
+        |
+        |[[My Variable]] - [[Other one]]
+        |
+        |[[_:Clause(
+        |name:"A Clause";
+        |parameters:
+        |County of Venue -> County of Venue 2
+        |)]]
+      """.stripMargin
+
+    val text2 =
+      """
+        |**Choice of Law and Venue.** The parties agree that this Agreement is to be governed by and construed under the law of the State of [[State of Governing Law]] without regard to its conflicts of law provisions. The parties further agree that all disputes shall be resolved exclusively in state or federal court in [[County of Venue]], [[State of Venue]].
+        |
+        |it is just another template [[My Variable 2:Text]]""".stripMargin
+    val compiledTemplate = compile(text)
+    val otherCompiledTemplate = compile(text2)
+    val parameters = TemplateParameters("My Variable 2" -> "hello", "Other one" -> "334")
+
+    engine.execute(compiledTemplate, parameters, Map()) match {
+      case Right(result) =>
+        result.state shouldBe ExecutionWaitForTemplate(VariableName("@@anonymous_1@@"),TemplateSourceIdentifier(TemplateTitle("a clause")), executionType = ClauseExecution)
+        engine.resumeExecution(result, Map(TemplateSourceIdentifier(TemplateTitle("A Clause")) -> otherCompiledTemplate)) match {
+          case Right(newResult) =>
+            newResult.state shouldBe ExecutionFinished
+            newResult.subExecutions.size shouldBe 1
+            newResult.variables.map(_.name) should contain allElementsOf Seq(VariableName("My Variable"), VariableName("Other one"), VariableName("State of Governing Law"), VariableName("County of Venue 2"), VariableName("State of Venue"))
+            newResult.executedVariables should contain allElementsOf Seq(VariableName("My Variable"), VariableName("Other one"), VariableName("State of Governing Law"), VariableName("County of Venue 2"), VariableName("State of Venue"))
             parser.forReview(newResult.agreements.head) shouldBe "<p class=\"no-section\"><br /></p><p class=\"no-section\">[[My Variable]] - 334</p><p class=\"no-section\"><br /><strong>Choice of Law and Venue.</strong> The parties agree that this Agreement is to be governed by and construed under the law of the State of [[State of Governing Law]] without regard to its conflicts of law provisions. The parties further agree that all disputes shall be resolved exclusively in state or federal court in [[County of Venue]], [[State of Venue]].</p><p class=\"no-section\">it is just another template hello<br />      </p>"
           case Left(ex) =>
             fail(ex)

@@ -3,7 +3,7 @@ package org.adridadou.openlaw.parser.template
 import org.adridadou.openlaw.OpenlawValue
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.variableTypes.VariableType
-import org.adridadou.openlaw.result.{Result, Success}
+import org.adridadou.openlaw.result.Result
 
 final case class MappingExpression(expression: Expression, scopeExecutionResult: TemplateExecutionResult) extends Expression {
   override def missingInput(executionResult: TemplateExecutionResult): Result[List[VariableName]] =
@@ -20,5 +20,5 @@ final case class MappingExpression(expression: Expression, scopeExecutionResult:
     expression.evaluate(scopeExecutionResult)
 
   override def variables(executionResult: TemplateExecutionResult): Result[List[VariableName]] =
-    Success(Nil)
+    expression.variables(scopeExecutionResult)
 }
