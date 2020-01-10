@@ -47,7 +47,7 @@ final case class EthereumEventFilterOracle(parser: OpenlawTemplateLanguageParser
                 val result = for {
                   structureType <- generateStructureType(name, eventFilterDefinition, executionResult)
                   cast <- structureType.cast(event.values.asJson.noSpaces, executionResult)
-                  child <- executionResult.startEphemeralExecution(name, cast, structureType)
+                  child <- executionResult.withVariable(name, cast, structureType)
                   addressOption <- eventFilterDefinition.contractAddress.evaluate(child)
                   eventTypeOption <- eventFilterDefinition.eventType.evaluate(child)
                   conditionalOption <- eventFilterDefinition.conditionalFilter.evaluate(child)

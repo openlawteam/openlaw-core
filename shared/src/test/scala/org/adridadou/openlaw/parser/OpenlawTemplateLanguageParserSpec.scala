@@ -4,7 +4,6 @@ import java.time.{Clock, LocalDateTime, ZoneOffset}
 import java.util.concurrent.atomic.AtomicInteger
 
 import org.adridadou.openlaw.{OpenlawMap, OpenlawString}
-
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes._
@@ -1794,7 +1793,7 @@ here""".stripMargin
         |Test simple template
       """.stripMargin
 
-    executeTemplate(text, Map(), Map(), Map(ServiceName("MyService") -> SignatureServiceDefinition().abi)) match {
+    executeTemplate(text, Map(), Map(), Map(ServiceName("MyService") -> IntegratedServiceDefinition.signatureDefinition)) match {
       case Right(executionResult) =>
         val Success(validationResult) = executionResult.validateExecution
         validationResult.missingIdentities shouldBe Seq(VariableName("Signatory"))

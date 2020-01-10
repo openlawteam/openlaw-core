@@ -30,7 +30,7 @@ We have a detailed FAQ on our website.
 
 We also have an active OpenLaw Community Slack:
 
-* [Join the OpenLaw Community Slack Team](https://join.slack.com/t/openlaw-community/shared_invite/enQtMzY1MTA2ODY3ODg5LTc0ZGQ4OTEwMDEyMGUxMzJmMDVmNzM1ODRmNTdkNDIyNDkyOGU0NmRkMmRlMmY3ZTMwYzNlOTFiMzUwZjJkOTk)
+* [Join the OpenLaw Community Slack Team](https://join.slack.com/t/openlaw-community/shared_invite/enQtMzY1MTA2ODY3ODg5LTg5NjA2ZjAzMjY3YzI0NTU2NmU3ZmU5ZGQ0NjE3YjdkNjRjZGJlNjFjNjg1NzZiM2Q3YjZhNGEzYzEwYTBiMjU)
     * Even though Slack is a chat service, sometimes it takes several hours for OpenLaw team members to respond &mdash; however, we'll get to your query as soon as we can! Our team is distributed across timezones and wants to help you.
     * Use the `#general` channel for general questions or discussion about OpenLaw.
     * Use the `#bugs` channel for reporting bugs with the OpenLaw application (as distinct from bugs you encounter in running one of our libraries &mdash; for those, you should open an issue as discussed [below](#reporting-bugs).

@@ -13,7 +13,7 @@ import io.circe.syntax._
 import org.adridadou.openlaw.values.{ContractId, TemplateParameters, TemplateTitle}
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.variableTypes._
-import org.adridadou.openlaw.{OpenlawMap, OpenlawValue}
+import org.adridadou.openlaw.{OpenlawMap, OpenlawNativeValue, OpenlawValue}
 import org.adridadou.openlaw.oracles.{ExternalSignatureProof, OpenlawSignatureProof}
 import org.adridadou.openlaw.result.{Failure, FailureCause, Result, ResultNel, Success}
 import org.adridadou.openlaw.vm.Executions
@@ -26,6 +26,8 @@ import cats.data.NonEmptyList
 import cats.data.Validated.{Invalid, Valid}
 
 trait TemplateExecutionResult {
+
+	private val expressionParser = new ExpressionParserService
   def id:TemplateExecutionResultId
   def clock:Clock
   def templateDefinition:Option[TemplateDefinition]
@@ -47,21 +49,45 @@ trait TemplateExecutionResult {
   def executions:Map[ActionIdentifier, Executions]
   def info:OLInformation
   def externalCallStructures: Map[ServiceName, IntegratedServiceDefinition]
-  def hasSigned(email: Email):Boolean =
+
+	def evaluate[T](variableName:VariableName)(implicit classTag:ClassTag[T]): Result[T] =
+		evaluate(variableName.name)
+
+	def evaluate[T](expr:String)(implicit classTag:ClassTag[T]): Result[T] =
+		parseExpression(expr).flatMap(evaluate[T])
+
+	def evaluate[T](expr:Expression)(implicit classTag:ClassTag[T]): Result[T] =
+		expr.evaluate(this).flatMap {
+			case Some(value) =>
+				convert[T](value)
+			case None =>
+				Failure(s"could not resolve ${expr.toString}")
+		}
+
+	@tailrec
+	private def convert[T](value: Any)(implicit classTag:ClassTag[T]): Result[T] = value match {
+		case v:T => Success(v)
+		case v: OpenlawNativeValue => Failure(s"conversion error. Was expecting ${classTag.runtimeClass.getName} but got ${value.getClass.getName}")
+		case v:OpenlawValue => convert[T](v.underlying)
+		case _ => Failure(s"conversion error. Was expecting ${classTag.runtimeClass.getName} but got ${value.getClass.getName}")
+	}
+
+	def parseExpression(expr:String): Result[Expression] = expressionParser.parseExpression(expr)
+
+	def hasSigned(email: Email):Boolean =
     if(signatureProofs.contains(email)) true else parentExecution.exists(_.hasSigned(email))
 
-  def findExecutionResult(executionResultId: TemplateExecutionResultId): Option[TemplateExecutionResult] = {
+  def findExecutionResult(executionResultId: TemplateExecutionResultId): Option[TemplateExecutionResult] =
     if(id === executionResultId) {
       Some(this)
     } else {
       subExecutions.values.flatMap(_.findExecutionResult(executionResultId)).headOption
     }
-  }
 
   def getVariable(variable:VariableDefinition):Option[VariableDefinition] =
     getVariable(variable.name)
 
-  def getVariable(name:VariableName):Option[VariableDefinition] = {
+  def getVariable(name:VariableName):Option[VariableDefinition] =
     if(this.sectionNameMappingInverse.contains(name)) {
       this.variables.find(definition => definition.name === name && definition.varType(this) === SectionType)
     } else {
@@ -78,7 +104,6 @@ trait TemplateExecutionResult {
             .flatMap(_.getVariable(name))
       }
     }
-  }
 
   def getVariable(name:String):Option[VariableDefinition] =
     getVariable(VariableName(name))
@@ -100,11 +125,10 @@ trait TemplateExecutionResult {
   def getAlias(name:String):Option[Expression] =
     getAlias(VariableName(name))
 
-  def getAliasOrVariableType(name:VariableName): Result[VariableType] = {
+  def getAliasOrVariableType(name:VariableName): Result[VariableType] =
     getExpression(name)
       .map(_.expressionType(this))
       .getOrElse(Failure(s"${name.name} cannot be resolved!"))
-  }
 
   def getVariables:Seq[VariableDefinition] =
     variables
@@ -186,7 +210,6 @@ trait TemplateExecutionResult {
                   .names
                   .filter(name => structureType.structure.typeDefinition(name).varType(result) === IdentityType)
                   .map(name => VariableType.convert[Identity](values(name)))
-                  .toList
                   .sequence
               }
 
@@ -200,7 +223,6 @@ trait TemplateExecutionResult {
                   .names
                   .filter(name => structureType.structure.typeDefinition(name).varType(result) === ExternalSignatureType)
                   .map(name => VariableType.convert[ExternalSignature](values(name)))
-                  .toList
                   .sequence
                   .map(_.flatMap(_.identity))
               }
@@ -410,7 +432,7 @@ trait TemplateExecutionResult {
   def getAllExecutionResults:Seq[TemplateExecutionResult] =
     subExecutions.values.flatMap(_.getAllExecutionResults).toSeq ++ Seq(this)
 
-  def startEphemeralExecution(name:VariableName, value:OpenlawValue, varType:VariableType): Result[TemplateExecutionResult] =
+  def withVariable(name:VariableName, value:OpenlawValue, varType:VariableType): Result[OpenlawExecutionState] =
     this.getAliasOrVariableType(name) match {
       case Success(_) =>
         Failure(s"${name.name} has already been defined!")
@@ -426,8 +448,7 @@ trait TemplateExecutionResult {
             clock = clock,
             parentExecution = Some(this),
             executions = this.executions,
-            variableRedefinition = VariableRedefinition()
-          )
+            variableRedefinition = VariableRedefinition())
 
 					val r = result.registerNewType(varType) match {
 						case Success(newResult) => newResult
@@ -486,6 +507,21 @@ sealed trait ExecutionType
 case object TemplateExecution extends ExecutionType
 case object ClauseExecution extends ExecutionType
 case object BlockExecution extends ExecutionType
+
+object OpenlawExecutionState {
+	val empty: OpenlawExecutionState = OpenlawExecutionState(
+		id = TemplateExecutionResultId(s"@@anonymous_main_template_id@@"),
+		info = OLInformation(),
+		template = CompiledAgreement(),
+		executions = Map(),
+		executionType = TemplateExecution,
+		remainingElements = mutable.Buffer(),
+		clock = Clock.systemDefaultZone,
+		signatureProofs = Map(),
+		parameters = TemplateParameters(),
+		variableRedefinition = VariableRedefinition()
+	)
+}
 
 final case class OpenlawExecutionState(
                                     id:TemplateExecutionResultId,
@@ -828,6 +864,21 @@ final case class OpenlawExecutionState(
     }
   }
 
+	def buildStructureValueFromVariables:Result[OpenlawMap[VariableName, OpenlawValue]] =
+		for {
+			values <- variablesInternal.map(variable => variable.evaluate(this).map(variable.name -> _)).toList.sequence
+		} yield OpenlawMap(values.flatMap({case (name, optValue) => optValue.map(name -> _)}).toMap)
+
+	def buildStructureFromVariables: Structure =
+		buildStructure(variablesInternal.map(variable => variable.name -> variable).toMap)
+
+	def buildStructure(typeDefinition: Map[VariableName, VariableDefinition]): Structure = {
+		Structure(
+			typeDefinition = typeDefinition,
+			names = typeDefinition.keys.toList,
+			types = typeDefinition.map({case (name, variable) => name -> variable.varType(this)})
+		)
+	}
 }
 
 final case class StructuredAgreementId(id:String)
