@@ -158,7 +158,6 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
   .crossType(CrossType.Pure) // the project does not have separate sources for JVM and JS
   .in(file("shared"))
   .jvmSettings(
-    scapegoatVersion in ThisBuild := "1.3.8",
     libraryDependencies ++= Seq(
       //circe is used to serialize / deserialize json
       "io.circe"                %% "circe-core"          % circeV,
