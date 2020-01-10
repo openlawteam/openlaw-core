@@ -30,12 +30,10 @@ trait JsonRules extends GlobalRules with StringBuilding{
 
   // the root rule
   def jsonDefinition = rule {
-    WhiteSpace ~ (
       JsonObject |
       JsonArray |
       JsonTrue |
       JsonFalse
-      )
   }
 
   def JsonObject: Rule1[Json] = rule {

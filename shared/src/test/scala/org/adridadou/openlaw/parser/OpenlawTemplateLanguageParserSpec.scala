@@ -1379,7 +1379,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
     structureAgreement(text) match {
       case Right(_) =>
         fail("should fail")
-      case Left(ex) => ex.message shouldBe "Conditional expression number+401 is of type NumberType instead of YesNo"
+      case Left(ex) => ex.message shouldBe "Conditional expression number + 401 is of type NumberType instead of YesNo"
     }
   }
 
