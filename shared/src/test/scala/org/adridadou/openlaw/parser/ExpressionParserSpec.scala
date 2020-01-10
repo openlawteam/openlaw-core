@@ -1,7 +1,7 @@
 package org.adridadou.openlaw.parser
 
 import org.adridadou.openlaw.parser.template._
-import org.adridadou.openlaw.parser.template.expressions.{BooleanExpression, ComparisonExpression}
+import org.adridadou.openlaw.parser.template.expressions.{BooleanExpression, ComparisonExpression, ParensExpression}
 import org.adridadou.openlaw.result.{Failure, Success}
 import org.scalatest._
 
@@ -77,19 +77,25 @@ class ExpressionParserSpec  extends FlatSpec with Matchers {
     }
   }
 
-  it should "parse the expression correctly" in {
+  it should "use operator precedence to parse the expression" in {
     val text = "contract = signed && Variable 2 > 10"
 
     service.parseExpression(text) match {
-      case Success(BooleanExpression(left, right, boolOp)) =>
-        left match {
-          case ComparisonExpression(contract, signed, op) =>
-
-        }
-        succeed
+      case Success(BooleanExpression(_:ComparisonExpression, _:ComparisonExpression, And)) =>
       case Success(ComparisonExpression(left, right, op)) =>
         println(text)
         fail(s"left:${left}, leftType ${left.getClass.getSimpleName}, right:${right}, rightType ${right.getClass.getSimpleName} op:${op}")
+      case Success(other) =>
+        fail(s"expression should be a boolean expression, instead it is ${other.getClass.getSimpleName} ${other}")
+      case Failure(_, message) => fail(message)
+    }
+  }
+
+  it should "parse that correctly" in {
+    val text = "fill in the draft.state = \"done\" && (Variable 2 > 10)"
+
+    service.parseExpression(text) match {
+      case Success(BooleanExpression(_:ComparisonExpression, ParensExpression(_:ComparisonExpression), And)) =>
       case Success(other) =>
         fail(s"expression should be a boolean expression, instead it is ${other.getClass.getSimpleName} ${other}")
       case Failure(_, message) => fail(message)

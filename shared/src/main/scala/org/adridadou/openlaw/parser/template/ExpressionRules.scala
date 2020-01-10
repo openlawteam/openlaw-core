@@ -30,11 +30,11 @@ trait ExpressionRules extends JsonRules {
   }
 
   def BooleanPartial: Rule1[PartialOperation] = rule {
-    booleanOperation ~ wsNoReturn ~ Term ~> ((op:String, expr:Expression) => PartialOperation(op, expr))
+    booleanOperation ~ wsNoReturn ~ (Term | Factor) ~> ((op:String, expr:Expression) => PartialOperation(op, expr))
   }
 
   def ValuePartial: Rule1[PartialOperation] = rule {
-    valueOperation ~ wsNoReturn ~ SubTerm ~> ((op:String, expr:Expression) => PartialOperation(op, expr))
+    valueOperation ~ wsNoReturn ~ (SubTerm | Factor) ~> ((op:String, expr:Expression) => PartialOperation(op, expr))
   }
 
   def Term: Rule1[Expression] = rule {
