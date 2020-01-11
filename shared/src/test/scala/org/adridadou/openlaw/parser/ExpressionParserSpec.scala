@@ -84,7 +84,7 @@ class ExpressionParserSpec  extends FlatSpec with Matchers {
       case Success(BooleanExpression(_:ComparisonExpression, _:ComparisonExpression, And)) =>
       case Success(ComparisonExpression(left, right, op)) =>
         println(text)
-        fail(s"left:${left}, leftType ${left.getClass.getSimpleName}, right:${right}, rightType ${right.getClass.getSimpleName} op:${op}")
+        fail(s"left:$left, leftType ${left.getClass.getSimpleName}, right:$right, rightType ${right.getClass.getSimpleName} op:$op")
       case Success(other) =>
         fail(s"expression should be a boolean expression, instead it is ${other.getClass.getSimpleName} ${other}")
       case Failure(_, message) => fail(message)
