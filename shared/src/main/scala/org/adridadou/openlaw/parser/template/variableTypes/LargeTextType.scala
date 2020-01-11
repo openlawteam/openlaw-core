@@ -17,7 +17,7 @@ case object LargeTextType extends VariableType("LargeText") {
 
   override def divide(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] =
     combineConverted[OpenlawString, OpenlawValue](optLeft, optRight) {
-      case (left, right) => Success(TemplatePath(Seq(left, right)))
+      case (left, right) => Success(TemplatePath(List(left, right)))
     }
 
   override def operationWith(rightType: VariableType, operation: ValueOperation): VariableType = operation match {
