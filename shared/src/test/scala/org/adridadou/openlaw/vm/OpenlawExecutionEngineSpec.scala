@@ -728,6 +728,20 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     }
   }
 
+  it should "look at sub execution results for variable type" in {
+    val mainTemplate = compile("""[[c:Clause("clause")]]""")
+    val clauseTemplate = compile(
+      """[[my variable:Number]]""".stripMargin)
+
+    engine.execute(mainTemplate, TemplateParameters(), Map(TemplateSourceIdentifier(TemplateTitle("clause")) -> clauseTemplate,TemplateSourceIdentifier(TemplateTitle("clause")) -> clauseTemplate)) match {
+      case Right(result) =>
+        val Some(variable) = result.getVariable("my variable")
+        variable.varType(result) shouldBe NumberType
+      case Left(ex) =>
+        fail(ex.message, ex)
+    }
+  }
+
   it should "fail if it makes a divide by zero error" in {
     val template =
       compile("""
