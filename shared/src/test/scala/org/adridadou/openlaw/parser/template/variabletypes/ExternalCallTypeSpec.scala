@@ -8,7 +8,7 @@ import io.circe.parser._
 import io.circe.syntax._
 import org.adridadou.openlaw.{OpenlawBigDecimal, oracles}
 import org.adridadou.openlaw.oracles.{Caller, ExternalCallOracle, LoadTemplate, OpenlawSignatureOracle, UserId}
-import org.adridadou.openlaw.parser.template.{ActionIdentifier, ExecutionFinished, ExpressionParserService, OpenlawTemplateLanguageParserService, VariableDefinition, VariableName, variableTypes}
+import org.adridadou.openlaw.parser.template.{ActionIdentifier, ExecutionFinished, ExpressionParserService, OpenlawTemplateLanguageParserService, VariableDefinition, VariableMemberKey, VariableName, variableTypes}
 import org.adridadou.openlaw.result.{Failure, Success}
 import org.adridadou.openlaw.result.Implicits.RichResult
 import org.adridadou.openlaw.values.{ContractDefinition, ContractId, TemplateId, TemplateParameters}
@@ -89,7 +89,7 @@ class ExternalCallTypeSpec extends FlatSpec with Matchers {
     } shouldBe true
 
     val Some((exec, varDef)) = vm.getAllExecutedVariables(ExternalCallType).headOption
-    varDef.varType(exec).keysType(Seq("result", "sum"), varDef, exec) match {
+    varDef.varType(exec).keysType(List(VariableMemberKey("result"), VariableMemberKey("sum")), varDef, exec) match {
       case Success(variableType) => variableType.name shouldBe "Number"
       case Failure(_, msg) => fail(msg)
     }
@@ -176,7 +176,7 @@ class ExternalCallTypeSpec extends FlatSpec with Matchers {
         |""".stripMargin
     )
     val serviceName = ServiceName("Sum Service")
-    val executionOracles = Seq(ExternalCallOracle(TestCryptoService, Map(serviceName -> serverAccount.address)))
+    val executionOracles = List(ExternalCallOracle(TestCryptoService, Map(serviceName -> serverAccount.address)))
     val externalCallStructures = Map(serviceName -> abi)
 
     val vm = vmProvider.create(definition, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), executionOracles, externalCallStructures)

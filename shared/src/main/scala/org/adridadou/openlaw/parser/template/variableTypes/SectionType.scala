@@ -54,9 +54,9 @@ case object SectionType extends VariableType(name = "Section") with NoShowInForm
 }
 
 class SectionFormatter extends Formatter {
-  override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] =
+  override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[List[AgreementElement]] =
     VariableType.convert[SectionInfo](value) map {
-      case SectionInfo(_, _, referenceValue) => Seq(FreeText(Text(referenceValue)))
+      case SectionInfo(_, _, referenceValue) => List(FreeText(Text(referenceValue)))
     }
 }
 

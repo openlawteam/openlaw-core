@@ -7,8 +7,8 @@ import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 object ImageFormatter extends Formatter {
-  def format(value:OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] = value match {
-    case OpenlawString(url) => Success(Seq(ImageElement(url)))
+  def format(value:OpenlawValue, executionResult: TemplateExecutionResult): Result[List[AgreementElement]] = value match {
+    case OpenlawString(url) => Success(List(ImageElement(url)))
     case _ => Failure("unsupported image value found: $value")
   }
 }
@@ -22,7 +22,7 @@ case object ImageType extends VariableType("Image") {
     case OneValueParameter(expr) =>
       expr
         .evaluate(executionResult)
-        .flatMap(opt => opt.map(value => VariableType.convert[OpenlawString](value).map(OpenlawString(_))).sequence)
+        .flatMap(opt => opt.map(value => VariableType.convert[OpenlawString](value).map(OpenlawString)).sequence)
     case _ => Failure("constructor only handles single value")
   }
 

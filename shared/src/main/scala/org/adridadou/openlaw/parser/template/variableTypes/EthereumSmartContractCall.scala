@@ -89,7 +89,7 @@ final case class EthereumSmartContractCall(
   def getInterfaceAddress(executionResult: TemplateExecutionResult): Result[String] =
     getMetadata(abi, executionResult).map(_.address)
 
-  def parameterToIgnore(executionResult: TemplateExecutionResult): Result[Seq[String]] =
+  def parameterToIgnore(executionResult: TemplateExecutionResult): Result[List[String]] =
     (for {
       signatureParameterValue <- signatureParameter
       signatureRSVParameterValue <- signatureRSVParameter
@@ -98,18 +98,16 @@ final case class EthereumSmartContractCall(
           .evaluate(executionResult)
           .flatMap {
             case Some(value) =>
-              VariableType.convert[OpenlawString](value).map(x => Some(Seq(x)))
+              VariableType.convert[OpenlawString](value).map(x => Some(List(x)))
             case None =>
-              signatureRSVParameterValue.getRsv(executionResult).map(_.map(rsv => Seq(rsv.r, rsv.s, rsv.v)))
+              signatureRSVParameterValue.getRsv(executionResult).map(_.map(rsv => List(rsv.r, rsv.s, rsv.v)))
           }
           .sequence
       }
-    } yield result).getOrElse(Success(Seq()))
+    } yield result).getOrElse(Success(Nil))
 
-  override def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions:Seq[OpenlawExecution]): Result[Option[LocalDateTime]] = {
-
-    for {
-      executions <- pastExecutions.toList.map(VariableType.convert[EthereumSmartContractExecution]).sequence
+  override def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions:List[OpenlawExecution]): Result[Option[LocalDateTime]] = for {
+      executions <- pastExecutions.map(VariableType.convert[EthereumSmartContractExecution]).sequence
       result <- {
         val callToRerun: Option[LocalDateTime] = executions
           .find { execution =>
@@ -149,9 +147,8 @@ final case class EthereumSmartContractCall(
       }.sequence
      }
    } yield result
-  }
 
-  override def identifier(executionResult: TemplateExecutionResult): Result[ActionIdentifier] = {
+  override def identifier(executionResult: TemplateExecutionResult): Result[ActionIdentifier] =
     for {
       address <- address.evaluate(executionResult).flatMap(_.map(EthAddressType.convert).sequence)
       arguments <- arguments.toList.map(_.evaluate(executionResult)).sequence.map(_.mkString(","))
@@ -169,7 +166,6 @@ final case class EthereumSmartContractCall(
         from.map(_.withLeading0x).getOrElse("")
       )
     }
-  }
 }
 
 final case class SmartContractMetadata(protocol: String, address: String) extends OpenlawNativeValue

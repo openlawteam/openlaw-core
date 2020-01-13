@@ -135,10 +135,9 @@ final case class ExternalCall(serviceName: Expression,
   def getEvery(executionResult: TemplateExecutionResult): Result[Option[Period]] =
     every.map(getPeriod(_, executionResult)).sequence
 
-  override def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions: Seq[OpenlawExecution]): Result[Option[LocalDateTime]] = {
-
+  override def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions: List[OpenlawExecution]): Result[Option[LocalDateTime]] =
     for {
-      executions <- pastExecutions.toList.map(VariableType.convert[ExternalCallExecution]).sequence
+      executions <- pastExecutions.map(VariableType.convert[ExternalCallExecution]).sequence
       result <- {
         val callToRerun: Option[LocalDateTime] = executions
           .find { execution =>
@@ -178,7 +177,6 @@ final case class ExternalCall(serviceName: Expression,
         }.sequence
       }
     } yield result
-  }
 }
 
 object ExternalCall {

@@ -1,7 +1,7 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
 import cats.implicits._
-import org.adridadou.openlaw.parser.template.{TemplateExecutionResult, VariableName}
+import org.adridadou.openlaw.parser.template.{TemplateExecutionResult, VariableMemberKey, VariableName}
 import org.adridadou.openlaw.values.ContractId
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
@@ -20,33 +20,32 @@ case object OLOwnType extends VariableType("OLInfo") with NoShowInForm {
   override def thisType: VariableType = OLOwnType
   override def getTypeClass:Class[OLInformation] = classOf[OLInformation]
 
-  override def keysType(keys: Seq[String], expr: Expression, executionResult: TemplateExecutionResult): Result[VariableType] = keys.toList match {
+  override def keysType(keys: List[VariableMemberKey], expr: Expression, executionResult: TemplateExecutionResult): Result[VariableType] = keys match {
     case Nil => Success(OLOwnType)
     case _ :: Nil => Success(TextType)
     case _ => Failure(s"Openlaw contract info has only one level of properties. invalid property access ${keys.mkString(".")}")
   }
 
-  override def access(value: OpenlawValue, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = {
-    keys.toList match {
+  override def access(value: OpenlawValue, name:VariableName, keys: List[VariableMemberKey], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = {
+    keys match {
       case Nil => Success(Some(executionResult.info))
-      case head::Nil => accessProperty(executionResult.info, head).map(Some(_))
+      case VariableMemberKey(Left(VariableName(head)))::Nil => accessProperty(executionResult.info, head).map(Some(_))
       case _ => Failure(s"Openlaw contract info has only one level of properties. invalid property access ${keys.mkString(".")}")
     }
   }
 
-  override def validateKeys(name:VariableName, keys: Seq[String], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] = keys.toList match {
-    case Nil => Success(())
-    case head::Nil => checkProperty(head)
+  override def validateKeys(name:VariableName, keys: List[VariableMemberKey], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] = keys match {
+    case Nil => Success.unit
+    case VariableMemberKey(Left(VariableName(head)))::Nil => checkProperty(head)
     case _ => Failure(s"invalid property ${keys.mkString(".")}")
   }
 
-  private def accessProperty(info: OLInformation, property: String): Result[String] = {
+  private def accessProperty(info: OLInformation, property: String): Result[String] =
     property.toLowerCase().trim match {
       case "id" => Success(info.id.map(_.id).getOrElse("-"))
       case "profileaddress" => Success(info.profileAddress.map(_.withLeading0x).getOrElse("-"))
       case _ => Failure(s"property '$property' not found for type 'OLInfo'")
     }
-  }
 
   private def checkProperty(key:String): Result[Unit] = accessProperty(OLInformation(id = None, profileAddress = None), key) match {
     case Left(ex) => Failure(ex)

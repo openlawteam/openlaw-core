@@ -17,7 +17,7 @@ import org.adridadou.openlaw.{OpenlawString, OpenlawValue}
 
 trait TemplatePart
 
-final case class TemplateText(elem: Seq[TemplatePart]) extends TemplatePart
+final case class TemplateText(elem: List[TemplatePart]) extends TemplatePart
 
 case object EmptyTemplatePart extends TemplatePart
 
@@ -29,9 +29,9 @@ trait ConstantExpression extends Expression {
 
   override def validate(executionResult: TemplateExecutionResult): Result[Unit] = Success(())
 
-  override def variables(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] = Success(Seq())
+  override def variables(executionResult: TemplateExecutionResult): Result[List[VariableName]] = Success(Nil)
 
-  override def missingInput(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] = Success(Seq())
+  override def missingInput(executionResult: TemplateExecutionResult): Result[List[VariableName]] = Success(Nil)
 }
 
 final case class NoopConstant(varType:VariableType) extends ConstantExpression {
@@ -74,11 +74,11 @@ final case class ForEachBlock(variable:VariableName, expression: Expression, blo
     expression.expressionType(executionResult).flatMap {
       case listType:CollectionType =>
         val newVariable = VariableDefinition(variable, Some(VariableTypeDefinition(listType.typeParameter.name)))
-        val specialCodeBlock = CodeBlock(Seq(newVariable))
+        val specialCodeBlock = CodeBlock(List(newVariable))
 
         Success(CompiledDeal(
           TemplateHeader(),
-          Block(Seq(specialCodeBlock) ++ block.elems),
+          Block(List(specialCodeBlock) ++ block.elems),
           VariableRedefinition(),
           executionResult.clock), listType.typeParameter)
       case otherType =>
@@ -87,11 +87,11 @@ final case class ForEachBlock(variable:VariableName, expression: Expression, blo
   }
 }
 
-final case class ConditionalBlockSet(blocks:Seq[ConditionalBlock]) extends TemplatePart
+final case class ConditionalBlockSet(blocks:List[ConditionalBlock]) extends TemplatePart
 
 case object AEnd extends TemplatePart
 
-final case class CodeBlock(elems:Seq[TemplatePart]) extends TemplatePart
+final case class CodeBlock(elems:List[TemplatePart]) extends TemplatePart
 
 object Section {
   implicit val sectionEnc:Encoder[Section] = deriveEncoder

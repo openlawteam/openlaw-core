@@ -106,15 +106,15 @@ final case class DefinedDomainType(domain:DomainInformation, typeName:String) ex
 
 	override def defaultFormatter: Formatter = new NoopFormatter
 
-  override def access(value: OpenlawValue, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] =
+  override def access(value: OpenlawValue, name:VariableName, keys: List[VariableMemberKey], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] =
 		domain.typeDefinition.access(value, name, keys, executionResult)
 
   override def getTypeClass: Class[_ <: OpenlawValue] = domain.typeDefinition.getTypeClass
 
-  override def keysType(keys: Seq[String], expression: Expression, executionResult: TemplateExecutionResult): Result[VariableType] =
+  override def keysType(keys: List[VariableMemberKey], expression: Expression, executionResult: TemplateExecutionResult): Result[VariableType] =
 		domain.typeDefinition.keysType(keys, expression, executionResult)
 
-  override def validateKeys(name:VariableName, keys: Seq[String], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] =
+  override def validateKeys(name:VariableName, keys: List[VariableMemberKey], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] =
 		domain.typeDefinition.validateKeys(name, keys, expression, executionResult)
 
   override def cast(value: String, executionResult: TemplateExecutionResult): Result[OpenlawValue] =

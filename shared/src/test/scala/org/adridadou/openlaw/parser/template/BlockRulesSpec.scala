@@ -45,19 +45,19 @@ class BlockRulesSpec extends FlatSpec with Matchers with TryValues with EitherVa
 
   it should "parse a table column entry with a conditional" in {
     val Success(value1) = conditionalBlock("""{{conditional1 "Question" => Question text}}""")
-    value1.block shouldBe Block(Vector(TemplateText(List(Text("Question text")))))
+    value1.block shouldBe Block(List(TemplateText(List(Text("Question text")))))
     value1.conditionalExpression shouldBe VariableDefinition(VariableName("conditional1"), Some(VariableTypeDefinition(YesNoType.name)), Some("Question"))
 
     val Success(value2) = conditionalBlock(""" {{conditional1 "Question" => Question text}}""")
-    value2.block shouldBe Block(Vector(TemplateText(List(Text("Question text")))))
+    value2.block shouldBe Block(List(TemplateText(List(Text("Question text")))))
     value2.conditionalExpression shouldBe VariableDefinition(VariableName("conditional1"), Some(VariableTypeDefinition(YesNoType.name)), Some("Question"))
 
     val Success(value3) = conditionalBlock(""" {{conditional1 "Question" => Question text}} """)
-    value3.block shouldBe Block(Vector(TemplateText(List(Text("Question text")))))
+    value3.block shouldBe Block(List(TemplateText(List(Text("Question text")))))
     value3.conditionalExpression shouldBe VariableDefinition(VariableName("conditional1"), Some(VariableTypeDefinition(YesNoType.name)), Some("Question"))
 
     val Success(value4) = conditionalBlock("""{{conditional1 "Question" => Question text}} """)
-    value4.block shouldBe Block(Vector(TemplateText(List(Text("Question text")))))
+    value4.block shouldBe Block(List(TemplateText(List(Text("Question text")))))
     value4.conditionalExpression shouldBe VariableDefinition(VariableName("conditional1"), Some(VariableTypeDefinition(YesNoType.name)), Some("Question"))
 
   }

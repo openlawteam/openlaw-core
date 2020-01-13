@@ -19,6 +19,10 @@ import scala.reflect.ClassTag
   */
 trait ExpressionRules extends JsonRules {
 
+  def FunctionRule: Rule1[OLFunction] = rule {
+    wsNoReturn ~ variableName ~ wsNoReturn ~ "=>" ~ wsNoReturn ~ ExpressionRule ~> ((name:VariableName, expression:Expression) => OLFunction(VariableDefinition(name), expression))
+  }
+
   def ExpressionRule:Rule1[Expression] = rule {
     BooleanTerm | Term | SubTerm | Factor
   }
@@ -63,7 +67,7 @@ trait ExpressionRules extends JsonRules {
     case _ => throw new RuntimeException(s"unknown operation ${op}")
   }
 
-  def  Factor:Rule1[Expression] = rule {constant | conditionalVariableDefinition | variableMemberInner | variableName | Parens | UnaryMinus | UnaryNot }
+  def  Factor:Rule1[Expression] = rule {constant | conditionalVariableDefinition | variableMemberInner | functionCall | variableName | Parens | UnaryMinus | UnaryNot }
 
   def Parens:Rule1[Expression] = rule { '(' ~ wsNoReturn ~ ExpressionRule ~ wsNoReturn ~ ')' ~> ((expr:Expression) => ParensExpression(expr)) }
 
@@ -98,6 +102,10 @@ trait ExpressionRules extends JsonRules {
       })
   }
 
+  def functionCall:Rule1[OLFunctionCall] = rule {
+    variableName ~ "(" ~ (FunctionRule | ExpressionRule) ~ ")" ~> ((name:VariableName, expression:Expression) => OLFunctionCall(name, expression))
+  }
+
   def variableName:Rule1[VariableName] = rule {
     charsKeyAST ~> ((name:String) => VariableName(name.trim))
   }
@@ -117,8 +125,8 @@ trait ExpressionRules extends JsonRules {
       optional("|" ~ ws ~ formatterDefinition)  ~ ws ~
       optional(stringDefinition) ~>
       ((prefix:Option[String], name:VariableName, optVarType:Option[(VariableTypeDefinition, Option[Parameter])], formatter:Option[FormatterDefinition], desc:Option[String]) => {
-        val varTypeDefinition = optVarType.map({ case (variableType, _) => variableType})
-        val optParams = optVarType.flatMap({case(_, ordered) => ordered})
+        val varTypeDefinition = optVarType.map({ case (variableType, _) => variableType })
+        val optParams = optVarType.flatMap({ case(_, ordered) => ordered })
 
         VariableDefinition(name, varTypeDefinition , desc.map(_.trim), formatter, prefix.isDefined, optParams)
       })
@@ -136,21 +144,32 @@ trait ExpressionRules extends JsonRules {
     openS ~ wsNoReturn ~ variableDefinition ~ wsNoReturn ~ closeS
   }
 
+  def expression: Rule1[ExpressionElement] = rule {
+    openS ~ ExpressionRule ~ wsNoReturn ~ optional( wsNoReturn ~ "|" ~ formatterDefinition) ~ closeS ~> ((expr:Expression, formatter: Option[FormatterDefinition]) => ExpressionElement(expr, formatter))
+  }
+
   def variableMember: Rule1[VariableMember] = rule {
-    openS ~ wsNoReturn ~ charsKeyAST ~ oneOrMore("." ~ charsKeyAST) ~ optional( ws ~ "|" ~ formatterDefinition) ~ closeS ~>((name:String, member:Seq[String], formatter:Option[FormatterDefinition]) => VariableMember(VariableName(name), member.map(_.trim), formatter))
+    openS ~ wsNoReturn ~ variableMemberInner ~ optional( wsNoReturn ~ "|" ~ formatterDefinition) ~ closeS ~>((member:VariableMember, formatter:Option[FormatterDefinition]) => member.copy(formatter = formatter))
   }
 
   def variableMemberInner: Rule1[VariableMember] = rule {
-    charsKeyAST ~ oneOrMore("." ~ charsKeyAST) ~>((name:String, member:Seq[String]) => VariableMember(VariableName(name),member.map(_.trim), None))
+    charsKeyAST ~ oneOrMore("." ~ variableMemberKey) ~>((name:String, member:Seq[VariableMemberKey]) => VariableMember(VariableName(name),member.toList, None))
+  }
+
+  def variableMemberKey:Rule1[VariableMemberKey] = rule {
+    functionCall ~> ((funcCall:OLFunctionCall) => VariableMemberKey(funcCall)) |
+    variableName ~> ((name:VariableName) => VariableMemberKey(name))
   }
 
   def varKey: Rule1[VariableDefinition] = rule { &(openS) ~ variable }
+
+  def expressionKey: Rule1[ExpressionElement] = rule {&(openS) ~ expression}
 
   def varMemberKey: Rule1[VariableMember] = rule { &(openS) ~  variableMember}
 
   def parametersDefinition:Rule1[Parameter] = rule {
     parametersMapDefinition |
-    (oneOrMore(ws ~ ExpressionRule ~ ws).separatedBy(",") ~> {
+    (oneOrMore(ws ~ (FunctionRule | ExpressionRule) ~ ws).separatedBy(",") ~> {
      s: Seq[Expression] =>
       s.toList match {
         // the typical match for Seq() triggers a compiler bug, so this is a workaround
@@ -273,23 +292,23 @@ object Parameter {
 
 sealed trait Parameter extends OpenlawNativeValue {
   def serialize:Json
-  def variables(executionResult: TemplateExecutionResult): Result[Seq[VariableName]]
+  def variables(executionResult: TemplateExecutionResult): Result[List[VariableName]]
 }
 final case class OneValueParameter(expr:Expression) extends Parameter {
-  override def variables(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =
+  override def variables(executionResult: TemplateExecutionResult): Result[List[VariableName]] =
     expr.variables(executionResult)
 
   override def serialize: Json = this.asJson
 }
-final case class ListParameter(exprs:Seq[Expression]) extends Parameter {
-  override def variables(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =
+final case class ListParameter(exprs:List[Expression]) extends Parameter {
+  override def variables(executionResult: TemplateExecutionResult): Result[List[VariableName]] =
     exprs.toList.map(_.variables(executionResult)).sequence.map(_.flatten.distinct)
 
   override def serialize: Json = this.asJson
 }
 
 final case class Parameters(parameterMap:List[(String, Parameter)]) extends Parameter {
-  override def variables(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =
+  override def variables(executionResult: TemplateExecutionResult): Result[List[VariableName]] =
     parameterMap.map { case (_,param) => param.variables(executionResult) }.sequence.map(_.flatten.distinct)
 
   override def serialize: Json = this.asJson
@@ -297,7 +316,7 @@ final case class Parameters(parameterMap:List[(String, Parameter)]) extends Para
 
 final case class MappingParameter(mappingInternal: Map[String, Expression]) extends Parameter {
   def mapping:Map[VariableName, Expression] = mappingInternal.map({case (key,value) => VariableName(key) -> value})
-  override def variables(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =
+  override def variables(executionResult: TemplateExecutionResult): Result[List[VariableName]] =
     mapping.values.toList.map(_.variables(executionResult)).sequence.map(_.flatten.distinct)
 
   override def serialize: Json = this.asJson

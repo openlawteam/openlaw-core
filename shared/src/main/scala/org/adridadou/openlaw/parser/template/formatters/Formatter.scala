@@ -8,13 +8,13 @@ import org.adridadou.openlaw.result.{Result, Success}
   * Created by davidroon on 09.06.17.
   */
 trait Formatter {
-  def format(value:OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]]
+  def format(value:OpenlawValue, executionResult: TemplateExecutionResult): Result[List[AgreementElement]]
 }
 
 class DefaultFormatter extends Formatter {
-  override def format(value: OpenlawValue, executionResult:TemplateExecutionResult): Result[Seq[AgreementElement]] =
+  override def format(value: OpenlawValue, executionResult:TemplateExecutionResult): Result[List[AgreementElement]] =
     Success(
-      Seq(
+      List(
         FreeText(
           Text(Option(value).map(_.toString).getOrElse(""))
         )

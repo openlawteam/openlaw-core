@@ -28,7 +28,6 @@ final case class EthereumSmartContractOracle() extends OpenlawOracle[EthereumSma
       .allActions
       .flatMap { actions =>
         actions
-          .toList
           .map { info => info.identifier.map((info, _)) }
           .sequence
           .flatMap { list =>

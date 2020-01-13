@@ -67,7 +67,7 @@ class ExternalCallOracleSpec extends FlatSpec with Matchers with Checkers {
   private val definition = ContractDefinition(UserId("hello@world.com"), templateId, Map(), TemplateParameters("param1" -> "a", "param2" -> "b"))
   private val externalCallStructures = Map(serviceName -> IntegratedServiceDefinition("""[[Input:Structure(param1:Text;param2:Text)]] [[Output:Structure(result:Text)]]""").getOrThrow())
   private val oracle: ExternalCallOracle = ExternalCallOracle(TestCryptoService, Map(serviceName -> serverAccount.address))
-  private val vm = vmProvider.create(definition, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq(oracle), externalCallStructures)
+  private val vm = vmProvider.create(definition, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), List(oracle), externalCallStructures)
 
   vm(LoadTemplate(template))
 

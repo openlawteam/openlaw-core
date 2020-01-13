@@ -10,7 +10,7 @@ import org.adridadou.openlaw.result.Result
 import scala.reflect.ClassTag
 
 trait Expression {
-  def missingInput(executionResult: TemplateExecutionResult): Result[Seq[VariableName]]
+  def missingInput(executionResult: TemplateExecutionResult): Result[List[VariableName]]
 
   def validate(executionResult: TemplateExecutionResult): Result[Unit]
 
@@ -47,11 +47,11 @@ trait Expression {
   def evaluateT[U <: OpenlawValue](executionResult: TemplateExecutionResult)(implicit classTag:ClassTag[U]):Result[Option[U#T]] =
     evaluate(executionResult).flatMap(_.map(VariableType.convert[U]).sequence)
 
-  def variables(executionResult: TemplateExecutionResult): Result[Seq[VariableName]]
+  def variables(executionResult: TemplateExecutionResult): Result[List[VariableName]]
 }
 
 final case class ParensExpression(expr:Expression) extends Expression {
-  override def missingInput(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =
+  override def missingInput(executionResult: TemplateExecutionResult): Result[List[VariableName]] =
     expr.missingInput(executionResult)
 
   override def validate(executionResult: TemplateExecutionResult): Result[Unit] =
@@ -63,7 +63,7 @@ final case class ParensExpression(expr:Expression) extends Expression {
   override def evaluate(executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] =
     expr.evaluate(executionResult)
 
-  override def variables(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =
+  override def variables(executionResult: TemplateExecutionResult): Result[List[VariableName]] =
     expr.variables(executionResult)
 
   override def toString: String = s"($expr)"
