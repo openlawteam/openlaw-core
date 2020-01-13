@@ -1,6 +1,5 @@
 package org.adridadou.openlaw.oracles
 
-import java.time.LocalDateTime
 import java.util.UUID
 
 import org.adridadou.openlaw.parser.template.variableTypes._
@@ -95,6 +94,3 @@ object UserId {
   def generateNew:UserId = UserId(UUID.randomUUID().toString)
 
 }
-
-final case class OpenlawUser(userId:UserId, token: Option[String],
-                       tokenValidityDate: Option[LocalDateTime])
