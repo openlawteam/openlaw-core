@@ -236,7 +236,7 @@ trait VariableExecutionEngine {
       .flatMap { variables =>
         variables
           .filter(variable => executionResult.getVariable(variable).isEmpty)
-          .filter(variable => executionResult.getAlias(variable).isEmpty).toList match {
+          .filter(variable => executionResult.getAlias(variable).isEmpty) match {
           case Nil =>
             alias.validate(executionResult).flatMap { _ =>
               executionResult.aliasesInternal.prepend(alias)

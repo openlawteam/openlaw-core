@@ -27,7 +27,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
       templates = Map(),
       parameters = TemplateParameters()
     )
-    val vm = Option(vmProvider.create(definition, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq()))
+    val vm = Option(vmProvider.create(definition, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Nil))
 
     vm.isDefined shouldBe true
   }
@@ -43,7 +43,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
       parameters = TemplateParameters(Map(VariableName("Hello") -> "World"))
     )
 
-    val vm = vmProvider.create(definition, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq())
+    val vm = vmProvider.create(definition, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Nil)
 
     vm(LoadTemplate(template))
 
@@ -69,8 +69,8 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
       templates = Map(),
       parameters = TemplateParameters(Map(VariableName("Signatory") -> IdentityType.internalFormat(identity1).right.value))
     )
-    val vm1 = vmProvider.create(definition1, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq())
-    val vm2 = vmProvider.create(definition2, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq())
+    val vm1 = vmProvider.create(definition1, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Nil)
+    val vm2 = vmProvider.create(definition2, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Nil)
     vm1(LoadTemplate(template))
     vm2(LoadTemplate(template))
     val result1 = sign(identity1, vm1.contractId)
@@ -105,7 +105,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
 
     val vm = vmProvider.create(definition, None,
       OpenlawSignatureOracle(TestCryptoService, serverAccount.address, Map(serviceName -> serviceAccount.address)),
-      Seq(),
+      Nil,
       Map(serviceName -> IntegratedServiceDefinition.signatureDefinition))
 
     vm(LoadTemplate(template))
@@ -173,7 +173,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
 
     val contractId = definition.id(TestCryptoService)
 
-    val vm = vmProvider.create(definition, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq())
+    val vm = vmProvider.create(definition, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Nil)
     val Success(_) = vm.applyEvent(LoadTemplate(template))
     vm.executionResultState shouldBe ExecutionFinished
 
@@ -240,8 +240,8 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
       templates = Map(),
       parameters = TemplateParameters("Signatory" -> IdentityType.internalFormat(identity2).right.value)
     )
-    val vm1 = vmProvider.create(definition1, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq(StopContractOracle(TestCryptoService), ResumeContractOracle(TestCryptoService)))
-    val vm2 = vmProvider.create(definition2, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq(StopContractOracle(TestCryptoService), ResumeContractOracle(TestCryptoService)))
+    val vm1 = vmProvider.create(definition1, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), List(StopContractOracle(TestCryptoService), ResumeContractOracle(TestCryptoService)))
+    val vm2 = vmProvider.create(definition2, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), List(StopContractOracle(TestCryptoService), ResumeContractOracle(TestCryptoService)))
 
     vm1(LoadTemplate(template))
     vm2(LoadTemplate(template))
@@ -303,11 +303,11 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     val templateId = TemplateId(TestCryptoService.sha256(template))
     val definition = ContractDefinition(creatorId = UserId("hello@world.com"), mainTemplate = templateId, templates = Map(), parameters = TemplateParameters())
 
-    val vm = vmProvider.create(definition, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq())
+    val vm = vmProvider.create(definition, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Nil)
     vm(LoadTemplate(template))
 
     val values = Map(VariableName("owner") -> EthAddressType.internalFormat(EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0").right.value).right.value, VariableName("value") -> NumberType.internalFormat(BigDecimal(2939)).right.value)
-    val identifier = vm.executionResult.map(_.allActions.right.value).getOrElse(Seq()).head.identifier.right.value
+    val identifier = vm.executionResult.map(_.allActions.right.value).getOrElse(Nil).head.identifier.right.value
     val event = EthereumEventFilterEvent(identifier, EthereumHash.empty, EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0").right.value, "OpenlawSignatureEvent", values, LocalDateTime.now)
 
     val ethereumEventFilterOracle = EthereumEventFilterOracle(parser, TestCryptoService)
@@ -333,11 +333,11 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
 
     val templateId = TemplateId(TestCryptoService.sha256(template))
     val definition = ContractDefinition(creatorId = UserId("hello@world.com"), mainTemplate = templateId, templates = Map(), parameters = TemplateParameters())
-    val vm = vmProvider.create(definition, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq())
+    val vm = vmProvider.create(definition, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Nil)
     vm(LoadTemplate(template))
 
     val values = Map(VariableName("owner") -> EthAddressType.internalFormat(EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0").right.value).right.value, VariableName("value") -> NumberType.internalFormat(BigDecimal(2939)).right.value)
-    val identifier = vm.executionResult.map(_.allActions.right.value).getOrElse(Seq()).head.identifier.right.value
+    val identifier = vm.executionResult.map(_.allActions.right.value).getOrElse(Nil).head.identifier.right.value
     val event = EthereumEventFilterEvent(identifier, EthereumHash.empty, EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0").right.value, "OpenlawSignatureEvent", values, LocalDateTime.now)
 
     val ethereumEventFilterOracle = EthereumEventFilterOracle(parser, TestCryptoService)
@@ -362,7 +362,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     val templateId = TemplateId(TestCryptoService.sha256(template))
     val definition = ContractDefinition(creatorId = UserId("hello@world.com"), mainTemplate = templateId, templates = Map(), parameters = TemplateParameters())
 
-    val vm = vmProvider.create(definition, Some(EthereumAddress("0x531e0957391daff46f8a9609d799ffd067bdbbc0").right.value), OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq())
+    val vm = vmProvider.create(definition, Some(EthereumAddress("0x531e0957391daff46f8a9609d799ffd067bdbbc0").right.value), OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Nil)
     vm(LoadTemplate(template))
 
     vm.executionResult match {
@@ -387,14 +387,14 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
 
     val templateId = TemplateId(TestCryptoService.sha256(template))
     val definition = ContractDefinition(creatorId = UserId("hello@world.com"), mainTemplate = templateId, templates = Map(), parameters = TemplateParameters())
-    val vm = vmProvider.create(definition, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq(EthereumERC712Oracle(TestCryptoService)))
+    val vm = vmProvider.create(definition, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), List(EthereumERC712Oracle(TestCryptoService)))
 
     (for {
       _ <- vm.applyEvent(LoadTemplate(template))
-      _ <- vm.applyEvent(PreparedERC712SmartContractCallEvent(VariableName("Signature"), vm.executionResult.map(_.allActions.right.value).getOrElse(Seq()).head.identifier.right.value, address, EthereumSignature("0x123456789").right.value, contractAddress))
+      _ <- vm.applyEvent(PreparedERC712SmartContractCallEvent(VariableName("Signature"), vm.executionResult.map(_.allActions.right.value).getOrElse(Nil).head.identifier.right.value, address, EthereumSignature("0x123456789").right.value, contractAddress))
     } yield vm ) match {
       case Success(_) =>
-        vm.initExecution[PreparedERC712SmartContractCallExecution](vm.executionResult.map(_.allActions.right.value).getOrElse(Seq()).head.identifier.right.value).right.value shouldBe Some(PreparedERC712SmartContractCallExecution(vm.executionResult.map(_.allActions.right.value).getOrElse(Seq()).head.identifier.right.value, EthereumSignature("0x1234567809").right.value))
+        vm.initExecution[PreparedERC712SmartContractCallExecution](vm.executionResult.map(_.allActions.right.value).getOrElse(Nil).head.identifier.right.value).right.value shouldBe Some(PreparedERC712SmartContractCallExecution(vm.executionResult.map(_.allActions.right.value).getOrElse(Seq()).head.identifier.right.value, EthereumSignature("0x1234567809").right.value))
       case Failure(ex, message) =>
         fail(message, ex)
     }
@@ -413,7 +413,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     val templateId = TemplateId(TestCryptoService.sha256(template))
     val definition = ContractDefinition(creatorId = UserId("hello@world.com"), mainTemplate = templateId, templates = Map(), parameters = TemplateParameters())
 
-    val vm = vmProvider.create(definition, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq())
+    val vm = vmProvider.create(definition, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Nil)
     vm(LoadTemplate(template))
 
 
@@ -458,7 +458,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
       )
     )
 
-    val vm = vmProvider.create(definition, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Seq())
+    val vm = vmProvider.create(definition, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), Nil)
     vm(LoadTemplate(templateContent))
 
     val Some((varDef, varType)) = vm.getAllExecutedVariables(EthereumEventFilterType)
@@ -516,7 +516,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
       )
 
     val serviceName = ServiceName("SomeIntegratedService")
-    val executionOracles = Seq(ExternalCallOracle(TestCryptoService, Map(serviceName -> serverAccount.address)))
+    val executionOracles = List(ExternalCallOracle(TestCryptoService, Map(serviceName -> serverAccount.address)))
     val vm = vmProvider.create(definition, None, OpenlawSignatureOracle(TestCryptoService, serverAccount.address), executionOracles, Map(serviceName -> abi))
     vm(LoadTemplate(templateContent))
     vm.executionResultState shouldBe ExecutionFinished

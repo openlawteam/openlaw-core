@@ -31,7 +31,7 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
     case call:EventFilterDefinition => Success(call.asJson.noSpaces)
   }
 
-  private def propertyDef(key:String, expr:Expression, executionResult:TemplateExecutionResult): Result[EthereumEventPropertyDef] =
+  private def propertyDef(key:VariableName, expr:Expression, executionResult:TemplateExecutionResult): Result[EthereumEventPropertyDef] =
     expr
       .evaluate(executionResult)
       .flatMap { option =>
@@ -40,16 +40,16 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
             case eventFilterDefinition: EventFilterDefinition =>
               eventFilterDefinition
                 .abiOpenlawVariables(executionResult)
-                .map(list => list.find(_.name.name === key).map(definition => definition.varType(executionResult))) match {
+                .map(list => list.find(_.name === key).map(definition => definition.varType(executionResult))) match {
                 case Success(Some(typeDef)) =>
 
                   Success(EthereumEventPropertyDef(typeDef = typeDef, _.headOption.map { execution =>
                     generateStructureType(VariableName("none"), eventFilterDefinition, executionResult).flatMap { structure =>
-                      structure.cast(execution.event.values.asJson.noSpaces, executionResult).flatMap(structure.access(_, VariableName("none"), Seq(key), executionResult))
+                      structure.cast(execution.event.values.asJson.noSpaces, executionResult).flatMap(structure.access(_, VariableName("none"), List(VariableMemberKey(key)), executionResult))
                     }
                   }.getOrElse(Success(None))))
                 case Success(None) =>
-                  propertyDef.get(key) match {
+                  propertyDef.get(key.name) match {
                     case Some(pd) =>
                       Success(pd)
                     case None =>
@@ -64,32 +64,32 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
           .getOrElse(Failure("the Ethereum event filter definition could not be found"))
       }
 
-  override def keysType(keys: Seq[String], expr: Expression, executionResult: TemplateExecutionResult): Result[VariableType] =
-    keys.toList match {
-      case key::Nil =>
+  override def keysType(keys: List[VariableMemberKey], expr: Expression, executionResult: TemplateExecutionResult): Result[VariableType] =
+    keys match {
+      case VariableMemberKey(Left(VariableName(key)))::Nil =>
         propertyDef.get(key) map { e => Success(e.typeDef) } getOrElse Failure(s"unknown key $key for $name")
-      case "event"::head::Nil =>
-        propertyDef(head, expr, executionResult).map(_.typeDef)
+      case VariableMemberKey(Left(VariableName("event")))::VariableMemberKey(Left(variableName))::Nil =>
+        propertyDef(variableName, expr, executionResult).map(_.typeDef)
       case _ => super.keysType(keys, expr, executionResult)
     }
 
-  override def validateKeys(name:VariableName, keys: Seq[String], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] = keys.toList match {
-    case key::Nil =>
+  override def validateKeys(name:VariableName, keys: List[VariableMemberKey], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] = keys match {
+    case VariableMemberKey(Left(VariableName(key)))::Nil =>
       propertyDef.get(key) map { _ => Success.unit } getOrElse Failure(s"unknown key $key for $name")
-    case "event"::head::Nil =>
-      propertyDef(head, name, executionResult).map(_ => ())
+    case VariableMemberKey(Left(VariableName("event")))::VariableMemberKey(Left(variableName))::Nil =>
+      propertyDef(variableName, name, executionResult).map(_ => ())
     case _ =>
       super.validateKeys(name, keys, expression, executionResult)
   }
 
-  override def access(value: OpenlawValue, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] =
+  override def access(value: OpenlawValue, name:VariableName, keys: List[VariableMemberKey], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] =
     (for {
       actionDefinition <- VariableType.convert[EventFilterDefinition](value)
       identifier <- actionDefinition.identifier(executionResult)
     } yield {
-      keys.toList match {
+      keys match {
         case Nil => Success(Some(value))
-        case key :: Nil =>
+        case VariableMemberKey(Left(VariableName(key))) :: Nil =>
           propertyDef.get(key) match {
             case Some(pd) =>
               for {
@@ -99,13 +99,13 @@ case object EthereumEventFilterType extends VariableType("EthereumEventFilter") 
             case None =>
               Failure(s"unknown key $key for $name")
           }
-        case head :: tail if tail.isEmpty =>
+        case VariableMemberKey(Left(head)) :: tail if tail.isEmpty =>
           for {
             property <- propertyDef(head, name, executionResult)
             executions <- getExecutions(identifier, executionResult)
             result <- property.data(executions)
           } yield result
-        case "event" :: head :: Nil =>
+        case VariableMemberKey(Left(VariableName("event"))) :: VariableMemberKey(Left(head)) :: Nil =>
           for {
             pd <- propertyDef(head, name, executionResult)
             executions <- getExecutions(identifier, executionResult)

@@ -22,9 +22,9 @@ final case class VariableAliasing(name:VariableName, expr:Expression) extends Ex
   override def evaluate(executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] =
     expr.evaluate(executionResult)
 
-  override def variables(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =
+  override def variables(executionResult: TemplateExecutionResult): Result[List[VariableName]] =
     expr.variables(executionResult)
 
-  override def missingInput(executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =
+  override def missingInput(executionResult: TemplateExecutionResult): Result[List[VariableName]] =
     expr.missingInput(executionResult)
 }

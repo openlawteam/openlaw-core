@@ -34,18 +34,18 @@ trait TemplateExecutionResult {
   def subExecutions:Map[VariableName, TemplateExecutionResult]
   def signatureProofs:Map[Email, SignatureProof]
   def parentExecution:Option[TemplateExecutionResult]
-  def variables:Seq[VariableDefinition]
+  def variables:List[VariableDefinition]
   def mapping:Map[VariableName, Expression]
-  def aliases:Seq[VariableAliasing]
+  def aliases:List[VariableAliasing]
   def sectionNameMappingInverse:Map[VariableName, String]
-  def variableTypes:Seq[VariableType]
+  def variableTypes:List[VariableType]
   def variableSections:Map[String, Seq[VariableName]]
   def parameters:TemplateParameters
   def executionType:ExecutionType
-  def processedSections:Seq[(Section, Int)]
-  def executedVariables:Seq[VariableName]
-  def agreements:Seq[StructuredAgreement]
-  def variableSectionList:Seq[String]
+  def processedSections:List[(Section, Int)]
+  def executedVariables:List[VariableName]
+  def agreements:List[StructuredAgreement]
+  def variableSectionList:List[String]
   def executions:Map[ActionIdentifier, Executions]
   def info:OLInformation
   def externalCallStructures: Map[ServiceName, IntegratedServiceDefinition]
@@ -130,16 +130,16 @@ trait TemplateExecutionResult {
       .map(_.expressionType(this))
       .getOrElse(Failure(s"${name.name} cannot be resolved!"))
 
-  def getVariables:Seq[VariableDefinition] =
+  def getVariables:List[VariableDefinition] =
     variables
       .filter(variable => !mapping.contains(variable.name))
       .foldLeft(DistinctVariableBuilder())((builder,variable) => if(builder.names.contains(variable.name)) {
         builder
       } else {
         builder.add(variable)
-      }).variables
+      }).variables.toList
 
-  def getVariables(varTypes: VariableType*):Seq[(TemplateExecutionResult, VariableDefinition)] =
+  def getVariables(varTypes: VariableType*):List[(TemplateExecutionResult, VariableDefinition)] =
     getVariables
       .filter(variable => {
         variable.varType(this) match {
@@ -148,14 +148,13 @@ trait TemplateExecutionResult {
           case structuredType:DefinedStructureType =>
             structuredType.structure.typeDefinition.values.exists(s => varTypes.contains(s.varType(this)))
           case variableType => varTypes.contains(variableType)
-        }}).map((this, _)) ++ subExecutions.values.flatMap(_.getVariables(varTypes:_*))
+        }}).map((this, _)) ++ subExecutions.values.flatMap(_.getVariables(varTypes:_*)).toList
 
-  def getVariableValues[U <: OpenlawValue](varType: VariableType)(implicit classTag:ClassTag[U]):Result[Seq[U#T]] =
+  def getVariableValues[U <: OpenlawValue](varType: VariableType)(implicit classTag:ClassTag[U]):Result[List[U#T]] =
     getVariables(varType)
       .map { case (execution, variable) =>
         variable.evaluate(execution).flatMap(_.map(getVariableValue[U](_, variable.varType(this))).sequence)
       }
-      .toList
       .sequence
       .map(_.flatten)
 
@@ -176,9 +175,9 @@ trait TemplateExecutionResult {
       parentExecution.flatMap(_.getParameter(name))
   }
 
-  def allIdentityEmails: Result[Seq[Email]] = allIdentities().map(_.map(_.email).distinct)
+  def allIdentityEmails: Result[List[Email]] = allIdentities().map(_.map(_.email).distinct)
 
-  def allIdentities(): Result[Seq[Identity]] = {
+  def allIdentities(): Result[List[Identity]] = {
    getAllExecutedVariables
       .flatMap { case (result, name) => result.getVariable(name).map(variable => (result, variable)) }
       .map { case (result, variable) =>
@@ -227,15 +226,14 @@ trait TemplateExecutionResult {
                   .map(_.flatMap(_.identity))
               }
           case _ =>
-            Success(Seq())
+            Success(Nil)
         }
       }
-       .toList
        .sequence
        .map(_.flatten)
   }
 
-  def allActions: Result[Seq[ActionInfo]] =
+  def allActions: Result[List[ActionInfo]] =
     getAllExecutedVariables.map {
       case (executionResult, variableName) =>
         executionResult
@@ -253,7 +251,6 @@ trait TemplateExecutionResult {
           .sequence
           .map(_.flatten)
     }
-    .toList
     .sequence
     .map(_.flatten)
 
@@ -269,19 +266,19 @@ trait TemplateExecutionResult {
     case _ => true
   }
 
-  def allProcessedSections:Seq[(Section, Int)] = (embedded, parentExecution)  match {
+  def allProcessedSections:List[(Section, Int)] = (embedded, parentExecution)  match {
     case (true, Some(parent)) => parent.allProcessedSections ++ processedSections
     case _ => processedSections
   }
 
-	def allAliases:Seq[(TemplateExecutionResult, VariableAliasing)] =
+	def allAliases:List[(TemplateExecutionResult, VariableAliasing)] =
 		aliases.map(alias => (this, alias)) ++ subExecutions.values.flatMap(_.allAliases)
 
-  def getAllExecutedVariables:Seq[(TemplateExecutionResult, VariableName)] =
+  def getAllExecutedVariables:List[(TemplateExecutionResult, VariableName)] =
     executedVariables.distinct.map(name => (this, name)) ++ subExecutions.values.flatMap(_.getAllExecutedVariables)
 
   @tailrec
-  final def getAllVariables:Seq[(TemplateExecutionResult, VariableDefinition)] =
+  final def getAllVariables:List[(TemplateExecutionResult, VariableDefinition)] =
     parentExecution match {
       case Some(execution) =>
         execution.getAllVariables
@@ -289,14 +286,14 @@ trait TemplateExecutionResult {
         getAllVariablesFromRoot
     }
 
-  private def getAllVariablesFromRoot:Seq[(TemplateExecutionResult, VariableDefinition)] =
-    getVariables.map(variable => (this, variable)) ++ subExecutions.values.flatMap(_.getAllVariablesFromRoot)
+  private def getAllVariablesFromRoot:List[(TemplateExecutionResult, VariableDefinition)] =
+    getVariables.map(variable => (this, variable)) ++ subExecutions.values.flatMap(_.getAllVariablesFromRoot).toList
 
-  def getVariableNames:Seq[VariableName] = getVariables.foldLeft(DistinctVariableBuilder())({case (builder, variable) => if(builder.names.contains(variable.name)) {
+  def getVariableNames:List[VariableName] = getVariables.foldLeft(DistinctVariableBuilder())({case (builder, variable) => if(builder.names.contains(variable.name)) {
     builder
   } else {
     builder.add(variable)
-  }}).variables.map(_.name)
+  }}).variables.map(_.name).toList
 
   def getAllVariableNames:Seq[VariableName] = getAllVariables.foldLeft(DistinctVariableBuilder())({case (builder, (_, variable)) => if(builder.names.contains(variable.name)) {
     builder
@@ -357,7 +354,7 @@ trait TemplateExecutionResult {
 						.map(_.flatten)
 				} yield validationResult.map(_.validate(executionResult)).getOrElse(Valid(()))
 
-		}).toList.sequence
+		}).sequence
 
 		result
 			.map(_.reduceOption(_ combine _).getOrElse(Valid(()))) match {
@@ -386,7 +383,7 @@ trait TemplateExecutionResult {
 						dtr <- domainTypeResult
 					} yield dtr.domain.validate(dtv, executionResult)).getOrElse(Valid(()))
 				}
-		}).toList.sequence
+		}).sequence
 
 		result
 			.map(_.reduceOption(_ combine _).getOrElse(Valid(()))) match {
@@ -415,7 +412,7 @@ trait TemplateExecutionResult {
 						dtr <- domainTypeResult
 					} yield dtr.domain.validate(dtv, executionResult)).getOrElse(Valid(()))
 				}
-		}).toList.sequence
+		}).sequence
 
 		result
 			.map(_.reduceOption(_ combine _).getOrElse(Valid(()))) match {
@@ -427,15 +424,15 @@ trait TemplateExecutionResult {
   def validate: ResultNel[Unit] =
 		validateGlobalValidation combine validateDomainTypeVariables combine validateDomainTypeExpressions
 
-	def getExecutedVariables:Seq[VariableName] = {
+	def getExecutedVariables:List[VariableName] = {
     val variableNames = getAllVariableNames
     getAllExecutedVariables.
       filter({case (_, variable) => variableNames.contains(variable)})
      .map({case (_, name) => name}).distinct
   }
 
-  def getAllExecutionResults:Seq[TemplateExecutionResult] =
-    subExecutions.values.flatMap(_.getAllExecutionResults).toSeq ++ Seq(this)
+  def getAllExecutionResults:List[TemplateExecutionResult] =
+    subExecutions.values.flatMap(_.getAllExecutionResults).toList ++ List(this)
 
   def withVariable(name:VariableName, value:OpenlawValue, varType:VariableType): Result[OpenlawExecutionState] =
     withVariable(name, Some(value), varType)
@@ -446,7 +443,10 @@ trait TemplateExecutionResult {
         Failure(s"${name.name} has already been defined!")
       case Failure(_,_) =>
         for {
-          parameters <- value.map(varType.internalFormat(_).map { internalFormat => TemplateParameters(name.name -> internalFormat)}).getOrElse(Success(TemplateParameters()))
+          parameters <- value
+            .map(varType.internalFormat)
+            .map(_.map(internalFormat => TemplateParameters(name.name -> internalFormat)))
+            .getOrElse(Success(TemplateParameters()))
         } yield {
           val result = OpenlawExecutionState(
             id = TemplateExecutionResultId(UUID.randomUUID().toString),
@@ -462,7 +462,7 @@ trait TemplateExecutionResult {
 
           val r = result.registerNewType(varType) match {
             case Success(newResult) => newResult
-            case Failure(_,_) => result
+            case Failure(_, _) => result
           }
 
           r.variablesInternal.append(VariableDefinition(name, Some(VariableTypeDefinition(name = varType.name, None))))
@@ -489,19 +489,19 @@ final case class SerializableTemplateExecutionResult(id:TemplateExecutionResultI
                                                templateExecutions:Map[TemplateExecutionResultId, SerializableTemplateExecutionResult],
                                                executions:Map[ActionIdentifier, Executions],
                                                parentExecutionId:Option[TemplateExecutionResultId],
-                                               agreements:Seq[StructuredAgreement],
-                                               variableSectionList:Seq[String],
+                                               agreements:List[StructuredAgreement],
+                                               variableSectionList:List[String],
                                                signatureProofs:Map[Email, SignatureProof],
-                                               variables:Seq[VariableDefinition],
-                                               executedVariables:Seq[VariableName],
+                                               variables:List[VariableDefinition],
+                                               executedVariables:List[VariableName],
                                                mapping:Map[VariableName, Expression],
-                                               aliases:Seq[VariableAliasing],
+                                               aliases:List[VariableAliasing],
                                                sectionNameMappingInverse:Map[VariableName, String],
-                                               variableTypes:Seq[VariableType],
-                                               variableSections:Map[String, Seq[VariableName]],
+                                               variableTypes:List[VariableType],
+                                               variableSections:Map[String, List[VariableName]],
                                                parameters:TemplateParameters,
                                                executionType:ExecutionType,
-                                               processedSections:Seq[(Section, Int)],
+                                               processedSections:List[(Section, Int)],
                                                externalCallStructures:Map[ServiceName, IntegratedServiceDefinition],
                                                clock:Clock) extends TemplateExecutionResult {
 
@@ -569,15 +569,15 @@ final case class OpenlawExecutionState(
                                     externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] = Map(),
                                     clock:Clock) extends TemplateExecutionResult {
 
-  def variables:Seq[VariableDefinition] = variablesInternal
-  def aliases:Seq[VariableAliasing] = aliasesInternal
-  def variableTypes:Seq[VariableType] = variableTypesInternal
-  def processedSections: Seq[(Section, Int)] = processedSectionsInternal
-  def executedVariables:Seq[VariableName] = executedVariablesInternal
-  def agreements:Seq[StructuredAgreement] = agreementsInternal
-  def variableSectionList:Seq[String] = variableSectionListInternal
+  def variables:List[VariableDefinition] = variablesInternal.toList
+  def aliases:List[VariableAliasing] = aliasesInternal.toList
+  def variableTypes:List[VariableType] = variableTypesInternal.toList
+  def processedSections: List[(Section, Int)] = processedSectionsInternal.toList
+  def executedVariables:List[VariableName] = executedVariablesInternal.toList
+  def agreements:List[StructuredAgreement] = agreementsInternal.toList
+  def variableSectionList:List[String] = variableSectionListInternal.toList
 
-  override def variableSections: Map[String, Seq[VariableName]] = variableSectionsInternal.toMap
+  override def variableSections: Map[String, List[VariableName]] = variableSectionsInternal.map({case (key,value) => key -> value.toList}).toMap
 
   override def sectionNameMappingInverse: Map[VariableName, String] = sectionNameMappingInverseInternal.toMap
 	@tailrec
@@ -667,11 +667,11 @@ final case class OpenlawExecutionState(
           case collectionType: CollectionType if IdentityType.identityTypes.contains(collectionType.typeParameter) =>
             result.getVariableValue[CollectionValue](variable.name).map {
               case Some(value) if value.size =!= value.values.size =>
-                (Seq(variable.name), Seq())
+                (List(variable.name), Nil)
               case Some(_) =>
-                (Seq(), Seq())
+                (Nil, Nil)
               case None =>
-                (Seq(variable.name), Seq())
+                (List(variable.name), Nil)
             }
 
           case structureType: DefinedStructureType if structureType.structure.typeDefinition.values.exists(s => IdentityType.identityTypes.contains(s.varType(this))) =>
@@ -681,17 +681,15 @@ final case class OpenlawExecutionState(
                 .map({ case (propertyName, _) => propertyName }).toSeq
 
               if (identityProperties.forall(values.getOrElse(Map()).contains)) {
-                (Seq(), Seq())
+                (Nil, Nil)
               } else {
-                (Seq(variable.name), Seq())
+                (List(variable.name), Nil)
               }
             }
           case _ =>
-            Success((Seq(), Seq()))
+            Success((Nil, Nil))
         }
-      }
-      .toList
-      .sequence
+      }.sequence
     }
 
     missingIdentitiesResult.map { missingIdentitiesValue =>
@@ -738,7 +736,7 @@ final case class OpenlawExecutionState(
       aliases = aliases,
       sectionNameMappingInverse = sectionNameMappingInverse,
       variableTypes = variableTypes,
-      variableSections = variableSections,
+      variableSections = variableSectionsInternal.map({case (key,value) => key -> value.toList}).toMap,
       parameters = parameters,
       executionType = executionType,
       processedSections = processedSections,
@@ -747,21 +745,21 @@ final case class OpenlawExecutionState(
     )
   }
 
-  private def getSubExecutions:Seq[OpenlawExecutionState] = subExecutionsInternal.values.toSeq
+  private def getSubExecutions:List[OpenlawExecutionState] = subExecutionsInternal.values.toList
 
-  private def resultFromMissingInput(seq:Result[Seq[VariableName]]): (Seq[VariableName], Seq[String]) = seq match {
-    case Right(inputs) => (inputs, Seq())
-    case Left(ex) => (Seq(), Seq(ex.message))
+  private def resultFromMissingInput(seq:Result[List[VariableName]]): (List[VariableName], List[String]) = seq match {
+    case Success(inputs) => (inputs, Nil)
+    case Failure(_, message) => (Nil, List(message))
   }
 
   private def executionLevel(parent:Option[TemplateExecutionResult], acc:Int):Int =
     parent.map(p => executionLevel(p.parentExecution, acc + 1)).getOrElse(acc)
 
-  def allMissingInput: Result[Seq[VariableName]] = {
+  def allMissingInput: Result[List[VariableName]] = {
     val missingInputs = getAllExecutedVariables
 			.map({case (result, variable) => variable.missingInput(result)})
 
-    VariableType.sequence(missingInputs).map(_.flatten.distinct)
+    missingInputs.sequence.map(_.flatten.distinct)
   }
 
   def registerNewType(variableType: VariableType): Result[OpenlawExecutionState] = {
@@ -1095,10 +1093,10 @@ trait SignatureProof {
 }
 
 final case class ValidationResult(
-                             identities:Seq[VariableDefinition],
-                             missingInputs:Seq[VariableName],
-                             missingIdentities:Seq[VariableName],
-                             validationExpressionErrors:Seq[String]) {
+                             identities:List[VariableDefinition],
+                             missingInputs:List[VariableName],
+                             missingIdentities:List[VariableName],
+                             validationExpressionErrors:List[String]) {
   def successful:Boolean = identities.nonEmpty && missingInputs.isEmpty && missingIdentities.isEmpty && validationExpressionErrors.isEmpty
 }
 

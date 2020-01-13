@@ -52,8 +52,8 @@ case object LinkType extends VariableType(name = "Link") with NoShowInFormButRen
 }
 
 class LinkFormatter extends Formatter {
-  override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] =
+  override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[List[AgreementElement]] =
     VariableType.convert[LinkInfo](value) map {
-      case LinkInfo(labelValue, urlValue) => Seq(Link(labelValue, urlValue))
+      case LinkInfo(labelValue, urlValue) => List(Link(labelValue, urlValue))
     }
 }

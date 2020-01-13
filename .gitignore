@@ -60,3 +60,4 @@ owasp/
 # Metals specific (Scala language server https://scalameta.org/metals/)
 .metals/
 .bloop/
+project/metals.sbt

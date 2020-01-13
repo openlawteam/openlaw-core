@@ -6,9 +6,10 @@ import io.circe.parser._
 import io.circe.syntax._
 import io.circe.generic.semiauto._
 import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawValue}
-import org.adridadou.openlaw.parser.template.TemplateExecutionResult
+import org.adridadou.openlaw.parser.template.{TemplateExecutionResult, VariableMemberKey, VariableName}
+import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
-import org.adridadou.openlaw.result.{Failure, FailureException, Result}
+import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success}
 
 case object AbstractCollectionType extends VariableType("Collection") with ParameterTypeProvider {
 
@@ -42,8 +43,7 @@ final case class CollectionTypeValue(values:Map[Int, String], size:Int)
 
 final case class CollectionType(typeParameter:VariableType) extends VariableType("Collection") with ParameterType {
 
-  override def cast(value: String, executionResult: TemplateExecutionResult): Result[CollectionValue] =
-    for {
+  override def cast(value: String, executionResult: TemplateExecutionResult): Result[CollectionValue] = for {
       collectionValue <- decode[CollectionTypeValue](value).leftMap(FailureException(_))
       values <- collectionValue.values.map { case (key, v) => typeParameter.cast(v, executionResult).map(key -> _) }
         .toList
@@ -64,4 +64,46 @@ final case class CollectionType(typeParameter:VariableType) extends VariableType
   override def getTypeClass: Class[_ <: CollectionValue] = classOf[CollectionValue]
 
   override def thisType: VariableType = this
+
+  override def access(value: OpenlawValue, name:VariableName, keys: List[VariableMemberKey], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = {
+    keys match {
+      case Nil =>
+        Success(Some(value))
+      case VariableMemberKey(Right(OLFunctionCall(VariableName("map"), func:OLFunction))) :: Nil =>
+        for {
+          collectionValue <- VariableType.convert[CollectionValue](value)
+          newValues <- collectionValue.values.map({case (index, value) => applyMap(value, func, executionResult).map(index -> _)}).toList.sequence.map(_.toMap)
+        } yield {
+          val cleanedNewValues = newValues.flatMap({case (index, optValue) => optValue.map(index -> _)})
+          Some(collectionValue.copy(values = cleanedNewValues, size = cleanedNewValues.size))
+        }
+      case _ =>
+        super.access(value, name, keys, executionResult)
+    }
+  }
+
+  private def applyMap(value:OpenlawValue, func:OLFunction, executionResult: TemplateExecutionResult):Result[Option[OpenlawValue]] = for {
+    ier <- executionResult.withVariable(func.parameter.name, value, func.parameter.varType(executionResult))
+    newValue <- func.expression.evaluate(ier)
+  } yield newValue
+
+  override def keysType(keys: List[VariableMemberKey], expression: Expression, executionResult: TemplateExecutionResult): Result[VariableType] =
+    keys match {
+      case Nil =>
+        Success(AbstractStructureType)
+      case VariableMemberKey(Right(OLFunctionCall(VariableName("map"), _)))::Nil =>
+        Success(AbstractFunctionType)
+      case _ =>
+        Failure(s"property '${keys.mkString(".")}' could not be resolved in collection type")
+    }
+
+  override def validateKeys(name:VariableName, keys: List[VariableMemberKey], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] = keys match {
+    case Nil =>
+      Success.unit
+    case VariableMemberKey(Right(OLFunctionCall(VariableName("map"), func:OLFunction)))::Nil =>
+      Success.unit
+    case _ =>
+      Failure(s"property '${keys.mkString(".")}' could not be resolved in collection type")
+  }
+
 }

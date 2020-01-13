@@ -40,7 +40,7 @@ case object IdentityType extends VariableType(name = "Identity") {
     }
 
 
-  override def missingValueFormat(name: VariableName): Seq[AgreementElement] = Seq(FreeText(Text("")))
+  override def missingValueFormat(name: String): List[AgreementElement] = List(FreeText(Text("")))
 
   override def internalFormat(value: OpenlawValue): Result[String] = VariableType.convert[Identity](value).map(_.asJson.noSpaces)
 
@@ -49,17 +49,16 @@ case object IdentityType extends VariableType(name = "Identity") {
     case _ => Failure(s"unknown formatter $name")
   }
 
-  override def access(value: OpenlawValue, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = {
-    keys.toList match {
-      case head::tail if tail.isEmpty => VariableType.convert[Identity](value).flatMap(id => accessProperty(Some(id), head).map(Some(_)))
+  override def access(value: OpenlawValue, name:VariableName, keys: List[VariableMemberKey], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] =
+    keys match {
+      case VariableMemberKey(Left(VariableName(head)))::tail if tail.isEmpty => VariableType.convert[Identity](value).flatMap(id => accessProperty(Some(id), head).map(Some(_)))
       case _::_ => Failure(s"Identity has only one level of properties. invalid property access ${keys.mkString(".")}") // TODO: Is this correct?
       case _ => Success(Some(value))
     }
-  }
 
-  override def validateKeys(name:VariableName, keys: Seq[String], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] = keys.toList match {
+  override def validateKeys(name:VariableName, keys: List[VariableMemberKey], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] = keys match {
     case Nil => Success(())
-    case head::tail if tail.isEmpty => checkProperty(head)
+    case VariableMemberKey(Left(VariableName(head)))::tail if tail.isEmpty => checkProperty(head)
     case _::_ => Failure(s"invalid property ${keys.mkString(".")}")
   }
 
@@ -128,7 +127,7 @@ object SignatureAction {
 }
 
 final case class SignatureAction(email:Email, services:List[ServiceName] = List(ServiceName.openlawServiceName)) extends ActionValue {
-  override def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions: Seq[OpenlawExecution]): Result[Option[LocalDateTime]] =
+  override def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions: List[OpenlawExecution]): Result[Option[LocalDateTime]] =
     if(executionResult.hasSigned(email)) {
       Success(None)
     } else {

@@ -123,7 +123,7 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
     })
   }
 
-  override def construct(constructorParams:Parameter, executionResult: TemplateExecutionResult):Result[Option[TemplateDefinition]] = {
+  override def construct(constructorParams:Parameter, executionResult: TemplateExecutionResult):Result[Option[TemplateDefinition]] =
     constructorParams match {
       case mappingParameter:Parameters =>
         for {
@@ -139,68 +139,80 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
             case None => None
           })
     }
-  }
 
-  override def access(value: OpenlawValue, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = keys.toList match {
+  override def access(value: OpenlawValue, name:VariableName, keys: List[VariableMemberKey], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = keys match {
     case Nil =>
       Success(Some(value))
     case head::tail =>
-
-      executionResult.subExecutions.get(VariableName(head)).flatMap { subExecution =>
-        subExecution
-          .getExpression(VariableName(head))
-          .flatMap { variable =>
-            variable
-              .evaluate(subExecution)
-              .map { option =>
-                option.map { subValue => variable.expressionType(subExecution).flatMap(_.access(subValue, VariableName(head), tail, subExecution)) }
+      head.key match {
+        case Left(variableName) =>
+          executionResult.subExecutions.get(variableName).flatMap { subExecution =>
+            subExecution
+              .getExpression(variableName)
+              .flatMap { variable =>
+                variable
+                  .evaluate(subExecution)
+                  .map { option =>
+                    option.map { subValue => variable.expressionType(subExecution).flatMap(_.access(subValue, variableName, tail, subExecution)) }
+                  }
+                  .sequence.map(_.flatten)
               }
-              .sequence.map(_.flatten)
           }
+            .getOrElse(Failure(s"properties '${tail.mkString(".")}' could not be resolved in sub template '$head'"))
+        case _ => Failure("template property are never a function")
       }
-      .getOrElse(Failure(s"properties '${tail.mkString(".")}' could not be resolved in sub template '$head'"))
   }
 
-  override def keysType(keys: Seq[String], expr: Expression, executionResult: TemplateExecutionResult): Result[VariableType] = {
-    keys.toList match {
+  override def keysType(keys: List[VariableMemberKey], expr: Expression, executionResult: TemplateExecutionResult): Result[VariableType] =
+    keys match {
       case Nil => Success(TemplateType)
       case head::tail =>
-        executionResult.subExecutions.get(VariableName(head)).flatMap { subExecution =>
-            subExecution
-              .getExpression(VariableName(head))
-              .map(subExpr => subExpr.expressionType(subExecution).flatMap(_.keysType(tail, subExpr, executionResult)))
-        } match {
-            case Some(varType) => varType
-            case None => Failure(s"property '${tail.mkString(".")}' could not be resolved in sub template '$head'")
-          }
+        head.key match {
+          case Left(variableName) =>
+            executionResult.subExecutions.get(variableName).flatMap { subExecution =>
+              subExecution
+                .getExpression(variableName)
+                .map(subExpr => subExpr.expressionType(subExecution).flatMap(_.keysType(tail, subExpr, executionResult)))
+            } match {
+              case Some(varType) => varType
+              case None => Failure(s"property '${tail.mkString(".")}' could not be resolved in sub template '$head'")
+            }
+          case _ => Failure("template property are never a function")
         }
-  }
+    }
 
-  override def validateKeys(name:VariableName, keys: Seq[String], expr:Expression, executionResult: TemplateExecutionResult): Result[Unit] = keys.toList match {
+  override def validateKeys(name:VariableName, keys: List[VariableMemberKey], expr:Expression, executionResult: TemplateExecutionResult): Result[Unit] = keys match {
     case Nil =>
       Success(())
     case head::tail =>
-      executionResult.subExecutions.get(name).flatMap { subExecution =>
-        subExecution.getExpression(VariableName(head))
-          .map(variable => variable.expressionType(subExecution).flatMap(_.keysType(tail, variable, subExecution)))
-      } match {
-        case Some(_) =>
-          Success(())
-        case None =>
-          Failure(s"property '${keys.mkString(".")}' could not be resolved in sub template '${name.name}'")
+      head.key match {
+        case Left(variableName) =>
+          executionResult.subExecutions.get(name).flatMap { subExecution =>
+            subExecution.getExpression(variableName)
+              .map(variable => variable.expressionType(subExecution).flatMap(_.keysType(tail, variable, subExecution)))
+          } match {
+            case Some(_) =>
+              Success(())
+            case None =>
+              Failure(s"property '${keys.mkString(".")}' could not be resolved in sub template '${name.name}'")
+          }
+        case _ => Failure("template property are never a function")
       }
   }
 
-  override def accessVariables(name:VariableName, keys:Seq[String], executionResult: TemplateExecutionResult): Result[Seq[VariableName]] = keys.toList match {
+  override def accessVariables(name:VariableName, keys:List[VariableMemberKey], executionResult: TemplateExecutionResult): Result[List[VariableName]] = keys match {
     case Nil =>
-      Success(Seq())
+      Success(Nil)
     case head::tail =>
-      executionResult.subExecutions.get(name).flatMap { subExecution =>
-        subExecution
-          .getExpression(VariableName(head))
-          .map(variable => variable.expressionType(subExecution).flatMap(_.accessVariables(VariableName(head), tail, subExecution)))
+      head.key match {
+        case Left(variableName) =>
+          executionResult.subExecutions.get(name).flatMap { subExecution =>
+            subExecution
+              .getExpression(variableName)
+              .map(variable => variable.expressionType(subExecution).flatMap(_.accessVariables(variableName, tail, subExecution)))
+          }.getOrElse(Success(List(name)))
+        case _ => Failure("template property are never a function")
       }
-      .getOrElse(Success(Seq(name)))
   }
 
   override def getTypeClass: Class[_ <: TemplateDefinition ] = classOf[TemplateDefinition]

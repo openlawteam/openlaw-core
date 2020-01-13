@@ -25,7 +25,7 @@ trait NoShowInForm
 trait NoShowInFormButRender extends NoShowInForm
 
 trait ActionValue {
-  def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions:Seq[OpenlawExecution]): Result[Option[LocalDateTime]]
+  def nextActionSchedule(executionResult: TemplateExecutionResult, pastExecutions:List[OpenlawExecution]): Result[Option[LocalDateTime]]
   def identifier(executionResult:TemplateExecutionResult):Result[ActionIdentifier]
   def executions(executionResult: TemplateExecutionResult):Result[Option[Executions]] =
     identifier(executionResult).map(executionResult.executions.get(_))
@@ -199,13 +199,13 @@ abstract class VariableType(val name: String) {
 
   def validateOperation(expr: ValueExpression, executionResult: TemplateExecutionResult): Result[Unit] = Success(())
 
-  def accessVariables(name:VariableName, keys:Seq[String], executionResult: TemplateExecutionResult): Result[Seq[VariableName]] =
-    Success(Seq(name))
+  def accessVariables(name:VariableName, keys:List[VariableMemberKey], executionResult: TemplateExecutionResult): Result[List[VariableName]] =
+    Success(List(name))
 
   def operationWith(rightType: VariableType, operation: ValueOperation): VariableType =
     this
 
-  def access(value: OpenlawValue, variableName:VariableName, keys: Seq[String], executionResult:TemplateExecutionResult): Result[Option[OpenlawValue]] = {
+  def access(value: OpenlawValue, variableName:VariableName, keys: List[VariableMemberKey], executionResult:TemplateExecutionResult): Result[Option[OpenlawValue]] = {
     if(keys.isEmpty) {
       Success(Some(value))
     } else {
@@ -218,10 +218,10 @@ abstract class VariableType(val name: String) {
   def checkTypeName(nameToCheck: String): Boolean =
     this.name.equalsIgnoreCase(nameToCheck)
 
-  def validateKeys(variableName:VariableName, keys:Seq[String], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] =
+  def validateKeys(variableName:VariableName, keys:List[VariableMemberKey], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] =
     keys.headOption.map(_ => Failure(s"The variable $variableName of type $name has no properties")).getOrElse(Success(()))
 
-  def keysType(keys: Seq[String], expression: Expression, executionResult: TemplateExecutionResult):Result[VariableType] = if(keys.nonEmpty) {
+  def keysType(keys: List[VariableMemberKey], expression: Expression, executionResult: TemplateExecutionResult):Result[VariableType] = if(keys.nonEmpty) {
     Failure(s"the type $name has no properties")
   } else {
     Success(thisType)
@@ -276,7 +276,7 @@ abstract class VariableType(val name: String) {
 
   def cast(value: String, executionResult:TemplateExecutionResult):Result[OpenlawValue]
 
-  def missingValueFormat(name: VariableName): Seq[AgreementElement] = Seq(FreeText(Text(s"[[${name.name}]]")))
+  def missingValueFormat(name: String): List[AgreementElement] = List(FreeText(Text(s"[[${name}]]")))
 
   def internalFormat(value: OpenlawValue): Result[String]
 
@@ -330,7 +330,7 @@ abstract class VariableType(val name: String) {
     case _ => Failure("invalid parameter type " + param.getClass.getSimpleName + " expecting single expression")
   }
 
-  def format(formatter:Option[FormatterDefinition], value:OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] =
+  def format(formatter:Option[FormatterDefinition], value:OpenlawValue, executionResult: TemplateExecutionResult): Result[List[AgreementElement]] =
     formatter
       .map(getFormatter(_, executionResult))
       .getOrElse(Success(defaultFormatter))
@@ -346,8 +346,9 @@ abstract class VariableType(val name: String) {
 
 object VariableType {
 
-  def allTypes():Seq[VariableType] = Seq(
+  def allTypes():List[VariableType] = List(
     AbstractCollectionType,
+    AbstractFunctionType,
     OLOwnType,
     AddressType,
     ChoiceType,
@@ -397,7 +398,7 @@ object VariableType {
       .evaluate(executionResult)
       .flatMap {
         case Some(value:T) => Success(value)
-        case Some(value:OpenlawString) => cast(value, executionResult)
+        case Some(value:OpenlawString) => cast(value.underlying, executionResult)
         case Some(value) => Failure("cannot get value of type " + value.getClass.getSimpleName + ". expecting " + classTag.runtimeClass.getSimpleName)
         case None => Failure("could not get the value. Missing data")
       }
@@ -412,14 +413,6 @@ object VariableType {
         classTag.runtimeClass.getSimpleName +
         s".value:$other"
       Failure(msg)
-  }
-
-  def sequence[L,R](seq:Seq[Result[R]]):Result[Seq[R]] = seq.partition(_.isLeft) match {
-    case (Nil,  values) => Right(for(Right(i) <- values.view) yield i)
-    case (errs, _) => errs.headOption match {
-      case Some(Left(err)) => Left(err)
-      case _ => Right(Seq())
-    }
   }
 
   implicit val variableTypeEnc: Encoder[VariableType] = (a: VariableType) =>

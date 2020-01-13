@@ -7,7 +7,7 @@ import org.adridadou.openlaw.values.ContractDefinition
 
 class OpenlawVmProvider(cryptoService: CryptoService, parser:OpenlawTemplateLanguageParserService) {
 
-  def create(contractDefinition: ContractDefinition, profileAddress:Option[EthereumAddress], identityOracle:OpenlawSignatureOracle, executionOracles:Seq[OpenlawOracle[_]], externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] = Map()):OpenlawVm =
+  def create(contractDefinition: ContractDefinition, profileAddress:Option[EthereumAddress], identityOracle:OpenlawSignatureOracle, executionOracles:List[OpenlawOracle[_]], externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] = Map()):OpenlawVm =
     OpenlawVm(contractDefinition, profileAddress, cryptoService, parser, identityOracle, executionOracles, externalCallStructures)
 
 }

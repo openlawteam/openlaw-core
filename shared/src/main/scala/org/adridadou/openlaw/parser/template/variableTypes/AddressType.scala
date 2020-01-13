@@ -26,23 +26,23 @@ object AddressType extends VariableType(name = "Address") {
 
   override def internalFormat(value: OpenlawValue): Result[String] = VariableType.convert[Address](value).map(_.asJson.noSpaces)
 
-  override def keysType(keys: Seq[String], expr: Expression, executionResult: TemplateExecutionResult): Result[VariableType] = keys.toList match {
+  override def keysType(keys: List[VariableMemberKey], expr: Expression, executionResult: TemplateExecutionResult): Result[VariableType] = keys match {
     case _::tail if tail.isEmpty => Success(TextType)
     case _::_ => Failure(s"Address has only one level of properties. invalid property access ${keys.mkString(".")}")
     case _ => Success(AddressType)
   }
 
-  override def access(value: OpenlawValue, name:VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = {
-    keys.toList match {
-      case head::tail if tail.isEmpty => getAddress(value, executionResult).flatMap(value => accessProperty(value, head).map(Some(_)))
+  override def access(value: OpenlawValue, name:VariableName, keys: List[VariableMemberKey], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = {
+    keys match {
+      case VariableMemberKey(Left(VariableName(head)))::tail if tail.isEmpty => getAddress(value, executionResult).flatMap(value => accessProperty(value, head).map(Some(_)))
       case _::_ => Failure(s"Address has only one level of properties. invalid property access ${keys.mkString(".")}")
       case _ => Success(Some(value))
     }
   }
 
-  override def validateKeys(name:VariableName, keys: Seq[String], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] = keys.toList match {
-    case Nil => Success(())
-    case head::tail if tail.isEmpty => checkProperty(head)
+  override def validateKeys(name:VariableName, keys: List[VariableMemberKey], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] = keys.toList match {
+    case Nil => Success.unit
+    case VariableMemberKey(Left(VariableName(head)))::tail if tail.isEmpty => checkProperty(head)
     case _::_ => Failure(s"invalid property ${keys.mkString(".")}")
   }
 
@@ -86,8 +86,8 @@ object Address{
 }
 
 object AddressFormatter extends Formatter {
-  override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[Seq[AgreementElement]] = value match {
-    case address:Address => Success(Seq(FreeText(Text(address.formattedAddress))))
+  override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[List[AgreementElement]] = value match {
+    case address:Address => Success(List(FreeText(Text(address.formattedAddress))))
     case _ => Failure(s"incompatible type. Expecting address, got ${value.getClass.getSimpleName}")
   }
 }

@@ -7,8 +7,7 @@ import org.adridadou.openlaw.{OpenlawString, OpenlawValue}
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
-import org.adridadou.openlaw.parser.template.variableTypes.ExternalCallType.getIntegratedService
-import org.adridadou.openlaw.result.{Failure, FailureCause, FailureException, Result, Success}
+import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success}
 import org.adridadou.openlaw.result.Implicits._
 
 case object ExternalCallType extends VariableType("ExternalCall") with ActionType {
@@ -27,10 +26,10 @@ case object ExternalCallType extends VariableType("ExternalCall") with ActionTyp
       Success(call.asJson.noSpaces)
   }
 
-  override def validateKeys(variableName: VariableName, keys: Seq[String], valueExpression: Expression, executionResult: TemplateExecutionResult): Result[Unit] = {
-    keys.toList match {
+  override def validateKeys(variableName: VariableName, keys: List[VariableMemberKey], valueExpression: Expression, executionResult: TemplateExecutionResult): Result[Unit] = {
+    keys match {
       case Nil => Success.unit
-      case prop :: Nil => propertyDef.get(prop) match {
+      case VariableMemberKey(Left(VariableName(prop))) :: Nil => propertyDef.get(prop) match {
         case Some(_) =>
           Success.unit
         case None if "result".equalsIgnoreCase(prop) =>
@@ -38,7 +37,7 @@ case object ExternalCallType extends VariableType("ExternalCall") with ActionTyp
         case None =>
           Failure(s"unknown property $prop for ExternalExecution type")
       }
-      case prop :: otherKeys if prop.equalsIgnoreCase("result") =>
+      case VariableMemberKey(Left(VariableName(prop))) :: otherKeys if prop.equalsIgnoreCase("result") =>
         valueExpression.evaluateT[ExternalCall](executionResult).flatMap { value =>
           value.map(extCall => getIntegratedService(extCall.serviceName, executionResult)).sequence.map(_.flatten) flatMap {
             case Some(integratedServiceDefinition) =>
@@ -53,10 +52,10 @@ case object ExternalCallType extends VariableType("ExternalCall") with ActionTyp
     }
   }
 
-  override def keysType(keys: Seq[String], valueExpression: Expression, executionResult: TemplateExecutionResult): Result[VariableType] = {
-    keys.toList match {
+  override def keysType(keys: List[VariableMemberKey], valueExpression: Expression, executionResult: TemplateExecutionResult): Result[VariableType] = {
+    keys match {
       case Nil => Success(this)
-      case prop :: Nil => propertyDef.get(prop) match {
+      case VariableMemberKey(Left(VariableName(prop))) :: Nil => propertyDef.get(prop) match {
         case Some(propDef) =>
           Success(propDef.typeDef)
         case None if "result".equalsIgnoreCase(prop) =>
@@ -64,7 +63,7 @@ case object ExternalCallType extends VariableType("ExternalCall") with ActionTyp
         case None =>
           Failure(s"unknown property $prop for ExternalExecution type")
       }
-      case prop :: otherKeys if prop.equalsIgnoreCase("result") =>
+      case VariableMemberKey(Left(VariableName(prop))) :: otherKeys if prop.equalsIgnoreCase("result") =>
         valueExpression.evaluateT[ExternalCall](executionResult).flatMap { value =>
           value.map(extCall => getIntegratedService(extCall.serviceName, executionResult)).sequence.map(_.flatten) flatMap {
             case Some(integratedServiceDefinition) =>
@@ -79,16 +78,16 @@ case object ExternalCallType extends VariableType("ExternalCall") with ActionTyp
     }
   }
 
-  override def access(value: OpenlawValue, name: VariableName, keys: Seq[String], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = {
+  override def access(value: OpenlawValue, name: VariableName, keys: List[VariableMemberKey], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = {
     (for {
       externalCall <- VariableType.convert[ExternalCall](value)
       actionIdentifier <- externalCall.identifier(executionResult)
       executions <- executionResult.executions.get(actionIdentifier).map(_.executionMap.values.toList).getOrElse(Nil).map(VariableType.convert[ExternalCallExecution]).sequence
     } yield {
 
-      keys.toList match {
+      keys match {
         case Nil => Success(Some(value))
-        case prop :: Nil => propertyDef.get(prop) match {
+        case VariableMemberKey(Left(VariableName(prop))) :: Nil => propertyDef.get(prop) match {
           case Some(propDef) =>
             Success(propDef.data(executions))
           case None if "result".equalsIgnoreCase(prop) =>
@@ -111,7 +110,7 @@ case object ExternalCallType extends VariableType("ExternalCall") with ActionTyp
           case None =>
             Failure(s"unknown property $prop for ExternalExecution type")
         }
-        case prop :: otherKeys if "result".equalsIgnoreCase(prop) =>
+        case VariableMemberKey(Left(VariableName(prop))) :: otherKeys if "result".equalsIgnoreCase(prop) =>
           getIntegratedService(externalCall.serviceName, executionResult) flatMap {
             case Some(integratedServiceDefinition) =>
               val variableType = AbstractStructureType.generateType(name, integratedServiceDefinition.output)

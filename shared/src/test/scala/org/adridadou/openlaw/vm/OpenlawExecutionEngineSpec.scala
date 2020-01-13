@@ -1900,4 +1900,49 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 				fail(message, ex)
 		}
 	}
+
+  it should "be possible to define expression directly between [[ ]]" in {
+    val template =
+      compile(
+        """<%[[first name:Text]] [[last name:Text]]%>
+          |[[first name + " and " + last name]]""".stripMargin)
+
+    val Success(result) = engine.execute(template, TemplateParameters("first name" -> "David", "last name" -> "Roon"))
+    result.state shouldBe ExecutionFinished
+    val text = parser.forReview(result.agreements.head,ParagraphEdits())
+    text shouldBe "<p class=\"no-section\">David and Roon</p>"
+  }
+
+  it should "be able to define a function type" in {
+    val template =
+      compile(
+        """[[function variable:Function<Text>(name => name + " and all")]]
+          |
+          |[[function variable("David Roon")]]""".stripMargin)
+
+    val Success(result) = engine.execute(template, TemplateParameters())
+    result.state shouldBe ExecutionFinished
+
+    val text = parser.forReview(result.agreements.head,ParagraphEdits())
+    text shouldBe "<p class=\"no-section\">David Roon and all</p>"
+  }
+
+  it should "be able to use 'map' for collections" in {
+    val template =
+      compile(
+        """[[collection:Collection<Text>]]
+          |
+          |[[@new collection = collection.map(elem => elem + " world")]]""".stripMargin)
+
+    val collectionType = CollectionType(TextType)
+
+    val Success(collectionStr) = collectionType.internalFormat(CollectionValue(size = 3, values = Map(0 -> "one", 1 -> "two", 2 -> "blabla"), collectionType = collectionType))
+    val Success(result) = engine.execute(template, TemplateParameters("collection" -> collectionStr))
+    result.state shouldBe ExecutionFinished
+
+    val Success(newCollection) = result.evaluate[CollectionValue]("new collection")
+    newCollection.values shouldBe Map(0 -> "one world", 1 -> "two world", 2 -> "blabla world")
+    newCollection
+  }
+
 }
