@@ -73,7 +73,7 @@ final case class BooleanExpression(left:Expression, right:Expression, op:Boolean
       }
     }
 
-  override def toString: String = left.toString + op.toString + right.toString
+  override def toString: String = s"$left $op $right"
 
   override def missingInput(executionResult: TemplateExecutionResult): Result[List[VariableName]] = for {
       leftMissing <- left.missingInput(executionResult)

@@ -43,5 +43,5 @@ final case class ValueExpression(left:Expression, right:Expression, operation:Va
       }
     } yield result
 
-  override def toString:String = left.toString + operation.toString + right.toString
+  override def toString:String = s"$left $operation $right"
 }

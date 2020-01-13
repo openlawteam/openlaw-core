@@ -32,7 +32,7 @@ final case class Block(elems:List[TemplatePart] = Nil) {
   private def expressionVariables(expression: Expression):List[VariableDefinition] = {
     expression match {
       case variable:VariableDefinition => List(variable)
-      case ComparaisonExpression(expr1, expr2, _) => expressionVariables(expr1) ++ expressionVariables(expr2)
+      case ComparisonExpression(expr1, expr2, _) => expressionVariables(expr1) ++ expressionVariables(expr2)
       case EqualsExpression(expr1, expr2) => expressionVariables(expr1) ++ expressionVariables(expr2)
       case BooleanExpression(expr1, expr2, _) => expressionVariables(expr1) ++ expressionVariables(expr2)
       case BooleanUnaryExpression(expr, _) => expressionVariables(expr)

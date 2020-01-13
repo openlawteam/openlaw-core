@@ -23,11 +23,11 @@ object ExternalSignatureProof {
 final case class OpenlawSignatureProof(contractId:ContractId, fullName:String, signature:EthereumSignature, txHash:EthereumHash) extends SignatureProof {
   override def serialize: Json = this.asJson
 
-  override def validationLink: Link = Link("verify signature",s"/signature/validate?contractId=${contractId.id}&signature=${signature.toString}")
+  override def validationLink: Link = Link("verify signature",s"/web/default/signature/validate?contractId=${contractId.id}&signature=${signature.toString}")
 }
 
 final case class ExternalSignatureProof(contractId:ContractId, fullName:String, signature:EthereumSignature) extends SignatureProof {
   override def serialize: Json = this.asJson
 
-  override def validationLink: Link = Link("verify signature",s"/signature/validate?contractId=${contractId.id}&signature=${signature.toString}")
+  override def validationLink: Link = Link("verify signature",s"/web/default/signature/validate?contractId=${contractId.id}&signature=${signature.toString}")
 }

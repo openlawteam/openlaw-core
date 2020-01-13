@@ -10,8 +10,7 @@ import org.adridadou.openlaw.OpenlawNativeValue
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.parboiled2.Rule1
 import org.adridadou.openlaw.parser.template.expressions._
-import org.adridadou.openlaw.result.{Failure, Result, Success}
-import org.adridadou.openlaw.result.Implicits.RichResult
+import org.adridadou.openlaw.result.Result
 
 import scala.reflect.ClassTag
 
@@ -24,55 +23,80 @@ trait ExpressionRules extends JsonRules {
     wsNoReturn ~ variableName ~ wsNoReturn ~ "=>" ~ wsNoReturn ~ ExpressionRule ~> ((name:VariableName, expression:Expression) => OLFunction(VariableDefinition(name), expression))
   }
 
-  def ExpressionRule: Rule1[Expression] = rule {
-      Term ~ wsNoReturn ~ zeroOrMore(operation ~ wsNoReturn ~ Term ~ wsNoReturn ~> ((op, expr) => PartialOperation(op, expr))) ~> ((left: Expression, others: Seq[PartialOperation]) => others.foldLeft(left)({
-        case (expr, op) => createOperation(expr, op).getOrThrow() // TODO: Convert this to use fail()
-      }))
-    }
-    //.recoverMerge { case failure => fail(failure.message) }
+  def ExpressionRule:Rule1[Expression] = rule {
+    BooleanTerm | Term | SubTerm | Factor
+  }
 
-  def Term:Rule1[Expression] = rule {
-    wsNoReturn ~ Factor ~ wsNoReturn ~ zeroOrMore(
-      operation ~ wsNoReturn ~ Factor ~ wsNoReturn ~> ((op, expr) => PartialOperation(op,expr))
-    ) ~> ((left:Expression, others:Seq[PartialOperation]) => others.foldLeft(left)({
-      case (expr, op) => createOperation(expr,op).getOrThrow() // TODO: Convert this to use fail()
+  def BooleanTerm: Rule1[Expression] = rule {
+    Term ~ wsNoReturn ~ zeroOrMore(BooleanPartial) ~> ((left:Expression, others:Seq[PartialOperation]) => others.foldLeft(left)({
+      case (current, PartialOperation(op, right)) => createOperation(current, op, right)
     }))
   }
 
-  private def createOperation(left:Expression, op:PartialOperation): Result[Expression] = op.op match {
-    case "+" => Success(ValueExpression(left, op.expr, Plus))
-    case "-" => Success(ValueExpression(left, op.expr, Minus))
-    case "/" => Success(ValueExpression(left, op.expr, Divide))
-    case "*" => Success(ValueExpression(left, op.expr, Multiple))
-    case "||" => Success(BooleanExpression(left, op.expr, Or))
-    case "&&" => Success(BooleanExpression(left, op.expr, And))
-    case ">" => Success(ComparaisonExpression(left, op.expr, GreaterThan))
-    case "<" => Success(ComparaisonExpression(left, op.expr, LesserThan))
-    case ">=" => Success(ComparaisonExpression(left, op.expr, GreaterOrEqual))
-    case "<=" => Success(ComparaisonExpression(left, op.expr, LesserOrEqual))
-    case "=" => Success(ComparaisonExpression(left, op.expr, Equals))
-    case _ => Failure(s"unknown operation ${op.op}")
+  def BooleanPartial: Rule1[PartialOperation] = rule {
+    booleanOperation ~ wsNoReturn ~ (Term | Factor) ~> ((op:String, expr:Expression) => PartialOperation(op, expr))
   }
 
-  def Factor:Rule1[Expression] = rule {constant | conditionalVariableDefinition | variableMemberInner | functionCall | variableName | Parens | UnaryMinus | UnaryNot }
+  def ValuePartial: Rule1[PartialOperation] = rule {
+    valueOperation ~ wsNoReturn ~ (SubTerm | Factor) ~> ((op:String, expr:Expression) => PartialOperation(op, expr))
+  }
+
+  def Term: Rule1[Expression] = rule {
+    SubTerm ~ wsNoReturn ~ comparisonOperation ~ wsNoReturn ~ SubTerm ~> ((left:Expression, op:String, right: Expression) => createOperation(left, op, right))
+  }
+
+  def SubTerm: Rule1[Expression] = rule {
+    Factor ~ wsNoReturn ~ zeroOrMore(ValuePartial) ~> ((left:Expression, others:Seq[PartialOperation]) => others.foldLeft(left)({
+      case (left, PartialOperation(op, right)) => createOperation(left, op, right)
+    })) |
+    Factor
+  }
+
+  private def createOperation(left:Expression, op:String, right:Expression): Expression = op match {
+    case "+" => ValueExpression(left, right, Plus)
+    case "-" => ValueExpression(left, right, Minus)
+    case "/" => ValueExpression(left, right, Divide)
+    case "*" => ValueExpression(left, right, Multiple)
+    case "||" => BooleanExpression(left, right, Or)
+    case "&&" => BooleanExpression(left, right, And)
+    case ">" => ComparisonExpression(left, right, GreaterThan)
+    case "<" => ComparisonExpression(left, right, LesserThan)
+    case ">=" => ComparisonExpression(left, right, GreaterOrEqual)
+    case "<=" => ComparisonExpression(left, right, LesserOrEqual)
+    case "=" => ComparisonExpression(left, right, Equals)
+    case _ => throw new RuntimeException(s"unknown operation ${op}")
+  }
+
+  def  Factor:Rule1[Expression] = rule {constant | conditionalVariableDefinition | variableMemberInner | functionCall | variableName | Parens | UnaryMinus | UnaryNot }
 
   def Parens:Rule1[Expression] = rule { '(' ~ wsNoReturn ~ ExpressionRule ~ wsNoReturn ~ ')' ~> ((expr:Expression) => ParensExpression(expr)) }
 
-  def UnaryMinus:Rule1[Expression] = rule { '-' ~ ExpressionRule ~> ((expr: Expression) => ValueExpression(NumberConstant(BigDecimal(-1)), expr, Multiple))}
+  def UnaryMinus:Rule1[Expression] = rule { '-' ~ wsNoReturn ~ ExpressionRule ~> ((expr: Expression) => ValueExpression(NumberConstant(BigDecimal(-1)), expr, Multiple))}
 
-  def UnaryNot:Rule1[Expression] = rule { '!' ~ ExpressionRule ~> ((expr: Expression) => BooleanUnaryExpression(expr, Not))}
+  def UnaryNot:Rule1[Expression] = rule { '!' ~ wsNoReturn ~ ExpressionRule ~> ((expr: Expression) => BooleanUnaryExpression(expr, Not))}
+
+  private def valueOperation:Rule1[String] = rule {
+    capture("+" | "-" | "/" | "*")
+  }
+
+  private def comparisonOperation:Rule1[String] = rule {
+    capture(">=" | "<=" | ">" | "<" | "=" | "||" | "&&")
+  }
+
+  private def booleanOperation:Rule1[String] = rule {
+    capture("||" | "&&" | "=")
+  }
 
   private def operation:Rule1[String] = rule {
     capture("+" | "-" | "/" | "*" | ">=" | "<=" | ">" | "<" | "=" | "||" | "&&")
   }
 
-  def variableAlias : Rule1[VariableAliasing] = rule { openS  ~ zeroOrMore(" ") ~ variableAliasingDefinition ~ zeroOrMore(" ") ~ closeS
-  }
+  def variableAlias : Rule1[VariableAliasing] = rule { openS  ~ wsNoReturn ~ variableAliasingDefinition ~ wsNoReturn ~ closeS}
 
   def varAliasKey: Rule1[VariableAliasing] = rule { &(openS) ~ variableAlias  }
 
   def variableAliasingDefinition:Rule1[VariableAliasing] = rule {
-    "@" ~ charsKeyAST ~ zeroOrMore(' ')  ~ "=" ~ zeroOrMore(' ') ~ ExpressionRule ~>
+    "@" ~ charsKeyAST ~ zeroOrMore(' ')  ~ "=" ~ wsNoReturn ~ ExpressionRule ~>
       ((aKey:String, expression:Expression) => {
         VariableAliasing(VariableName(aKey.trim), expression)
       })
@@ -175,13 +199,14 @@ trait ExpressionRules extends JsonRules {
   }
 
   def MappingRule:Rule1[(VariableName, Expression)] = rule {
-    ws ~ charsKeyAST ~ ws ~ "->" ~ ws ~ ExpressionRule ~ ws ~> ((name:String, expr:Expression) => (VariableName(name.trim), expr))
+    ws ~ charsKeyAST ~ wsNoReturn ~ "->" ~ wsNoReturn ~ ExpressionRule ~ wsNoReturn ~> ((name:String, expr:Expression) => (VariableName(name.trim), expr))
   }
 
   def constant:Rule1[Expression] = rule {
+    ws ~ (
     numberDefinition ~> ((constant:BigDecimal) => NumberConstant(constant)) |
     stringDefinition ~> ((constant:String) => StringConstant(constant)) |
-    jsonDefinition ~> ((json:Json) => JsonConstant(json.noSpaces))
+    jsonDefinition ~> ((json:Json) => JsonConstant(json.noSpaces)))
   }
 }
 sealed trait Operation
