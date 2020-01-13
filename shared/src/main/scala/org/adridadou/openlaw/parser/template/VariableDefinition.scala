@@ -167,9 +167,10 @@ final case class VariableDefinition(name: VariableName, variableTypeDefinition:O
   def isAnonymous: Boolean = name.isAnonymous
 
   def varType(executionResult: TemplateExecutionResult):VariableType =
-    variableTypeDefinition
-      .flatMap(typeDefinition => (executionResult :: executionResult.subExecutions.values.toList).flatMap(_.findVariableType(typeDefinition)).headOption)
-      .getOrElse(TextType)
+    (for {
+      typeDefinition <- variableTypeDefinition
+      variableType <- executionResult.findVariableType(typeDefinition)
+    } yield variableType).getOrElse(TextType)
 
   def verifyConstructor(executionResult: TemplateExecutionResult): Result[Option[Any]] = {
     implicit val eqCls:Eq[Class[_]] = Eq.fromUniversalEquals

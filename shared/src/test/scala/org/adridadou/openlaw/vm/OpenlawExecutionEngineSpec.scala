@@ -731,14 +731,69 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
   it should "look at sub execution results for variable type" in {
     val mainTemplate = compile("""[[c:Clause("clause")]]""")
     val clauseTemplate = compile(
-      """[[my variable:Number]]""".stripMargin)
+      """
+        |<%
+        |# Arranged Variables by Header
+        |==MOU Terms==
+        |[[Terms: Collection<Text>]]
+        |
+        |==MOU Parties==
+        |[[Party Info: Structure(
+        |    Party Name: Text;
+        |    Party Email: Identity
+        |    )]]
+        |[[#Parties: Collection<Party Info>]]
+        |%>
+        |
+        |\centered **__MEMORANDUM OF UNDERSTANDING__**
+        |
+        |**NOW, THEREFORE,** the undersigned parties (the "***Parties***") see mutual benefit in entering into a partnership and formalizing their cooperation over the matters and under the terms sufficiently described in this Memorandum of Understanding ("***MOU***"):
+        |
+        |{{#for each Term: Terms =>
+        |
+        |    ^^[[Term]]
+        |}}
+        |
+        |The Parties shall keep confidential and shall not divulge to any other party, without the other's prior written consent, any non-public information concerning this MOU and the cooperation contemplated hereby, treating such confidential information with the same due care as their own proprietary information.
+        |
+        |The Parties shall jointly operate and exchange information with the intention of completing the transactions contemplated hereby and within determined timeframes and reasonable best efforts.
+        |
+        |After a preliminary review period, not to exceed two (2) months from the date of mutual execution below, the Parties may enter into a legally-binding agreement regarding these matters and shall make reasonable best efforts to conduct a meeting regarding the same following such MOU review period.
+        |
+        |This MOU is not a legally-binding agreement.
+        |
+        |***__SIGNATORIES__***
+        |
+        |{{#for each Party: Parties =>
+        |
+        |**[[Party.Party Name | Uppercase]]**
+        |
+        |*__[[Party.Party Email | Signature]]__*
+        |Authorized Representative
+        |
+        |}}
+        |""".stripMargin)
 
     engine.execute(mainTemplate, TemplateParameters(), Map(TemplateSourceIdentifier(TemplateTitle("clause")) -> clauseTemplate,TemplateSourceIdentifier(TemplateTitle("clause")) -> clauseTemplate)) match {
       case Right(result) =>
-        val Some(variable) = result.getVariable("my variable")
-        variable.varType(result) shouldBe NumberType
+        val variable = VariableDefinition(VariableName("Parties"), Some(VariableTypeDefinition("Collection",Some(VariableTypeDefinition("Parefhuzegfty Info",None)))))
+        getCollection(variable, result, "")
       case Left(ex) =>
         fail(ex.message, ex)
+    }
+  }
+
+  def getCollection(variable:VariableDefinition, executionResult: TemplateExecutionResult, value:String):CollectionValue = {
+    println(variable.variableTypeDefinition)
+    variable.varType(executionResult) match {
+      case collectionType:CollectionType =>
+        if(value.isEmpty) {
+          CollectionValue(collectionType = collectionType)
+        } else {
+          VariableType.convert[CollectionValue](collectionType.cast(value, executionResult).getOrThrow()).getOrThrow()
+        }
+      case other =>
+        throw new RuntimeException(s"add element to collection only works for a variable of type Collection, not '${other.name}'")
     }
   }
 

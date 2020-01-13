@@ -305,24 +305,29 @@ trait TemplateExecutionResult {
   }}).variables.map(_.name)
 
   def findVariableType(variableTypeDefinition: VariableTypeDefinition):Option[VariableType] = {
-    val mainType = findVariableTypeInternal(variableTypeDefinition)
-    val parameterType = variableTypeDefinition.typeParameter.flatMap(findVariableTypeInternal)
+    val mainType = findVariableTypeAllDirection(variableTypeDefinition)
+    val parameterType = variableTypeDefinition.typeParameter.flatMap(findVariableTypeAllDirection)
     mainType match {
       case Some(varType:ParameterTypeProvider) =>
-        parameterType.map(varType.createParameterInstance)
+        Some(varType.createParameterInstance(parameterType.getOrElse(TextType)))
       case other =>
         other
     }
   }
 
-  private def findVariableTypeInternal(variableTypeDefinition: VariableTypeDefinition):Option[VariableType] =
-    variableTypes.find(_.checkTypeName(variableTypeDefinition.name)) match {
-      case Some(variableType) =>
-        Some(variableType)
-      case None =>
-        parentExecution
-          .flatMap(_.findVariableType(variableTypeDefinition))
-    }
+  private def findVariableTypeAllDirection(variableTypeDefinition: VariableTypeDefinition):Option[VariableType] =
+    findVariableTypeInternalCurrent(variableTypeDefinition) orElse
+    findVariableTypeInternalParent(variableTypeDefinition) orElse
+    findVariableTypeInternalEmbedded(variableTypeDefinition)
+
+  def findVariableTypeInternalCurrent(variableTypeDefinition: VariableTypeDefinition):Option[VariableType] =
+    variableTypes.find(_.checkTypeName(variableTypeDefinition.name))
+
+  def findVariableTypeInternalParent(variableTypeDefinition: VariableTypeDefinition):Option[VariableType] =
+    parentExecution.flatMap(parent => parent.findVariableTypeInternalCurrent(variableTypeDefinition) orElse parent.findVariableTypeInternalParent(variableTypeDefinition))
+
+  def findVariableTypeInternalEmbedded(variableTypeDefinition: VariableTypeDefinition):Option[VariableType] =
+      subExecutions.values.filter(_.embedded).flatMap(subExecution => subExecution.findVariableTypeInternalCurrent(variableTypeDefinition) orElse subExecution.findVariableType(variableTypeDefinition)).headOption
 
   def getSignatureProof(identity: Identity):Option[SignatureProof] = signatureProofs.get(identity.email) match {
     case Some(value) => Some(value)

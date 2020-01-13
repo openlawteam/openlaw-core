@@ -73,7 +73,7 @@ object EthereumAddress {
   def apply(a: String): Result[EthereumAddress] = Option(a) match {
     case None => empty
     case Some(address) if address.startsWith("0x") => apply(address.substring(2))
-    case Some(address) if address.length =!= 40 => Failure("the address string should be 40 or 42 with '0x' prefix")
+    case Some(address) if address.length =!= 40 => Failure(s"the address string should be 40 or 42 with '0x' prefix. value(${address})")
     case Some(address) => apply(hex2bytes(address))
   }
 
