@@ -403,10 +403,11 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     val subTemplate = compile("[[other var]]")
 
     engine.execute(mainTemplate, TemplateParameters("var" -> "Hello"), Map(TemplateSourceIdentifier(TemplateTitle("template")) -> subTemplate)) match {
-      case Right(result) =>
+      case Success(result) =>
         result.agreements.head.directory.path shouldBe Seq("Hello", "template", "me")
-      case Left(ex) =>
-        fail(ex)
+      case Failure(ex, message) =>
+        ex.printStackTrace()
+        fail(message)
     }
   }
 
@@ -741,7 +742,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       case Right(_) =>
         fail("should fail")
       case Left(ex) =>
-        ex.message shouldBe "error while evaluating the expression 'Var 1/Var 2': division by zero!"
+        ex.message shouldBe "error while evaluating the expression 'Var 1 / Var 2': division by zero!"
     }
   }
 
@@ -758,7 +759,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     engine.execute(template, TemplateParameters("Var 1" -> "5", "Var 2" -> "5"), Map()) match {
       case Right(_) => fail("should fail")
       case Left(ex) =>
-        ex.message shouldBe "error while evaluating the expression '(Var 1+Var 2)/(Var 1-Var 2)': division by zero!"
+        ex.message shouldBe "error while evaluating the expression '(Var 1 + Var 2) / (Var 1 - Var 2)': division by zero!"
     }
   }
 
@@ -1746,7 +1747,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       case Right(_) =>
         fail("should fail when dividing by zero")
       case Left(ex) =>
-        ex.message shouldBe "error while evaluating the expression 'period/divisor': division by zero!"
+        ex.message shouldBe "error while evaluating the expression 'period / divisor': division by zero!"
     }
 
     engine.execute(template, TemplateParameters(
@@ -1755,7 +1756,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       case Right(_) =>
         fail("should fail when dividing a period containing a month")
       case Left(ex) =>
-        ex.message shouldBe "error while evaluating the expression 'period/divisor': cannot divide months"
+        ex.message shouldBe "error while evaluating the expression 'period / divisor': cannot divide months"
     }
   }
 

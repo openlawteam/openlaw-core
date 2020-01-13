@@ -433,16 +433,21 @@ trait TemplateExecutionResult {
     subExecutions.values.flatMap(_.getAllExecutionResults).toSeq ++ Seq(this)
 
   def withVariable(name:VariableName, value:OpenlawValue, varType:VariableType): Result[OpenlawExecutionState] =
+    withVariable(name, Some(value), varType)
+
+  def withVariable(name:VariableName, value:Option[OpenlawValue], varType:VariableType): Result[OpenlawExecutionState] =
     this.getAliasOrVariableType(name) match {
       case Success(_) =>
         Failure(s"${name.name} has already been defined!")
       case Failure(_,_) =>
-        varType.internalFormat(value).map { internalFormat =>
+        for {
+          parameters <- value.map(varType.internalFormat(_).map { internalFormat => TemplateParameters(name.name -> internalFormat)}).getOrElse(Success(TemplateParameters()))
+        } yield {
           val result = OpenlawExecutionState(
             id = TemplateExecutionResultId(UUID.randomUUID().toString),
             info = info,
             executionType = BlockExecution,
-            parameters = TemplateParameters(name.name -> internalFormat),
+            parameters = parameters,
             sectionLevelStack = mutable.Buffer(),
             template = CompiledAgreement(header = TemplateHeader()),
             clock = clock,
@@ -450,14 +455,14 @@ trait TemplateExecutionResult {
             executions = this.executions,
             variableRedefinition = VariableRedefinition())
 
-					val r = result.registerNewType(varType) match {
-						case Success(newResult) => newResult
-						case Failure(_,_) => result
-					}
+          val r = result.registerNewType(varType) match {
+            case Success(newResult) => newResult
+            case Failure(_,_) => result
+          }
 
-					r.variablesInternal.append(VariableDefinition(name, Some(VariableTypeDefinition(name = varType.name, None))))
-					r.executedVariablesInternal.append(name)
-					r
+          r.variablesInternal.append(VariableDefinition(name, Some(VariableTypeDefinition(name = varType.name, None))))
+          r.executedVariablesInternal.append(name)
+          r
         }
     }
 }

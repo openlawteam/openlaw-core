@@ -17,8 +17,8 @@ final case class TemplateDefinition(name:TemplateSourceIdentifier, mapping:Map[V
 
 final case class TemplateSourceIdentifier(name:TemplateTitle)
 
-final case class TemplatePath(path:Seq[String] = Seq()) extends OpenlawNativeValue {
-  def innerFile(name:String):TemplatePath = TemplatePath(path ++ Seq(name))
+final case class TemplatePath(path:List[String] = Nil) extends OpenlawNativeValue {
+  def innerFile(name:String):TemplatePath = TemplatePath(path ++ List(name))
 }
 
 case object TemplatePathType extends VariableType("TemplateType") with NoShowInForm {
@@ -96,10 +96,10 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
           case p: TemplatePath =>
             Success(Some(p))
           case p: OpenlawString =>
-            Success(Some(TemplatePath(Seq(p.underlying))))
+            Success(Some(TemplatePath(List(p.underlying))))
           case other =>
             Failure(s"parameter 'path' should be a path but instead was ${other.getClass.getSimpleName}")
-        }).getOrElse(Right(None))
+        }).getOrElse(Success(None))
       }
     case Some(other) =>
       Failure(s"parameter 'path' should be a single value, not ${other.getClass.getSimpleName}")

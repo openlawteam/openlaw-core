@@ -14,10 +14,19 @@ case object TextType extends VariableType("Text") {
       case (left, right) => Success(left + right)
     }
 
-  override def divide(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Result[Option[TemplatePath]] =
-    combineConverted[OpenlawString, TemplatePath](optLeft, optRight) {
-      case (left, right) => Success(TemplatePath(Seq(left, right)))
+  override def divide(optLeft: Option[OpenlawValue], optRight: Option[OpenlawValue], executionResult: TemplateExecutionResult): Result[Option[TemplatePath]] = {
+    optRight match {
+      case Some(_:TemplatePath) =>
+        combineConverted[OpenlawString, TemplatePath, TemplatePath](optLeft, optRight) {
+          case (left, right) => Success(TemplatePath(left :: right.path))
+        }
+      case _ =>
+        combineConverted[OpenlawString, TemplatePath](optLeft, optRight) {
+          case (left, right) => Success(TemplatePath(List(left, right)))
+        }
     }
+
+  }
 
   override def operationWith(rightType: VariableType, operation: ValueOperation): VariableType = operation match {
     case Divide =>
