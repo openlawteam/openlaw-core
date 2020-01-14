@@ -67,7 +67,15 @@ trait ExpressionRules extends JsonRules {
     case _ => throw new RuntimeException(s"unknown operation ${op}")
   }
 
-  def  Factor:Rule1[Expression] = rule {constant | conditionalVariableDefinition | variableMemberInner | functionCall | variableName | Parens | UnaryMinus | UnaryNot }
+  def Factor:Rule1[Expression] = rule {constant | conditionalVariableDefinition | variableMemberInner | functionCall | variableNameOrBoolean | Parens | UnaryMinus | UnaryNot }
+
+  def variableNameOrBoolean:Rule1[Expression] = rule {
+    variableName ~> ((name:VariableName) => name.name.toLowerCase match {
+      case "true" => BooleanConstant(true)
+      case "false" => BooleanConstant(false)
+      case _ => name
+    })
+  }
 
   def Parens:Rule1[Expression] = rule { '(' ~ wsNoReturn ~ ExpressionRule ~ wsNoReturn ~ ')' ~> ((expr:Expression) => ParensExpression(expr)) }
 
@@ -85,10 +93,6 @@ trait ExpressionRules extends JsonRules {
 
   private def booleanOperation:Rule1[String] = rule {
     capture("||" | "&&" | "=")
-  }
-
-  private def operation:Rule1[String] = rule {
-    capture("+" | "-" | "/" | "*" | ">=" | "<=" | ">" | "<" | "=" | "||" | "&&")
   }
 
   def variableAlias : Rule1[VariableAliasing] = rule { openS  ~ wsNoReturn ~ variableAliasingDefinition ~ wsNoReturn ~ closeS}
@@ -172,7 +176,6 @@ trait ExpressionRules extends JsonRules {
     (oneOrMore(ws ~ (FunctionRule | ExpressionRule) ~ ws).separatedBy(",") ~> {
      s: Seq[Expression] =>
       s.toList match {
-        // the typical match for Seq() triggers a compiler bug, so this is a workaround
         case head::Nil => OneValueParameter(head)
         case lst => ListParameter(lst)
       }
