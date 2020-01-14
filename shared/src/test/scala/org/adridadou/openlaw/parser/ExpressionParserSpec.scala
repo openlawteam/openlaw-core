@@ -136,4 +136,15 @@ class ExpressionParserSpec  extends FlatSpec with Matchers {
       case Failure(_, message) => fail(message)
     }
   }
+
+  it should "be able to use boolean constants on its own" in {
+    val text = "true"
+
+    service.parseExpression(text) match {
+      case Success(BooleanConstant(true,_)) =>
+      case Success(other) =>
+        fail(s"expression should be a boolean expression, instead it is ${other.getClass.getSimpleName} ${other}")
+      case Failure(_, message) => fail(message)
+    }
+  }
 }
