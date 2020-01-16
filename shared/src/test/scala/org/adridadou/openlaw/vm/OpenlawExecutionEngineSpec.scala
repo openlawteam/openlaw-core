@@ -1787,12 +1787,12 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
               """.stripMargin)
 
     engine.execute(template, TemplateParameters("Medical Contact" -> "{\"Emergency Contact Name\": \"test\"}"), Map()) match {
-      case Right(result) =>
+      case Success(result) =>
         result.state shouldBe ExecutionFinished
         val text = parser.forReview(result.agreements.head,ParagraphEdits())
         text shouldBe "<p class=\"no-section\"><br /> <strong>Test Agreement - structure</strong></p><p class=\"no-section\"># Structure definition<br /></p><p class=\"no-section\"># Structure type var<br /></p><p class=\"no-section\"><strong>Emergency Contact</strong><br />Name: test<br />Age: [[Medical Contact:Contestant Emergency Contact]]<br />DOB: [[Medical Contact:Contestant Emergency Contact]]<br />Address: [[Medical Contact:Contestant Emergency Contact]]</p><p class=\"no-section\"><br />              </p>"
-      case Left(ex) =>
-        fail(ex)
+      case Failure(_, message) =>
+        fail(message)
     }
   }
 
