@@ -374,6 +374,7 @@ object VariableType {
     TemplateType,
     TextType,
     ValidationType,
+    RegexType,
     YesNoType)
 
   def getByName(name: String): Option[VariableType] =
