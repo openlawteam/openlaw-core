@@ -74,6 +74,7 @@ trait GlobalRules extends Parser {
   def charsKeyAST: Rule1[String] = rule { ws ~ capture(firstKeyChar ~ zeroOrMore(keyChar)) }
 
   def stringDefinition:Rule1[String] = rule {
+    stringDefinition("\"\"\"") |
     stringDefinition("\"") |
     stringDefinition("“","”")  |
     stringDefinition("'")

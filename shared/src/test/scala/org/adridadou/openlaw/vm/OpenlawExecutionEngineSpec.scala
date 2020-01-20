@@ -1891,7 +1891,6 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     result2.state shouldBe ExecutionFinished
 
     val text2 = parser.forReview(result2.agreements.head,ParagraphEdits())
-    println(text2)
     text2 shouldBe """<p class="no-section"> something else<br /></p>"""
   }
 
