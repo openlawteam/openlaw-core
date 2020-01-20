@@ -784,7 +784,6 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
   }
 
   def getCollection(variable:VariableDefinition, executionResult: TemplateExecutionResult, value:String):CollectionValue = {
-    println(variable.variableTypeDefinition)
     variable.varType(executionResult) match {
       case collectionType:CollectionType =>
         if(value.isEmpty) {
