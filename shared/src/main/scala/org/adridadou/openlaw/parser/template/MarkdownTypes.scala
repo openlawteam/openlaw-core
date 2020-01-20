@@ -46,6 +46,13 @@ final case class StringConstant(value:String, typeFunction: TemplateExecutionRes
   override def toString: String = "\"" + value + "\""
 }
 
+final case class BooleanConstant(value:Boolean, typeFunction: TemplateExecutionResult => VariableType = _ => YesNoType) extends ConstantExpression {
+  override def evaluate(executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] =
+    Success(Some(value))
+
+  override def toString: String = value.toString
+}
+
 final case class JsonConstant(value:String, typeFunction: TemplateExecutionResult => VariableType = _ => TextType) extends ConstantExpression {
   override def evaluate(executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] =
     typeFunction(executionResult).cast(value, executionResult).map(Some(_))
@@ -56,7 +63,7 @@ final case class JsonConstant(value:String, typeFunction: TemplateExecutionResul
 
 final case class NumberConstant(value:BigDecimal, typeFunction: TemplateExecutionResult => VariableType = _ => NumberType) extends ConstantExpression {
   override def evaluate(executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] =
-    typeFunction(executionResult).cast(value.toString(), executionResult).map(Some(_))
+    Success(Some(value))
 
 
   override def toString: String = value.toString()

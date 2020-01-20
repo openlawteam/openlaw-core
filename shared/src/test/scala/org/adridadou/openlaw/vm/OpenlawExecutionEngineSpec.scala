@@ -1856,13 +1856,12 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
               """.stripMargin)
 
     engine.execute(template, TemplateParameters("Medical Contact" -> "{\"Emergency Contact Name\": \"test\"}"), Map()) match {
-      case Right(result) =>
+      case Success(result) =>
         result.state shouldBe ExecutionFinished
         val text = parser.forReview(result.agreements.head,ParagraphEdits())
-        //text shouldBe "<p class=\"no-section\"><br /> <strong>Test Agreement - structure</strong></p><p class=\"no-section\"># Structure definition<br /></p><p class=\"no-section\"># Structure type var<br /></p><p class=\"no-section\"><strong>Emergency Contact</strong><br />Name: test<br />Age: [[Emergency Contact Age]]<br />DOB: [[Emergency Contact DOB]]<br />Address: [[Emergency Contact Address]]</p><p class=\"no-section\"><br />              </p>"
         text shouldBe "<p class=\"no-section\"><br /> <strong>Test Agreement - structure</strong></p><p class=\"no-section\"># Structure definition<br /></p><p class=\"no-section\"># Structure type var<br /></p><p class=\"no-section\"><strong>Emergency Contact</strong><br />Name: test<br />Age: [[Medical Contact:Contestant Emergency Contact]]<br />DOB: [[Medical Contact:Contestant Emergency Contact]]<br />Address: [[Medical Contact:Contestant Emergency Contact]]</p><p class=\"no-section\"><br />              </p>"
-      case Left(ex) =>
-        fail(ex)
+      case Failure(_, message) =>
+        fail(message)
     }
   }
 
@@ -1943,6 +1942,26 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     val Success(newCollection) = result.evaluate[CollectionValue]("new collection")
     newCollection.values shouldBe Map(0 -> "one world", 1 -> "two world", 2 -> "blabla world")
     newCollection
+  }
+
+  it should "be able to use regex to match patterns" in {
+    val template =
+      compile(
+        """[[regex:Regex("openlaw")]] [[some text:Text]]
+          |{{regex.match(some text) => regex match with [[some text]]}}""".stripMargin)
+
+    val Success(result) = engine.execute(template, TemplateParameters("some text" -> "openlaw"))
+    result.state shouldBe ExecutionFinished
+
+    val text = parser.forReview(result.agreements.head,ParagraphEdits())
+    text shouldBe """<p class="no-section"> openlaw<br />regex match with openlaw</p>"""
+
+    val Success(result2) = engine.execute(template, TemplateParameters("some text" -> "something else"))
+    result2.state shouldBe ExecutionFinished
+
+    val text2 = parser.forReview(result2.agreements.head,ParagraphEdits())
+    println(text2)
+    text2 shouldBe """<p class="no-section"> something else<br /></p>"""
   }
 
 }

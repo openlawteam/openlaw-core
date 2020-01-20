@@ -101,4 +101,50 @@ class ExpressionParserSpec  extends FlatSpec with Matchers {
       case Failure(_, message) => fail(message)
     }
   }
+
+  it should "have boolean literal true" in {
+    val text = "fill in the draft.isDone = true"
+
+    service.parseExpression(text) match {
+      case Success(ComparisonExpression(_, BooleanConstant(true,_), Equals)) =>
+      case Success(ComparisonExpression(left, right, Equals)) =>
+        fail(s"left expression is of type ${left.getClass.getSimpleName} right expression ${right.getClass.getSimpleName}")
+      case Success(other) =>
+        fail(s"expression should be a Comparison, instead it is ${other.getClass.getSimpleName} ${other}")
+      case Failure(_, message) => fail(message)
+    }
+  }
+
+  it should "have boolean literal false" in {
+    val text = "fill in the draft.isDone = false"
+
+    service.parseExpression(text) match {
+      case Success(ComparisonExpression(_, BooleanConstant(false,_), Equals)) =>
+      case Success(other) =>
+        fail(s"expression should be a boolean expression, instead it is ${other.getClass.getSimpleName} ${other}")
+      case Failure(_, message) => fail(message)
+    }
+  }
+
+  it should "not have a clash between boolean literal and variable names" in {
+    val text = "falseVariable = false"
+
+    service.parseExpression(text) match {
+      case Success(ComparisonExpression(_, BooleanConstant(false,_), Equals)) =>
+      case Success(other) =>
+        fail(s"expression should be a boolean expression, instead it is ${other.getClass.getSimpleName} ${other}")
+      case Failure(_, message) => fail(message)
+    }
+  }
+
+  it should "be able to use boolean constants on its own" in {
+    val text = "true"
+
+    service.parseExpression(text) match {
+      case Success(BooleanConstant(true,_)) =>
+      case Success(other) =>
+        fail(s"expression should be a boolean expression, instead it is ${other.getClass.getSimpleName} ${other}")
+      case Failure(_, message) => fail(message)
+    }
+  }
 }
