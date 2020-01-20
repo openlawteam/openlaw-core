@@ -83,7 +83,6 @@ class ExpressionParserSpec  extends FlatSpec with Matchers {
     service.parseExpression(text) match {
       case Success(BooleanExpression(_:ComparisonExpression, _:ComparisonExpression, And)) =>
       case Success(ComparisonExpression(left, right, op)) =>
-        println(text)
         fail(s"left:$left, leftType ${left.getClass.getSimpleName}, right:$right, rightType ${right.getClass.getSimpleName} op:$op")
       case Success(other) =>
         fail(s"expression should be a boolean expression, instead it is ${other.getClass.getSimpleName} ${other}")
@@ -142,6 +141,25 @@ class ExpressionParserSpec  extends FlatSpec with Matchers {
 
     service.parseExpression(text) match {
       case Success(BooleanConstant(true,_)) =>
+      case Success(other) =>
+        fail(s"expression should be a boolean expression, instead it is ${other.getClass.getSimpleName} ${other}")
+      case Failure(_, message) => fail(message)
+    }
+  }
+
+  it should "be able to parse triple quote string constant" in {
+    val tripleQuote = "\"\"\""
+    val text =
+      """
+        |this is a test
+        |"hello world"
+        |all that works
+        |""".stripMargin
+
+    service.parseExpression(tripleQuote + text + tripleQuote) match {
+      case Success(StringConstant(cText,_)) =>
+        println(cText)
+        text shouldBe cText
       case Success(other) =>
         fail(s"expression should be a boolean expression, instead it is ${other.getClass.getSimpleName} ${other}")
       case Failure(_, message) => fail(message)
