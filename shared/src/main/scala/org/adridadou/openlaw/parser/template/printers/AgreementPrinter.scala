@@ -63,17 +63,16 @@ final case class PrinterState(
   em:Boolean = false,
   strong:Boolean = false,
   under:Boolean = false,
-  sections:Seq[Int] = Seq(),
+  sections:List[Int] = Nil,
   overriddenParagraphGenerated:Boolean = false
 )
 
 object SectionHelper {
 
-  def closeSections(sections:Seq[Int], builder:StringBuilder):String = {
+  def closeSections(sections:Seq[Int], builder:StringBuilder):String =
     sections.lastOption.foldLeft(builder)({
       case (b,lvl) => (0 until lvl).foldLeft(b)({case(b2,_) => b2.append("</li></ul>")} )
     }).toString()
-  }
 
   def handleSections(lvl:Int, sections:Seq[Int], builder:StringBuilder):StringBuilder = {
     val numberInList = calculateNumberInList(lvl, sections)
@@ -84,7 +83,6 @@ object SectionHelper {
     } else {
       builder.append("</li>")
     }).append("<li>")
-
   }
 
   def generateReferenceValue(lvl: Int, sections: Seq[Int], overrideSymbol: Option[SectionSymbol]): Result[String] = {
@@ -106,7 +104,7 @@ object SectionHelper {
   def calculateNumberInList(lvl: Int, sections: Seq[Int]): Int =
     sections.reverse.takeWhile(_ >= lvl).count(_ === lvl)
 
-  private def formatSectionValue(index: Int, sectionSymbol: SectionSymbol, formatString: String): String = {
+  private def formatSectionValue(index: Int, sectionSymbol: SectionSymbol, formatString: String): String =
     sectionSymbol match {
       case Decimal => formatString.format(index.toString)
       case LowerLetter => formatString.format(lowerLetter(index))
@@ -115,7 +113,6 @@ object SectionHelper {
       case UpperRoman => formatString.format(toRomanNumerals(index).toUpperCase)
       case Hide => ""
     }
-  }
 
   private def lowerLetter(index: Int): String = ('a' + ((index - 1) % 26)).toChar.toString * ((index - 1) / 26 + 1)
 

@@ -39,7 +39,7 @@ trait TemplateExecutionResult {
   def aliases:List[VariableAliasing]
   def sectionNameMappingInverse:Map[VariableName, String]
   def variableTypes:List[VariableType]
-  def variableSections:Map[String, Seq[VariableName]]
+  def variableSections:Map[String, List[VariableName]]
   def parameters:TemplateParameters
   def executionType:ExecutionType
   def processedSections:List[(Section, Int)]
@@ -295,11 +295,11 @@ trait TemplateExecutionResult {
     builder.add(variable)
   }}).variables.map(_.name).toList
 
-  def getAllVariableNames:Seq[VariableName] = getAllVariables.foldLeft(DistinctVariableBuilder())({case (builder, (_, variable)) => if(builder.names.contains(variable.name)) {
+  def getAllVariableNames:List[VariableName] = getAllVariables.foldLeft(DistinctVariableBuilder())({case (builder, (_, variable)) => if(builder.names.contains(variable.name)) {
     builder
   } else {
     builder.add(variable)
-  }}).variables.map(_.name)
+  }}).variables.map(_.name).toList
 
   def findVariableType(variableTypeDefinition: VariableTypeDefinition):Option[VariableType] = {
     val mainType = findVariableTypeAllDirection(variableTypeDefinition)
@@ -539,7 +539,7 @@ final case class OpenlawExecutionState(
                                     executionType:ExecutionType,
                                     info:OLInformation,
                                     executions:Map[ActionIdentifier,Executions],
-                                    signatureProofs:Map[Email, SignatureProof] = Map(),
+                                    signatureProofs:Map[Email, SignatureProof] = Map.empty,
                                     template:CompiledTemplate,
                                     anonymousVariableCounter:AtomicInteger = new AtomicInteger(0),
                                     processedAnonymousVariableCounter:AtomicInteger = new AtomicInteger(0),
@@ -559,7 +559,7 @@ final case class OpenlawExecutionState(
                                     compiledAgreement:Option[CompiledAgreement] = None,
                                     variableRedefinition: VariableRedefinition,
                                     templateDefinition: Option[TemplateDefinition] = None,
-                                    mapping:Map[VariableName, Expression] = Map(),
+                                    mapping:Map[VariableName, Expression] = Map.empty,
                                     variableTypesInternal: mutable.Buffer[VariableType] = mutable.Buffer(VariableType.allTypes() : _*),
                                     sectionLevelStack: mutable.Buffer[Int] = mutable.Buffer(),
                                     sectionNameMapping: mutable.Map[String, VariableName] = mutable.Map(),
@@ -580,7 +580,8 @@ final case class OpenlawExecutionState(
   override def variableSections: Map[String, List[VariableName]] = variableSectionsInternal.map({case (key,value) => key -> value.toList}).toMap
 
   override def sectionNameMappingInverse: Map[VariableName, String] = sectionNameMappingInverseInternal.toMap
-	@tailrec
+
+  @tailrec
   def addLastSectionByLevel(lvl: Int, sectionValue: String):Unit = {
     if(embedded) {
       parentExecutionInternal match {

@@ -105,7 +105,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     }
   }
 
-  private def finishExecution(executionResult: OpenlawExecutionState, templates:Map[TemplateSourceIdentifier, CompiledTemplate]):Result[OpenlawExecutionState] = {
+  private def finishExecution(executionResult: OpenlawExecutionState, templates:Map[TemplateSourceIdentifier, CompiledTemplate]):Result[OpenlawExecutionState] =
     executionResult.parentExecutionInternal.map { parent =>
       (for {
         definition <- executionResult.templateDefinition
@@ -146,9 +146,8 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       }).getOrElse(Success(parent)).map(x => x.copy(state = ExecutionReady))
 
     }.getOrElse(Success(executionResult))
-  }
 
-  private final def executeInternal(execution: OpenlawExecutionState, templates:Map[TemplateSourceIdentifier, CompiledTemplate]): Result[OpenlawExecutionState] = {
+  private final def executeInternal(execution: OpenlawExecutionState, templates:Map[TemplateSourceIdentifier, CompiledTemplate]): Result[OpenlawExecutionState] =
     execution.forEachExecutions.headOption match {
       case Some(embeddedExecutionId) =>
         execution.forEachExecutions.remove(0)
@@ -165,7 +164,6 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
             Success(execution.copy(state = ExecutionFinished))
         }
     }
-  }
 
   private def processVariableMember(executionResult: OpenlawExecutionState, variableMember: VariableMember, executed:Boolean):Result[OpenlawExecutionState] = {
     processVariable(executionResult, VariableDefinition(name = variableMember.name), executed)
@@ -285,7 +283,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     }
     .flatten
 
-  private def executeForEachBlock(executionResult: OpenlawExecutionState, foreachBlock: ForEachBlock): Result[OpenlawExecutionState] = {
+  private def executeForEachBlock(executionResult: OpenlawExecutionState, foreachBlock: ForEachBlock): Result[OpenlawExecutionState] =
     foreachBlock
       .toCompiledTemplate(executionResult)
       .flatMap { case (template, expressionType) =>
@@ -311,9 +309,8 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
           )
         }
       }
-  }
 
-  private def executeConditionalBlockSet(executionResult: OpenlawExecutionState, blocks: Seq[ConditionalBlock]):Result[OpenlawExecutionState] = {
+  private def executeConditionalBlockSet(executionResult: OpenlawExecutionState, blocks: List[ConditionalBlock]):Result[OpenlawExecutionState] = {
     blocks.foreach({
       subBlock =>
         subBlock.conditionalExpression match {
