@@ -10,16 +10,16 @@ object MarkdownParser {
   def createMarkdownParser(markdown:String):MarkdownParser = new MarkdownParser(markdown)
 
   def parseMarkdownOrThrow(markdown: String): List[TextElement] = parseMarkdown(markdown) match {
-    case Right(seq) => seq.toList
-    case Left(ex) => throw new RuntimeException("error while parsing the markdown:" + ex)
+    case Success(seq) => seq
+    case Failure(ex, message) => throw new RuntimeException(s"error while parsing the markdown: $message")
   }
 
-  def parseMarkdown(markdown: String): Result[Seq[TextElement]] = {
+  def parseMarkdown(markdown: String): Result[List[TextElement]] = {
     val compiler = createMarkdownParser(markdown)
 
     attempt(compiler.rootRule.run().toResult).flatten match {
       case Failure(parseError: ParseError, _) => Failure(compiler.formatError(parseError))
-      case Failure(ex, _) => Failure(ex.getClass + ":" + ex.getMessage)
+      case Failure(ex, message) => Failure(ex.getClass + ":" + message)
       case Success(result) => Success(result)
     }
   }
@@ -29,5 +29,5 @@ object MarkdownParser {
   */
 class MarkdownParser(val input: ParserInput) extends Parser with MarkdownRules {
 
-  def rootRule: Rule1[Seq[TextElement]] = rule { zeroOrMore(loosenTextElement) ~ EOI ~> ((elems:Seq[Seq[TextElement]]) => elems.flatten)}
+  def rootRule: Rule1[List[TextElement]] = rule { zeroOrMore(loosenTextElement) ~ EOI ~> ((elems:Seq[Seq[TextElement]]) => elems.flatten.toList)}
 }

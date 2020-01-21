@@ -62,7 +62,6 @@ final case class ExternalCallOracle(crypto: CryptoService, externalSignatureAcco
   private def handleEvent(vm: OpenlawVm, event: ExternalCallEvent): Result[OpenlawVm] = {
     vm.allActions.flatMap { seq =>
       seq
-        .toList
         .map(info => info.identifier.map(identifier => (identifier, info)))
         .sequence
         .flatMap { seq =>

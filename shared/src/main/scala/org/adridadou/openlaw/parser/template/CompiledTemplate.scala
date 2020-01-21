@@ -10,6 +10,9 @@ trait CompiledTemplate {
   val block: Block
   val clock: Clock
   val redefinition:VariableRedefinition
+  val header: TemplateHeader
+
+  def append(template:CompiledTemplate):CompiledTemplate
 
   def withRedefinition(redefinition: VariableRedefinition): CompiledTemplate
 }

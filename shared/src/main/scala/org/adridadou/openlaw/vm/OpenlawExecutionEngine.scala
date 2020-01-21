@@ -53,6 +53,34 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     resumeExecution(executionResult, templates)
   }
 
+
+  final def appendTemplateToExecutionResult(executionResult: OpenlawExecutionState, template: CompiledTemplate): Result[OpenlawExecutionState] = {
+    //copy execution result to avoid modifying the one passed
+    // append template elements and continue execution
+    val newExecutionResult = executionResult.copy(
+      template = executionResult.template.append(template),
+      variablesInternal = mutable.Buffer(executionResult.variablesInternal:_*),
+      aliasesInternal = mutable.Buffer(executionResult.aliasesInternal:_*),
+      executedVariablesInternal = mutable.Buffer(executionResult.executedVariablesInternal:_*),
+      variableSectionsInternal = mutable.Map(executionResult.variableSectionsInternal.toSeq:_*),
+      variableSectionListInternal = mutable.Buffer(executionResult.variableSectionListInternal:_*),
+      agreementsInternal = mutable.Buffer(),
+      subExecutionsInternal = mutable.Map(executionResult.subExecutionsInternal.toSeq:_*),
+      forEachExecutions = mutable.Buffer(executionResult.forEachExecutions:_*),
+      finishedEmbeddedExecutions = mutable.Buffer(executionResult.finishedEmbeddedExecutions:_*),
+      remainingElements = mutable.Buffer(template.block.elems:_*),
+      variableTypesInternal = mutable.Buffer(executionResult.variableTypesInternal:_*),
+      sectionLevelStack = mutable.Buffer(executionResult.sectionLevelStack:_*),
+      sectionNameMapping = mutable.Map(executionResult.sectionNameMapping.toSeq:_*),
+      sectionNameMappingInverseInternal = mutable.Map(executionResult.sectionNameMappingInverseInternal.toSeq:_*),
+      processedSectionsInternal = mutable.Buffer(executionResult.processedSectionsInternal:_*),
+      lastSectionByLevel = mutable.Map(executionResult.lastSectionByLevel.toSeq:_*),
+      state = ExecutionReady
+    )
+
+    resumeExecution(newExecutionResult, Map())
+  }
+
   /**
     * This method is used if the execution stops due to a missing template and you want to resume the execution
     */

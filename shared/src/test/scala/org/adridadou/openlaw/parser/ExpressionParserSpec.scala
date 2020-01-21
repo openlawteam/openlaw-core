@@ -158,7 +158,6 @@ class ExpressionParserSpec  extends FlatSpec with Matchers {
 
     service.parseExpression(tripleQuote + text + tripleQuote) match {
       case Success(StringConstant(cText,_)) =>
-        println(cText)
         text shouldBe cText
       case Success(other) =>
         fail(s"expression should be a boolean expression, instead it is ${other.getClass.getSimpleName} ${other}")

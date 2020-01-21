@@ -141,14 +141,14 @@ trait TemplateExecutionResult {
 
   def getVariables(varTypes: VariableType*):List[(TemplateExecutionResult, VariableDefinition)] =
     getVariables
-      .filter(variable => {
+      .filter(variable =>
         variable.varType(this) match {
           case collectionType:CollectionType =>
             varTypes.contains(collectionType.typeParameter)
           case structuredType:DefinedStructureType =>
             structuredType.structure.typeDefinition.values.exists(s => varTypes.contains(s.varType(this)))
           case variableType => varTypes.contains(variableType)
-        }}).map((this, _)) ++ subExecutions.values.flatMap(_.getVariables(varTypes:_*)).toList
+        }).map((this, _)) ++ subExecutions.values.flatMap(_.getVariables(varTypes:_*))
 
   def getVariableValues[U <: OpenlawValue](varType: VariableType)(implicit classTag:ClassTag[U]):Result[List[U#T]] =
     getVariables(varType)

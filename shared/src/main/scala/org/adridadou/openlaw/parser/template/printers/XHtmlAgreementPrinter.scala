@@ -42,6 +42,8 @@ final case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: Paragra
     case (section: SectionElement) :: xs =>
       val (content, remaining) = partitionAt(xs) { case SectionElement(_, thisLevel, _, _, _, _) if thisLevel === level => true }
       (section -> content) +: partitionSections(level, remaining)
+    case first::_ =>
+      throw new RuntimeException(s"bug found! the first element should be a SectionElement but was '${first.getClass.getSimpleName}' instead")
   }
 
   @tailrec private def addBreaks(remaining: List[Frag], result: List[Frag] = Nil): List[Frag] = remaining match {

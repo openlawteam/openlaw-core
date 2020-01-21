@@ -122,7 +122,6 @@ final case class Section(uuid:String, definition:Option[SectionDefinition], lvl:
           .reverse
           .filter(s => s.lvl === lvl)
           .map(s => s.localOverrideSymbol(executionResult))
-          .toList
           .sequence
           .map(_.collectFirst { case Some(symbol) => symbol })
     }
@@ -138,7 +137,6 @@ final case class Section(uuid:String, definition:Option[SectionDefinition], lvl:
           .dropWhile(s => s === this)
           .filter(s => s.lvl === lvl)
           .map(s => s.localOverrideFormat(executionResult))
-          .toList
           .sequence
           .map(_.collectFirst { case Some(format) => format })
     }
