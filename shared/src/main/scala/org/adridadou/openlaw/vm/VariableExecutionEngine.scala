@@ -27,8 +27,8 @@ trait VariableExecutionEngine {
             .sequence
             .map { option =>
               option
-                .getOrElse(Seq())
-                .filter(newVariable => executionResult.getVariable(newVariable).isEmpty).toList
+                .getOrElse(Nil)
+                .filter(newVariable => executionResult.getVariable(newVariable).isEmpty)
             }
             .flatMap { missingVariables =>
 

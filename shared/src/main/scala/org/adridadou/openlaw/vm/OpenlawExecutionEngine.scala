@@ -53,6 +53,34 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     resumeExecution(executionResult, templates)
   }
 
+
+  final def appendTemplateToExecutionResult(executionResult: OpenlawExecutionState, template: CompiledTemplate): Result[OpenlawExecutionState] = {
+    //copy execution result to avoid modifying the one passed
+    // append template elements and continue execution
+    val newExecutionResult = executionResult.copy(
+      template = executionResult.template.append(template),
+      variablesInternal = mutable.Buffer(executionResult.variablesInternal:_*),
+      aliasesInternal = mutable.Buffer(executionResult.aliasesInternal:_*),
+      executedVariablesInternal = mutable.Buffer(executionResult.executedVariablesInternal:_*),
+      variableSectionsInternal = mutable.Map(executionResult.variableSectionsInternal.toSeq:_*),
+      variableSectionListInternal = mutable.Buffer(executionResult.variableSectionListInternal:_*),
+      agreementsInternal = mutable.Buffer(),
+      subExecutionsInternal = mutable.Map(executionResult.subExecutionsInternal.toSeq:_*),
+      forEachExecutions = mutable.Buffer(executionResult.forEachExecutions:_*),
+      finishedEmbeddedExecutions = mutable.Buffer(executionResult.finishedEmbeddedExecutions:_*),
+      remainingElements = mutable.Buffer(template.block.elems:_*),
+      variableTypesInternal = mutable.Buffer(executionResult.variableTypesInternal:_*),
+      sectionLevelStack = mutable.Buffer(executionResult.sectionLevelStack:_*),
+      sectionNameMapping = mutable.Map(executionResult.sectionNameMapping.toSeq:_*),
+      sectionNameMappingInverseInternal = mutable.Map(executionResult.sectionNameMappingInverseInternal.toSeq:_*),
+      processedSectionsInternal = mutable.Buffer(executionResult.processedSectionsInternal:_*),
+      lastSectionByLevel = mutable.Map(executionResult.lastSectionByLevel.toSeq:_*),
+      state = ExecutionReady
+    )
+
+    resumeExecution(newExecutionResult, Map())
+  }
+
   /**
     * This method is used if the execution stops due to a missing template and you want to resume the execution
     */
@@ -105,7 +133,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     }
   }
 
-  private def finishExecution(executionResult: OpenlawExecutionState, templates:Map[TemplateSourceIdentifier, CompiledTemplate]):Result[OpenlawExecutionState] = {
+  private def finishExecution(executionResult: OpenlawExecutionState, templates:Map[TemplateSourceIdentifier, CompiledTemplate]):Result[OpenlawExecutionState] =
     executionResult.parentExecutionInternal.map { parent =>
       (for {
         definition <- executionResult.templateDefinition
@@ -146,9 +174,8 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       }).getOrElse(Success(parent)).map(x => x.copy(state = ExecutionReady))
 
     }.getOrElse(Success(executionResult))
-  }
 
-  private final def executeInternal(execution: OpenlawExecutionState, templates:Map[TemplateSourceIdentifier, CompiledTemplate]): Result[OpenlawExecutionState] = {
+  private final def executeInternal(execution: OpenlawExecutionState, templates:Map[TemplateSourceIdentifier, CompiledTemplate]): Result[OpenlawExecutionState] =
     execution.forEachExecutions.headOption match {
       case Some(embeddedExecutionId) =>
         execution.forEachExecutions.remove(0)
@@ -165,7 +192,6 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
             Success(execution.copy(state = ExecutionFinished))
         }
     }
-  }
 
   private def processVariableMember(executionResult: OpenlawExecutionState, variableMember: VariableMember, executed:Boolean):Result[OpenlawExecutionState] = {
     processVariable(executionResult, VariableDefinition(name = variableMember.name), executed)
@@ -285,7 +311,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     }
     .flatten
 
-  private def executeForEachBlock(executionResult: OpenlawExecutionState, foreachBlock: ForEachBlock): Result[OpenlawExecutionState] = {
+  private def executeForEachBlock(executionResult: OpenlawExecutionState, foreachBlock: ForEachBlock): Result[OpenlawExecutionState] =
     foreachBlock
       .toCompiledTemplate(executionResult)
       .flatMap { case (template, expressionType) =>
@@ -311,9 +337,8 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
           )
         }
       }
-  }
 
-  private def executeConditionalBlockSet(executionResult: OpenlawExecutionState, blocks: Seq[ConditionalBlock]):Result[OpenlawExecutionState] = {
+  private def executeConditionalBlockSet(executionResult: OpenlawExecutionState, blocks: List[ConditionalBlock]):Result[OpenlawExecutionState] = {
     blocks.foreach({
       subBlock =>
         subBlock.conditionalExpression match {

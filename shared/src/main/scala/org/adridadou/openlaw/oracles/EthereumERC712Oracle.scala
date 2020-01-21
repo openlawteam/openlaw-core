@@ -19,7 +19,6 @@ final case class EthereumERC712Oracle(crypto:CryptoService) extends OpenlawOracl
       .getAllVariableValues[EthereumSmartContractCall](EthereumCallType)
       .flatMap { values =>
         values
-          .toList
           .map { case (call, executionResult) => call.identifier(executionResult).map((call, executionResult, _)) }
           .sequence
           .flatMap { list =>

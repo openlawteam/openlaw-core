@@ -1962,4 +1962,23 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     text2 shouldBe """<p class="no-section"> something else<br /></p>"""
   }
 
+  it should "be possible to append a template to an existing execution result" in {
+    val template1 = compile("""<%[[first name:Text]] [[last name:Text]] [[age:Number]]%>""".stripMargin)
+
+    val template2 = compile(
+      """this is my [[first name]] [[last name]] [[age]]""".stripMargin
+    )
+
+    val Success(result) = engine.execute(template1, TemplateParameters("first name" -> "David", "last name" -> "Roon", "age" -> "37"))
+    val Success(newResult) = engine.appendTemplateToExecutionResult(result, template2)
+    newResult.agreements.size shouldBe 1
+    newResult.state shouldBe ExecutionFinished
+
+    val text = parser.forReview(newResult.agreements.head)
+    text shouldBe "<p class=\"no-section\">this is my David Roon 37</p>"
+
+    val text2 = parser.forReview(result.agreements.head)
+    text2 shouldBe ""
+  }
+
 }

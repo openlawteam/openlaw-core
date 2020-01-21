@@ -15,7 +15,6 @@ trait SignedActionOracle[R <: SignedActionEvent] extends OpenlawOracle[R]{
 	def checkAction(vm:OpenlawVm, crypto:CryptoService, event:R, actionData:EthereumData): Result[OpenlawVm] = {
 		val identityResult = vm
 			.getAllVariables(IdentityType)
-			.toList
 			.map { case (executionResult,variable) => (variable.name, executionResult.evaluate[Identity](variable.name)) }
 			.collect {
 				case (id, Right(identity)) =>
@@ -34,7 +33,6 @@ trait SignedActionOracle[R <: SignedActionEvent] extends OpenlawOracle[R]{
 
 		val externalSignatureResult = vm
 			.getAllVariables(ExternalSignatureType)
-			.toList
 			.map { case (executionResult,variable) => (variable.name, executionResult.evaluate[ExternalSignature](variable.name)) }
 			.collect {
 				case (id, Right(ExternalSignature(Some(identity), serviceName))) =>

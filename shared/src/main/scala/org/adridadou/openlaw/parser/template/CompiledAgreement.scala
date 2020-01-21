@@ -11,11 +11,31 @@ import org.adridadou.openlaw.result.{Failure, Result, Success}
 import scala.annotation.tailrec
 
 final case class CompiledAgreement(
-  header:TemplateHeader = TemplateHeader(Map()),
+  header:TemplateHeader = TemplateHeader(Map.empty),
   block: Block = Block(),
   redefinition:VariableRedefinition = VariableRedefinition(),
   clock: Clock = Clock.systemDefaultZone,
 ) extends CompiledTemplate {
+
+
+  override def append(template: CompiledTemplate): CompiledTemplate = template match {
+    case agreement: CompiledAgreement => this.copy(
+      header = TemplateHeader(this.header.values ++ agreement.header.values),
+      block = Block(this.block.elems ++ agreement.block.elems),
+      redefinition = VariableRedefinition(
+        typeMap = this.redefinition.typeMap ++ agreement.redefinition.typeMap,
+        descriptions = this.redefinition.descriptions ++ agreement.redefinition.descriptions
+      )
+    )
+    case deal: CompiledDeal => deal.copy(
+      header = TemplateHeader(this.header.values ++ deal.header.values),
+      block = Block(this.block.elems ++ deal.block.elems),
+      redefinition = VariableRedefinition(
+        typeMap = this.redefinition.typeMap ++ deal.redefinition.typeMap,
+        descriptions = this.redefinition.descriptions ++ deal.redefinition.descriptions
+      )
+    )
+  }
 
   private val endOfParagraph = "(.)*[ |\t|\r]*\n[ |\t|\r]*\n[ |\t|\r|\n]*".r
 
@@ -304,7 +324,7 @@ final case class CompiledAgreement(
                 varType
                   .access(value, name, keys, executionResult)
                   .flatMap { option =>
-                    option.map(value => keysType.format(formatter, value, executionResult).map(_.toList))
+                    option.map(value => keysType.format(formatter, value, executionResult))
                       .getOrElse(Success(List(FreeText(Text(s"[[${expression.toString}]]")))))
                   }
               }
@@ -313,7 +333,7 @@ final case class CompiledAgreement(
         }
         .sequence
       }
-      option.getOrElse(Success(varType.missingValueFormat(name.name).toList))
+      option.getOrElse(Success(varType.missingValueFormat(name.name)))
     }
 
   override def withRedefinition(redefinition: VariableRedefinition): CompiledAgreement = this.copy(redefinition = redefinition)
