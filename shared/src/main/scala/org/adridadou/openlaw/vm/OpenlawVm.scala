@@ -342,10 +342,10 @@ final case class OpenlawVm(contractDefinition: ContractDefinition, profileAddres
   }
 
   def apply(event:OpenlawVmEvent):OpenlawVm = applyEvent(event) match {
-    case Right(result) =>
+    case Success(result) =>
       result
-    case Left(ex) =>
-      logger.warn(ex.message, ex.e)
+    case Failure(ex, message) =>
+      logger.warn(message, ex)
       this
   }
 

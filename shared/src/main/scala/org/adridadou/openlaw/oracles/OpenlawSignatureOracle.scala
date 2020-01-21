@@ -8,7 +8,6 @@ import cats.Eq
 import io.circe._
 import io.circe.generic.semiauto._
 import io.circe.syntax._
-import org.adridadou.openlaw.parser.template.SignatureProof
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 import org.adridadou.openlaw.values.ContractId
 import org.adridadou.openlaw.vm.OpenlawVmEvent
@@ -55,7 +54,7 @@ final case class ExternalSignatureEvent(contractId:ContractId, email:Email, full
   override def typeIdentifier: String = className[ExternalSignatureEvent]
   override def serialize: String = this.asJson.noSpaces
 
-  override def proof: SignatureProof = ExternalSignatureProof(contractId, fullName, signature)
+  override def proof: SignatureProof = SignatureProof(contractId, fullName, signature)
 }
 
 object OpenlawSignatureEvent {
@@ -63,18 +62,17 @@ object OpenlawSignatureEvent {
   implicit val openlawSignatureEventDec: Decoder[OpenlawSignatureEvent] = deriveDecoder
 }
 
-final case class OpenlawSignatureEvent(contractId:ContractId, email:Email, fullName:String, signature: EthereumSignature, ethereumHash:EthereumHash) extends SignatureEvent {
+final case class OpenlawSignatureEvent(contractId:ContractId, email:Email, fullName:String, signature: EthereumSignature) extends SignatureEvent {
 
   override def getServiceName: Option[ServiceName] = None
 
   override def typeIdentifier: String = className[OpenlawSignatureEvent]
   override def serialize: String = this.asJson.noSpaces
 
-  def proof: OpenlawSignatureProof = OpenlawSignatureProof(
+  def proof: SignatureProof = SignatureProof(
     contractId = contractId,
     fullName = fullName,
-    signature = signature,
-    txHash = ethereumHash)
+    signature = signature)
 }
 
 final case class UserId(id:String) {
