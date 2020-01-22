@@ -103,10 +103,10 @@ package object openlaw {
   }
 
   // TODO: The AbstractStructure handling should be refactored to not require returning this type in access
-  implicit class OpenlawElements(override val underlying: Seq[AgreementElement]) extends Comparable[Seq[AgreementElement]] with OpenlawValue {
-    override type T = Seq[AgreementElement]
+  implicit class OpenlawElements(override val underlying: List[AgreementElement]) extends Comparable[List[AgreementElement]] with OpenlawValue {
+    override type T = List[AgreementElement]
     override def toString: String = underlying.toString
-    override def compareTo(t: Seq[AgreementElement]): Int = underlying.compareTo(t.underlying)
+    override def compareTo(t: List[AgreementElement]): Int = underlying.compareTo(t.underlying)
     override def equals(o: Any): Boolean = o match {
       case value: OpenlawValue => underlying.equals(value.underlying)
       case _ => underlying.equals(o)

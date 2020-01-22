@@ -25,7 +25,7 @@ object Executions {
   implicit val executionsDec:Decoder[Executions] = deriveDecoder
 }
 
-final case class Executions(executionMap:Map[LocalDateTime,OpenlawExecution] = Map(), executionInit:Option[OpenlawExecutionInit] = None) {
+final case class Executions(executionMap:Map[LocalDateTime,OpenlawExecution] = Map.empty, executionInit:Option[OpenlawExecutionInit] = None) {
   def update(key:LocalDateTime, value:OpenlawExecution):Executions =
     this.copy(executionMap = executionMap + (key -> value))
 
@@ -33,20 +33,20 @@ final case class Executions(executionMap:Map[LocalDateTime,OpenlawExecution] = M
     this.copy(executionInit = Some(executionInit))
 }
 
-final case class OpenlawVmState( contents:Map[TemplateId, String] = Map(),
-                           templates:Map[TemplateId, CompiledTemplate] = Map(),
+final case class OpenlawVmState( contents:Map[TemplateId, String] = Map.empty,
+                           templates:Map[TemplateId, CompiledTemplate] = Map.empty,
                            optExecutionResult:Option[OpenlawExecutionState],
                            definition:ContractDefinition,
                            profileAddress:Option[EthereumAddress],
                            state:TemplateParameters,
                            executions:Map[ActionIdentifier, Executions],
                            signatures:Map[Email, SignatureEvent],
-                           signatureProofs:Map[Email, SignatureProof] = Map(),
-                           events:List[OpenlawVmEvent] = List(),
+                           signatureProofs:Map[Email, SignatureProof] = Map.empty,
+                           events:List[OpenlawVmEvent] = Nil,
                            executionEngine: OpenlawExecutionEngine,
                            executionState:ContractExecutionState,
                            crypto:CryptoService,
-                           externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] = Map(),
+                           externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] = Map.empty,
                            clock:Clock) extends LazyLogging {
 
   def updateTemplate(id: TemplateId, compiledTemplate: CompiledTemplate, event:LoadTemplate): OpenlawVmState =

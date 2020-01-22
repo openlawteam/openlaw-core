@@ -36,7 +36,7 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
     variableTypesMap(template.block.elems, VariableRedefinition()) map template.withRedefinition
   }
 
-  private def variableTypesMap(elems: Seq[TemplatePart], redefinition: VariableRedefinition): Result[VariableRedefinition] = {
+  private def variableTypesMap(elems: List[TemplatePart], redefinition: VariableRedefinition): Result[VariableRedefinition] = {
     val initialValue: Result[VariableRedefinition] = Success(redefinition)
     elems.foldLeft(initialValue)((currentTypeMap, elem) => currentTypeMap.flatMap(variableTypesMap(elem, _)))
   }
@@ -103,31 +103,29 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
   def forPreview(structuredAgreement: StructuredAgreement, overriddenParagraphs: ParagraphEdits): String =
     XHtmlAgreementPrinter(preview = true, paragraphEdits = overriddenParagraphs).printParagraphs(structuredAgreement.paragraphs).print
 
-  def forPreview(structuredAgreement: StructuredAgreement, overriddenParagraphs: ParagraphEdits, hiddenVariables: Seq[String]): String =
+  def forPreview(structuredAgreement: StructuredAgreement, overriddenParagraphs: ParagraphEdits, hiddenVariables: List[String]): String =
     XHtmlAgreementPrinter(preview = true, paragraphEdits = overriddenParagraphs, hiddenVariables = hiddenVariables).printParagraphs(structuredAgreement.paragraphs).print
 
-  def forPreview(paragraph: Paragraph, variables: Seq[String]): String =
+  def forPreview(paragraph: Paragraph, variables: List[String]): String =
     XHtmlAgreementPrinter(preview = true, hiddenVariables = variables).printParagraphs(List(paragraph)).print
 
   def forReview(structuredAgreement: StructuredAgreement): String =
     forReview(structuredAgreement, ParagraphEdits())
 
   def forReview(structuredAgreement: StructuredAgreement, overriddenParagraphs: ParagraphEdits): String =
-    XHtmlAgreementPrinter(preview = false, overriddenParagraphs, Seq()).printParagraphs(structuredAgreement.paragraphs).print
+    XHtmlAgreementPrinter(preview = false, overriddenParagraphs, Nil).printParagraphs(structuredAgreement.paragraphs).print
 
-  def forReview(structuredAgreement: StructuredAgreement, overriddenParagraphs:ParagraphEdits, variables:Seq[String]):String =
+  def forReview(structuredAgreement: StructuredAgreement, overriddenParagraphs:ParagraphEdits, variables:List[String]):String =
     XHtmlAgreementPrinter(preview = false, overriddenParagraphs, variables).printParagraphs(structuredAgreement.paragraphs).print
 
-  def forReview(paragraph: Paragraph, variables:Seq[String]):String =
+  def forReview(paragraph: Paragraph, variables:List[String]):String =
     XHtmlAgreementPrinter(preview = false, hiddenVariables = variables).printParagraphs(List(paragraph)).print
 
   def forReviewEdit(paragraph:Paragraph):String =
     XHtmlAgreementPrinter(preview = false).printParagraphs(List(paragraph)).print
 
-  def forReviewParagraph(str: String): Result[String] = MarkdownParser.parseMarkdown(str) match {
-    case Left(ex) => Failure("error while parsing the markdown:" + ex)
-    case Right(result) => Success(XHtmlAgreementPrinter(preview = false).printFragments(result.map(FreeText).toList).print)
-  }
+  def forReviewParagraph(str: String): Result[String] = MarkdownParser.parseMarkdown(str)
+    .map(result => XHtmlAgreementPrinter(preview = false).printFragments(result.map(FreeText)).print)
 
   def render[T](structuredAgreement: StructuredAgreement, overriddenParagraphs:ParagraphEdits, agreementPrinter: AgreementPrinter[T], hiddenVariables:Set[String]): Result[AgreementPrinter[T]] =
     structuredAgreement.paragraphs
