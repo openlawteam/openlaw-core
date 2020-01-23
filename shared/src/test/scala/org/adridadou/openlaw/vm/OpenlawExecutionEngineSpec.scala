@@ -1984,6 +1984,10 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
     val newCollection = result.evaluate[CollectionValue]("new collection").getOrThrow()
     newCollection.values shouldBe Map(0 -> BigDecimal("37"), 1 -> BigDecimal("47"))
+    val Success(expr) = result.parseExpression("new collection")
+    expr.expressionType(result).getOrThrow()
+    val Success(exprType:CollectionType) = expr.expressionType(result)
+    exprType.typeParameter shouldBe NumberType
   }
 
   it should "be able to use regex to match patterns" in {

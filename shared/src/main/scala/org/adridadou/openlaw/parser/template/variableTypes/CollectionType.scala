@@ -91,8 +91,12 @@ final case class CollectionType(typeParameter:VariableType) extends VariableType
     keys match {
       case Nil =>
         Success(AbstractStructureType)
-      case VariableMemberKey(Right(OLFunctionCall(VariableName("map"), _)))::Nil =>
-        Success(AbstractFunctionType)
+      case VariableMemberKey(Right(OLFunctionCall(VariableName("map"), func:OLFunction)))::Nil =>
+        for {
+          ier <- executionResult.withVariable(func.parameter.name, None, typeParameter)
+          kType <- func.expression.expressionType(ier).map(CollectionType)
+        } yield kType
+
       case _ =>
         Failure(s"property '${keys.mkString(".")}' could not be resolved in collection type")
     }
