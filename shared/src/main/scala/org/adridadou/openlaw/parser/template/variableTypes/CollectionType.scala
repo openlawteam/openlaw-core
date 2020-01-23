@@ -81,13 +81,11 @@ final case class CollectionType(typeParameter:VariableType) extends VariableType
     }
   }
 
-  private def applyMap(value:OpenlawValue, func:OLFunction, executionResult: TemplateExecutionResult):Result[Option[OpenlawValue]] = {
-    println(s"parameter type ${func.parameter.varType(executionResult)}")
+  private def applyMap(value:OpenlawValue, func:OLFunction, executionResult: TemplateExecutionResult):Result[Option[OpenlawValue]] =
     for {
       ier <- executionResult.withVariable(func.parameter.name, value, typeParameter)
       newValue <- func.expression.evaluate(ier)
     } yield newValue
-  }
 
   override def keysType(keys: List[VariableMemberKey], expression: Expression, executionResult: TemplateExecutionResult): Result[VariableType] =
     keys match {
