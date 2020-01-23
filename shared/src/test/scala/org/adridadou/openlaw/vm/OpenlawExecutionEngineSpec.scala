@@ -1940,7 +1940,54 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
     val Success(newCollection) = result.evaluate[CollectionValue]("new collection")
     newCollection.values shouldBe Map(0 -> "one world", 1 -> "two world", 2 -> "blabla world")
-    newCollection
+  }
+
+  it should "be able to use 'map' for collections with numbers" in {
+    val template =
+      compile(
+        """[[collection:Collection<Number>]]
+          |
+          |[[@new collection = collection.map(elem => elem + 10)]]""".stripMargin)
+
+    val collectionType = CollectionType(NumberType)
+
+    val collectionStr = collectionType.internalFormat(CollectionValue(size = 3, values = Map(0 -> BigDecimal("1"), 1 -> BigDecimal("3"), 2 -> BigDecimal("45")), collectionType = collectionType)).getOrThrow()
+    val Success(result) = engine.execute(template, TemplateParameters("collection" -> collectionStr))
+    result.state shouldBe ExecutionFinished
+
+    val newCollection = result.evaluate[CollectionValue]("new collection").getOrThrow()
+    newCollection.values shouldBe Map(0 -> BigDecimal("11"), 1 -> BigDecimal("13"), 2 -> BigDecimal("55"))
+  }
+
+  it should "be able to use 'map' for collections with structure where we extract a field" in {
+    val template =
+      compile(
+        """
+          |[[My Structure: Structure(
+          |name:Text;
+          |age:Number
+          |)]]
+          |[[collection:Collection<My Structure>]]
+          |
+          |[[@new collection = collection.map(elem => elem.age)]]""".stripMargin)
+
+    val Success(resultToGetType) = engine.execute(template, TemplateParameters())
+    val Some(structureType) = resultToGetType.findVariableType(VariableTypeDefinition("My Structure"))
+    val collectionType = CollectionType(structureType)
+
+    val value1:Map[VariableName, OpenlawValue] = Map[VariableName, OpenlawValue](VariableName("name") -> OpenlawString("David Roon"), VariableName("age") -> OpenlawBigDecimal(BigDecimal(37)))
+    val value2:Map[VariableName, OpenlawValue] = Map[VariableName, OpenlawValue](VariableName("name") -> OpenlawString("David UIhiuh"), VariableName("age") -> OpenlawBigDecimal(BigDecimal(47)))
+
+    val collectionStr = collectionType.internalFormat(CollectionValue(size = 2, values = Map(0 -> value1, 1 -> value2), collectionType = collectionType)).getOrThrow()
+    val Success(result) = engine.execute(template, TemplateParameters("collection" -> collectionStr))
+    result.state shouldBe ExecutionFinished
+
+    val newCollection = result.evaluate[CollectionValue]("new collection").getOrThrow()
+    newCollection.values shouldBe Map(0 -> BigDecimal("37"), 1 -> BigDecimal("47"))
+    val Success(expr) = result.parseExpression("new collection")
+    expr.expressionType(result).getOrThrow()
+    val Success(exprType:CollectionType) = expr.expressionType(result)
+    exprType.typeParameter shouldBe NumberType
   }
 
   it should "be able to use regex to match patterns" in {
