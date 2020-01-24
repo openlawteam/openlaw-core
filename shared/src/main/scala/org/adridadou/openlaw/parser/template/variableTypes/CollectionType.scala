@@ -10,6 +10,7 @@ import org.adridadou.openlaw.parser.template.{TemplateExecutionResult, VariableM
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
 import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success}
+import scala.collection.JavaConverters._
 
 case object AbstractCollectionType extends VariableType("Collection") with ParameterTypeProvider {
 
@@ -32,6 +33,7 @@ final case class CollectionValue(size:Int = 1, values:Map[Int, OpenlawValue] = M
   def castValue(value:String, executionResult: TemplateExecutionResult):Result[OpenlawValue] = collectionType.typeParameter.cast(value, executionResult)
   def valueInternalFormat(value:OpenlawValue): Result[String] = collectionType.typeParameter.internalFormat(value)
   def list:List[OpenlawValue] = values.values.toList
+  def listJava:java.util.List[OpenlawValue] = values.values.toList.asJava
 }
 
 object CollectionTypeValue {
