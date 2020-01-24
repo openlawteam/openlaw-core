@@ -9,21 +9,15 @@ import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawString, OpenlawValue}
 import org.adridadou.openlaw.parser.template.{
   Parameter,
   Parameters,
-  TemplateExecutionResult,
+  TemplateExecutionResult
 }
-import org.adridadou.openlaw.result.{
-  Failure,
-  FailureException,
-  Result,
-  Success,
-}
+import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success}
 import cats.implicits._
 import io.circe.parser.decode
 import org.adridadou.openlaw.parser.template.expressions.Expression
 
 final case class ExternalStorage(serviceName: Expression,
-                                 fileType: Expression,
-                                 filePath: Expression)
+                                 filePath: TemplatePath)
     extends OpenlawNativeValue
 
 object ExternalStorage {
@@ -51,35 +45,49 @@ object ExternalStorageType extends VariableType("ExternalStorage") {
             "name",
             "storage"
           )
-          fileTypeExp <- getParameter(values, "fileType")
-            .map(getExpression)
-            .sequence
-          filePathExp <- getParameter(values, "filePath")
-            .map(getExpression)
-            .sequence
+          filePathExp <- getExpression(
+            values,
+            "docx",
+            "doc",
+            "pdf",
+            "odt",
+            "rtf"
+          )
           serviceDef <- getIntegratedService(serviceNameExp, executionResult)
+          filePath <- getFilePath(executionResult, filePathExp)
           _ <- serviceDef.toResult(
             "Invalid or missing 'serviceName', 'service' or 'storage' property for ExternalStorage declaration"
           )
-          fileType <- fileTypeExp.toResult(
-            "Invalid or missing 'fileType' property for ExternalStorage declaration"
-          )
-          filePath <- filePathExp.toResult(
-            "Invalid or missing 'filePath' property for ExternalStorage declaration"
-          )
         } yield {
           Some(
-            ExternalStorage(
-              serviceName = serviceNameExp,
-              fileType = fileType,
-              filePath = filePath
-            )
+            ExternalStorage(serviceName = serviceNameExp, filePath = filePath)
           )
         }
       case _ =>
         Failure(
           "ExternalStorage declaration needs to get 'serviceName', 'fileType' and 'filePath' as constructor parameters"
         )
+    }
+  }
+
+  private def getFilePath(executionResult: TemplateExecutionResult,
+                          filePathExp: Expression): Result[TemplatePath] = {
+    filePathExp.evaluate(executionResult).flatMap { option =>
+      option
+        .map({
+          case p: TemplatePath =>
+            Success(p)
+          case p: OpenlawString =>
+            Success(TemplatePath(List(p.underlying)))
+          case other =>
+            Failure(
+              "The file path declaration must be a String or a TemplatePath variable"
+            )
+        })
+        .toResult(
+          "The file path must be declared using the file type followed by the path and file name with extension, for example: docx: \"openlaw\" / \"files\" / \"Test.docx\""
+        )
+        .flatten
     }
   }
 
@@ -106,4 +114,5 @@ object ExternalStorageType extends VariableType("ExternalStorage") {
         .map(ServiceName(_))
         .flatMap(executionResult.externalCallStructures.get)
     }
+
 }

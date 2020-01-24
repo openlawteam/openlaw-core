@@ -2405,10 +2405,10 @@ here""".stripMargin
     }
   }
 
-  it should "create a new variable type ExternalStorage" in {
+  it should "create a new variable type ExternalStorage for Dropbox with a docx file path" in {
     val text =
       """
-        |[[Dropbox Storage: ExternalStorage(serviceName:"Dropbox"; fileType:"doc"; filePath:"/openlaw/files/Test.doc")]]
+        |[[Dropbox Storage: ExternalStorage(serviceName:"Dropbox"; docx:"/openlaw/files/Test.doc")]]
         |Test simple template
       """.stripMargin
 
@@ -2430,10 +2430,9 @@ here""".stripMargin
         storage.serviceName
           .asInstanceOf[StringConstant]
           .value shouldBe "Dropbox"
-        storage.fileType.asInstanceOf[StringConstant].value shouldBe "doc"
         storage.filePath
-          .asInstanceOf[StringConstant]
-          .value shouldBe "/openlaw/files/Test.doc"
+          .asInstanceOf[TemplatePath]
+          .path shouldBe List("/openlaw/files/Test.doc")
       case Failure(ex, message) =>
         fail(message, ex)
     }
