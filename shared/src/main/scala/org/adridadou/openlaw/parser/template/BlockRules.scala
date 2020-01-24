@@ -227,11 +227,11 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   }
 
   def tableWithoutHeader:Rule1[Seq[Table]] = rule {
-    oneOrMore(tableRow ~ EndOfBlock) ~> ((rows: Seq[Seq[Seq[TemplatePart]]]) => Seq(Table(List(), rows.map(_.map(_.toList).toList).toList)))
+    oneOrMore(tableRow ~ EndOfBlock) ~> ((rows: Seq[Seq[Seq[TemplatePart]]]) => Seq(Table(Nil, rows.map(_.map(_.toList).toList).toList)))
   }
 
   def tableWithoutRow:Rule1[Seq[Table]] = rule {
-    tableHeader ~ nl ~> ((headers: Seq[Seq[TemplatePart]]) => Seq(Table(headers.map(_.toList).toList, List())))
+    tableHeader ~ nl ~> ((headers: Seq[Seq[TemplatePart]]) => Seq(Table(headers.map(_.toList).toList, Nil)))
   }
 
   def tableHeader: Rule1[Seq[Seq[TemplatePart]]] = rule { tableRow ~ nl ~ whitespace ~ tableHeaderBreak ~ whitespace }

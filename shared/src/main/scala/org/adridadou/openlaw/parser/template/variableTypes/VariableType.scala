@@ -430,14 +430,14 @@ object VariableType {
       case Right(value) => Right(value)
       case Left(_) => DefinedChoiceType.definedChoiceTypeDec(cursor) match {
         case Right(value) => Right(value)
-        case Left(_) => Left(DecodingFailure(s"unknown type $name. or error while decoding", List()))
+        case Left(_) => Left(DecodingFailure(s"unknown type $name. or error while decoding", Nil))
       }
     }
     DefinedDomainType.definedDomainTypeDec(cursor) match {
       case Right(value) => Right(value)
       case Left(_) => DefinedChoiceType.definedChoiceTypeDec(cursor) match {
         case Right(value) => Right(value)
-        case Left(_) => Left(DecodingFailure(s"unknown type $name. or error while decoding", List()))
+        case Left(_) => Left(DecodingFailure(s"unknown type $name. or error while decoding", Nil))
       }
     }
   }

@@ -288,7 +288,7 @@ object Parameter {
         cursor.downField("value").as[Parameters]
       case _ if name === className[MappingParameter] =>
         cursor.downField("value").as[MappingParameter]
-      case _ => Left(DecodingFailure(s"unknown parameter type $name", List()))
+      case _ => Left(DecodingFailure(s"unknown parameter type $name", Nil))
     }
   }
 }

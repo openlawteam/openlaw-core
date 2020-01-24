@@ -520,7 +520,7 @@ case object BlockExecution extends ExecutionType
 
 object OpenlawExecutionState {
 	val empty: OpenlawExecutionState = OpenlawExecutionState(
-		id = TemplateExecutionResultId(s"@@anonymous_main_template_id@@"),
+		id = TemplateExecutionResultId("@@anonymous_main_template_id@@"),
 		info = OLInformation(),
 		template = CompiledAgreement(),
 		executions = Map(),
@@ -897,7 +897,7 @@ object StructuredAgreement {
   implicit val structuredAgreementDec:Decoder[StructuredAgreement] = deriveDecoder
 }
 
-final case class StructuredAgreement(executionResultId:TemplateExecutionResultId, templateDefinition:Option[TemplateDefinition], mainTemplate:Boolean = false, header:TemplateHeader, paragraphs:List[Paragraph] = List(), path:Option[TemplatePath] = None) {
+final case class StructuredAgreement(executionResultId:TemplateExecutionResultId, templateDefinition:Option[TemplateDefinition], mainTemplate:Boolean = false, header:TemplateHeader, paragraphs:List[Paragraph] = Nil, path:Option[TemplatePath] = None) {
   def title: TemplateTitle = {
     if(header.shouldShowTitle) {
       templateDefinition.map(template => template.name.name).getOrElse(TemplateTitle(""))
@@ -964,7 +964,7 @@ object AgreementElement {
       case _ if name === className[Paragraph] =>
         a.as[Paragraph]
       case _ =>
-        Left(DecodingFailure(s"unknown agreement element type $name", List()))
+        Left(DecodingFailure(s"unknown agreement element type $name", Nil))
     }
   }
 }
@@ -1002,7 +1002,7 @@ final case class ConditionalEnd(dependencies: Seq[String]) extends AgreementElem
   override def serialize: Json = this.asJson
 }
 
-final case class ParagraphBuilder(paragraphs:List[Paragraph] = List(), lastParagraph:Paragraph = Paragraph()) {
+final case class ParagraphBuilder(paragraphs:List[Paragraph] = Nil, lastParagraph:Paragraph = Paragraph()) {
   def addAllToLastParagraph(elements: List[AgreementElement]): ParagraphBuilder = elements.foldLeft(this)((builder, element) => builder.add(element))
 
   def add(element: AgreementElement): ParagraphBuilder = this.copy(lastParagraph = lastParagraph.appendElement(element))
@@ -1013,7 +1013,7 @@ final case class ParagraphBuilder(paragraphs:List[Paragraph] = List(), lastParag
 
 }
 
-final case class Paragraph(elements: List[AgreementElement] = List()) extends AgreementElement {
+final case class Paragraph(elements: List[AgreementElement] = Nil) extends AgreementElement {
   def appendElement(element: AgreementElement): Paragraph = this.copy(elements :+ element)
 
   override def serialize: Json = this.asJson
