@@ -222,7 +222,7 @@ abstract class VariableType(val name: String) {
     keys.headOption.map(_ => Failure(s"The variable $variableName of type $name has no properties")).getOrElse(Success(()))
 
   def keysType(keys: List[VariableMemberKey], expression: Expression, executionResult: TemplateExecutionResult):Result[VariableType] = if(keys.nonEmpty) {
-    Failure(s"the type $name has no properties")
+    Failure(s"the type $name has no properties (tried to access ${keys.mkString(".")})")
   } else {
     Success(thisType)
   }

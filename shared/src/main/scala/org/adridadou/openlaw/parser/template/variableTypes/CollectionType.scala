@@ -10,6 +10,7 @@ import org.adridadou.openlaw.parser.template.{TemplateExecutionResult, VariableM
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.{Formatter, NoopFormatter}
 import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success}
+import scala.collection.JavaConverters._
 
 case object AbstractCollectionType extends VariableType("Collection") with ParameterTypeProvider {
 
@@ -28,10 +29,11 @@ case object AbstractCollectionType extends VariableType("Collection") with Param
     CollectionType(typeParameter)
 }
 
-final case class CollectionValue(size:Int = 1, values:Map[Int, OpenlawValue] = Map(), collectionType:CollectionType) extends OpenlawNativeValue {
+final case class CollectionValue(size:Int = 1, values:Map[Int, OpenlawValue] = Map.empty, collectionType:CollectionType) extends OpenlawNativeValue {
   def castValue(value:String, executionResult: TemplateExecutionResult):Result[OpenlawValue] = collectionType.typeParameter.cast(value, executionResult)
   def valueInternalFormat(value:OpenlawValue): Result[String] = collectionType.typeParameter.internalFormat(value)
   def list:List[OpenlawValue] = values.values.toList
+  def listJava:java.util.List[OpenlawValue] = values.values.toList.asJava
 }
 
 object CollectionTypeValue {
@@ -54,12 +56,11 @@ final case class CollectionType(typeParameter:VariableType) extends VariableType
 
   override def defaultFormatter: Formatter = new NoopFormatter
 
-  override def internalFormat(value: OpenlawValue): Result[String] = {
+  override def internalFormat(value: OpenlawValue): Result[String] =
     for {
       collection <- VariableType.convert[CollectionValue](value)
       values <- collection.values.map({ case (key, v) => typeParameter.internalFormat(v).map(p => key -> p) }).toList.sequence
     } yield CollectionTypeValue(values = values.toMap, size = collection.size).asJson.noSpaces
-  }
 
   override def getTypeClass: Class[_ <: CollectionValue] = classOf[CollectionValue]
 
@@ -82,17 +83,22 @@ final case class CollectionType(typeParameter:VariableType) extends VariableType
     }
   }
 
-  private def applyMap(value:OpenlawValue, func:OLFunction, executionResult: TemplateExecutionResult):Result[Option[OpenlawValue]] = for {
-    ier <- executionResult.withVariable(func.parameter.name, value, func.parameter.varType(executionResult))
-    newValue <- func.expression.evaluate(ier)
-  } yield newValue
+  private def applyMap(value:OpenlawValue, func:OLFunction, executionResult: TemplateExecutionResult):Result[Option[OpenlawValue]] =
+    for {
+      ier <- executionResult.withVariable(func.parameter.name, value, typeParameter)
+      newValue <- func.expression.evaluate(ier)
+    } yield newValue
 
   override def keysType(keys: List[VariableMemberKey], expression: Expression, executionResult: TemplateExecutionResult): Result[VariableType] =
     keys match {
       case Nil =>
         Success(AbstractStructureType)
-      case VariableMemberKey(Right(OLFunctionCall(VariableName("map"), _)))::Nil =>
-        Success(AbstractFunctionType)
+      case VariableMemberKey(Right(OLFunctionCall(VariableName("map"), func:OLFunction)))::Nil =>
+        for {
+          ier <- executionResult.withVariable(func.parameter.name, None, typeParameter)
+          kType <- func.expression.expressionType(ier).map(CollectionType)
+        } yield kType
+
       case _ =>
         Failure(s"property '${keys.mkString(".")}' could not be resolved in collection type")
     }
@@ -100,7 +106,7 @@ final case class CollectionType(typeParameter:VariableType) extends VariableType
   override def validateKeys(name:VariableName, keys: List[VariableMemberKey], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] = keys match {
     case Nil =>
       Success.unit
-    case VariableMemberKey(Right(OLFunctionCall(VariableName("map"), func:OLFunction)))::Nil =>
+    case VariableMemberKey(Right(OLFunctionCall(VariableName("map"), _:OLFunction)))::Nil =>
       Success.unit
     case _ =>
       Failure(s"property '${keys.mkString(".")}' could not be resolved in collection type")

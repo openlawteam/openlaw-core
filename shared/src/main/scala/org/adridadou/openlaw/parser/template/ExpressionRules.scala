@@ -305,7 +305,7 @@ final case class OneValueParameter(expr:Expression) extends Parameter {
 }
 final case class ListParameter(exprs:List[Expression]) extends Parameter {
   override def variables(executionResult: TemplateExecutionResult): Result[List[VariableName]] =
-    exprs.toList.map(_.variables(executionResult)).sequence.map(_.flatten.distinct)
+    exprs.map(_.variables(executionResult)).sequence.map(_.flatten.distinct)
 
   override def serialize: Json = this.asJson
 }
