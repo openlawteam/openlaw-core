@@ -1074,7 +1074,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
   it should "fail if an option is not of the right type" in {
     val template =
       compile(
-        s"""
+        """
            [[my var:Number]]
            [[my text:Text(
            options:"hello", my var
@@ -1093,7 +1093,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
   it should "be possible to specify options for a choice type" in {
     val template =
       compile(
-        s"""
+        """
            [[My Choice:Choice("one", "two", "three")]]
            [[my var:My Choice(
            options:"one", "two"

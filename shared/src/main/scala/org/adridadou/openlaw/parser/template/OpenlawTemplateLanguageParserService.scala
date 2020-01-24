@@ -136,7 +136,7 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
   def handleOverriddenParagraph[T](p: AgreementPrinter[T], str: String): Result[AgreementPrinter[T]] =
     MarkdownParser
       .parseMarkdown(str)
-      .addMessageToFailure(s"error while parsing the markdown")
+      .addMessageToFailure("error while parsing the markdown")
       .toResult
       .flatMap(_.foldLeft(Success(p)) { case (result, elem) => result.flatMap(printer => renderElement(FreeText(elem), Paragraph(), None, Set(), printer)) })
       .map(_.newState(p.state.copy(overriddenParagraphGenerated = true)))

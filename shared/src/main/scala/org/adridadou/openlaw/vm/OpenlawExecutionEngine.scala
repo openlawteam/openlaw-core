@@ -38,7 +38,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
   def execute(mainTemplate:CompiledTemplate, parameters:TemplateParameters, templates:Map[TemplateSourceIdentifier, CompiledTemplate], signatureProofs:Map[Email, SignatureProof], executions:Map[ActionIdentifier, Executions], externalCallStructures:Map[ServiceName, IntegratedServiceDefinition], id:Option[ContractId], profileAddress:Option[EthereumAddress]):Result[OpenlawExecutionState] = {
     val executionResult = OpenlawExecutionState(
       parameters = parameters,
-      id = TemplateExecutionResultId(s"@@anonymous_main_template_id@@"),
+      id = TemplateExecutionResultId("@@anonymous_main_template_id@@"),
       info = OLInformation(id = id, profileAddress = profileAddress),
       template = mainTemplate,
       executions = executions,

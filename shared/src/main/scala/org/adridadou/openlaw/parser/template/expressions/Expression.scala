@@ -77,8 +77,9 @@ object Expression {
   implicit val exprDec:Decoder[Expression] = (c: HCursor) => c.as[String].flatMap(parseExpression)
 
   private def parseExpression(value:String): Either[DecodingFailure, Expression] = exprParser.parseExpression(value) match {
-    case Right(expr) => Right(expr)
-    // TODO: Should this really be throwing instead of returning an error type?
-    case Left(ex) => throw new RuntimeException(ex.e)
+    case Right(expr) =>
+      Right(expr)
+    case Left(ex) =>
+      Left(DecodingFailure(ex.message, Nil))
   }
 }

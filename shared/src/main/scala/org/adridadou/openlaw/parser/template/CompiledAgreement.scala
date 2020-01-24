@@ -46,7 +46,7 @@ final case class CompiledAgreement(
     structured(executionResult, path, mainTemplate = false)
 
   private def structured(executionResult: OpenlawExecutionState, path:Option[TemplatePath], mainTemplate:Boolean): Result[StructuredAgreement] =
-    getAgreementElements(List(), block.elems, executionResult).map { elements =>
+    getAgreementElements(Nil, block.elems, executionResult).map { elements =>
       val paragraphs = cleanupParagraphs(generateParagraphs(elements))
       StructuredAgreement(
         executionResultId = executionResult.id,
@@ -115,8 +115,8 @@ final case class CompiledAgreement(
     element match {
       case t:Table =>
         for {
-          headerElements <- t.header.map(entry => getAgreementElements(List(), entry, executionResult)).sequence
-          rowElements <- t.rows.map(seq => seq.map(entry => getAgreementElements(List(), entry, executionResult)).sequence).sequence
+          headerElements <- t.header.map(entry => getAgreementElements(Nil, entry, executionResult)).sequence
+          rowElements <- t.rows.map(seq => seq.map(entry => getAgreementElements(Nil, entry, executionResult)).sequence).sequence
         } yield {
           if (headerElements.isEmpty) {
             renderedElements.lastOption match {

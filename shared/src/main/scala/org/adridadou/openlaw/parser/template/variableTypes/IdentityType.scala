@@ -51,20 +51,20 @@ case object IdentityType extends VariableType(name = "Identity") {
 
   override def access(value: OpenlawValue, name:VariableName, keys: List[VariableMemberKey], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] =
     keys match {
-      case VariableMemberKey(Left(VariableName(head)))::tail if tail.isEmpty => VariableType.convert[Identity](value).flatMap(id => accessProperty(Some(id), head).map(Some(_)))
-      case _::_ => Failure(s"Identity has only one level of properties. invalid property access ${keys.mkString(".")}") // TODO: Is this correct?
-      case _ => Success(Some(value))
+      case Nil => Success(Some(value))
+      case VariableMemberKey(Left(VariableName(head)))::Nil  => VariableType.convert[Identity](value).flatMap(id => accessProperty(Some(id), head).map(Some(_)))
+      case _::_ => Failure(s"Identity has only one level of properties. invalid property access ${keys.mkString(".")}")
     }
 
   override def validateKeys(name:VariableName, keys: List[VariableMemberKey], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] = keys match {
-    case Nil => Success(())
+    case Nil => Success.unit
     case VariableMemberKey(Left(VariableName(head)))::tail if tail.isEmpty => checkProperty(head)
     case _::_ => Failure(s"invalid property ${keys.mkString(".")}")
   }
 
   private def checkProperty(key:String): Result[Unit] = accessProperty(None, key) match {
     case Left(ex) => Failure(ex)
-    case Right(_) => Success(())
+    case Right(_) => Success.unit
   }
 
   private def accessProperty(identity: Option[Identity], property: String): Result[String] = {
@@ -108,7 +108,7 @@ object Email {
           case Right(email) =>
             Right(email)
           case Left(err) =>
-            Left(DecodingFailure(err.message, List()))
+            Left(DecodingFailure(err.message, Nil))
         }
       case Left(ex) =>
         Left(ex)

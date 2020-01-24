@@ -72,7 +72,7 @@ final case class Validation(condition:Expression, errorMessage:Expression) exten
 			evaluatedErrorMessage <- errorMessage.evaluateT[OpenlawString](executionResult)
 			_ <- value
 				.filter(_ === false)
-				.map(_ => Failure(evaluatedErrorMessage.getOrElse(s"validation error (error message could not be resolved)")))
+				.map(_ => Failure(evaluatedErrorMessage.getOrElse("validation error (error message could not be resolved)")))
 				.getOrElse(Success(()))
     } yield ()).toResultNel
 }

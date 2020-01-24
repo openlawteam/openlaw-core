@@ -229,7 +229,7 @@ object TextElement {
       case _ if "Indent" === name =>
         Right(Indent)
       case _ =>
-        Left(DecodingFailure(s"unknown text element type $name", List()))
+        Left(DecodingFailure(s"unknown text element type $name", Nil))
     }
   }
 }
