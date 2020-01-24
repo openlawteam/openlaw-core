@@ -32,7 +32,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
 
   private val emptyExecutionResult = OpenlawExecutionState(
     parameters = TemplateParameters(),
-    id = TemplateExecutionResultId(s"@@anonymous_main_template_id@@"),
+    id = TemplateExecutionResultId("@@anonymous_main_template_id@@"),
     info = OLInformation(),
     template = CompiledAgreement(),
     executions = Map(),
@@ -1027,7 +1027,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
       case Left(ex) =>
         ex.message shouldEqual "alias expression uses undefined variables b"
       case Right(_) =>
-        fail(s"this should fail")
+        fail("this should fail")
     }
   }
 
@@ -1039,7 +1039,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
       case Left(ex) =>
         ex.message shouldEqual "error while processing the new variable var2. The variable \"var3\" is used in the constructor but has not been defined"
       case Right(_) =>
-        fail(s"this should fail")
+        fail("this should fail")
     }
   }
 
