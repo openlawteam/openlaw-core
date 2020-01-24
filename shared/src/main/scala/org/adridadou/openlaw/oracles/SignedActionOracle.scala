@@ -1,7 +1,7 @@
 package org.adridadou.openlaw.oracles
 
 import org.adridadou.openlaw.parser.template.VariableName
-import org.adridadou.openlaw.parser.template.variableTypes.{EthereumData, EthereumHash, EthereumSignature, ExternalSignature, ExternalSignatureType, Identity, IdentityType}
+import org.adridadou.openlaw.parser.template.variableTypes.{EthereumData, EthereumSignature, ExternalSignature, ExternalSignatureType, Identity, IdentityType}
 import org.adridadou.openlaw.result.{Failure, Result}
 import org.adridadou.openlaw.vm.{OpenlawVm, OpenlawVmEvent}
 import cats.implicits._
@@ -18,7 +18,7 @@ trait SignedActionOracle[R <: SignedActionEvent] extends OpenlawOracle[R]{
 			.map { case (executionResult,variable) => (variable.name, executionResult.evaluate[Identity](variable.name)) }
 			.collect {
 				case (id, Right(identity)) =>
-					vm.isSignatureValid(vm.contractDefinition.id(crypto).resumeContract(crypto), OpenlawSignatureEvent(vm.contractId, identity.email, "", event.signature, EthereumHash.empty)).map { x =>
+					vm.isSignatureValid(vm.contractDefinition.id(crypto).resumeContract(crypto), OpenlawSignatureEvent(vm.contractId, identity.email, "", event.signature)).map { x =>
 						(id, identity) -> x
 					}
 				case (_, Failure(ex, message)) =>

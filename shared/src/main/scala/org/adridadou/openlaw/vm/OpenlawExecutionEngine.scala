@@ -8,6 +8,7 @@ import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.values.{ContractId, TemplateParameters}
 import cats.implicits._
 import org.adridadou.openlaw._
+import org.adridadou.openlaw.oracles.SignatureProof
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.printers.SectionHelper
 

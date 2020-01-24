@@ -10,11 +10,11 @@ import io.circe._
 import io.circe.generic.auto._
 import io.circe.generic.semiauto._
 import io.circe.syntax._
-import org.adridadou.openlaw.values.{ContractId, TemplateParameters, TemplateTitle}
+import org.adridadou.openlaw.values.{TemplateParameters, TemplateTitle}
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.{OpenlawMap, OpenlawNativeValue, OpenlawValue}
-import org.adridadou.openlaw.oracles.{ExternalSignatureProof, OpenlawSignatureProof}
+import org.adridadou.openlaw.oracles.SignatureProof
 import org.adridadou.openlaw.result.{Failure, FailureCause, Result, ResultNel, Success}
 import org.adridadou.openlaw.vm.Executions
 
@@ -1065,33 +1065,6 @@ object TemplateExecutionResultId {
 
 final case class TemplateExecutionResultId(id:String)
 
-object SignatureProof {
-
-  def className[T]()(implicit cls:ClassTag[T]):String = cls.runtimeClass.getName
-
-  implicit val signatureProofEnc:Encoder[SignatureProof] = (a: SignatureProof) => Json.obj(
-    "type" -> Json.fromString(a.getClass.getName),
-    "value" -> a.serialize
-  )
-  implicit val signatureProofDec:Decoder[SignatureProof] = (c: HCursor) => {
-    c.downField("type").as[String].flatMap(classType => {
-      if (classType === className[OpenlawSignatureProof]) {
-        c.downField("value").as[OpenlawSignatureProof]
-      } else if (classType === className[ExternalSignatureProof]) {
-        c.downField("value").as[ExternalSignatureProof]
-      } else {
-        Left(DecodingFailure(s"unknown signature proof type $classType", List()))
-      }
-    })
-  }
-}
-
-trait SignatureProof {
-  def validationLink: Link
-  def serialize: Json
-  val fullName:String
-  val contractId:ContractId
-}
 
 final case class ValidationResult(
                              identities:List[VariableDefinition],

@@ -75,13 +75,13 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     vm2(LoadTemplate(template))
     val result1 = sign(identity1, vm1.contractId)
     val signature1 = EthereumSignature(result1.signature)
-    val signatureEvent = oracles.OpenlawSignatureEvent(definition1.id(TestCryptoService), identity1.email, "", signature1, EthereumHash.empty)
+    val signatureEvent = oracles.OpenlawSignatureEvent(definition1.id(TestCryptoService), identity1.email, "", signature1)
 
     val result2 = sign(identity1, vm2.contractId)
     val signature2 = EthereumSignature(result2.signature)
 
     vm1(signatureEvent)
-    vm1(oracles.OpenlawSignatureEvent(definition2.id(TestCryptoService), identity1.email, "", signature2, EthereumHash.empty))
+    vm1(oracles.OpenlawSignatureEvent(definition2.id(TestCryptoService), identity1.email, "", signature2))
     vm1.signature(identity1.email) shouldBe Some(signatureEvent)
     vm1.signature(identity2.email) shouldBe None
   }
@@ -179,14 +179,14 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
 
     vm.executionState shouldBe ContractCreated
     val signature = EthereumSignature(sign(identity, contractId).signature)
-    val signatureEvent = oracles.OpenlawSignatureEvent(contractId, email, "", signature, EthereumHash.empty)
+    val signatureEvent = oracles.OpenlawSignatureEvent(contractId, email, "", signature)
 
     vm(signatureEvent)
 
     vm.executionState shouldBe ContractCreated
 
     val signature2 = EthereumSignature(sign(identity2, contractId).signature)
-    val signatureEvent2 = oracles.OpenlawSignatureEvent(contractId, email2, "", signature2, EthereumHash.empty)
+    val signatureEvent2 = oracles.OpenlawSignatureEvent(contractId, email2, "", signature2)
 
     vm(signatureEvent2)
 
@@ -253,13 +253,13 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
 
     val signature = sign(identity1, contractId1)
     val signatureFromNoStopping1 = EthereumSignature(signature.signature)
-    val signatureEvent = oracles.OpenlawSignatureEvent(definition1.id(TestCryptoService), identity1.email, "", signatureFromNoStopping1, EthereumHash.empty)
+    val signatureEvent = oracles.OpenlawSignatureEvent(definition1.id(TestCryptoService), identity1.email, "", signatureFromNoStopping1)
     vm1(signatureEvent)
     vm1.executionState shouldBe ContractRunning
 
     val signature2 = sign(identity2, contractId2)
     val signatureFromNoStopping2 = EthereumSignature(signature2.signature)
-    val signatureEvent2 = oracles.OpenlawSignatureEvent(definition2.id(TestCryptoService), identity2.email, "", signatureFromNoStopping2, EthereumHash.empty)
+    val signatureEvent2 = oracles.OpenlawSignatureEvent(definition2.id(TestCryptoService), identity2.email, "", signatureFromNoStopping2)
     vm2(signatureEvent2)
     vm2.executionState shouldBe ContractRunning
 
@@ -523,7 +523,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     vm.executionState shouldBe ContractCreated
 
     val signature = EthereumSignature(sign(identity, contractId).signature)
-    val signatureEvent = oracles.OpenlawSignatureEvent(contractId, email, "", signature, EthereumHash.empty)
+    val signatureEvent = oracles.OpenlawSignatureEvent(contractId, email, "", signature)
     vm(signatureEvent)
 
     val identifier = ActionIdentifier("SomeIntegratedService#param1->test value 1#param2->test value 2")
