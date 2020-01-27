@@ -2438,4 +2438,87 @@ here""".stripMargin
     }
   }
 
+  it should "not create a new variable type ExternalStorage when arguments are missing" in {
+    val textMissingFile =
+      """
+        |[[Dropbox Storage: ExternalStorage(serviceName:"Dropbox")]]
+        |Test simple template
+      """.stripMargin
+
+    executeTemplate(
+      textMissingFile,
+      Map(),
+      Map(),
+      Map(
+        ServiceName("Dropbox") -> IntegratedServiceDefinition.signatureDefinition
+      )
+    ) match {
+      case Right(executionResult) =>
+        fail("Variable should not be created when arguments are missing")
+      case Failure(ex, message) =>
+        message shouldBe "parameter ExternalStorage not found. available parameters: serviceName"
+    }
+
+  }
+
+  it should "not create a new variable type ExternalStorage if file type is not supported" in {
+    val textMissingFile =
+      """
+        |[[Dropbox Storage: ExternalStorage(serviceName:"Dropbox"; txt: "/storage/files/myFile.txt")]]
+        |Test simple template
+      """.stripMargin
+
+    executeTemplate(
+      textMissingFile,
+      Map(),
+      Map(),
+      Map(
+        ServiceName("Dropbox") -> IntegratedServiceDefinition.signatureDefinition
+      )
+    ) match {
+      case Right(executionResult) =>
+        fail("Variable should not be created when arguments are missing")
+      case Failure(ex, message) =>
+        message shouldBe "parameter ExternalStorage not found. available parameters: serviceName,txt"
+    }
+  }
+
+  it should "create new ExternalStorage variable for each supported file" in {
+    val textMissingFile =
+      """
+        |[[PDF Storage: ExternalStorage(serviceName:"Dropbox"; pdf: "/storage/files/myFile.pdf")]]
+        |[[DOC Storage: ExternalStorage(serviceName:"Dropbox"; doc: "/storage/files/myFile.doc")]]
+        |[[DOCX Storage: ExternalStorage(serviceName:"Dropbox"; docx: "/storage/files/myFile.docx")]]
+        |[[RTF Storage: ExternalStorage(serviceName:"Dropbox"; rtf: "/storage/files/myFile.rtf")]]
+        |[[ODT Storage: ExternalStorage(serviceName:"Dropbox"; odt: "/storage/files/myFile.odt")]]
+        |Test simple template
+      """.stripMargin
+
+    executeTemplate(
+      textMissingFile,
+      Map(),
+      Map(),
+      Map(
+        ServiceName("Dropbox") -> IntegratedServiceDefinition.signatureDefinition
+      )
+    ) match {
+      case Right(executionResult) =>
+        val Success(validationResult) = executionResult.validateExecution
+        validationResult.validationExpressionErrors shouldBe Seq()
+        val storages = executionResult
+          .getVariableValues[ExternalStorage](ExternalStorageType)
+          .getOrThrow()
+        storages.flatMap(s => s.filePath.path) shouldBe List(
+          "/storage/files/myFile.pdf",
+          "/storage/files/myFile.doc",
+          "/storage/files/myFile.docx",
+          "/storage/files/myFile.rtf",
+          "/storage/files/myFile.odt"
+        )
+
+      case Failure(ex, message) =>
+        fail(message, ex)
+    }
+  }
+
 }
