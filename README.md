@@ -26,6 +26,21 @@ Project versioning is automatically maintained from [Semantic Versioning](https:
 
 <small>If the most recent release was versioned `v1.2.3`, you may notice your local version is something like `1.2.3-7-a1b2c3d`. This means you are `7` commits past release `1.2.3`, and the latest commit was SHA `a1b2c3d`.</small>
 
+### Code Formatting
+
+We adhere to standardized code formatting via
+[scalafmt](https://scalameta.org/scalafmt/). All PRs will be automatically
+checked for adherence. If they do not adhere to standardized formatting, they
+should be corrected prior to being merged.
+
+The best way is let your editor handle everything for you everytime you hit
+save, see the [Scalafmt Installation
+Docs](https://scalameta.org/scalafmt/docs/installation.html) or the OpenLaw
+developer setup documentation.
+
+To manually verify, can run `make lint-style` to check and `make lint-style-fix`
+to automatically repair all files.
+
 ### Release Process
 
 For project maintainers, our current release process is documented [here](docs/ReleaseProcess.md).
