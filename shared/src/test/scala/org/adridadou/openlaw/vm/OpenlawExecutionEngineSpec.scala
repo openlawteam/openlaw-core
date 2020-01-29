@@ -2710,5 +2710,4 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       )
     )
   }
-
 }
