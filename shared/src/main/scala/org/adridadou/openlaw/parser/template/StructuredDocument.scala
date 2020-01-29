@@ -191,18 +191,18 @@ trait TemplateExecutionResult {
           case collectionType: CollectionType if collectionType.typeParameter === IdentityType =>
             variable
               .evaluateT[CollectionValue](result)
-              .flatMap { _.map(x => x.list.map(VariableType.convert[Identity]).toList.sequence).getOrElse(Success(Seq())) }
+              .flatMap { _.map(x => x.list.map(VariableType.convert[Identity]).sequence).getOrElse(Success(Seq.empty)) }
 
           case collectionType: CollectionType if collectionType.typeParameter === ExternalSignatureType =>
             variable
               .evaluateT[CollectionValue](result)
-              .flatMap{ _.map(x => x.list.map(VariableType.convert[ExternalSignature]).toList.sequence).getOrElse(Success(Seq())) }
+              .flatMap{ _.map(x => x.list.map(VariableType.convert[ExternalSignature]).sequence).getOrElse(Success(Seq.empty)) }
               .map(_.flatMap(_.identity))
 
           case structureType: DefinedStructureType if structureType.structure.typeDefinition.values.exists(_.varType(result) === IdentityType) =>
             variable
               .evaluateT[OpenlawMap[VariableName, OpenlawValue]](result)
-              .map(_.getOrElse(Map()))
+              .map(_.getOrElse(Map.empty))
               .flatMap { values =>
                 structureType
                   .structure
@@ -215,7 +215,7 @@ trait TemplateExecutionResult {
           case structureType: DefinedStructureType if structureType.structure.typeDefinition.values.exists(_.varType(result) === ExternalSignatureType) =>
             variable
               .evaluateT[OpenlawMap[VariableName, OpenlawValue]](result)
-              .map(_.getOrElse(Map()))
+              .map(_.getOrElse(Map.empty))
               .flatMap { values =>
                 structureType
                   .structure
@@ -523,11 +523,11 @@ object OpenlawExecutionState {
 		id = TemplateExecutionResultId("@@anonymous_main_template_id@@"),
 		info = OLInformation(),
 		template = CompiledAgreement(),
-		executions = Map(),
+		executions = Map.empty,
 		executionType = TemplateExecution,
 		remainingElements = mutable.Buffer(),
 		clock = Clock.systemDefaultZone,
-		signatureProofs = Map(),
+		signatureProofs = Map.empty,
 		parameters = TemplateParameters(),
 		variableRedefinition = VariableRedefinition()
 	)
@@ -546,27 +546,26 @@ final case class OpenlawExecutionState(
                                     variablesInternal:mutable.Buffer[VariableDefinition] = mutable.Buffer(),
                                     aliasesInternal:mutable.Buffer[VariableAliasing] = mutable.Buffer(),
                                     executedVariablesInternal:mutable.Buffer[VariableName] = mutable.Buffer(),
-                                    variableSectionsInternal:mutable.Map[String, mutable.Buffer[VariableName]] = mutable.Map(),
+                                    variableSectionsInternal:mutable.Map[String, mutable.Buffer[VariableName]] = mutable.Map.empty,
                                     variableSectionListInternal:mutable.Buffer[String] = mutable.Buffer(),
                                     agreementsInternal:mutable.Buffer[StructuredAgreement] = mutable.Buffer(),
-                                    subExecutionsInternal:mutable.Map[VariableName, OpenlawExecutionState] = mutable.Map(),
+                                    subExecutionsInternal:mutable.Map[VariableName, OpenlawExecutionState] = mutable.Map.empty,
                                     forEachExecutions:mutable.Buffer[TemplateExecutionResultId] = mutable.Buffer(),
                                     finishedEmbeddedExecutions:mutable.Buffer[OpenlawExecutionState] = mutable.Buffer(),
                                     state:TemplateExecutionState = ExecutionReady,
                                     remainingElements:mutable.Buffer[TemplatePart] = mutable.Buffer(),
                                     parentExecution:Option[TemplateExecutionResult] = None,
-                                    parentExecutionInternal:Option[OpenlawExecutionState] = None,
                                     compiledAgreement:Option[CompiledAgreement] = None,
                                     variableRedefinition: VariableRedefinition,
                                     templateDefinition: Option[TemplateDefinition] = None,
                                     mapping:Map[VariableName, Expression] = Map.empty,
                                     variableTypesInternal: mutable.Buffer[VariableType] = mutable.Buffer(VariableType.allTypes() : _*),
                                     sectionLevelStack: mutable.Buffer[Int] = mutable.Buffer(),
-                                    sectionNameMapping: mutable.Map[String, VariableName] = mutable.Map(),
-                                    sectionNameMappingInverseInternal: mutable.Map[VariableName, String] = mutable.Map(),
+                                    sectionNameMapping: mutable.Map[String, VariableName] = mutable.Map.empty,
+                                    sectionNameMappingInverseInternal: mutable.Map[VariableName, String] = mutable.Map.empty,
                                     processedSectionsInternal: mutable.Buffer[(Section, Int)] = mutable.Buffer(),
-                                    lastSectionByLevel:mutable.Map[Int, String] = mutable.Map(),
-                                    externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] = Map(),
+                                    lastSectionByLevel:mutable.Map[Int, String] = mutable.Map.empty,
+                                    externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] = Map.empty,
                                     clock:Clock) extends TemplateExecutionResult {
 
   def variables:List[VariableDefinition] = variablesInternal.toList
@@ -584,8 +583,8 @@ final case class OpenlawExecutionState(
   @tailrec
   def addLastSectionByLevel(lvl: Int, sectionValue: String):Unit = {
     if(embedded) {
-      parentExecutionInternal match {
-        case Some(parent) =>
+      parentExecution match {
+        case Some(parent: OpenlawExecutionState) =>
 					parent.addLastSectionByLevel(lvl, sectionValue)
         case None =>
 					lastSectionByLevel put (lvl , sectionValue)
@@ -600,8 +599,8 @@ final case class OpenlawExecutionState(
   @scala.annotation.tailrec
 	def getLastSectionByLevel(idx: Int): String = {
     if(embedded) {
-      parentExecutionInternal match {
-        case Some(parent) => parent.getLastSectionByLevel(idx)
+      parentExecution match {
+        case Some(parent: OpenlawExecutionState) => parent.getLastSectionByLevel(idx)
         case None => lastSectionByLevel.getOrElse(idx,"")
       }
     } else {
@@ -610,16 +609,16 @@ final case class OpenlawExecutionState(
   }
 
 	@scala.annotation.tailrec
-  def addProcessedSection(section: Section, number: Int):Unit = (embedded, parentExecutionInternal) match {
-    case (true, Some(parent)) => parent.addProcessedSection(section, number)
+  def addProcessedSection(section: Section, number: Int):Unit = (embedded, parentExecution) match {
+    case (true, Some(parent: OpenlawExecutionState)) => parent.addProcessedSection(section, number)
     case _ => processedSectionsInternal append (section -> number)
   }
 
 	@scala.annotation.tailrec
   def addSectionLevelStack(newSectionValues: Seq[Int]):Unit =
     if(embedded) {
-      parentExecutionInternal match {
-        case Some(parent) => parent.addSectionLevelStack(newSectionValues)
+      parentExecution match {
+        case Some(parent: OpenlawExecutionState) => parent.addSectionLevelStack(newSectionValues)
         case None => sectionLevelStack appendAll newSectionValues
       }
     } else {
@@ -628,8 +627,8 @@ final case class OpenlawExecutionState(
 
   def allSectionLevelStack:Seq[Int] =
     if(embedded) {
-      parentExecutionInternal match {
-        case Some(parent) => parent.allSectionLevelStack ++ sectionLevelStack
+      parentExecution match {
+        case Some(parent: OpenlawExecutionState) => parent.allSectionLevelStack ++ sectionLevelStack
         case None => sectionLevelStack
       }
     } else {
@@ -681,7 +680,7 @@ final case class OpenlawExecutionState(
                 .filter({ case (_, propertyType) => IdentityType.identityTypes.contains(propertyType.varType(this))})
                 .map({ case (propertyName, _) => propertyName }).toSeq
 
-              if (identityProperties.forall(values.getOrElse(Map()).contains)) {
+              if (identityProperties.forall(values.getOrElse(Map.empty).contains)) {
                 (Nil, Nil)
               } else {
                 (List(variable.name), Nil)
@@ -808,7 +807,7 @@ final case class OpenlawExecutionState(
     case _ => this.sectionLevelStack
   }
 
-  def startSubExecution(variableName:VariableName, template:CompiledTemplate, executionType:ExecutionType, overrideParameters:Map[VariableName, String] = Map()): Result[OpenlawExecutionState] =
+  def startSubExecution(variableName:VariableName, template:CompiledTemplate, executionType:ExecutionType, overrideParameters:Map[VariableName, String] = Map.empty): Result[OpenlawExecutionState] =
     getVariableValue[TemplateDefinition](variableName).flatMap { templateDefinitionOption =>
       templateDefinitionOption.map { templateDefinition =>
         detectCyclicDependency(templateDefinition).map(_ => {
@@ -821,7 +820,6 @@ final case class OpenlawExecutionState(
             template = template,
             clock = clock,
             parentExecution = Some(this),
-            parentExecutionInternal = Some(this),
             variableRedefinition = template.redefinition,
             templateDefinition = Some(templateDefinition),
             mapping = templateDefinition.mapping,
