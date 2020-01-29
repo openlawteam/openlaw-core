@@ -191,18 +191,18 @@ trait TemplateExecutionResult {
           case collectionType: CollectionType if collectionType.typeParameter === IdentityType =>
             variable
               .evaluateT[CollectionValue](result)
-              .flatMap { _.map(x => x.list.map(VariableType.convert[Identity]).toList.sequence).getOrElse(Success(Seq())) }
+              .flatMap { _.map(x => x.list.map(VariableType.convert[Identity]).sequence).getOrElse(Success(Seq.empty)) }
 
           case collectionType: CollectionType if collectionType.typeParameter === ExternalSignatureType =>
             variable
               .evaluateT[CollectionValue](result)
-              .flatMap{ _.map(x => x.list.map(VariableType.convert[ExternalSignature]).toList.sequence).getOrElse(Success(Seq())) }
+              .flatMap{ _.map(x => x.list.map(VariableType.convert[ExternalSignature]).sequence).getOrElse(Success(Seq.empty)) }
               .map(_.flatMap(_.identity))
 
           case structureType: DefinedStructureType if structureType.structure.typeDefinition.values.exists(_.varType(result) === IdentityType) =>
             variable
               .evaluateT[OpenlawMap[VariableName, OpenlawValue]](result)
-              .map(_.getOrElse(Map()))
+              .map(_.getOrElse(Map.empty))
               .flatMap { values =>
                 structureType
                   .structure
@@ -215,7 +215,7 @@ trait TemplateExecutionResult {
           case structureType: DefinedStructureType if structureType.structure.typeDefinition.values.exists(_.varType(result) === ExternalSignatureType) =>
             variable
               .evaluateT[OpenlawMap[VariableName, OpenlawValue]](result)
-              .map(_.getOrElse(Map()))
+              .map(_.getOrElse(Map.empty))
               .flatMap { values =>
                 structureType
                   .structure
@@ -555,7 +555,6 @@ final case class OpenlawExecutionState(
                                     state:TemplateExecutionState = ExecutionReady,
                                     remainingElements:mutable.Buffer[TemplatePart] = mutable.Buffer(),
                                     parentExecution:Option[TemplateExecutionResult] = None,
-                                    parentExecutionInternal:Option[OpenlawExecutionState] = None,
                                     compiledAgreement:Option[CompiledAgreement] = None,
                                     variableRedefinition: VariableRedefinition,
                                     templateDefinition: Option[TemplateDefinition] = None,
@@ -584,8 +583,8 @@ final case class OpenlawExecutionState(
   @tailrec
   def addLastSectionByLevel(lvl: Int, sectionValue: String):Unit = {
     if(embedded) {
-      parentExecutionInternal match {
-        case Some(parent) =>
+      parentExecution match {
+        case Some(parent: OpenlawExecutionState) =>
 					parent.addLastSectionByLevel(lvl, sectionValue)
         case None =>
 					lastSectionByLevel put (lvl , sectionValue)
@@ -600,8 +599,8 @@ final case class OpenlawExecutionState(
   @scala.annotation.tailrec
 	def getLastSectionByLevel(idx: Int): String = {
     if(embedded) {
-      parentExecutionInternal match {
-        case Some(parent) => parent.getLastSectionByLevel(idx)
+      parentExecution match {
+        case Some(parent: OpenlawExecutionState) => parent.getLastSectionByLevel(idx)
         case None => lastSectionByLevel.getOrElse(idx,"")
       }
     } else {
@@ -610,16 +609,16 @@ final case class OpenlawExecutionState(
   }
 
 	@scala.annotation.tailrec
-  def addProcessedSection(section: Section, number: Int):Unit = (embedded, parentExecutionInternal) match {
-    case (true, Some(parent)) => parent.addProcessedSection(section, number)
+  def addProcessedSection(section: Section, number: Int):Unit = (embedded, parentExecution) match {
+    case (true, Some(parent: OpenlawExecutionState)) => parent.addProcessedSection(section, number)
     case _ => processedSectionsInternal append (section -> number)
   }
 
 	@scala.annotation.tailrec
   def addSectionLevelStack(newSectionValues: Seq[Int]):Unit =
     if(embedded) {
-      parentExecutionInternal match {
-        case Some(parent) => parent.addSectionLevelStack(newSectionValues)
+      parentExecution match {
+        case Some(parent: OpenlawExecutionState) => parent.addSectionLevelStack(newSectionValues)
         case None => sectionLevelStack appendAll newSectionValues
       }
     } else {
@@ -628,8 +627,8 @@ final case class OpenlawExecutionState(
 
   def allSectionLevelStack:Seq[Int] =
     if(embedded) {
-      parentExecutionInternal match {
-        case Some(parent) => parent.allSectionLevelStack ++ sectionLevelStack
+      parentExecution match {
+        case Some(parent: OpenlawExecutionState) => parent.allSectionLevelStack ++ sectionLevelStack
         case None => sectionLevelStack
       }
     } else {
@@ -821,7 +820,6 @@ final case class OpenlawExecutionState(
             template = template,
             clock = clock,
             parentExecution = Some(this),
-            parentExecutionInternal = Some(this),
             variableRedefinition = template.redefinition,
             templateDefinition = Some(templateDefinition),
             mapping = templateDefinition.mapping,
