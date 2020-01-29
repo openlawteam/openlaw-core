@@ -2611,7 +2611,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
                             |<%
                             |[[Entity: Choice("corporation", "limited liability company", "limited partnership", "public benefit corporation")]]
                             |%>
-                            |<% 
+                            |<%
                             |# Variables arranged by headers:
                             |==Describe Party A to NDA:==
                             |[[PartyA Name "Name?"]]
