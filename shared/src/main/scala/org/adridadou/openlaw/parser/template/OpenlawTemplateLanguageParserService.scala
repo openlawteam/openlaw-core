@@ -129,9 +129,9 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
 
   def render[T](structuredAgreement: StructuredAgreement, overriddenParagraphs:ParagraphEdits, agreementPrinter: AgreementPrinter[T], hiddenVariables:Set[String]): Result[AgreementPrinter[T]] =
     structuredAgreement.paragraphs
-    .foldLeft(Success(agreementPrinter)) {
-      case (result, paragraph) => result.flatMap(printer => renderParagraph(paragraph, overriddenParagraphs, hiddenVariables, printer))
-    }
+      .foldLeft(Success(agreementPrinter)) {
+        case (result, paragraph) => result.flatMap(printer => renderParagraph(paragraph, overriddenParagraphs, hiddenVariables, printer))
+      }
 
   def handleOverriddenParagraph[T](p: AgreementPrinter[T], str: String): Result[AgreementPrinter[T]] =
     MarkdownParser
@@ -144,7 +144,7 @@ class OpenlawTemplateLanguageParserService(val internalClock:Clock) {
   private def renderParagraph[T](paragraph: Paragraph, overriddenParagraphs:ParagraphEdits, hiddenVariables:Set[String], agreementPrinter: AgreementPrinter[T]): Result[AgreementPrinter[T]] = {
     if(hasContent(paragraph)) {
       val p = agreementPrinter
-          .paragraphStart()
+        .paragraphStart()
 
       val optParagraph = overriddenParagraphs.edits.get(agreementPrinter.state.paragraphIndex)
       paragraph

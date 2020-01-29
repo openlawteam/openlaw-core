@@ -87,7 +87,7 @@ trait VariableExecutionEngine {
       if(title === currentTitle) {
         Failure(s"type mismatch. ${definedVariable.name} was defined as ${definedVariable.varType(executionResult).name} but is now defined as ${variable.varType(executionResult).name}")
       } else {
-        Failure(s"Variable definition mismatch. variable ${definedVariable.name} is defined as ${definedVariable.varType(executionResult).name} in ${title.getOrElse("the main template")} but was ${variable.varType(executionResult).name} in ${currentTitle.getOrElse("the main template")}")
+        Failure(s"Variable definition mismatch. variable '${definedVariable.name}' is defined as '${definedVariable.varType(executionResult).name}' in '${title.getOrElse("the main template")}' but was '${variable.varType(executionResult).name}' in '${currentTitle.getOrElse("the main template")}'")
       }
     } else {
       Success(definedVariable)
@@ -197,7 +197,7 @@ trait VariableExecutionEngine {
       } else {
         Failure(s"error while processing the new variable ${variableDefinition.name}. The variable has type ${variableDefinition.variableTypeDefinition.map(_.name).getOrElse("")} but it does not exist")
       }
-    }.getOrElse(Success(()))
+    }.getOrElse(Success.unit)
 
   protected def redefineAlias(executionResult: OpenlawExecutionState, alias: VariableAliasing, definedAlias: VariableAliasing, executed: Boolean): Result[OpenlawExecutionState] =
     for {

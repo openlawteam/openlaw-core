@@ -17,7 +17,9 @@ import org.adridadou.openlaw.{OpenlawMap, _}
 
 class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
-  val parser = new OpenlawTemplateLanguageParserService(Clock.systemDefaultZone())
+  val parser = new OpenlawTemplateLanguageParserService(
+    Clock.systemDefaultZone()
+  )
   val engine = new OpenlawExecutionEngine()
 
   "Openlaw engine" should "run a simple template" in {
@@ -32,11 +34,15 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       """.stripMargin
 
     val compiledTemplate = compile(text)
-    val parameters = TemplateParameters("My Variable 2" -> "hello", "Other one" -> "334")
+    val parameters =
+      TemplateParameters("My Variable 2" -> "hello", "Other one" -> "334")
     engine.execute(compiledTemplate, parameters, Map()) match {
       case Right(result) =>
         result.state shouldBe ExecutionFinished
-        result.variables.map(_.name.name) shouldBe Seq("My Variable", "Other one")
+        result.variables.map(_.name.name) shouldBe Seq(
+          "My Variable",
+          "Other one"
+        )
       case Left(ex) => fail(ex)
     }
   }
@@ -53,17 +59,22 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       """.stripMargin
 
     val compiledTemplate = compile(text)
-    val parameters = TemplateParameters("My Variable 2" -> "hello", "Other one" -> "334")
+    val parameters =
+      TemplateParameters("My Variable 2" -> "hello", "Other one" -> "334")
     engine.execute(compiledTemplate, parameters, Map()) match {
       case Right(result) =>
         result.state shouldBe ExecutionFinished
-        result.variables.map(_.name.name) shouldBe Seq("My Variable", "Other one")
+        result.variables.map(_.name.name) shouldBe Seq(
+          "My Variable",
+          "Other one"
+        )
       case Left(ex) => fail(ex.message, ex)
     }
   }
 
   it should "handle event filter properly" in {
-    val abi = """[{"constant":false,"inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"}],"name":"ContractCreation","outputs":[{"name":"success","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"success","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[],"name":"registerTokenLaunch","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"success","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"},{"name":"_spender","type":"address"}],"name":"allowance","outputs":[{"name":"remaining","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"inputs":[],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"name":"from","type":"address"},{"indexed":true,"name":"to","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Transfer","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"owner","type":"address"},{"indexed":true,"name":"spender","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Approval","type":"event"}]"""
+    val abi =
+      """[{"constant":false,"inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"}],"name":"ContractCreation","outputs":[{"name":"success","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"success","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[],"name":"registerTokenLaunch","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"success","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"},{"name":"_spender","type":"address"}],"name":"allowance","outputs":[{"name":"remaining","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"inputs":[],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"name":"from","type":"address"},{"indexed":true,"name":"to","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Transfer","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"owner","type":"address"},{"indexed":true,"name":"spender","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Approval","type":"event"}]"""
     val template = compile(s"""[[Id:Identity]]
                   [[Employer Ethereum Address:EthAddress]]
 
@@ -107,21 +118,40 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     val text2 = "it is just another template [[My Variable 2:Text]]"
     val compiledTemplate = compile(text)
     val otherCompiledTemplate = compile(text2)
-    val parameters = TemplateParameters("My Variable 2" -> "hello", "Other one" -> "334")
+    val parameters =
+      TemplateParameters("My Variable 2" -> "hello", "Other one" -> "334")
     engine.execute(compiledTemplate, parameters, Map()) match {
       case Right(result) =>
-        result.state shouldBe ExecutionWaitForTemplate(VariableName("@@anonymous_3@@"), TemplateSourceIdentifier(TemplateTitle("Another Template")), executionType = TemplateExecution)
-        result.variables.map(_.name.name) shouldBe Seq("My Variable","@@anonymous_1@@", "@@anonymous_2@@", "Other one", "@@anonymous_3@@")
+        result.state shouldBe ExecutionWaitForTemplate(
+          VariableName("@@anonymous_3@@"),
+          TemplateSourceIdentifier(TemplateTitle("Another Template")),
+          executionType = TemplateExecution
+        )
+        result.variables.map(_.name.name) shouldBe Seq(
+          "My Variable",
+          "@@anonymous_1@@",
+          "@@anonymous_2@@",
+          "Other one",
+          "@@anonymous_3@@"
+        )
 
-        engine.resumeExecution(result, Map(TemplateSourceIdentifier(TemplateTitle("another Template")) -> otherCompiledTemplate)) match {
+        engine.resumeExecution(
+          result,
+          Map(
+            TemplateSourceIdentifier(TemplateTitle("another Template")) -> otherCompiledTemplate
+          )
+        ) match {
           case Right(newResult) =>
             newResult.state shouldBe ExecutionFinished
             newResult.parentExecution.isDefined shouldBe false
             newResult.subExecutions.size shouldBe 1
-            newResult.subExecutions(VariableName("@@anonymous_3@@")).getVariables.map(_.name.name) shouldBe Seq("My Variable 2")
+            newResult
+              .subExecutions(VariableName("@@anonymous_3@@"))
+              .getVariables
+              .map(_.name.name) shouldBe Seq("My Variable 2")
             newResult.agreements.size shouldBe 1
 
-            parser.forReview(newResult.agreements.head,ParagraphEdits()) shouldBe """<p class="no-section">it is just another template hello</p>"""
+            parser.forReview(newResult.agreements.head, ParagraphEdits()) shouldBe """<p class="no-section">it is just another template hello</p>"""
           case Left(ex) =>
             fail(ex)
         }
@@ -152,17 +182,39 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         |it is just another template [[My Variable 2:Text]]""".stripMargin
     val compiledTemplate = compile(text)
     val otherCompiledTemplate = compile(text2)
-    val parameters = TemplateParameters("My Variable 2" -> "hello", "Other one" -> "334")
+    val parameters =
+      TemplateParameters("My Variable 2" -> "hello", "Other one" -> "334")
 
     engine.execute(compiledTemplate, parameters, Map()) match {
       case Right(result) =>
-        result.state shouldBe ExecutionWaitForTemplate(VariableName("@@anonymous_1@@"),TemplateSourceIdentifier(TemplateTitle("a clause")), executionType = ClauseExecution)
-        engine.resumeExecution(result, Map(TemplateSourceIdentifier(TemplateTitle("A Clause")) -> otherCompiledTemplate)) match {
+        result.state shouldBe ExecutionWaitForTemplate(
+          VariableName("@@anonymous_1@@"),
+          TemplateSourceIdentifier(TemplateTitle("a clause")),
+          executionType = ClauseExecution
+        )
+        engine.resumeExecution(
+          result,
+          Map(
+            TemplateSourceIdentifier(TemplateTitle("A Clause")) -> otherCompiledTemplate
+          )
+        ) match {
           case Right(newResult) =>
             newResult.state shouldBe ExecutionFinished
             newResult.subExecutions.size shouldBe 1
-            newResult.variables.map(_.name) should contain allElementsOf Seq(VariableName("My Variable"), VariableName("Other one"), VariableName("State of Governing Law"), VariableName("County of Venue"), VariableName("State of Venue"))
-            newResult.executedVariables should contain allElementsOf Seq(VariableName("My Variable"), VariableName("Other one"), VariableName("State of Governing Law"), VariableName("County of Venue"), VariableName("State of Venue"))
+            newResult.variables.map(_.name) should contain allElementsOf Seq(
+              VariableName("My Variable"),
+              VariableName("Other one"),
+              VariableName("State of Governing Law"),
+              VariableName("County of Venue"),
+              VariableName("State of Venue")
+            )
+            newResult.executedVariables should contain allElementsOf Seq(
+              VariableName("My Variable"),
+              VariableName("Other one"),
+              VariableName("State of Governing Law"),
+              VariableName("County of Venue"),
+              VariableName("State of Venue")
+            )
             parser.forReview(newResult.agreements.head) shouldBe "<p class=\"no-section\"><br /></p><p class=\"no-section\">[[My Variable]] - 334</p><p class=\"no-section\"><br /><strong>Choice of Law and Venue.</strong> The parties agree that this Agreement is to be governed by and construed under the law of the State of [[State of Governing Law]] without regard to its conflicts of law provisions. The parties further agree that all disputes shall be resolved exclusively in state or federal court in [[County of Venue]], [[State of Venue]].</p><p class=\"no-section\">it is just another template hello<br />      </p>"
           case Left(ex) =>
             fail(ex)
@@ -198,17 +250,39 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         |it is just another template [[My Variable 2:Text]]""".stripMargin
     val compiledTemplate = compile(text)
     val otherCompiledTemplate = compile(text2)
-    val parameters = TemplateParameters("My Variable 2" -> "hello", "Other one" -> "334")
+    val parameters =
+      TemplateParameters("My Variable 2" -> "hello", "Other one" -> "334")
 
     engine.execute(compiledTemplate, parameters, Map()) match {
       case Right(result) =>
-        result.state shouldBe ExecutionWaitForTemplate(VariableName("@@anonymous_1@@"),TemplateSourceIdentifier(TemplateTitle("a clause")), executionType = ClauseExecution)
-        engine.resumeExecution(result, Map(TemplateSourceIdentifier(TemplateTitle("A Clause")) -> otherCompiledTemplate)) match {
+        result.state shouldBe ExecutionWaitForTemplate(
+          VariableName("@@anonymous_1@@"),
+          TemplateSourceIdentifier(TemplateTitle("a clause")),
+          executionType = ClauseExecution
+        )
+        engine.resumeExecution(
+          result,
+          Map(
+            TemplateSourceIdentifier(TemplateTitle("A Clause")) -> otherCompiledTemplate
+          )
+        ) match {
           case Right(newResult) =>
             newResult.state shouldBe ExecutionFinished
             newResult.subExecutions.size shouldBe 1
-            newResult.variables.map(_.name) should contain allElementsOf Seq(VariableName("My Variable"), VariableName("Other one"), VariableName("State of Governing Law"), VariableName("County of Venue 2"), VariableName("State of Venue"))
-            newResult.executedVariables should contain allElementsOf Seq(VariableName("My Variable"), VariableName("Other one"), VariableName("State of Governing Law"), VariableName("County of Venue 2"), VariableName("State of Venue"))
+            newResult.variables.map(_.name) should contain allElementsOf Seq(
+              VariableName("My Variable"),
+              VariableName("Other one"),
+              VariableName("State of Governing Law"),
+              VariableName("County of Venue 2"),
+              VariableName("State of Venue")
+            )
+            newResult.executedVariables should contain allElementsOf Seq(
+              VariableName("My Variable"),
+              VariableName("Other one"),
+              VariableName("State of Governing Law"),
+              VariableName("County of Venue 2"),
+              VariableName("State of Venue")
+            )
             parser.forReview(newResult.agreements.head) shouldBe "<p class=\"no-section\"><br /></p><p class=\"no-section\">[[My Variable]] - 334</p><p class=\"no-section\"><br /><strong>Choice of Law and Venue.</strong> The parties agree that this Agreement is to be governed by and construed under the law of the State of [[State of Governing Law]] without regard to its conflicts of law provisions. The parties further agree that all disputes shall be resolved exclusively in state or federal court in [[County of Venue]], [[State of Venue]].</p><p class=\"no-section\">it is just another template hello<br />      </p>"
           case Left(ex) =>
             fail(ex)
@@ -238,10 +312,24 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     val parameters = TemplateParameters()
     engine.execute(compiledTemplate, parameters, Map()) match {
       case Right(result) =>
-        result.state shouldBe ExecutionWaitForTemplate(VariableName("My Template"), TemplateSourceIdentifier(TemplateTitle("Another Template")), executionType = TemplateExecution)
-        result.variables.map(_.name.name) shouldBe Seq("My Variable", "Other one", "My Template")
+        result.state shouldBe ExecutionWaitForTemplate(
+          VariableName("My Template"),
+          TemplateSourceIdentifier(TemplateTitle("Another Template")),
+          executionType = TemplateExecution
+        )
+        result.variables.map(_.name.name) shouldBe Seq(
+          "My Variable",
+          "Other one",
+          "My Template"
+        )
 
-        engine.resumeExecution(result, Map(TemplateSourceIdentifier(TemplateTitle("Another Template")) -> otherCompiledTemplate, TemplateSourceIdentifier(TemplateTitle("My Template")) -> compiledTemplate)) match {
+        engine.resumeExecution(
+          result,
+          Map(
+            TemplateSourceIdentifier(TemplateTitle("Another Template")) -> otherCompiledTemplate,
+            TemplateSourceIdentifier(TemplateTitle("My Template")) -> compiledTemplate
+          )
+        ) match {
           case Right(_) =>
             fail("should fail")
           case Left(ex) =>
@@ -272,14 +360,28 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     val parameters = TemplateParameters()
     engine.execute(compiledTemplate, parameters, Map()) match {
       case Right(result) =>
-        result.state shouldBe ExecutionWaitForTemplate(VariableName("My Template"), TemplateSourceIdentifier(TemplateTitle("Another Template")), executionType = TemplateExecution)
-        result.variables.map(_.name.name) shouldBe Seq("My Variable", "Other one", "My Template")
+        result.state shouldBe ExecutionWaitForTemplate(
+          VariableName("My Template"),
+          TemplateSourceIdentifier(TemplateTitle("Another Template")),
+          executionType = TemplateExecution
+        )
+        result.variables.map(_.name.name) shouldBe Seq(
+          "My Variable",
+          "Other one",
+          "My Template"
+        )
 
-        engine.resumeExecution(result, Map(TemplateSourceIdentifier(TemplateTitle("Another Template")) -> otherCompiledTemplate, TemplateSourceIdentifier(TemplateTitle("My Template")) -> compiledTemplate)) match {
+        engine.resumeExecution(
+          result,
+          Map(
+            TemplateSourceIdentifier(TemplateTitle("Another Template")) -> otherCompiledTemplate,
+            TemplateSourceIdentifier(TemplateTitle("My Template")) -> compiledTemplate
+          )
+        ) match {
           case Right(_) =>
             fail("should fail")
           case Left(ex) =>
-            ex.message shouldBe "Variable definition mismatch. variable My Variable is defined as Text in the main template but was Number in another template"
+            ex.message shouldBe "Variable definition mismatch. variable 'My Variable' is defined as 'Text' in 'the main template' but was 'Number' in 'another template'"
         }
 
       case Left(ex) =>
@@ -304,10 +406,13 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     engine.execute(compiledTemplate, parameters, Map()) match {
       case Right(result) =>
         result.state shouldBe ExecutionFinished
-        result.variables.map(_.name.name) shouldBe Seq("My Variable", "Other one")
+        result.variables.map(_.name.name) shouldBe Seq(
+          "My Variable",
+          "Other one"
+        )
         result.agreements.size shouldBe 1
 
-        parser.forReview(result.agreements.head,ParagraphEdits()) shouldBe """<p class="no-section"><br /></p><p class="no-section">[[My Variable]] - [[Other one]]<br /><br />    </p>"""
+        parser.forReview(result.agreements.head, ParagraphEdits()) shouldBe """<p class="no-section"><br /></p><p class="no-section">[[My Variable]] - [[Other one]]<br /><br />    </p>"""
 
       case Left(ex) =>
         fail(ex)
@@ -331,9 +436,17 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
     val subTemplate = compile("[[var]] [[var 2]]")
 
-    engine.execute(mainTemplate, TemplateParameters(), Map(TemplateSourceIdentifier(TemplateTitle("template")) -> subTemplate)) match {
+    engine.execute(
+      mainTemplate,
+      TemplateParameters(),
+      Map(TemplateSourceIdentifier(TemplateTitle("template")) -> subTemplate)
+    ) match {
       case Right(result) =>
-        result.getExecutedVariables.map(_.name) shouldBe Seq("template", "var", "var 2")
+        result.getExecutedVariables.map(_.name) shouldBe Seq(
+          "template",
+          "var",
+          "var 2"
+        )
       case Left(ex) =>
         fail(ex)
     }
@@ -356,9 +469,17 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
     val subTemplate = compile("[[sub var]] [[var 2]]")
 
-    engine.execute(mainTemplate, TemplateParameters("var" -> "hello", "var 2" -> "world"), Map(TemplateSourceIdentifier(TemplateTitle("clause")) -> subTemplate)) match {
+    engine.execute(
+      mainTemplate,
+      TemplateParameters("var" -> "hello", "var 2" -> "world"),
+      Map(TemplateSourceIdentifier(TemplateTitle("clause")) -> subTemplate)
+    ) match {
       case Right(result) =>
-        result.getExecutedVariables.map(_.name) shouldBe Seq("clause", "var", "var 2")
+        result.getExecutedVariables.map(_.name) shouldBe Seq(
+          "clause",
+          "var",
+          "var 2"
+        )
         parser.forReview(result.agreements.head) shouldBe "<p class=\"no-section\"><br /><br /></p><p class=\"no-section\">hello world<br />              </p>"
       case Left(ex) =>
         fail(ex.message, ex)
@@ -379,9 +500,13 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
     val subTemplate = compile("[[other var]]")
 
-    engine.execute(mainTemplate, TemplateParameters("var" -> "Hello"), Map(TemplateSourceIdentifier(TemplateTitle("template")) -> subTemplate)) match {
+    engine.execute(
+      mainTemplate,
+      TemplateParameters("var" -> "Hello"),
+      Map(TemplateSourceIdentifier(TemplateTitle("template")) -> subTemplate)
+    ) match {
       case Right(result) =>
-        parser.forReview(result.agreements.head,ParagraphEdits()) shouldBe """<p class="no-section">Hello world</p>"""
+        parser.forReview(result.agreements.head, ParagraphEdits()) shouldBe """<p class="no-section">Hello world</p>"""
       case Left(ex) =>
         fail(ex)
     }
@@ -402,9 +527,17 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
     val subTemplate = compile("[[other var]]")
 
-    engine.execute(mainTemplate, TemplateParameters("var" -> "Hello"), Map(TemplateSourceIdentifier(TemplateTitle("template")) -> subTemplate)) match {
+    engine.execute(
+      mainTemplate,
+      TemplateParameters("var" -> "Hello"),
+      Map(TemplateSourceIdentifier(TemplateTitle("template")) -> subTemplate)
+    ) match {
       case Success(result) =>
-        result.agreements.head.directory.path shouldBe Seq("Hello", "template", "me")
+        result.agreements.head.directory.path shouldBe Seq(
+          "Hello",
+          "template",
+          "me"
+        )
       case Failure(ex, message) =>
         ex.printStackTrace()
         fail(message)
@@ -426,7 +559,11 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
     val subTemplate = compile("[[other var]]")
 
-    engine.execute(mainTemplate, TemplateParameters("var" -> "Hello"), Map(TemplateSourceIdentifier(TemplateTitle("template")) -> subTemplate)) match {
+    engine.execute(
+      mainTemplate,
+      TemplateParameters("var" -> "Hello"),
+      Map(TemplateSourceIdentifier(TemplateTitle("template")) -> subTemplate)
+    ) match {
       case Right(result) =>
         result.agreements.head.directory.path shouldBe Seq("template")
       case Left(ex) =>
@@ -444,23 +581,37 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
  |                parameters:
  |                  other var -> var + " world")]]""".stripMargin)
 
-    val subTemplate = compile(
-      """<%
+    val subTemplate = compile("""<%
          [[other var]]
          %>
          {{cond => [[other var]]}}
       """.stripMargin)
 
-    engine.execute(mainTemplate, TemplateParameters("var" -> "Hello", "cond" -> "false"), Map(TemplateSourceIdentifier(TemplateTitle("template")) -> subTemplate)) match {
+    engine.execute(
+      mainTemplate,
+      TemplateParameters("var" -> "Hello", "cond" -> "false"),
+      Map(TemplateSourceIdentifier(TemplateTitle("template")) -> subTemplate)
+    ) match {
       case Right(result) =>
-        result.getExecutedVariables.map(_.name).toSet shouldBe Set("template", "cond")
+        result.getExecutedVariables.map(_.name).toSet shouldBe Set(
+          "template",
+          "cond"
+        )
       case Left(ex) =>
         fail(ex)
     }
 
-    engine.execute(mainTemplate, TemplateParameters("var" -> "Hello", "cond" -> "true"), Map(TemplateSourceIdentifier(TemplateTitle("template")) -> subTemplate)) match {
+    engine.execute(
+      mainTemplate,
+      TemplateParameters("var" -> "Hello", "cond" -> "true"),
+      Map(TemplateSourceIdentifier(TemplateTitle("template")) -> subTemplate)
+    ) match {
       case Right(result) =>
-        result.getExecutedVariables.map(_.name).toSet shouldBe Set("template", "var", "cond")
+        result.getExecutedVariables.map(_.name).toSet shouldBe Set(
+          "template",
+          "var",
+          "cond"
+        )
       case Left(ex) =>
         fail(ex)
     }
@@ -474,12 +625,18 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
               |[[template.alias]]
               |""".stripMargin)
 
-    val subTemplate = compile(
-      """[[other var]][[@alias = other var + " World"]]""".stripMargin)
+    val subTemplate =
+      compile("""[[other var]][[@alias = other var + " World"]]""".stripMargin)
 
-    engine.execute(mainTemplate, TemplateParameters("other var" -> "Hello"), Map(TemplateSourceIdentifier(TemplateTitle("template")) -> subTemplate)) match {
+    engine.execute(
+      mainTemplate,
+      TemplateParameters("other var" -> "Hello"),
+      Map(TemplateSourceIdentifier(TemplateTitle("template")) -> subTemplate)
+    ) match {
       case Right(result) =>
-        result.getAllExecutedVariables.map({case (_, variable) => variable.name}).toSet shouldBe Set("template", "other var")
+        result.getAllExecutedVariables
+          .map({ case (_, variable) => variable.name })
+          .toSet shouldBe Set("template", "other var")
       case Left(ex) =>
         fail(ex)
     }
@@ -491,10 +648,9 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
                 [[@var = "hello world"]]
               %>[[var | uppercase]]""".stripMargin)
 
-
     engine.execute(mainTemplate, TemplateParameters(), Map()) match {
       case Right(result) =>
-        parser.forReview(result.agreements.head,ParagraphEdits()) shouldBe """<p class="no-section">HELLO WORLD</p>"""
+        parser.forReview(result.agreements.head, ParagraphEdits()) shouldBe """<p class="no-section">HELLO WORLD</p>"""
       case Left(ex) =>
         fail(ex)
     }
@@ -503,9 +659,18 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
   it should "print a period properly" in {
     val mainTemplate =
       compile("""[[var:Period]]""".stripMargin)
-    engine.execute(mainTemplate, TemplateParameters("var" -> PeriodType.internalFormat(PeriodType.cast("3 minute 10 seconds").right.value).right.value), Map()) match {
+    engine.execute(
+      mainTemplate,
+      TemplateParameters(
+        "var" -> PeriodType
+          .internalFormat(PeriodType.cast("3 minute 10 seconds").right.value)
+          .right
+          .value
+      ),
+      Map()
+    ) match {
       case Right(result) =>
-        parser.forReview(result.agreements.head,ParagraphEdits()) shouldBe """<p class="no-section">3 minutes 10 seconds</p>"""
+        parser.forReview(result.agreements.head, ParagraphEdits()) shouldBe """<p class="no-section">3 minutes 10 seconds</p>"""
       case Left(ex) =>
         fail(ex)
     }
@@ -514,9 +679,18 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
   it should "print a period containing a singular value properly" in {
     val mainTemplate =
       compile("""[[var:Period]]""".stripMargin)
-    engine.execute(mainTemplate, TemplateParameters("var" -> PeriodType.internalFormat(PeriodType.cast("1 minute 1 second").right.value).right.value), Map()) match {
+    engine.execute(
+      mainTemplate,
+      TemplateParameters(
+        "var" -> PeriodType
+          .internalFormat(PeriodType.cast("1 minute 1 second").right.value)
+          .right
+          .value
+      ),
+      Map()
+    ) match {
       case Right(result) =>
-        parser.forReview(result.agreements.head,ParagraphEdits()) shouldBe """<p class="no-section">1 minute 1 second</p>"""
+        parser.forReview(result.agreements.head, ParagraphEdits()) shouldBe """<p class="no-section">1 minute 1 second</p>"""
       case Left(ex) =>
         fail(ex)
     }
@@ -525,9 +699,18 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
   it should "print a period containing a singular and non-singular value properly" in {
     val mainTemplate =
       compile("""[[var:Period]]""".stripMargin)
-    engine.execute(mainTemplate, TemplateParameters("var" -> PeriodType.internalFormat(PeriodType.cast("1 minute 20 seconds").right.value).right.value), Map()) match {
+    engine.execute(
+      mainTemplate,
+      TemplateParameters(
+        "var" -> PeriodType
+          .internalFormat(PeriodType.cast("1 minute 20 seconds").right.value)
+          .right
+          .value
+      ),
+      Map()
+    ) match {
       case Right(result) =>
-        parser.forReview(result.agreements.head,ParagraphEdits()) shouldBe """<p class="no-section">1 minute 20 seconds</p>"""
+        parser.forReview(result.agreements.head, ParagraphEdits()) shouldBe """<p class="no-section">1 minute 20 seconds</p>"""
       case Left(ex) =>
         fail(ex)
     }
@@ -535,19 +718,35 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
   it should "define a collection" in {
     val mainTemplate =
-      compile(
-        """<%[[My Collection:Collection<Text>]]%>
+      compile("""<%[[My Collection:Collection<Text>]]%>
           |
           |{{#for each title : My Collection =>
           | [[title]]
           |}}
         """.stripMargin)
 
-    val collectionType = AbstractCollectionType.createParameterInstance(TextType)
-    engine.execute(mainTemplate, TemplateParameters("title" -> "this is a test", "My Collection" -> collectionType.internalFormat(CollectionValue(size = 3, values = Map(0 -> "test1", 1 -> "test2", 2 -> "test3"), collectionType = collectionType)).right.value), Map()) match {
+    val collectionType =
+      AbstractCollectionType.createParameterInstance(TextType)
+    engine.execute(
+      mainTemplate,
+      TemplateParameters(
+        "title" -> "this is a test",
+        "My Collection" -> collectionType
+          .internalFormat(
+            CollectionValue(
+              size = 3,
+              values = Map(0 -> "test1", 1 -> "test2", 2 -> "test3"),
+              collectionType = collectionType
+            )
+          )
+          .right
+          .value
+      ),
+      Map()
+    ) match {
       case Right(result) =>
         result.state shouldBe ExecutionFinished
-        val text = parser.forReview(result.agreements.head,ParagraphEdits())
+        val text = parser.forReview(result.agreements.head, ParagraphEdits())
         text shouldBe """<p class="no-section">test1<br />test2<br />test3<br /><br />        </p>"""
       case Left(ex) =>
         fail(ex)
@@ -556,41 +755,70 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
   it should "not modify dates in a collection when accessing values" in {
     val mainTemplate =
-      compile(
-        """<%[[My Collection:Collection<Date>]]%>
+      compile("""<%[[My Collection:Collection<Date>]]%>
           |
           |{{#for each title : My Collection =>
           | [[title]]
           |}}
         """.stripMargin)
 
+    val collectionType =
+      AbstractCollectionType.createParameterInstance(DateType)
 
-    val collectionType = AbstractCollectionType.createParameterInstance(DateType)
-
-    val result = engine.execute(mainTemplate, TemplateParameters("title" -> "this is a test", "My Collection" -> collectionType.internalFormat(CollectionValue(size = 0, values = Map(), collectionType = collectionType)).right.value), Map()).right.value
+    val result = engine
+      .execute(
+        mainTemplate,
+        TemplateParameters(
+          "title" -> "this is a test",
+          "My Collection" -> collectionType
+            .internalFormat(
+              CollectionValue(
+                size = 0,
+                values = Map(),
+                collectionType = collectionType
+              )
+            )
+            .right
+            .value
+        ),
+        Map()
+      )
+      .right
+      .value
     val executionResult = result.getAllExecutionResults.head
 
     val initialValue = "1564660800000"
     val initialCollection = s"""{"values":{"0":"$initialValue"},"size":2}"""
     val newValue = "1564660800000"
-    val newCollection = s"""{"values":{"0":"$initialValue","1":"$newValue"},"size":2}"""
+    val newCollection =
+      s"""{"values":{"0":"$initialValue","1":"$newValue"},"size":2}"""
 
     val variable = result.getVariable("My Collection").value
     val varType = variable.varType(executionResult)
-    val collection = VariableType.convert[CollectionValue](varType.cast(initialCollection, executionResult).getOrThrow()).getOrThrow()
-    initialValue should be(collection.valueInternalFormat(collection.list.head).right.value)
+    val collection = VariableType
+      .convert[CollectionValue](
+        varType.cast(initialCollection, executionResult).getOrThrow()
+      )
+      .getOrThrow()
+    initialValue should be(
+      collection.valueInternalFormat(collection.list.head).right.value
+    )
 
-    val openlawValue = collection.castValue(newValue, executionResult).getOrThrow()
-    val values: Map[Int, OpenlawValue] = collection.values ++ Map(1 -> openlawValue)
-    val collectionOutput = collection.collectionType.internalFormat(collection.copy(values = values)).getOrThrow()
+    val openlawValue =
+      collection.castValue(newValue, executionResult).getOrThrow()
+    val values: Map[Int, OpenlawValue] = collection.values ++ Map(
+      1 -> openlawValue
+    )
+    val collectionOutput = collection.collectionType
+      .internalFormat(collection.copy(values = values))
+      .getOrThrow()
 
     collectionOutput should be(newCollection)
   }
 
   it should "be able to take a variable from outside the for each a collection" in {
     val mainTemplate =
-      compile(
-        """<%[[My Collection:Collection<Text>]]
+      compile("""<%[[My Collection:Collection<Text>]]
           |[[number:Number]]
           |[[title:Text]]
           |%>
@@ -600,13 +828,40 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
           |}}
         """.stripMargin)
 
-    val collectionType = AbstractCollectionType.createParameterInstance(TextType)
+    val collectionType =
+      AbstractCollectionType.createParameterInstance(TextType)
 
-    engine.execute(mainTemplate, TemplateParameters("number" -> "10", "title" -> "this is a test", "My Collection" -> collectionType.internalFormat(CollectionValue(size = 3, values = Map(0 -> "test1", 1 -> "test2", 2 -> "test3"), collectionType = collectionType)).right.value), Map()) match {
+    engine.execute(
+      mainTemplate,
+      TemplateParameters(
+        "number" -> "10",
+        "title" -> "this is a test",
+        "My Collection" -> collectionType
+          .internalFormat(
+            CollectionValue(
+              size = 3,
+              values = Map(0 -> "test1", 1 -> "test2", 2 -> "test3"),
+              collectionType = collectionType
+            )
+          )
+          .right
+          .value
+      ),
+      Map()
+    ) match {
       case Right(result) =>
         result.state shouldBe ExecutionFinished
-        result.getAllExecutedVariables.map({case (_, variable) => variable.name}).toSet should contain theSameElementsAs Set("@@anonymous_1@@","@@anonymous_5@@","@@anonymous_3@@", "title", "number", "My Collection")
-        parser.forReview(result.agreements.head,ParagraphEdits()) shouldBe """<p class="no-section">test1 - 10<br />test2 - 10<br />test3 - 10<br /><br />        </p>"""
+        result.getAllExecutedVariables
+          .map({ case (_, variable) => variable.name })
+          .toSet should contain theSameElementsAs Set(
+          "@@anonymous_1@@",
+          "@@anonymous_5@@",
+          "@@anonymous_3@@",
+          "title",
+          "number",
+          "My Collection"
+        )
+        parser.forReview(result.agreements.head, ParagraphEdits()) shouldBe """<p class="no-section">test1 - 10<br />test2 - 10<br />test3 - 10<br /><br />        </p>"""
       case Left(ex) =>
         fail(ex)
     }
@@ -614,21 +869,38 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
   it should "be able to evaluate a structured type" in {
     val mainTemplate =
-      compile(
-        """[[Party:Structure(
+      compile("""[[Party:Structure(
            name:Text;
            number:Number
         )]][[Someone:Party]]
         """.stripMargin)
 
-    engine.execute(mainTemplate, TemplateParameters("Someone" -> Json.obj("name" -> "David", "number" -> "23").toString()), Map()) match {
+    engine.execute(
+      mainTemplate,
+      TemplateParameters(
+        "Someone" -> Json.obj("name" -> "David", "number" -> "23").toString()
+      ),
+      Map()
+    ) match {
       case Right(result) =>
         result.state shouldBe ExecutionFinished
-        result.getAllExecutedVariables.map({case (_, variable) => variable.name}).toSet should contain theSameElementsAs Set("Someone")
+        result.getAllExecutedVariables
+          .map({ case (_, variable) => variable.name })
+          .toSet should contain theSameElementsAs Set("Someone")
 
-        val map = result.getVariableValue[OpenlawMap[VariableName, OpenlawValue]](VariableName("Someone")).right.value.value.underlying
+        val map = result
+          .getVariableValue[OpenlawMap[VariableName, OpenlawValue]](
+            VariableName("Someone")
+          )
+          .right
+          .value
+          .value
+          .underlying
         map.get(VariableName("name")).value.toString shouldBe "David"
-        map.get(VariableName("number")).map { case OpenlawBigDecimal(v) => v }.value shouldBe BigDecimal(23)
+        map
+          .get(VariableName("number"))
+          .map { case OpenlawBigDecimal(v) => v }
+          .value shouldBe BigDecimal(23)
       case Left(ex) =>
         fail(ex)
     }
@@ -636,15 +908,16 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
   it should "handle if you define a collection more than once" in {
     val mainTemplate =
-      compile(
-        """[[list:Collection<Text>]]
+      compile("""[[list:Collection<Text>]]
           |[[list:Collection<Text>]]
         """.stripMargin)
 
     engine.execute(mainTemplate, TemplateParameters(), Map()) match {
       case Right(result) =>
         result.state shouldBe ExecutionFinished
-        result.getAllExecutedVariables.map({case (_, variable) => variable.name}).toSet should contain theSameElementsAs Set("list")
+        result.getAllExecutedVariables
+          .map({ case (_, variable) => variable.name })
+          .toSet should contain theSameElementsAs Set("list")
       case Left(ex) =>
         fail(ex)
     }
@@ -666,8 +939,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
             )]]
           """.stripMargin)
 
-    val subTemplate = compile(
-      """
+    val subTemplate = compile("""
         |[[contract:EthAddress]]
         |[[function:Text]]
         |[[call1:EthereumCall(contract:contract;
@@ -678,8 +950,8 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         |parameters:10000)]]
       """.stripMargin)
 
-    val subTemplate2 = compile(
-      """
+    val subTemplate2 =
+      compile("""
         |[[contract:EthAddress]]
         |[[function:Text]]
         |[[call2:EthereumCall(contract:contract;
@@ -690,9 +962,21 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         |parameters:10000)]]
       """.stripMargin)
 
-    engine.execute(mainTemplate, TemplateParameters(), Map(TemplateSourceIdentifier(TemplateTitle("template")) -> subTemplate, TemplateSourceIdentifier(TemplateTitle("template2")) -> subTemplate2)) match {
+    engine.execute(
+      mainTemplate,
+      TemplateParameters(),
+      Map(
+        TemplateSourceIdentifier(TemplateTitle("template")) -> subTemplate,
+        TemplateSourceIdentifier(TemplateTitle("template2")) -> subTemplate2
+      )
+    ) match {
       case Right(result) =>
-        result.getExecutedVariables.map(_.name).toSet shouldBe Set("@@anonymous_1@@", "@@anonymous_3@@","call1", "call2")
+        result.getExecutedVariables.map(_.name).toSet shouldBe Set(
+          "@@anonymous_1@@",
+          "@@anonymous_3@@",
+          "call1",
+          "call2"
+        )
       case Left(ex) =>
         fail(ex.message, ex)
     }
@@ -711,18 +995,32 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
            }}
           """.stripMargin)
 
-    val subTemplate = compile(
-      """[[_:Template("template2")]]""".stripMargin)
+    val subTemplate = compile("""[[_:Template("template2")]]""".stripMargin)
 
-    val subTemplate2 = compile(
-      """bla bla""".stripMargin)
+    val subTemplate2 = compile("""bla bla""".stripMargin)
 
     val colType = AbstractCollectionType.createParameterInstance(TextType)
-    val internalValue = colType.internalFormat(CollectionValue(2, Map(0 -> "hello", 1 -> "world"), colType)).right.value
-    engine.execute(mainTemplate, TemplateParameters("employees" -> internalValue), Map(TemplateSourceIdentifier(TemplateTitle("template")) -> subTemplate,TemplateSourceIdentifier(TemplateTitle("template2")) -> subTemplate2)) match {
+    val internalValue = colType
+      .internalFormat(
+        CollectionValue(2, Map(0 -> "hello", 1 -> "world"), colType)
+      )
+      .right
+      .value
+    engine.execute(
+      mainTemplate,
+      TemplateParameters("employees" -> internalValue),
+      Map(
+        TemplateSourceIdentifier(TemplateTitle("template")) -> subTemplate,
+        TemplateSourceIdentifier(TemplateTitle("template2")) -> subTemplate2
+      )
+    ) match {
       case Right(result) =>
         result.agreements.size shouldBe 2
-        result.getExecutedVariables.map(_.name).toSet shouldBe Set("employees", "@@anonymous_1@@", "@@anonymous_3@@")
+        result.getExecutedVariables.map(_.name).toSet shouldBe Set(
+          "employees",
+          "@@anonymous_1@@",
+          "@@anonymous_3@@"
+        )
       case Left(ex) =>
         fail(ex.message, ex)
     }
@@ -772,27 +1070,51 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         |Authorized Representative
         |
         |}}
-        |""".stripMargin)
+        |""".stripMargin
+    )
 
-    engine.execute(mainTemplate, TemplateParameters(), Map(TemplateSourceIdentifier(TemplateTitle("clause")) -> clauseTemplate,TemplateSourceIdentifier(TemplateTitle("clause")) -> clauseTemplate)) match {
+    engine.execute(
+      mainTemplate,
+      TemplateParameters(),
+      Map(
+        TemplateSourceIdentifier(TemplateTitle("clause")) -> clauseTemplate,
+        TemplateSourceIdentifier(TemplateTitle("clause")) -> clauseTemplate
+      )
+    ) match {
       case Right(result) =>
-        val variable = VariableDefinition(VariableName("Parties"), Some(VariableTypeDefinition("Collection",Some(VariableTypeDefinition("Parefhuzegfty Info",None)))))
+        val variable = VariableDefinition(
+          VariableName("Parties"),
+          Some(
+            VariableTypeDefinition(
+              "Collection",
+              Some(VariableTypeDefinition("Parefhuzegfty Info", None))
+            )
+          )
+        )
         getCollection(variable, result, "")
       case Left(ex) =>
         fail(ex.message, ex)
     }
   }
 
-  def getCollection(variable:VariableDefinition, executionResult: TemplateExecutionResult, value:String):CollectionValue = {
+  def getCollection(variable: VariableDefinition,
+                    executionResult: TemplateExecutionResult,
+                    value: String): CollectionValue = {
     variable.varType(executionResult) match {
-      case collectionType:CollectionType =>
-        if(value.isEmpty) {
+      case collectionType: CollectionType =>
+        if (value.isEmpty) {
           CollectionValue(collectionType = collectionType)
         } else {
-          VariableType.convert[CollectionValue](collectionType.cast(value, executionResult).getOrThrow()).getOrThrow()
+          VariableType
+            .convert[CollectionValue](
+              collectionType.cast(value, executionResult).getOrThrow()
+            )
+            .getOrThrow()
         }
       case other =>
-        throw new RuntimeException(s"add element to collection only works for a variable of type Collection, not '${other.name}'")
+        throw new RuntimeException(
+          s"add element to collection only works for a variable of type Collection, not '${other.name}'"
+        )
     }
   }
 
@@ -806,7 +1128,11 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         |[[Expr]]
       """.stripMargin)
 
-    engine.execute(template, TemplateParameters("Var 1" -> "4", "Var 2" -> "0"), Map()) match {
+    engine.execute(
+      template,
+      TemplateParameters("Var 1" -> "4", "Var 2" -> "0"),
+      Map()
+    ) match {
       case Right(_) =>
         fail("should fail")
       case Left(ex) =>
@@ -824,7 +1150,11 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         |[[Expr]]f
       """.stripMargin)
 
-    engine.execute(template, TemplateParameters("Var 1" -> "5", "Var 2" -> "5"), Map()) match {
+    engine.execute(
+      template,
+      TemplateParameters("Var 1" -> "5", "Var 2" -> "5"),
+      Map()
+    ) match {
       case Right(_) => fail("should fail")
       case Left(ex) =>
         ex.message shouldBe "error while evaluating the expression '(Var 1 + Var 2) / (Var 1 - Var 2)': division by zero!"
@@ -832,7 +1162,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
   }
 
   it should "not cut off text when using for each" in {
-    val template = compile (
+    val template = compile(
       """
         |<%
         |[[Directors:Collection<Text> "List of Directors"]]
@@ -849,13 +1179,30 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         |**Resolved,** that, effective as of this date, the following person is appointed an initial director of the Company to serve until the earliest of (i) the Company’s first annual meeting of stockholders, (ii) the due election and qualification of such director’s successor or (iii) such director’s death, resignation or removal:
         |
         |{{#for each Director:Directors => [[Director]]}}
-      """.stripMargin)
+      """.stripMargin
+    )
 
-    val collectionType = AbstractCollectionType.createParameterInstance(TextType)
-    engine.execute(template, TemplateParameters("Directors" -> collectionType.internalFormat(CollectionValue(size = 3, values = Map(0 -> "test1", 1 -> "test2", 2 -> "test3"), collectionType = collectionType)).right.value), Map()) match {
+    val collectionType =
+      AbstractCollectionType.createParameterInstance(TextType)
+    engine.execute(
+      template,
+      TemplateParameters(
+        "Directors" -> collectionType
+          .internalFormat(
+            CollectionValue(
+              size = 3,
+              values = Map(0 -> "test1", 1 -> "test2", 2 -> "test3"),
+              collectionType = collectionType
+            )
+          )
+          .right
+          .value
+      ),
+      Map()
+    ) match {
       case Right(result) =>
         result.state shouldBe ExecutionFinished
-        val text = parser.forReview(result.agreements.head,ParagraphEdits())
+        val text = parser.forReview(result.agreements.head, ParagraphEdits())
         text shouldBe """<p class="no-section"><br /></p><p class="no-section align-center"><strong>ACTION BY WRITTEN CONSENT OF</strong><br /><strong>SOLE INCORPORATOR </strong><strong>OF</strong><br /><strong>[[Company Name]]</strong></p><p class="no-section">The undersigned <u>Name</u>, being the sole incorporator of <strong>[[Company Name]]</strong>, a Delaware corporation (the &quot;<strong><em>Company</em></strong>&quot;), pursuant to Section 108 of the Delaware General Corporation Law, adopts the following resolution by written consent:</p><p class="no-section"><strong>Appointment of Directors</strong></p><p class="no-section"><strong>Resolved,</strong> that, effective as of this date, the following person is appointed an initial director of the Company to serve until the earliest of (i) the Company’s first annual meeting of stockholders, (ii) the due election and qualification of such director’s successor or (iii) such director’s death, resignation or removal:</p><p class="no-section">test1test2test3<br />      </p>"""
       case Left(ex) =>
         fail(ex)
@@ -863,8 +1210,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
   }
 
   it should "handle choice properly in a conditional" in {
-    val template = compile (
-      """<%
+    val template = compile("""<%
         [[my choice:Choice("value 1","value 2")]]
         [[value:my choice]]
         %>{{value = "value 1" => hello}}
@@ -873,7 +1219,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     engine.execute(template, TemplateParameters("value" -> "value 1"), Map()) match {
       case Right(result) =>
         result.state shouldBe ExecutionFinished
-        val text = parser.forReview(result.agreements.head,ParagraphEdits())
+        val text = parser.forReview(result.agreements.head, ParagraphEdits())
         text shouldBe """<p class="no-section">hello<br />      </p>"""
       case Left(ex) =>
         fail(ex)
@@ -881,13 +1227,11 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
   }
 
   it should "show an error if an expression is using an unknown variable" in {
-    val template = compile (
-      """<%
+    val template = compile("""<%
         [[my choice:Choice("value 1","value 2")]]
         [[value:my choice]]
         %>{{values = "value 1" => hello}}
       """.stripMargin)
-
 
     engine.execute(template, TemplateParameters(), Map()) match {
       case Right(_) =>
@@ -899,7 +1243,8 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
   it should "handle section correctly when within a conditional" in {
     val template =
-      compile("""<%
+      compile(
+        """<%
         |==Other==
         |[[Additional Agreements:YesNo "Will the employee be signing additional agreements?"]]
         |[[Confidentiality Agreement:YesNo "A confidentiality agreement?"]]
@@ -914,16 +1259,21 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         |^^*Right to Work.* For purposes of
         |
         |^^*No Conflicting Obligations.* You understand and agree that by
-      """.stripMargin)
+      """.stripMargin
+      )
 
-      engine.execute(template, TemplateParameters("Additional Agreements" -> "true"), Map()) match {
-        case Right(result) =>
-          result.state shouldBe ExecutionFinished
-          val text = parser.forReview(result.agreements.head,ParagraphEdits())
-          text shouldBe """<ul class="list-lvl-1"><li><p>1. <strong>Pre-employment Conditions.</strong></p><p></p><ul class="list-lvl-2"><li><p>(a) <em>Additional Agreements</em> Your acceptance of this offer and commencement of employment with the Company is contingent upon the execution, and delivery to an officer of the Company, prior to or on your Start Date,   .</p></li><li><p>(b) <em>Right to Work.</em> For purposes of</p></li><li><p>(c) <em>No Conflicting Obligations.</em> You understand and agree that by<br />      </p></li></ul></li></ul>"""
-        case Left(ex) =>
-          fail(ex)
-      }
+    engine.execute(
+      template,
+      TemplateParameters("Additional Agreements" -> "true"),
+      Map()
+    ) match {
+      case Right(result) =>
+        result.state shouldBe ExecutionFinished
+        val text = parser.forReview(result.agreements.head, ParagraphEdits())
+        text shouldBe """<ul class="list-lvl-1"><li><p>1. <strong>Pre-employment Conditions.</strong></p><p></p><ul class="list-lvl-2"><li><p>(a) <em>Additional Agreements</em> Your acceptance of this offer and commencement of employment with the Company is contingent upon the execution, and delivery to an officer of the Company, prior to or on your Start Date,   .</p></li><li><p>(b) <em>Right to Work.</em> For purposes of</p></li><li><p>(c) <em>No Conflicting Obligations.</em> You understand and agree that by<br />      </p></li></ul></li></ul>"""
+      case Left(ex) =>
+        fail(ex)
+    }
   }
 
   it should "handle section correctly when within a for loop" in {
@@ -940,12 +1290,28 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
                 |^(last(numbering:2)) **hello world ** [[last]]
               """.stripMargin)
 
-    val collectionType = AbstractCollectionType.createParameterInstance(TextType)
+    val collectionType =
+      AbstractCollectionType.createParameterInstance(TextType)
 
-    engine.execute(template, TemplateParameters("text" -> collectionType.internalFormat(CollectionValue(size = 3, values = Map(0 -> "hello", 1 -> "world", 2 -> "me"), collectionType = collectionType)).right.value), Map()) match {
+    engine.execute(
+      template,
+      TemplateParameters(
+        "text" -> collectionType
+          .internalFormat(
+            CollectionValue(
+              size = 3,
+              values = Map(0 -> "hello", 1 -> "world", 2 -> "me"),
+              collectionType = collectionType
+            )
+          )
+          .right
+          .value
+      ),
+      Map()
+    ) match {
       case Right(result) =>
         result.state shouldBe ExecutionFinished
-        val text = parser.forReview(result.agreements.head,ParagraphEdits())
+        val text = parser.forReview(result.agreements.head, ParagraphEdits())
         text shouldBe """<p class="no-section"><br /></p><ul class="list-lvl-1"><li><p>1.  <strong> some test </strong><br /></p><ul class="list-lvl-2"><li><p>(a)  <strong> hello </strong> as mentioned in 1.a<br /></p></li><li><p>(b)  <strong> world </strong> as mentioned in 1.b<br /></p></li><li><p>(c)  <strong> me </strong> as mentioned in 1.c<br /></p></li></ul></li><li><p>2.  <strong>hello world </strong> 2<br />              </p></li></ul>"""
       case Left(ex) =>
         fail(ex)
@@ -958,11 +1324,10 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
                 |
                 |finishing [[my]] friend""".stripMargin)
 
-
     engine.execute(template, TemplateParameters(), Map()) match {
       case Right(result) =>
         result.state shouldBe ExecutionFinished
-        val text = parser.forReview(result.agreements.head,ParagraphEdits())
+        val text = parser.forReview(result.agreements.head, ParagraphEdits())
         text shouldBe """<ul class="list-lvl-1"><li><p>1.  hello</p><p>finishing [[my]] friend</p></li></ul>"""
       case Left(ex) =>
         fail(ex)
@@ -970,8 +1335,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
   }
 
   it should "give us the proper type for choices" in {
-    val template = compile(
-      """
+    val template = compile("""
         |[[Choice Type:Choice("hello","world")]]
         |
         |[[var:Choice Type]]
@@ -1006,11 +1370,10 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
                 |
                 |""".stripMargin)
 
-
     engine.execute(template, TemplateParameters(), Map()) match {
       case Right(result) =>
         result.state shouldBe ExecutionFinished
-        val text = parser.forReview(result.agreements.head,ParagraphEdits())
+        val text = parser.forReview(result.agreements.head, ParagraphEdits())
         text shouldBe """<ul class="list-lvl-1"><li><p>1.  first section</p></li><li><p>2.  second section</p><ul class="list-lvl-2"><li><p>(a)  first sub section</p></li><li><p>(b)  second sub section</p></li><li><p>(a)  reset the section</p></li></ul></li><li><p>3.  go back to the section 2.a</p></li></ul>"""
       case Left(ex) =>
         fail(ex)
@@ -1020,8 +1383,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
   it should "handle header level annotations" in {
     val startEndQuote = "\'\'\'"
     val template =
-      compile(
-        s"""
+      compile(s"""
            |before the annotation
            |
           |$startEndQuote
@@ -1031,13 +1393,12 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
           |after the annotation
         """.stripMargin)
 
-
     engine.execute(template, TemplateParameters(), Map()) match {
       case Right(result) =>
         result.state shouldBe ExecutionFinished
-        val text = parser.forReview(result.agreements.head,ParagraphEdits())
+        val text = parser.forReview(result.agreements.head, ParagraphEdits())
         text shouldBe """<p class="no-section"><br />before the annotation</p><p class="no-section"></p><p class="no-section">after the annotation<br />        </p>"""
-        val text2 = parser.forPreview(result.agreements.head,ParagraphEdits())
+        val text2 = parser.forPreview(result.agreements.head, ParagraphEdits())
         text2 shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="no-section"><br />before the annotation</p></div><div class="openlaw-paragraph paragraph-2"><p class="no-section"><span class="openlaw-annotation-header"><br />this is some text for my annotation<br /></span></p></div><div class="openlaw-paragraph paragraph-3"><p class="no-section">after the annotation<br />        </p></div>"""
       case Left(ex) =>
         fail(ex)
@@ -1047,8 +1408,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
   it should "handle note level annotations" in {
     val startEndQuote = "\"\"\""
     val template =
-      compile(
-        s"""
+      compile(s"""
            |before the annotation
            |
           |$startEndQuote
@@ -1058,13 +1418,12 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
           |after the annotation
         """.stripMargin)
 
-
     engine.execute(template, TemplateParameters(), Map()) match {
       case Right(result) =>
         result.state shouldBe ExecutionFinished
-        val text = parser.forReview(result.agreements.head,ParagraphEdits())
+        val text = parser.forReview(result.agreements.head, ParagraphEdits())
         text shouldBe """<p class="no-section"><br />before the annotation</p><p class="no-section"></p><p class="no-section">after the annotation<br />        </p>"""
-        val text2 = parser.forPreview(result.agreements.head,ParagraphEdits())
+        val text2 = parser.forPreview(result.agreements.head, ParagraphEdits())
         text2 shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="no-section"><br />before the annotation</p></div><div class="openlaw-paragraph paragraph-2"><p class="no-section"><span class="openlaw-annotation-note"><br />this is some text for my annotation<br /></span></p></div><div class="openlaw-paragraph paragraph-3"><p class="no-section">after the annotation<br />        </p></div>"""
       case Left(ex) =>
         fail(ex)
@@ -1073,8 +1432,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
   it should "fail if an option is not of the right type" in {
     val template =
-      compile(
-        """
+      compile("""
            [[my var:Number]]
            [[my text:Text(
            options:"hello", my var
@@ -1089,11 +1447,9 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     }
   }
 
-
   it should "be possible to specify options for a choice type" in {
     val template =
-      compile(
-        """
+      compile("""
            [[My Choice:Choice("one", "two", "three")]]
            [[my var:My Choice(
            options:"one", "two"
@@ -1108,7 +1464,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
   }
 
   it should "run a table with multiple variables separated by rows" in {
-    val text=
+    val text =
       """This is | a test.
         || head1 | head2 | head3 |
         || ----- | ----- | ----- |
@@ -1119,17 +1475,18 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         |This is a test.""".stripMargin
 
     val compiledTemplate = compile(text)
-    val parameters = TemplateParameters("var11" -> "hello", "var31" -> "world", "var43" -> "!")
+    val parameters =
+      TemplateParameters("var11" -> "hello", "var31" -> "world", "var43" -> "!")
     engine.execute(compiledTemplate, parameters, Map()) match {
       case Right(result) =>
         result.state shouldBe ExecutionFinished
-        result.variables.map(_.name.name) should contain allOf("var11", "var31", "var43")
+        result.variables.map(_.name.name) should contain allOf ("var11", "var31", "var43")
       case Left(ex) => fail(ex)
     }
   }
 
   it should "throw an error if a section name is used before it has been rendered" in {
-    val text=
+    val text =
       """
         |^(section name) bla bla bla
         |
@@ -1145,7 +1502,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     engine.execute(compiledTemplate, parameters, Map()) match {
       case Right(result) =>
         result.state shouldBe ExecutionFinished
-        val text = parser.forReview(result.agreements.head,ParagraphEdits())
+        val text = parser.forReview(result.agreements.head, ParagraphEdits())
         text shouldBe """<p class="no-section"><br /></p><ul class="list-lvl-1"><li><p>1.  bla bla bla</p><p>1</p><p>2</p></li><li><p>2.  bla bla bla<br />      </p></li></ul>"""
       case Left(ex) => fail(ex)
     }
@@ -1431,7 +1788,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
   }
 
   it should "handle tables preceding other elements" in {
-    val text="""this is a test
+    val text = """this is a test
 
           to see if for each works
 
@@ -1444,8 +1801,18 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 }}"""
 
     val template = compile(text)
-    val collectionType = AbstractCollectionType.createParameterInstance(TextType)
-    val paramValue = collectionType.internalFormat(CollectionValue(size = 3, values = Map(0 -> "text1", 1 -> "text2", 2 -> "text3"), collectionType)).right.value
+    val collectionType =
+      AbstractCollectionType.createParameterInstance(TextType)
+    val paramValue = collectionType
+      .internalFormat(
+        CollectionValue(
+          size = 3,
+          values = Map(0 -> "text1", 1 -> "text2", 2 -> "text3"),
+          collectionType
+        )
+      )
+      .right
+      .value
 
     engine.execute(template, TemplateParameters("texts" -> paramValue)) match {
       case Right(result) =>
@@ -1457,7 +1824,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
   }
 
   it should "show an error if the constructor is of the wrong type" in {
-    val text="[[test:Text(1223)]]"
+    val text = "[[test:Text(1223)]]"
 
     val template = compile(text)
 
@@ -1486,8 +1853,8 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         |[[externalCall]]
       """.stripMargin
 
-    val Success(integratedService) = IntegratedServiceDefinition(
-      """
+    val Success(integratedService) =
+      IntegratedServiceDefinition("""
         |[[Input:Structure(
         |param1:Text;
         |param2:Text
@@ -1497,30 +1864,55 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         |)]]
       """.stripMargin)
 
-    val externalCallStructures = Map(ServiceName("SomeIntegratedServiceName") -> integratedService)
+    val externalCallStructures =
+      Map(ServiceName("SomeIntegratedServiceName") -> integratedService)
     val template = compile(text)
-    engine.execute(template, TemplateParameters("param1" -> "test1", "param2" -> "test2"), Map(), externalCallStructures) match {
+    engine.execute(
+      template,
+      TemplateParameters("param1" -> "test1", "param2" -> "test2"),
+      Map(),
+      externalCallStructures
+    ) match {
       case Right(executionResult) =>
-        executionResult.getExecutedVariables.map(_.name).toSet shouldBe Set("param1", "param2", "externalCall")
+        executionResult.getExecutedVariables.map(_.name).toSet shouldBe Set(
+          "param1",
+          "param2",
+          "externalCall"
+        )
         val Some(externalCall) = executionResult.getVariable("externalCall")
         val externalCallVarType = externalCall.varType(executionResult)
         externalCallVarType.getTypeClass shouldBe classOf[ExternalCall]
-        val Some(externalCallValue) = executionResult.getVariableValue[ExternalCall](VariableName("externalCall")).getOrThrow()
-        externalCallValue.getServiceName(executionResult).getOrThrow() shouldBe "SomeIntegratedServiceName"
-        val arguments = externalCallValue.getParameters(executionResult).getOrThrow()
+        val Some(externalCallValue) = executionResult
+          .getVariableValue[ExternalCall](VariableName("externalCall"))
+          .getOrThrow()
+        externalCallValue
+          .getServiceName(executionResult)
+          .getOrThrow() shouldBe "SomeIntegratedServiceName"
+        val arguments =
+          externalCallValue.getParameters(executionResult).getOrThrow()
         arguments.size shouldBe 2
         arguments(VariableName("param1")).underlying shouldBe "test1"
         arguments(VariableName("param2")).underlying shouldBe "test2"
-        externalCallValue.getStartDate(executionResult).getOrThrow() shouldBe Some(LocalDateTime.parse("2018-12-12T00:00:00"))
-        externalCallValue.getEndDate(executionResult).getOrThrow() shouldBe Some(LocalDateTime.parse("2048-12-12T00:00:00"))
-        externalCallValue.getEvery(executionResult).getOrThrow() shouldBe Some(PeriodType.cast("1 hour 30 minute").getOrThrow())
+        externalCallValue
+          .getStartDate(executionResult)
+          .getOrThrow() shouldBe Some(
+          LocalDateTime.parse("2018-12-12T00:00:00")
+        )
+        externalCallValue
+          .getEndDate(executionResult)
+          .getOrThrow() shouldBe Some(
+          LocalDateTime.parse("2048-12-12T00:00:00")
+        )
+        externalCallValue.getEvery(executionResult).getOrThrow() shouldBe Some(
+          PeriodType.cast("1 hour 30 minute").getOrThrow()
+        )
       case Left(ex) =>
         fail(ex)
     }
   }
 
   it should "be able to define options for Period type" in {
-    val text="""[[test:Period(options: "1 day", "1 week", "2 months")]]"""
+    val text = """[[test:Period(options: "1 day", "1 week", "2 months")]]"""
 
     val template = compile(text)
 
@@ -1532,7 +1924,8 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
   }
 
   it should "still fail if the defined options are invalid" in {
-    val text="""[[test:Period(options: "1 day", "1 week", "2 monthsfehwfw")]]"""
+    val text =
+      """[[test:Period(options: "1 day", "1 week", "2 monthsfehwfw")]]"""
 
     val template = compile(text)
 
@@ -1541,11 +1934,12 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     message shouldBe "options element error! should be of type Period but \"2 monthsfehwfw\" is Text instead"
   }
 
-  private def compile(text:String):CompiledTemplate = parser.compileTemplate(text) match {
-    case Right(template) => template
-    case Failure(ex, message) =>
-      fail(message, ex)
-  }
+  private def compile(text: String): CompiledTemplate =
+    parser.compileTemplate(text) match {
+      case Right(template) => template
+      case Failure(ex, message) =>
+        fail(message, ex)
+    }
 
   it should "be possible to add descriptions to properties of a Structure" in {
     val text =
@@ -1561,16 +1955,17 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
     engine.execute(template, TemplateParameters()) match {
       case Success(executionResult) =>
-        val Some(structure:DefinedStructureType) = executionResult.findVariableType(VariableTypeDefinition("Person"))
+        val Some(structure: DefinedStructureType) =
+          executionResult.findVariableType(VariableTypeDefinition("Person"))
         val field = structure.structure.typeDefinition(VariableName("Member"))
         field.description shouldBe Some("Is this person a member?")
         field.varType(executionResult) shouldBe YesNoType
-      case Failure(ex, message) => fail(message ,ex)
+      case Failure(ex, message) => fail(message, ex)
     }
   }
 
   it should "handle Domain correctly" in {
-     val text =
+    val text =
       """
         [[Amount:DomainType(
          |variableType: Number;
@@ -1586,8 +1981,9 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
     engine.execute(template, TemplateParameters()) match {
       case Success(executionResult) =>
-        val Some(domain:DefinedDomainType) = executionResult.findVariableType(VariableTypeDefinition("Amount"))
-				domain.domain.typeDefinition shouldBe NumberType
+        val Some(domain: DefinedDomainType) =
+          executionResult.findVariableType(VariableTypeDefinition("Amount"))
+        domain.domain.typeDefinition shouldBe NumberType
       case Failure(ex, message) => fail(message, ex)
     }
 
@@ -1605,12 +2001,14 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     val template2 = compile(textWithVar)
 
     val Right(result) = engine.execute(template2)
-    val Some(domainType:DefinedDomainType) = result.findVariableType(VariableTypeDefinition("Amount"))
-    val Right(internalFormat) = domainType.internalFormat(OpenlawBigDecimal(BigDecimal("5")))
+    val Some(domainType: DefinedDomainType) =
+      result.findVariableType(VariableTypeDefinition("Amount"))
+    val Right(internalFormat) =
+      domainType.internalFormat(OpenlawBigDecimal(BigDecimal("5")))
     engine.execute(template2, TemplateParameters("amount" -> internalFormat)) match {
       case Success(newResult) =>
-				val text = parser.forReview(newResult.agreements.head)
-				text shouldBe "<p class=\"no-section\"><br />        </p><p class=\"no-section\">5<br />My amount is: 5<br />      </p>"
+        val text = parser.forReview(newResult.agreements.head)
+        text shouldBe "<p class=\"no-section\"><br />        </p><p class=\"no-section\">5<br />My amount is: 5<br />      </p>"
       case Failure(ex, message) =>
         ex.printStackTrace()
         fail(message, ex)
@@ -1625,9 +2023,11 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         || Optionee | Title | Address | Ethereum Address | Option Type | Number of Shares | Exercise Price | Vesting Commencement Date | Vesting Method | State of Residence |
         || --------- | --------- | --------- | --------- | --------- | --------- | --------- | --------- |
         || [[Optionee 1 Name]] | [[Optionee 1 Title]] | [[Optionee 1 Address: Address]] | [[Optionee 1 Ethereum Address]] | [[Optionee 1 Option Type]] | [[Optionee 1 Shares: Number]] | [[Option Exercise Price: Number]] | [[Optionee 1 Vesting Commencement Date]] | [[Optionee 1 Vesting Method]] | [[Optionee 1 State]] |}}
-      """.stripMargin)
+      """.stripMargin
+    )
 
-    val Right(result) = engine.execute(template, TemplateParameters("conditional" -> "true"))
+    val Right(result) =
+      engine.execute(template, TemplateParameters("conditional" -> "true"))
 
     parser.forReview(result.agreements.head) shouldBe "<p class=\"no-section\"><br /><table class=\"markdown-table\"><tr class=\"markdown-table-row\"><th class=\"markdown-table-header\">Optionee</th><th class=\"markdown-table-header\">Title</th><th class=\"markdown-table-header\">Address</th><th class=\"markdown-table-header\">Ethereum Address</th><th class=\"markdown-table-header\">Option Type</th><th class=\"markdown-table-header\">Number of Shares</th><th class=\"markdown-table-header\">Exercise Price</th><th class=\"markdown-table-header\">Vesting Commencement Date</th><th class=\"markdown-table-header\">Vesting Method</th><th class=\"markdown-table-header\">State of Residence</th></tr><tr class=\"markdown-table-row\"><td class=\"markdown-table-data\">[[Optionee 1 Name]]</td><td class=\"markdown-table-data\">[[Optionee 1 Title]]</td><td class=\"markdown-table-data\">[[Optionee 1 Address]]</td><td class=\"markdown-table-data\">[[Optionee 1 Ethereum Address]]</td><td class=\"markdown-table-data\">[[Optionee 1 Option Type]]</td><td class=\"markdown-table-data\">[[Optionee 1 Shares]]</td><td class=\"markdown-table-data\">[[Option Exercise Price]]</td><td class=\"markdown-table-data\">[[Optionee 1 Vesting Commencement Date]]</td><td class=\"markdown-table-data\">[[Optionee 1 Vesting Method]]</td><td class=\"markdown-table-data\">[[Optionee 1 State]]</td></tr></table><br />      </p>"
   }
@@ -1639,9 +2039,15 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         |[[Collection Var: Collection<Text>]] {{#for each Item: Collection Var => [[Item]]}}
         |
         |[[Email: Identity]]
-      """.stripMargin)
+      """.stripMargin
+    )
 
-    engine.execute(template, TemplateParameters("Collection Var" -> "{\"values\":{\"0\":\"hello\",\"1\":\"worldooij\",\"2\":\"myoijioj\",\"3\":\"friend\"},\"size\":4}")) match {
+    engine.execute(
+      template,
+      TemplateParameters(
+        "Collection Var" -> "{\"values\":{\"0\":\"hello\",\"1\":\"worldooij\",\"2\":\"myoijioj\",\"3\":\"friend\"},\"size\":4}"
+      )
+    ) match {
       case Success(result) =>
         val Right(missingInputs) = result.allMissingInput
 
@@ -1661,13 +2067,13 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     engine.execute(template, TemplateParameters("my number" -> "0.000000042")) match {
       case Success(executionResult) =>
         parser.forReview(executionResult.agreements.head) shouldBe "<p class=\"no-section\"><br />        0.000000042<br />      </p>"
-      case Failure(ex, message) => fail(message ,ex)
+      case Failure(ex, message) => fail(message, ex)
     }
 
     engine.execute(template, TemplateParameters("my number" -> "4200000000")) match {
       case Success(executionResult) =>
         parser.forReview(executionResult.agreements.head) shouldBe "<p class=\"no-section\"><br />        4,200,000,000<br />      </p>"
-      case Failure(ex, message) => fail(message ,ex)
+      case Failure(ex, message) => fail(message, ex)
     }
   }
 
@@ -1682,13 +2088,28 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         |}}
       """.stripMargin)
 
-    val collectionType = AbstractCollectionType.createParameterInstance(TextType)
+    val collectionType =
+      AbstractCollectionType.createParameterInstance(TextType)
 
-    engine.execute(template, TemplateParameters("my test" -> collectionType.internalFormat(CollectionValue(
-      size = 4,
-      values = Map(0 -> "param 0", 1 -> "param 1",2 -> "param 2",3 -> "param 3"),
-      collectionType = collectionType
-    )).getOrThrow())) match {
+    engine.execute(
+      template,
+      TemplateParameters(
+        "my test" -> collectionType
+          .internalFormat(
+            CollectionValue(
+              size = 4,
+              values = Map(
+                0 -> "param 0",
+                1 -> "param 1",
+                2 -> "param 2",
+                3 -> "param 3"
+              ),
+              collectionType = collectionType
+            )
+          )
+          .getOrThrow()
+      )
+    ) match {
       case Success(result) =>
         parser.forReview(result.agreements.head) shouldBe "<p class=\"no-section\"><br /></p><ul class=\"list-lvl-1\"><li><p>1.  param 0<br /></p></li><li><p>2.  param 1<br /></p></li><li><p>3.  param 2<br /></p></li><li><p>4.  param 3<br /><br />      </p></li></ul>"
       case Failure(ex, message) => fail(message, ex)
@@ -1696,7 +2117,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
   }
 
   it should "be able to create a period from 2 dates" in {
-    val text=
+    val text =
       """
         |[[from:DateTime]]
         |[[to:DateTime]]
@@ -1708,40 +2129,59 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
     val template = compile(text)
 
-    val fromDate = LocalDateTime.now()
+    val fromDate = LocalDateTime
+      .now()
       .withYear(2019)
       .withDayOfYear(56)
       .withHour(0)
       .withMinute(0)
       .withSecond(0)
       .withNano(0)
-    val toDate = LocalDateTime.now()
+    val toDate = LocalDateTime
+      .now()
       .withYear(2019)
       .withDayOfYear(65)
       .withHour(2)
       .withMinute(45)
       .withSecond(0)
       .withNano(0)
-    val Right(result) = engine.execute(template, TemplateParameters(
-      "from" -> DateTimeType.internalFormat(OpenlawDateTime(fromDate)).getOrThrow(),
-      "to" -> DateTimeType.internalFormat(OpenlawDateTime(toDate)).getOrThrow()
-    ))
+    val Right(result) = engine.execute(
+      template,
+      TemplateParameters(
+        "from" -> DateTimeType
+          .internalFormat(OpenlawDateTime(fromDate))
+          .getOrThrow(),
+        "to" -> DateTimeType
+          .internalFormat(OpenlawDateTime(toDate))
+          .getOrThrow()
+      )
+    )
 
     val period = VariableName("period").evaluateT[Period](result).getOrThrow()
-    period shouldBe Some(variableTypes.Period(weeks = 1, days = 2, hours = 2, minutes = 45))
+    period shouldBe Some(
+      variableTypes.Period(weeks = 1, days = 2, hours = 2, minutes = 45)
+    )
 
     // flip date order - should not matter
-    val Right(result2) = engine.execute(template, TemplateParameters(
-      "from" -> DateTimeType.internalFormat(OpenlawDateTime(toDate)).getOrThrow(),
-      "to" -> DateTimeType.internalFormat(OpenlawDateTime(fromDate)).getOrThrow()
-    ))
+    val Right(result2) = engine.execute(
+      template,
+      TemplateParameters(
+        "from" -> DateTimeType
+          .internalFormat(OpenlawDateTime(toDate))
+          .getOrThrow(),
+        "to" -> DateTimeType
+          .internalFormat(OpenlawDateTime(fromDate))
+          .getOrThrow()
+      )
+    )
 
-    VariableName("period").evaluateT[Period](result2).getOrThrow() shouldBe period
+    VariableName("period")
+      .evaluateT[Period](result2)
+      .getOrThrow() shouldBe period
   }
 
   it should "not write errors if you try to print structure" in {
-    val template = compile(
-      """
+    val template = compile("""
         <%
         |[[Contestant Emergency Contact: Structure(
         |  Emergency Contact Name: Text;
@@ -1758,15 +2198,23 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         |DOB: [[Medical Contact.Emergency Contact DOB]]
       """.stripMargin)
 
-
-
     val Right(result) = engine.execute(template)
-    val Some(varType:DefinedStructureType) = result.findVariableType(VariableTypeDefinition("Contestant Emergency Contact"))
+    val Some(varType: DefinedStructureType) = result.findVariableType(
+      VariableTypeDefinition("Contestant Emergency Contact")
+    )
 
-    val Right(internalFormat) = varType.internalFormat(Map[VariableName, OpenlawValue](
-      VariableName("Emergency Contact Name") -> OpenlawString("David Roon"),
-      VariableName("Emergency Contact Age") -> OpenlawBigDecimal(BigDecimal("23"))))
-    engine.execute(template, TemplateParameters("Medical Contact" -> internalFormat)) match {
+    val Right(internalFormat) = varType.internalFormat(
+      Map[VariableName, OpenlawValue](
+        VariableName("Emergency Contact Name") -> OpenlawString("David Roon"),
+        VariableName("Emergency Contact Age") -> OpenlawBigDecimal(
+          BigDecimal("23")
+        )
+      )
+    )
+    engine.execute(
+      template,
+      TemplateParameters("Medical Contact" -> internalFormat)
+    ) match {
       case Success(newResult) =>
         parser.forReview(newResult.agreements.head) shouldBe "<p class=\"no-section\"><br />        <br />Name: David Roon<br />Age: 23<br />DOB: [[Medical Contact:Contestant Emergency Contact]]<br />      </p>"
       case Failure(ex, message) =>
@@ -1774,11 +2222,10 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         fail(message, ex)
     }
 
-
   }
 
   it should "be able to divide a period by a number" in {
-    val text=
+    val text =
       """
         |[[period:Period]]
         |[[divisor:Number]]
@@ -1790,44 +2237,64 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
     val template = compile(text)
 
-    val Right(result) = engine.execute(template, TemplateParameters(
-      "period" -> PeriodType.internalFormat(variableTypes.Period(
-        years = 1,
-        weeks = 2,
-        days = 3,
-        hours = 4,
-        minutes = 5,
-        seconds = 6)).getOrThrow(),
-      "divisor" -> "2"
-    ))
+    val Right(result) = engine.execute(
+      template,
+      TemplateParameters(
+        "period" -> PeriodType
+          .internalFormat(
+            variableTypes.Period(
+              years = 1,
+              weeks = 2,
+              days = 3,
+              hours = 4,
+              minutes = 5,
+              seconds = 6
+            )
+          )
+          .getOrThrow(),
+        "divisor" -> "2"
+      )
+    )
 
-    VariableName("newPeriod").evaluateT[Period](result).getOrThrow() shouldBe Some(variableTypes.Period(
-      weeks = 27,
-      days = 2,
-      hours = 2,
-      minutes = 2,
-      seconds = 33
-    ))
+    VariableName("newPeriod")
+      .evaluateT[Period](result)
+      .getOrThrow() shouldBe Some(
+      variableTypes
+        .Period(weeks = 27, days = 2, hours = 2, minutes = 2, seconds = 33)
+    )
 
-    engine.execute(template, TemplateParameters(
-      "period" -> PeriodType.internalFormat(variableTypes.Period(years = 1)).getOrThrow(),
-      "divisor" -> "0")) match {
+    engine.execute(
+      template,
+      TemplateParameters(
+        "period" -> PeriodType
+          .internalFormat(variableTypes.Period(years = 1))
+          .getOrThrow(),
+        "divisor" -> "0"
+      )
+    ) match {
       case Right(_) =>
         fail("should fail when dividing by zero")
       case Left(ex) =>
         ex.message shouldBe "error while evaluating the expression 'period / divisor': division by zero!"
     }
 
-    engine.execute(template, TemplateParameters(
-      "period" -> PeriodType.internalFormat(variableTypes.Period(years = 1, months = 1, weeks = 1)).getOrThrow(),
-      "divisor" -> "2")) match {
+    engine.execute(
+      template,
+      TemplateParameters(
+        "period" -> PeriodType
+          .internalFormat(
+            variableTypes.Period(years = 1, months = 1, weeks = 1)
+          )
+          .getOrThrow(),
+        "divisor" -> "2"
+      )
+    ) match {
       case Right(_) =>
         fail("should fail when dividing a period containing a month")
       case Left(ex) =>
         ex.message shouldBe "error while evaluating the expression 'period / divisor': cannot divide months"
     }
   }
-
 
   it should "handle missing values in a structure" in {
     val template =
@@ -1854,10 +2321,16 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
  |[[Email: Identity]]
               """.stripMargin)
 
-    engine.execute(template, TemplateParameters("Medical Contact" -> "{\"Emergency Contact Name\": \"test\"}"), Map()) match {
+    engine.execute(
+      template,
+      TemplateParameters(
+        "Medical Contact" -> "{\"Emergency Contact Name\": \"test\"}"
+      ),
+      Map()
+    ) match {
       case Success(result) =>
         result.state shouldBe ExecutionFinished
-        val text = parser.forReview(result.agreements.head,ParagraphEdits())
+        val text = parser.forReview(result.agreements.head, ParagraphEdits())
         text shouldBe "<p class=\"no-section\"><br /> <strong>Test Agreement - structure</strong></p><p class=\"no-section\"># Structure definition<br /></p><p class=\"no-section\"># Structure type var<br /></p><p class=\"no-section\"><strong>Emergency Contact</strong><br />Name: test<br />Age: [[Medical Contact:Contestant Emergency Contact]]<br />DOB: [[Medical Contact:Contestant Emergency Contact]]<br />Address: [[Medical Contact:Contestant Emergency Contact]]</p><p class=\"no-section\"><br />              </p>"
       case Failure(_, message) =>
         fail(message)
@@ -1871,57 +2344,71 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     engine.execute(template) match {
       case Success(result) =>
         result.state shouldBe ExecutionFinished
-        result.getVariableValue[Identity](VariableName("my identity")) shouldBe Success(Some(Identity(Email("some@email.com").getOrThrow())))
+        result.getVariableValue[Identity](VariableName("my identity")) shouldBe Success(
+          Some(Identity(Email("some@email.com").getOrThrow()))
+        )
       case Failure(ex, message) =>
         fail(message, ex)
     }
   }
 
-	it should "extract all the variables and define a Structure out of it" in {
-		val template =
-			compile("""[[text var:Text]]  [[num var:Number]]""".stripMargin)
+  it should "extract all the variables and define a Structure out of it" in {
+    val template =
+      compile("""[[text var:Text]]  [[num var:Number]]""".stripMargin)
 
-		engine.execute(template, TemplateParameters("text var" -> "hello world", "num var" -> "21213")) match {
-			case Success(result) =>
-				result.state shouldBe ExecutionFinished
-				val structure = result.buildStructureFromVariables
-				val structureType = AbstractStructureType.generateType(structure)
-				structure.names shouldBe List(VariableName("text var"), VariableName("num var"))
-				val Success(values) = result.buildStructureValueFromVariables
-				values.underlying shouldBe Map[VariableName, OpenlawValue](VariableName("text var") -> OpenlawString("hello world"), VariableName("num var") -> OpenlawBigDecimal(21213))
-				val Success(newDefinedResult) = OpenlawExecutionState.empty.withVariable(VariableName("parameters"), values, structureType)
+    engine.execute(
+      template,
+      TemplateParameters("text var" -> "hello world", "num var" -> "21213")
+    ) match {
+      case Success(result) =>
+        result.state shouldBe ExecutionFinished
+        val structure = result.buildStructureFromVariables
+        val structureType = AbstractStructureType.generateType(structure)
+        structure.names shouldBe List(
+          VariableName("text var"),
+          VariableName("num var")
+        )
+        val Success(values) = result.buildStructureValueFromVariables
+        values.underlying shouldBe Map[VariableName, OpenlawValue](
+          VariableName("text var") -> OpenlawString("hello world"),
+          VariableName("num var") -> OpenlawBigDecimal(21213)
+        )
+        val Success(newDefinedResult) = OpenlawExecutionState.empty
+          .withVariable(VariableName("parameters"), values, structureType)
 
-				newDefinedResult.variables.map(_.name.name) shouldBe List("parameters")
-				val Success(text) = newDefinedResult.evaluate[OpenlawString]("parameters.text var")
-				text.underlying shouldBe "hello world"
-			case Failure(ex, message) =>
-				fail(message, ex)
-		}
-	}
+        newDefinedResult.variables.map(_.name.name) shouldBe List("parameters")
+        val Success(text) =
+          newDefinedResult.evaluate[OpenlawString]("parameters.text var")
+        text.underlying shouldBe "hello world"
+      case Failure(ex, message) =>
+        fail(message, ex)
+    }
+  }
 
   it should "be possible to define expression directly between [[ ]]" in {
     val template =
-      compile(
-        """<%[[first name:Text]] [[last name:Text]]%>
+      compile("""<%[[first name:Text]] [[last name:Text]]%>
           |[[first name + " and " + last name]]""".stripMargin)
 
-    val Success(result) = engine.execute(template, TemplateParameters("first name" -> "David", "last name" -> "Roon"))
+    val Success(result) = engine.execute(
+      template,
+      TemplateParameters("first name" -> "David", "last name" -> "Roon")
+    )
     result.state shouldBe ExecutionFinished
-    val text = parser.forReview(result.agreements.head,ParagraphEdits())
+    val text = parser.forReview(result.agreements.head, ParagraphEdits())
     text shouldBe "<p class=\"no-section\">David and Roon</p>"
   }
 
   it should "be able to define a function type" in {
     val template =
-      compile(
-        """[[function variable:Function<Text>(name => name + " and all")]]
+      compile("""[[function variable:Function<Text>(name => name + " and all")]]
           |
           |[[function variable("David Roon")]]""".stripMargin)
 
     val Success(result) = engine.execute(template, TemplateParameters())
     result.state shouldBe ExecutionFinished
 
-    val text = parser.forReview(result.agreements.head,ParagraphEdits())
+    val text = parser.forReview(result.agreements.head, ParagraphEdits())
     text shouldBe "<p class=\"no-section\">David Roon and all</p>"
   }
 
@@ -1930,16 +2417,31 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       compile(
         """[[collection:Collection<Text>]]
           |
-          |[[@new collection = collection.map(elem => elem + " world")]]""".stripMargin)
+          |[[@new collection = collection.map(elem => elem + " world")]]""".stripMargin
+      )
 
     val collectionType = CollectionType(TextType)
 
-    val Success(collectionStr) = collectionType.internalFormat(CollectionValue(size = 3, values = Map(0 -> "one", 1 -> "two", 2 -> "blabla"), collectionType = collectionType))
-    val Success(result) = engine.execute(template, TemplateParameters("collection" -> collectionStr))
+    val Success(collectionStr) = collectionType.internalFormat(
+      CollectionValue(
+        size = 3,
+        values = Map(0 -> "one", 1 -> "two", 2 -> "blabla"),
+        collectionType = collectionType
+      )
+    )
+    val Success(result) = engine.execute(
+      template,
+      TemplateParameters("collection" -> collectionStr)
+    )
     result.state shouldBe ExecutionFinished
 
-    val Success(newCollection) = result.evaluate[CollectionValue]("new collection")
-    newCollection.values shouldBe Map(0 -> "one world", 1 -> "two world", 2 -> "blabla world")
+    val Success(newCollection) =
+      result.evaluate[CollectionValue]("new collection")
+    newCollection.values shouldBe Map(
+      0 -> "one world",
+      1 -> "two world",
+      2 -> "blabla world"
+    )
   }
 
   it should "be able to use 'map' for collections with numbers" in {
@@ -1947,16 +2449,37 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       compile(
         """[[collection:Collection<Number>]]
           |
-          |[[@new collection = collection.map(elem => elem + 10)]]""".stripMargin)
+          |[[@new collection = collection.map(elem => elem + 10)]]""".stripMargin
+      )
 
     val collectionType = CollectionType(NumberType)
 
-    val collectionStr = collectionType.internalFormat(CollectionValue(size = 3, values = Map(0 -> BigDecimal("1"), 1 -> BigDecimal("3"), 2 -> BigDecimal("45")), collectionType = collectionType)).getOrThrow()
-    val Success(result) = engine.execute(template, TemplateParameters("collection" -> collectionStr))
+    val collectionStr = collectionType
+      .internalFormat(
+        CollectionValue(
+          size = 3,
+          values = Map(
+            0 -> BigDecimal("1"),
+            1 -> BigDecimal("3"),
+            2 -> BigDecimal("45")
+          ),
+          collectionType = collectionType
+        )
+      )
+      .getOrThrow()
+    val Success(result) = engine.execute(
+      template,
+      TemplateParameters("collection" -> collectionStr)
+    )
     result.state shouldBe ExecutionFinished
 
-    val newCollection = result.evaluate[CollectionValue]("new collection").getOrThrow()
-    newCollection.values shouldBe Map(0 -> BigDecimal("11"), 1 -> BigDecimal("13"), 2 -> BigDecimal("55"))
+    val newCollection =
+      result.evaluate[CollectionValue]("new collection").getOrThrow()
+    newCollection.values shouldBe Map(
+      0 -> BigDecimal("11"),
+      1 -> BigDecimal("13"),
+      2 -> BigDecimal("55")
+    )
   }
 
   it should "be able to use 'map' for collections with structure where we extract a field" in {
@@ -1969,24 +2492,50 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
           |)]]
           |[[collection:Collection<My Structure>]]
           |
-          |[[@new collection = collection.map(elem => elem.age)]]""".stripMargin)
+          |[[@new collection = collection.map(elem => elem.age)]]""".stripMargin
+      )
 
-    val Success(resultToGetType) = engine.execute(template, TemplateParameters())
-    val Some(structureType) = resultToGetType.findVariableType(VariableTypeDefinition("My Structure"))
+    val Success(resultToGetType) =
+      engine.execute(template, TemplateParameters())
+    val Some(structureType) =
+      resultToGetType.findVariableType(VariableTypeDefinition("My Structure"))
     val collectionType = CollectionType(structureType)
 
-    val value1:Map[VariableName, OpenlawValue] = Map[VariableName, OpenlawValue](VariableName("name") -> OpenlawString("David Roon"), VariableName("age") -> OpenlawBigDecimal(BigDecimal(37)))
-    val value2:Map[VariableName, OpenlawValue] = Map[VariableName, OpenlawValue](VariableName("name") -> OpenlawString("David UIhiuh"), VariableName("age") -> OpenlawBigDecimal(BigDecimal(47)))
+    val value1: Map[VariableName, OpenlawValue] =
+      Map[VariableName, OpenlawValue](
+        VariableName("name") -> OpenlawString("David Roon"),
+        VariableName("age") -> OpenlawBigDecimal(BigDecimal(37))
+      )
+    val value2: Map[VariableName, OpenlawValue] =
+      Map[VariableName, OpenlawValue](
+        VariableName("name") -> OpenlawString("David UIhiuh"),
+        VariableName("age") -> OpenlawBigDecimal(BigDecimal(47))
+      )
 
-    val collectionStr = collectionType.internalFormat(CollectionValue(size = 2, values = Map(0 -> value1, 1 -> value2), collectionType = collectionType)).getOrThrow()
-    val Success(result) = engine.execute(template, TemplateParameters("collection" -> collectionStr))
+    val collectionStr = collectionType
+      .internalFormat(
+        CollectionValue(
+          size = 2,
+          values = Map(0 -> value1, 1 -> value2),
+          collectionType = collectionType
+        )
+      )
+      .getOrThrow()
+    val Success(result) = engine.execute(
+      template,
+      TemplateParameters("collection" -> collectionStr)
+    )
     result.state shouldBe ExecutionFinished
 
-    val newCollection = result.evaluate[CollectionValue]("new collection").getOrThrow()
-    newCollection.values shouldBe Map(0 -> BigDecimal("37"), 1 -> BigDecimal("47"))
+    val newCollection =
+      result.evaluate[CollectionValue]("new collection").getOrThrow()
+    newCollection.values shouldBe Map(
+      0 -> BigDecimal("37"),
+      1 -> BigDecimal("47")
+    )
     val Success(expr) = result.parseExpression("new collection")
     expr.expressionType(result).getOrThrow()
-    val Success(exprType:CollectionType) = expr.expressionType(result)
+    val Success(exprType: CollectionType) = expr.expressionType(result)
     exprType.typeParameter shouldBe NumberType
   }
 
@@ -1994,30 +2543,44 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     val template =
       compile(
         """[[regex:Regex("openlaw")]] [[some text:Text]]
-          |{{regex.match(some text) => regex match with [[some text]]}}""".stripMargin)
+          |{{regex.match(some text) => regex match with [[some text]]}}""".stripMargin
+      )
 
-    val Success(result) = engine.execute(template, TemplateParameters("some text" -> "openlaw"))
+    val Success(result) =
+      engine.execute(template, TemplateParameters("some text" -> "openlaw"))
     result.state shouldBe ExecutionFinished
 
-    val text = parser.forReview(result.agreements.head,ParagraphEdits())
+    val text = parser.forReview(result.agreements.head, ParagraphEdits())
     text shouldBe """<p class="no-section"> openlaw<br />regex match with openlaw</p>"""
 
-    val Success(result2) = engine.execute(template, TemplateParameters("some text" -> "something else"))
+    val Success(result2) = engine.execute(
+      template,
+      TemplateParameters("some text" -> "something else")
+    )
     result2.state shouldBe ExecutionFinished
 
-    val text2 = parser.forReview(result2.agreements.head,ParagraphEdits())
+    val text2 = parser.forReview(result2.agreements.head, ParagraphEdits())
     text2 shouldBe """<p class="no-section"> something else<br /></p>"""
   }
 
   it should "be possible to append a template to an existing execution result" in {
-    val template1 = compile("""<%[[first name:Text]] [[last name:Text]] [[age:Number]]%>""".stripMargin)
-
-    val template2 = compile(
-      """this is my [[first name]] [[last name]] [[age]]""".stripMargin
+    val template1 = compile(
+      """<%[[first name:Text]] [[last name:Text]] [[age:Number]]%>""".stripMargin
     )
 
-    val Success(result) = engine.execute(template1, TemplateParameters("first name" -> "David", "last name" -> "Roon", "age" -> "37"))
-    val Success(newResult) = engine.appendTemplateToExecutionResult(result, template2)
+    val template2 =
+      compile("""this is my [[first name]] [[last name]] [[age]]""".stripMargin)
+
+    val Success(result) = engine.execute(
+      template1,
+      TemplateParameters(
+        "first name" -> "David",
+        "last name" -> "Roon",
+        "age" -> "37"
+      )
+    )
+    val Success(newResult) =
+      engine.appendTemplateToExecutionResult(result, template2)
     newResult.agreements.size shouldBe 1
     newResult.state shouldBe ExecutionFinished
 
@@ -2028,4 +2591,123 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     text2 shouldBe ""
   }
 
+  it should "work with special type in clause" in {
+    val mainTemplate = compile(
+      """
+        |[[Doc: Choice("NDA", "MOU")]]
+        |[[I want to sign: Doc]]
+        |
+        |{{
+        |    {{I want to sign = "NDA" => [[NDA: Clause("Mutual Confidentiality Agreement")]]}}
+        |    {{I want to sign = "MOU" => [[MOU: Clause("Simple MOU")]]}}
+        |}}
+        |""".stripMargin
+    )
+
+    val clause1 = compile(
+      """<%
+                            |[[State: Choice("Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut","Delaware","District of Columbia","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan","Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada","New Hampshire","New Jersey","New Mexico","New York","North Carolina","North Dakota","Northern Mariana Islands","Ohio","Oklahoma","Oregon","Pennsylvania","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Vermont","Virgin Island","Virginia","Washington","West Virginia","Wisconsin","Wyoming")]]
+                            |%>
+                            |<%
+                            |[[Entity: Choice("corporation", "limited liability company", "limited partnership", "public benefit corporation")]]
+                            |%>
+                            |<%
+                            |# Variables arranged by headers:
+                            |==Describe Party A to NDA:==
+                            |[[PartyA Name "Name?"]]
+                            |[[PartyA Corp "Legal entity?"]]
+                            |[[PartyA Jurisdiction: State("Delaware") "Where was legal entity formed?"]]
+                            |[[PartyA Corporate Form: Entity("corporation") "What type of legal entity?"]]
+                            |[[PartyA Signatory Email "Email for signature?"]]
+                            |
+                            |==Describe Party B to NDA:==
+                            |[[PartyB Name "Name?"]]
+                            |[[PartyB Corp "Legal entity?"]]
+                            |[[PartyB Jurisdiction: State("Delaware") "Where was legal entity formed?"]]
+                            |[[PartyB Corporate Form: Entity("corporation") "What type of legal entity?"]]
+                            |[[PartyB Signatory Email "Email for signature?"]]
+                            |
+                            |==Other:==
+                            |[[Jurisdiction of Choice: State("Delaware") "What state law should govern this NDA?"]]
+                            |%>
+                            |
+                            |\centered **Mutual Confidentiality Agreement**
+                            |
+                            |This Mutual Confidentiality Agreement (this "**Agreement**"), effective as of the later of the two dates appearing on the signature page below (the "**Effective Date**"), is between [[PartyA Name]]{{PartyA Corp =>, a [[PartyA Jurisdiction]] [[PartyA Corporate Form]]}} ("**Party A**"), and [[PartyB Name]]{{PartyB Corp =>, a [[PartyB Jurisdiction]] [[PartyB Corporate Form]]}} ("**Party B**"), regarding a potential strategic relationship (the "**Relationship**"). This Agreement refers to Party A and Party B collectively as the "**Parties**" and each, individually, a "**Party**."
+                            |
+                            |WHEREAS, the Parties wish to discuss the possibility of a mutually beneficial business arrangement (the "**Purpose**").
+                            |
+                            |WHEREAS, the Parties must share certain information that is non-public proprietary or confidential to carry out the Purpose.
+                            |
+                            |WHEREAS, the Parties acknowledge that the benefit of receiving such information shall be sufficient basis for entering into this Agreement.
+                            |
+                            |NOW, THEREFORE, in consideration of the mutual covenants, terms and conditions set forth herein, and for other good and valuable consideration, the receipt and sufficiency of which are hereby acknowledged, the Parties agree as follows:
+                            |
+                            |^(General)In connection with the Purpose, either party ("**Disclosing Party**") may disclose Confidential Information (as defined below) to the other party ("**Recipient**"). Recipient shall use the Confidential Information solely for the Purpose and, subject to Section [[Obligatory Disclosure]] below, shall not disclose such Confidential Information other than to its employees, contractors, officers, directors, attorneys, accountants, and financial advisors (collectively, "**Representatives**") who: (a) need access to such Confidential Information for the Purpose; (b) are informed of its confidential nature; and (c) are bound by confidentiality obligations no less protective of the Confidential Information than the terms contained herein. Recipient shall safeguard the Confidential Information from unauthorized use, access, or disclosure using no less than a commercially reasonable degree of care. Recipient will be responsible for any breach of this Agreement caused by its Representatives. Recipient agrees to notify Disclosing Party in writing of any misuse or misappropriation of the Confidential Information of Disclosing Party that may come to Recipient’s attention.
+                            |
+                            |^(Confidential Information)"**Confidential Information**" means all non-public proprietary or confidential information of Disclosing Party, in oral, visual, written, electronic, or other tangible or intangible form, whether or not marked or designated as "confidential," that contain any of the following:
+                            |
+                            |^^all information concerning the past, present and future business affairs of the Disclosing Party and its affiliates and of their customers, suppliers and other third parties, including, without limitation, finances, customer information, supplier information, products, services, organizational structure and internal practices, forecasts, sales and other financial results, records and budgets, and business, marketing, development, sales and other commercial strategies;
+                            |
+                            |^^the Disclosing Party’s unpatented inventions, ideas, methods and discoveries, trade secrets, know-how, unpublished patent applications and other confidential intellectual property;
+                            |
+                            |^^all designs, specifications, documentation, components, source code, object code, images, icons, audiovisual components and objects, schematics, drawings, protocols, processes, and other visual depictions, in whole or in part, of any of the foregoing;
+                            |
+                            |^^any third-party confidential information included with, or incorporated in, any information provided by the Disclosing Party to the Recipient or its Representatives; and
+                            |
+                            |^^all notes, analyses, compilations, reports, forecasts, studies, samples, data, statistics, summaries, interpretations and other materials (collectively, the "**Notes**") prepared by or for the Recipient or its Representatives that contain, are based on, or otherwise reflect or are derived from, in whole or in part, any of the foregoing.
+                            |
+                            |^(Exceptions) Except as required by applicable federal, state or local law or regulation, Confidential Information shall not include information that:
+                            |
+                            |^^is or becomes generally available to the public other than as a result of Recipient’s or its Representatives’ breach of this Agreement;
+                            |
+                            |^^is obtained by Recipient or its Representatives on a non-confidential basis from a third-party that was not legally or contractually restricted from disclosing such information;
+                            |
+                            |^^was in Recipient’s or its Representatives’ possession prior to Disclosing Party’s disclosure hereunder; or
+                            |
+                            |^^was or is independently developed by Recipient or its Representatives without using any Confidential Information.
+                            |
+                            |^(Obligatory Disclosure)If Recipient or any of its Representatives is required by applicable law or a valid legal order to disclose any Confidential Information, Recipient shall notify Disclosing Party of such requirements so that Disclosing Party may seek, at Disclosing Party’s expense, a protective order or other remedy, and Recipient shall reasonably assist Disclosing Party therewith. If Recipient remains legally compelled to make such disclosure, it shall: (a) only disclose that portion of the Confidential Information that it is required to disclose; and (b) use reasonable efforts to ensure that such Confidential Information is afforded confidential treatment.
+                            |
+                            |^(Return)On Disclosing Party’s request, Recipient shall, at Disclosing Party’s discretion, promptly return to Disclosing Party or destroy all Confidential Information in its and its Representatives’ possession other than Notes, and destroy all Notes; provided, however, that Recipient may retain copies of Confidential Information that are stored on Recipient’s IT backup and disaster recovery systems until the ordinary course of deletion thereof. Recipient shall continue to be bound by the terms and conditions of this Agreement with respect to such retained Confidential Information.
+                            |
+                            |^(Representations)This Agreement imposes no obligation on either party to disclose any Confidential Information or to negotiate for, enter into, or otherwise pursue the Purpose. Disclosing Party makes no representation or warranty, expressed or implied, as to the accuracy or completeness of the Confidential Information, and will have no liability to Recipient or any other person relating to Recipient’s use of any of the Confidential Information or any errors therein or omissions therefrom.
+                            |
+                            |^(Title)Disclosing Party retains its entire right, title, and interest in and to all Confidential Information, and no disclosure of Confidential Information hereunder will be construed as a license, assignment, or other transfer of any such right, title, and interest to Recipient or any other person.
+                            |
+                            |^(Term)The rights and obligations of the parties under this Agreement expire three years after the Effective Date; provided that with respect to Confidential Information that constitutes a trade secret under applicable law, such rights and obligations will survive such expiration until, if ever, such Confidential Information loses its trade secret protection other than due to an act or omission of Recipient or its Representatives.
+                            |
+                            |^(Breach)Recipient acknowledges and agrees that any breach of this Agreement will cause irreparable harm and injury to Disclosing Party for which money damages would be an inadequate remedy and that, in addition to remedies at law, Disclosing Party is entitled to equitable relief as a remedy for any such breach. Recipient waives any claim or defense that Disclosing Party has an adequate remedy at law in any such proceeding. Nothing herein shall limit the equitable or available remedies at law for Disclosing Party.
+                            |
+                            |^(Jurisdiction)The laws of [[Jurisdiction of Choice]] shall govern this Agreement and all matters relating to it, including its construction, without regard to any conflict of laws provisions. A party wishing to institute any legal suit, action, or proceeding relating to this Agreement must do so in a(n) [[Jurisdiction of Choice]] court. Each Party irrevocably submits to the exclusive jurisdiction of such courts in any such suit, action, or proceeding.
+                            |
+                            |^(Notice)All notices must be in writing and may either be sent prepaid by nationally recognized courier, or via certified or registered mail, return receipt requested, to the relevant party at the address set forth in the preamble, or to the email address appearing with each Party’s authorized signature, below. All notices are effective upon actual receipt.
+                            |
+                            |^(Complete)This Agreement constitutes the entire agreement of the parties with respect to its subject matter, and supersedes all prior and contemporaneous understandings, agreements, representations, and warranties, whether written or oral, with respect to such subject matter. This Agreement may only be amended, modified, waived, or supplemented by an agreement in writing signed by both parties.
+                            |
+                            |IN WITNESS WHEREOF, the Parties hereto have executed this Agreement as of the Effective Date hereof.
+                            |
+                            |**[[PartyA Name | Uppercase]]**
+                            |
+                            |[[PartyA Signatory Email: Identity | Signature]]
+                            |______________________________
+                            |{{PartyA Corp => Title: Authorized Signatory}}
+                            |
+                            |**[[PartyB Name | Uppercase]]**
+                            |
+                            |[[PartyB Signatory Email: Identity | Signature]]
+                            |______________________________
+                            |{{PartyB Corp => Title: Authorized Signatory}}""".stripMargin
+    )
+
+    val Success(result) = engine.execute(
+      mainTemplate,
+      TemplateParameters("I want to sign" -> "NDA"),
+      Map(
+        TemplateSourceIdentifier(
+          TemplateTitle("Mutual Confidentiality Agreement")
+        ) -> clause1
+      )
+    )
+  }
 }
