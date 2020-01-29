@@ -197,7 +197,7 @@ trait VariableExecutionEngine {
       } else {
         Failure(s"error while processing the new variable ${variableDefinition.name}. The variable has type ${variableDefinition.variableTypeDefinition.map(_.name).getOrElse("")} but it does not exist")
       }
-    }.getOrElse(Success(()))
+    }.getOrElse(Success.unit)
 
   protected def redefineAlias(executionResult: OpenlawExecutionState, alias: VariableAliasing, definedAlias: VariableAliasing, executed: Boolean): Result[OpenlawExecutionState] =
     for {
