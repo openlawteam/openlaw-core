@@ -523,11 +523,11 @@ object OpenlawExecutionState {
 		id = TemplateExecutionResultId("@@anonymous_main_template_id@@"),
 		info = OLInformation(),
 		template = CompiledAgreement(),
-		executions = Map(),
+		executions = Map.empty,
 		executionType = TemplateExecution,
 		remainingElements = mutable.Buffer(),
 		clock = Clock.systemDefaultZone,
-		signatureProofs = Map(),
+		signatureProofs = Map.empty,
 		parameters = TemplateParameters(),
 		variableRedefinition = VariableRedefinition()
 	)
@@ -546,10 +546,10 @@ final case class OpenlawExecutionState(
                                     variablesInternal:mutable.Buffer[VariableDefinition] = mutable.Buffer(),
                                     aliasesInternal:mutable.Buffer[VariableAliasing] = mutable.Buffer(),
                                     executedVariablesInternal:mutable.Buffer[VariableName] = mutable.Buffer(),
-                                    variableSectionsInternal:mutable.Map[String, mutable.Buffer[VariableName]] = mutable.Map(),
+                                    variableSectionsInternal:mutable.Map[String, mutable.Buffer[VariableName]] = mutable.Map.empty,
                                     variableSectionListInternal:mutable.Buffer[String] = mutable.Buffer(),
                                     agreementsInternal:mutable.Buffer[StructuredAgreement] = mutable.Buffer(),
-                                    subExecutionsInternal:mutable.Map[VariableName, OpenlawExecutionState] = mutable.Map(),
+                                    subExecutionsInternal:mutable.Map[VariableName, OpenlawExecutionState] = mutable.Map.empty,
                                     forEachExecutions:mutable.Buffer[TemplateExecutionResultId] = mutable.Buffer(),
                                     finishedEmbeddedExecutions:mutable.Buffer[OpenlawExecutionState] = mutable.Buffer(),
                                     state:TemplateExecutionState = ExecutionReady,
@@ -561,11 +561,11 @@ final case class OpenlawExecutionState(
                                     mapping:Map[VariableName, Expression] = Map.empty,
                                     variableTypesInternal: mutable.Buffer[VariableType] = mutable.Buffer(VariableType.allTypes() : _*),
                                     sectionLevelStack: mutable.Buffer[Int] = mutable.Buffer(),
-                                    sectionNameMapping: mutable.Map[String, VariableName] = mutable.Map(),
-                                    sectionNameMappingInverseInternal: mutable.Map[VariableName, String] = mutable.Map(),
+                                    sectionNameMapping: mutable.Map[String, VariableName] = mutable.Map.empty,
+                                    sectionNameMappingInverseInternal: mutable.Map[VariableName, String] = mutable.Map.empty,
                                     processedSectionsInternal: mutable.Buffer[(Section, Int)] = mutable.Buffer(),
-                                    lastSectionByLevel:mutable.Map[Int, String] = mutable.Map(),
-                                    externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] = Map(),
+                                    lastSectionByLevel:mutable.Map[Int, String] = mutable.Map.empty,
+                                    externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] = Map.empty,
                                     clock:Clock) extends TemplateExecutionResult {
 
   def variables:List[VariableDefinition] = variablesInternal.toList
@@ -680,7 +680,7 @@ final case class OpenlawExecutionState(
                 .filter({ case (_, propertyType) => IdentityType.identityTypes.contains(propertyType.varType(this))})
                 .map({ case (propertyName, _) => propertyName }).toSeq
 
-              if (identityProperties.forall(values.getOrElse(Map()).contains)) {
+              if (identityProperties.forall(values.getOrElse(Map.empty).contains)) {
                 (Nil, Nil)
               } else {
                 (List(variable.name), Nil)
@@ -807,7 +807,7 @@ final case class OpenlawExecutionState(
     case _ => this.sectionLevelStack
   }
 
-  def startSubExecution(variableName:VariableName, template:CompiledTemplate, executionType:ExecutionType, overrideParameters:Map[VariableName, String] = Map()): Result[OpenlawExecutionState] =
+  def startSubExecution(variableName:VariableName, template:CompiledTemplate, executionType:ExecutionType, overrideParameters:Map[VariableName, String] = Map.empty): Result[OpenlawExecutionState] =
     getVariableValue[TemplateDefinition](variableName).flatMap { templateDefinitionOption =>
       templateDefinitionOption.map { templateDefinition =>
         detectCyclicDependency(templateDefinition).map(_ => {
