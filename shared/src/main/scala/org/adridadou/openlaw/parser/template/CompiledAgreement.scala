@@ -377,7 +377,7 @@ final case class CompiledAgreement(
           .collectFirst { case (s, n) if s === section => Success(n) }
           .getOrElse(
             Failure(
-              s"unexpected condition, section not found in processed sections"
+              "unexpected condition, section not found in processed sections"
             )
           )
 

@@ -124,7 +124,7 @@ final case class OLFunctionCall(name: VariableName, parameter: Expression)
                   s"constructor returns ${value.getClass.getSimpleName} instead of a function definition"
                 )
               case None =>
-                Failure(s"constructor returns nothing!")
+                Failure("constructor returns nothing!")
             })
         case otherType =>
           Failure(
