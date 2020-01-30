@@ -12,19 +12,29 @@ object VariableAliasing {
   implicit val variableAliasingDec: Decoder[VariableAliasing] = deriveDecoder
 }
 
-final case class VariableAliasing(name:VariableName, expr:Expression) extends Expression with TemplatePart{
+final case class VariableAliasing(name: VariableName, expr: Expression)
+    extends Expression
+    with TemplatePart {
   def validate(executionResult: TemplateExecutionResult): Result[Unit] =
     expr.validate(executionResult)
 
-  override def expressionType(executionResult: TemplateExecutionResult): Result[VariableType] =
+  override def expressionType(
+      executionResult: TemplateExecutionResult
+  ): Result[VariableType] =
     expr.expressionType(executionResult)
 
-  override def evaluate(executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] =
+  override def evaluate(
+      executionResult: TemplateExecutionResult
+  ): Result[Option[OpenlawValue]] =
     expr.evaluate(executionResult)
 
-  override def variables(executionResult: TemplateExecutionResult): Result[List[VariableName]] =
+  override def variables(
+      executionResult: TemplateExecutionResult
+  ): Result[List[VariableName]] =
     expr.variables(executionResult)
 
-  override def missingInput(executionResult: TemplateExecutionResult): Result[List[VariableName]] =
+  override def missingInput(
+      executionResult: TemplateExecutionResult
+  ): Result[List[VariableName]] =
     expr.missingInput(executionResult)
 }

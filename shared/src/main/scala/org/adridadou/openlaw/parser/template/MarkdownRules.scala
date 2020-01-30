@@ -33,19 +33,39 @@ trait MarkdownRules extends GlobalRules {
   }
 
   def twoStar: Rule0 = rule(strong ~ !twoStar)
-  def loosenTwoStarContents: Rule1[Seq[TextElement]] = rule { !twoStar ~ loosenTextElement }
-  def loosenStrongWord: Rule1[Seq[TextElement]] = rule { twoStar ~ loosenTwoStarContents ~ twoStar ~> ((elems:Seq[TextElement]) => Seq(Strong) ++ elems ++ Seq(Strong)) }
+  def loosenTwoStarContents: Rule1[Seq[TextElement]] = rule {
+    !twoStar ~ loosenTextElement
+  }
+  def loosenStrongWord: Rule1[Seq[TextElement]] = rule {
+    twoStar ~ loosenTwoStarContents ~ twoStar ~> (
+        (elems: Seq[TextElement]) => Seq(Strong) ++ elems ++ Seq(Strong)
+    )
+  }
 
   def oneStar: Rule0 = rule(em ~ !oneStar)
-  def loosenOneStarcontents: Rule1[Seq[TextElement]] = rule { loosenStrongWord | (!oneStar ~ loosenTextElement) }
-  def loosenEmWord: Rule1[Seq[TextElement]] = rule { oneStar ~ loosenOneStarcontents ~ oneStar ~> ((elems:Seq[TextElement]) => Seq(Em) ++ elems ++ Seq(Em)) }
+  def loosenOneStarcontents: Rule1[Seq[TextElement]] = rule {
+    loosenStrongWord | (!oneStar ~ loosenTextElement)
+  }
+  def loosenEmWord: Rule1[Seq[TextElement]] = rule {
+    oneStar ~ loosenOneStarcontents ~ oneStar ~> (
+        (elems: Seq[TextElement]) => Seq(Em) ++ elems ++ Seq(Em)
+    )
+  }
 
   def underLines: Rule0 = rule(under ~ !underLines)
-  def loosenUnderLinesContents: Rule1[Seq[TextElement]] = rule { loosenUnderWord | (!underLines ~ loosenTextElement) }
-  def loosenUnderWord: Rule1[Seq[TextElement]] = rule { underLines ~ loosenUnderLinesContents ~ underLines ~> ((elems:Seq[TextElement]) => Seq(Under) ++ elems ++ Seq(Under)) }
+  def loosenUnderLinesContents: Rule1[Seq[TextElement]] = rule {
+    loosenUnderWord | (!underLines ~ loosenTextElement)
+  }
+  def loosenUnderWord: Rule1[Seq[TextElement]] = rule {
+    underLines ~ loosenUnderLinesContents ~ underLines ~> (
+        (elems: Seq[TextElement]) => Seq(Under) ++ elems ++ Seq(Under)
+    )
+  }
 
   def textLoosen: Rule1[Seq[Text]] = rule {
-    capture(loosenCharacters) ~> ((s: String) => Seq(Text(TextCleaning.dots(s))))
+    capture(loosenCharacters) ~> (
+        (s: String) => Seq(Text(TextCleaning.dots(s)))
+    )
   }
 
 }

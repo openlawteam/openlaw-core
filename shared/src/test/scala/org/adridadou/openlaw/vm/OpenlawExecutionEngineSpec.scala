@@ -1097,9 +1097,11 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     }
   }
 
-  def getCollection(variable: VariableDefinition,
-                    executionResult: TemplateExecutionResult,
-                    value: String): CollectionValue = {
+  def getCollection(
+      variable: VariableDefinition,
+      executionResult: TemplateExecutionResult,
+      value: String
+  ): CollectionValue = {
     variable.varType(executionResult) match {
       case collectionType: CollectionType =>
         if (value.isEmpty) {
@@ -2580,7 +2582,8 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       )
     )
 
-    val Success(subResult) = result.withVariable(VariableName("dummy name"), None, NumberType)
+    val Success(subResult) =
+      result.withVariable(VariableName("dummy name"), None, NumberType)
 
     val Success(newResult) =
       engine.appendTemplateToExecutionResult(subResult, template2)

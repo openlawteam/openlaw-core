@@ -10,13 +10,19 @@ import io.circe.syntax._
 import io.circe.generic.semiauto._
 import org.adridadou.openlaw.result.{Failure, Result}
 
-final case class TemplateLoadOracle(crypto:CryptoService) extends OpenlawOracle[LoadTemplate] {
-  override def incoming(vm:OpenlawVm, event: LoadTemplate): Result[OpenlawVm] = {
+final case class TemplateLoadOracle(crypto: CryptoService)
+    extends OpenlawOracle[LoadTemplate] {
+  override def incoming(
+      vm: OpenlawVm,
+      event: LoadTemplate
+  ): Result[OpenlawVm] = {
     val id = TemplateId(EthereumAddress.bytes2hex(crypto.sha256(event.content)))
-    if(vm.contractDefinition.mainTemplate === id) {
+    if (vm.contractDefinition.mainTemplate === id) {
       vm(LoadTemplateCommand(id, event))
     } else {
-      vm.contractDefinition.templates.values.find(templateId => templateId === id) match {
+      vm.contractDefinition.templates.values.find(templateId =>
+        templateId === id
+      ) match {
         case Some(_) =>
           vm(LoadTemplateCommand(id, event))
         case None =>
@@ -26,8 +32,8 @@ final case class TemplateLoadOracle(crypto:CryptoService) extends OpenlawOracle[
   }
 
   override def shouldExecute(event: OpenlawVmEvent): Boolean = event match {
-    case _:LoadTemplate => true
-    case _ => false
+    case _: LoadTemplate => true
+    case _               => false
   }
 }
 
@@ -36,7 +42,7 @@ object LoadTemplate {
   implicit val loadTemplateDec: Decoder[LoadTemplate] = deriveDecoder
 }
 
-final case class LoadTemplate(content:String) extends OpenlawVmEvent {
+final case class LoadTemplate(content: String) extends OpenlawVmEvent {
   override def typeIdentifier: String = className[LoadTemplate]
   override def serialize: String = this.asJson.noSpaces
 }

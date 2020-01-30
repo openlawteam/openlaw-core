@@ -6,7 +6,7 @@ import scala.language.postfixOps
 import sbt.{file, _}
 
 lazy val username = "openlaw"
-lazy val repo     = "openlaw-core"
+lazy val repo = "openlaw-core"
 
 licenses += ("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0"))
 
@@ -17,7 +17,7 @@ always upgrade in a controlled fashion.
 
 If you wish to update either Scala or SBT, please open an issue and and tag
 @openlawteam/infra.
-*/
+ */
 lazy val scalaV = "2.12.10"
 
 lazy val scalaJavaTimeV = "2.0.0-RC3"
@@ -44,8 +44,13 @@ lazy val commonSettings = Seq(
   name := "openlaw-core",
   scalaVersion := scalaV,
   wartremoverErrors ++= rules,
-  scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions"),
-  javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
+  scalacOptions ++= Seq(
+    "-unchecked",
+    "-deprecation",
+    "-feature",
+    "-language:implicitConversions"
+  ),
+  javacOptions ++= Seq("-source", "1.8", "-target", "1.8")
 )
 
 lazy val publishSettings = Seq(
@@ -57,7 +62,12 @@ lazy val publishSettings = Seq(
   bintrayRepository := "openlaw-core",
   bintrayPackageLabels := Seq("openlaw-core"),
   bintrayVcsUrl := Some(s"git@github.com:$username/$repo.git"),
-  scmInfo := Some(ScmInfo(url(s"https://github.com/$username/$repo"), s"git@github.com:$username/$repo.git")),
+  scmInfo := Some(
+    ScmInfo(
+      url(s"https://github.com/$username/$repo"),
+      s"git@github.com:$username/$repo.git"
+    )
+  ),
   releaseCrossBuild := true,
   developers := List(
     Developer(
@@ -79,36 +89,39 @@ lazy val publishSettings = Seq(
       url = new URL(s"http://github.com/openlawbot")
     )
   ),
-  publishTo in ThisBuild := Some("Bintray" at "https://api.bintray.com/maven/openlawos/openlaw-core/openlaw-core/;publish=1"),
+  publishTo in ThisBuild := Some(
+    "Bintray" at "https://api.bintray.com/maven/openlawos/openlaw-core/openlaw-core/;publish=1"
+  )
 )
 
 lazy val releaseSettings = releaseProcess := Seq[ReleaseStep](
-  checkSnapshotDependencies,              // : ReleaseStep
+  checkSnapshotDependencies, // : ReleaseStep
   //inquireVersions,                        // : ReleaseStep
   //setReleaseVersion,                      // : ReleaseStep
   //commitReleaseVersion,                   // : ReleaseStep, performs the initial git checks
   //tagRelease,                             // : ReleaseStep
   //releaseStepCommandAndRemaining("publish"),
-  publishArtifacts,                       // : ReleaseStep,
+  publishArtifacts // : ReleaseStep,
   //setNextVersion,                         // : ReleaseStep
   //commitNextVersion,                      // : ReleaseStep
   //pushChanges                             // : ReleaseStep, also checks that an upstream branch is properly configured
 )
 
 val rules = Seq(
-	Wart.AnyVal,
-	Wart.ArrayEquals,
-	Wart.AsInstanceOf,
-	Wart.EitherProjectionPartial,
-	Wart.Enumeration,
-	Wart.ExplicitImplicitTypes,
-	Wart.FinalCaseClass,
-	Wart.FinalVal,
-	Wart.IsInstanceOf,
-	Wart.JavaConversions,
-	Wart.JavaSerializable,
-	Wart.LeakingSealed,
-	Wart.OptionPartial)
+  Wart.AnyVal,
+  Wart.ArrayEquals,
+  Wart.AsInstanceOf,
+  Wart.EitherProjectionPartial,
+  Wart.Enumeration,
+  Wart.ExplicitImplicitTypes,
+  Wart.FinalCaseClass,
+  Wart.FinalVal,
+  Wart.IsInstanceOf,
+  Wart.JavaConversions,
+  Wart.JavaSerializable,
+  Wart.LeakingSealed,
+  Wart.OptionPartial
+)
 
 /*
       *** Library Dependencies. ***
@@ -151,7 +164,7 @@ val rules = Seq(
         We maintain a list of dependency reviewers at `.github/CODEOWNERS`
         (their name, not ours), which should automatically add them to the PR
         when this file is modified.
-      */
+ */
 
 lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
   .withoutSuffixFor(JVMPlatform)
@@ -160,56 +173,57 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
   .jvmSettings(
     libraryDependencies ++= Seq(
       //circe is used to serialize / deserialize json
-      "io.circe"                %% "circe-core"          % circeV,
-      "io.circe"                %% "circe-generic"       % circeV,
-      "io.circe"                %% "circe-parser"        % circeV,
-      "io.circe"                %% "circe-java8"         % circeV,
+      "io.circe" %% "circe-core" % circeV,
+      "io.circe" %% "circe-generic" % circeV,
+      "io.circe" %% "circe-parser" % circeV,
+      "io.circe" %% "circe-java8" % circeV,
       //parser / interpreter library. Used for our markup language
-      "org.parboiled"           %% "parboiled"           % parboiledV,
+      "org.parboiled" %% "parboiled" % parboiledV,
       //cats is used for FP constructs
-      "org.typelevel"           %% "cats-core"           % catsV,
-      "org.typelevel"           %% "cats-free"           % catsV,
+      "org.typelevel" %% "cats-core" % catsV,
+      "org.typelevel" %% "cats-free" % catsV,
       // scala.js compatible library to use time types
-      "io.github.cquiroz"       %% "scala-java-time"     % scalaJavaTimeV,
+      "io.github.cquiroz" %% "scala-java-time" % scalaJavaTimeV,
       // logging library that is compatible with scala.js
-      "biz.enef"                %% "slogging-slf4j"      % sLoggingV,
+      "biz.enef" %% "slogging-slf4j" % sLoggingV,
       // enumeratum provides type-safe enumerations with improvements over stdlib enumerations
-      "com.beachape"            %% "enumeratum"          % enumeratumV,
+      "com.beachape" %% "enumeratum" % enumeratumV,
       // scalatags is used for composition of XHTML documents in the document printers
-      "com.lihaoyi"             %% "scalatags"           % scalaTagsV,
+      "com.lihaoyi" %% "scalatags" % scalaTagsV,
       //Test
-      "org.scalacheck"          %% "scalacheck"          % scalaCheckV % Test,
-      "org.scalatest"           %% "scalatest"           % scalaTestV  % Test,
+      "org.scalacheck" %% "scalacheck" % scalaCheckV % Test,
+      "org.scalatest" %% "scalatest" % scalaTestV % Test,
       //Play json is used in tests to make it easier to prepare json in the tests. It shouldn't be used in the library
-      "com.typesafe.play"       %% "play-json"           % playJsonV % Test
+      "com.typesafe.play" %% "play-json" % playJsonV % Test
     )
-  ).jsSettings(
+  )
+  .jsSettings(
     libraryDependencies ++= Seq(
       //circe is used to serialize / deserialize json
-      "io.circe"                %%% "circe-core"           % circeV,
-      "io.circe"                %%% "circe-generic"        % circeV,
-      "io.circe"                %%% "circe-parser"         % circeV,
-      "io.circe"                %%% "circe-java8"          % circeV,
+      "io.circe" %%% "circe-core" % circeV,
+      "io.circe" %%% "circe-generic" % circeV,
+      "io.circe" %%% "circe-parser" % circeV,
+      "io.circe" %%% "circe-java8" % circeV,
       //parser / interpreter library. Used for our markup language
-      "org.parboiled"           %%% "parboiled"            % parboiledV,
+      "org.parboiled" %%% "parboiled" % parboiledV,
       //cats is used for FP constructs
-      "org.typelevel"           %%% "cats-core"            % catsV,
-      "org.typelevel"           %%% "cats-free"            % catsV,
+      "org.typelevel" %%% "cats-core" % catsV,
+      "org.typelevel" %%% "cats-free" % catsV,
       // scala.js compatible library to use time types
-      "io.github.cquiroz"       %%% "scala-java-time"      % scalaJavaTimeV,
+      "io.github.cquiroz" %%% "scala-java-time" % scalaJavaTimeV,
       // timezone handling is in a separate library because of its size and not everybody needs it. we do
-      "io.github.cquiroz"       %%% "scala-java-time-tzdb" % "2.0.0-RC3_2019a",
+      "io.github.cquiroz" %%% "scala-java-time-tzdb" % "2.0.0-RC3_2019a",
       // logging library that is compatible with scala.js
-      "biz.enef"                %%% "slogging"             % sLoggingV,
+      "biz.enef" %%% "slogging" % sLoggingV,
       // enumeratum provides type-safe enumerations with improvements over stdlib enumerations
-      "com.beachape"            %%% "enumeratum"           % enumeratumV,
+      "com.beachape" %%% "enumeratum" % enumeratumV,
       // scalatags is used for composition of XHTML documents in the document printers
-      "com.lihaoyi"             %%% "scalatags"            % scalaTagsV,
+      "com.lihaoyi" %%% "scalatags" % scalaTagsV,
       //Test
-      "org.scalacheck"          %%% "scalacheck"          % scalaCheckV % Test,
-      "org.scalatest"           %%% "scalatest"           % scalaTestV  % Test,
+      "org.scalacheck" %%% "scalacheck" % scalaCheckV % Test,
+      "org.scalatest" %%% "scalatest" % scalaTestV % Test,
       //Play json is used in tests to make it easier to prepare json in the tests. It shouldn't be used in the library
-      "com.typesafe.play"       %%% "play-json"           % playJsonV % Test
+      "com.typesafe.play" %%% "play-json" % playJsonV % Test
     )
   )
   .settings(parallelExecution in Test := false)
@@ -224,8 +238,14 @@ lazy val version = git.gitDescribedVersion
 
 // the next-version flag is to silence SBT's interactive release shell prompt - it doesn't actually alter the version
 // confirmed via running `sbt version` after release.
-addCommandAlias("releaseCore", ";project openlawCore ;release release-version ${version} next-version ${version-SNAPSHOT} with-defaults")
-addCommandAlias("releaseCoreJS", ";project openlawCoreJS ;release release-version ${version} next-version ${version-SNAPSHOT} with-defaults")
+addCommandAlias(
+  "releaseCore",
+  ";project openlawCore ;release release-version ${version} next-version ${version-SNAPSHOT} with-defaults"
+)
+addCommandAlias(
+  "releaseCoreJS",
+  ";project openlawCoreJS ;release release-version ${version} next-version ${version-SNAPSHOT} with-defaults"
+)
 addCommandAlias("releaseBoth", ";releaseCore ;releaseCoreJS")
 
 lazy val openlawCoreJvm = openlawCore.jvm

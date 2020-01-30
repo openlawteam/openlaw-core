@@ -10,25 +10,35 @@ import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success}
 
 object LinkInfo {
-	implicit val linkInfoEnc: Encoder[LinkInfo] = deriveEncoder
-	implicit val linkInfoDec: Decoder[LinkInfo] = deriveDecoder
+  implicit val linkInfoEnc: Encoder[LinkInfo] = deriveEncoder
+  implicit val linkInfoDec: Decoder[LinkInfo] = deriveDecoder
 }
 
-final case class LinkInfo(label: String, url:String) extends OpenlawNativeValue
+final case class LinkInfo(label: String, url: String) extends OpenlawNativeValue
 
-case object LinkType extends VariableType(name = "Link") with NoShowInFormButRender {
+case object LinkType
+    extends VariableType(name = "Link")
+    with NoShowInFormButRender {
 
-  override def cast(value: String, executionResult: TemplateExecutionResult): Result[LinkInfo] = decode[LinkInfo](value).leftMap(FailureException(_))
+  override def cast(
+      value: String,
+      executionResult: TemplateExecutionResult
+  ): Result[LinkInfo] = decode[LinkInfo](value).leftMap(FailureException(_))
 
-  override def internalFormat(value: OpenlawValue): Result[String] = VariableType.convert[OpenlawString](value)
+  override def internalFormat(value: OpenlawValue): Result[String] =
+    VariableType.convert[OpenlawString](value)
 
   override def defaultFormatter: Formatter = new LinkFormatter
 
   override def getTypeClass: Class[LinkInfo] = classOf[LinkInfo]
 
-  override def checkTypeName(nameToCheck: String): Boolean = Seq("Link").exists(_.equalsIgnoreCase(nameToCheck))
+  override def checkTypeName(nameToCheck: String): Boolean =
+    Seq("Link").exists(_.equalsIgnoreCase(nameToCheck))
 
-  override def construct(constructorParams: Parameter, executionResult: TemplateExecutionResult): Result[Option[LinkInfo]] = {
+  override def construct(
+      constructorParams: Parameter,
+      executionResult: TemplateExecutionResult
+  ): Result[Option[LinkInfo]] = {
     constructorParams match {
       case Parameters(seq) =>
         val map = seq.toMap
@@ -43,16 +53,20 @@ case object LinkType extends VariableType(name = "Link") with NoShowInFormButRen
 
   def thisType: VariableType = LinkType
 
-  private def getOneValueConstant(value:Parameter): Result[String] = value match {
-    case OneValueParameter(StringConstant(v, _)) =>
-      Success(v)
-    case _ =>
-      Failure("""Link requires "label" argument.""")
-  }
+  private def getOneValueConstant(value: Parameter): Result[String] =
+    value match {
+      case OneValueParameter(StringConstant(v, _)) =>
+        Success(v)
+      case _ =>
+        Failure("""Link requires "label" argument.""")
+    }
 }
 
 class LinkFormatter extends Formatter {
-  override def format(value: OpenlawValue, executionResult: TemplateExecutionResult): Result[List[AgreementElement]] =
+  override def format(
+      value: OpenlawValue,
+      executionResult: TemplateExecutionResult
+  ): Result[List[AgreementElement]] =
     VariableType.convert[LinkInfo](value) map {
       case LinkInfo(labelValue, urlValue) => List(Link(labelValue, urlValue))
     }

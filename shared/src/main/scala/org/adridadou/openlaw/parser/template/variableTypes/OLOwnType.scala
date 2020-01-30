@@ -1,7 +1,11 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
 import cats.implicits._
-import org.adridadou.openlaw.parser.template.{TemplateExecutionResult, VariableMemberKey, VariableName}
+import org.adridadou.openlaw.parser.template.{
+  TemplateExecutionResult,
+  VariableMemberKey,
+  VariableName
+}
 import org.adridadou.openlaw.values.ContractId
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
@@ -13,49 +17,84 @@ import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success}
 
 case object OLOwnType extends VariableType("OLInfo") with NoShowInForm {
 
-  override def cast(value: String, executionResult: TemplateExecutionResult): Result[OLInformation] = decode[OLInformation](value).leftMap(FailureException(_))
+  override def cast(
+      value: String,
+      executionResult: TemplateExecutionResult
+  ): Result[OLInformation] =
+    decode[OLInformation](value).leftMap(FailureException(_))
 
-  override def internalFormat(value: OpenlawValue): Result[String] = VariableType.convert[OLInformation](value).map(_.asJson.noSpaces)
+  override def internalFormat(value: OpenlawValue): Result[String] =
+    VariableType.convert[OLInformation](value).map(_.asJson.noSpaces)
 
   override def thisType: VariableType = OLOwnType
-  override def getTypeClass:Class[OLInformation] = classOf[OLInformation]
+  override def getTypeClass: Class[OLInformation] = classOf[OLInformation]
 
-  override def keysType(keys: List[VariableMemberKey], expr: Expression, executionResult: TemplateExecutionResult): Result[VariableType] = keys match {
-    case Nil => Success(OLOwnType)
+  override def keysType(
+      keys: List[VariableMemberKey],
+      expr: Expression,
+      executionResult: TemplateExecutionResult
+  ): Result[VariableType] = keys match {
+    case Nil      => Success(OLOwnType)
     case _ :: Nil => Success(TextType)
-    case _ => Failure(s"Openlaw contract info has only one level of properties. invalid property access ${keys.mkString(".")}")
+    case _ =>
+      Failure(
+        s"Openlaw contract info has only one level of properties. invalid property access ${keys.mkString(".")}"
+      )
   }
 
-  override def access(value: OpenlawValue, name:VariableName, keys: List[VariableMemberKey], executionResult: TemplateExecutionResult): Result[Option[OpenlawValue]] = {
+  override def access(
+      value: OpenlawValue,
+      name: VariableName,
+      keys: List[VariableMemberKey],
+      executionResult: TemplateExecutionResult
+  ): Result[Option[OpenlawValue]] = {
     keys match {
       case Nil => Success(Some(executionResult.info))
-      case VariableMemberKey(Left(VariableName(head)))::Nil => accessProperty(executionResult.info, head).map(Some(_))
-      case _ => Failure(s"Openlaw contract info has only one level of properties. invalid property access ${keys.mkString(".")}")
+      case VariableMemberKey(Left(VariableName(head))) :: Nil =>
+        accessProperty(executionResult.info, head).map(Some(_))
+      case _ =>
+        Failure(
+          s"Openlaw contract info has only one level of properties. invalid property access ${keys.mkString(".")}"
+        )
     }
   }
 
-  override def validateKeys(name:VariableName, keys: List[VariableMemberKey], expression:Expression, executionResult: TemplateExecutionResult): Result[Unit] = keys match {
+  override def validateKeys(
+      name: VariableName,
+      keys: List[VariableMemberKey],
+      expression: Expression,
+      executionResult: TemplateExecutionResult
+  ): Result[Unit] = keys match {
     case Nil => Success.unit
-    case VariableMemberKey(Left(VariableName(head)))::Nil => checkProperty(head)
+    case VariableMemberKey(Left(VariableName(head))) :: Nil =>
+      checkProperty(head)
     case _ => Failure(s"invalid property ${keys.mkString(".")}")
   }
 
-  private def accessProperty(info: OLInformation, property: String): Result[String] =
+  private def accessProperty(
+      info: OLInformation,
+      property: String
+  ): Result[String] =
     property.toLowerCase().trim match {
       case "id" => Success(info.id.map(_.id).getOrElse("-"))
-      case "profileaddress" => Success(info.profileAddress.map(_.withLeading0x).getOrElse("-"))
+      case "profileaddress" =>
+        Success(info.profileAddress.map(_.withLeading0x).getOrElse("-"))
       case _ => Failure(s"property '$property' not found for type 'OLInfo'")
     }
 
-  private def checkProperty(key:String): Result[Unit] = accessProperty(OLInformation(id = None, profileAddress = None), key) match {
-    case Left(ex) => Failure(ex)
-    case Right(_) => Success(())
-  }
+  private def checkProperty(key: String): Result[Unit] =
+    accessProperty(OLInformation(id = None, profileAddress = None), key) match {
+      case Left(ex) => Failure(ex)
+      case Right(_) => Success(())
+    }
 }
 
 object OLInformation {
-  implicit val olInformationEnc:Encoder[OLInformation] = deriveEncoder
-  implicit val olInformationDec:Decoder[OLInformation] = deriveDecoder
+  implicit val olInformationEnc: Encoder[OLInformation] = deriveEncoder
+  implicit val olInformationDec: Decoder[OLInformation] = deriveDecoder
 }
 
-final case class OLInformation(id:Option[ContractId] = None, profileAddress:Option[EthereumAddress] = None) extends OpenlawNativeValue
+final case class OLInformation(
+    id: Option[ContractId] = None,
+    profileAddress: Option[EthereumAddress] = None
+) extends OpenlawNativeValue

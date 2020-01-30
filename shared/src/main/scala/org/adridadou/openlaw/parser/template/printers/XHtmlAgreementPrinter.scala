@@ -1,4 +1,3 @@
-
 package org.adridadou.openlaw.parser.template.printers
 
 import java.util.concurrent.atomic.AtomicInteger
@@ -18,45 +17,69 @@ object XHtmlAgreementPrinter {
     * its content as an XHTML string.
     */
   implicit class FragsPrinter(val frags: List[Frag]) extends AnyVal {
-    def print: String = frags
-      .foldLeft(new StringBuilder)({
-        case (builder, frag) => builder.append(frag.render)
-      }).toString
+    def print: String =
+      frags
+        .foldLeft(new StringBuilder)({
+          case (builder, frag) => builder.append(frag.render)
+        })
+        .toString
   }
 }
 
-final case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: ParagraphEdits = ParagraphEdits(), hiddenVariables: List[String] = Nil) extends LazyLogging {
+final case class XHtmlAgreementPrinter(
+    preview: Boolean,
+    paragraphEdits: ParagraphEdits = ParagraphEdits(),
+    hiddenVariables: List[String] = Nil
+) extends LazyLogging {
 
-  private def partitionAtItem[T](seq: List[T], t: T): (List[T], List[T]) = partitionAt(seq) { case item if item.equals(t) => true }
+  private def partitionAtItem[T](seq: List[T], t: T): (List[T], List[T]) =
+    partitionAt(seq) { case item if item.equals(t) => true }
 
-  private def partitionAt[T](seq: List[T])(pf: PartialFunction[T, Boolean]): (List[T], List[T]) = {
-    seq.prefixLength { x => (!pf.isDefinedAt(x)) || !pf(x) } match {
-      case 0 => (seq, Nil)
+  private def partitionAt[T](
+      seq: List[T]
+  )(pf: PartialFunction[T, Boolean]): (List[T], List[T]) = {
+    seq.prefixLength { x =>
+      (!pf.isDefinedAt(x)) || !pf(x)
+    } match {
+      case 0      => (seq, Nil)
       case length => seq.take(length) -> seq.drop(length)
     }
   }
 
   // separate content for each of the sections at this level
-  private def partitionSections(level: Int, seq: List[AgreementElement]): List[(SectionElement, List[AgreementElement])] = seq match {
+  private def partitionSections(
+      level: Int,
+      seq: List[AgreementElement]
+  ): List[(SectionElement, List[AgreementElement])] = seq match {
     case Nil => Nil
     case (section: SectionElement) :: xs =>
-      val (content, remaining) = partitionAt(xs) { case SectionElement(_, thisLevel, _, _, _, _) if thisLevel === level => true }
+      val (content, remaining) = partitionAt(xs) {
+        case SectionElement(_, thisLevel, _, _, _, _) if thisLevel === level =>
+          true
+      }
       (section -> content) +: partitionSections(level, remaining)
-    case first::_ =>
-      throw new RuntimeException(s"bug found! the first element should be a SectionElement but was '${first.getClass.getSimpleName}' instead")
+    case first :: _ =>
+      throw new RuntimeException(
+        s"bug found! the first element should be a SectionElement but was '${first.getClass.getSimpleName}' instead"
+      )
   }
 
-  @tailrec private def addBreaks(remaining: List[Frag], result: List[Frag] = Nil): List[Frag] = remaining match {
-    case Nil => result
+  @tailrec private def addBreaks(
+      remaining: List[Frag],
+      result: List[Frag] = Nil
+  ): List[Frag] = remaining match {
+    case Nil      => result
     case x :: Nil => result :+ x
-    case x :: xs => addBreaks(xs, result :+ x :+ br())
+    case x :: xs  => addBreaks(xs, result :+ x :+ br())
   }
 
-  private def text(str: String): List[Frag] = addBreaks(str.split("\n", -1).map(stringFrag).toList)
+  private def text(str: String): List[Frag] =
+    addBreaks(str.split("\n", -1).map(stringFrag).toList)
 
   private[this] val paragraphCounter = new AtomicInteger()
 
-  def printRoot(paragraphs: List[Paragraph]): String = html(
+  def printRoot(paragraphs: List[Paragraph]): String =
+    html(
       body(printParagraphs(paragraphs))
     ).render
 
@@ -66,214 +89,318 @@ final case class XHtmlAgreementPrinter(preview: Boolean, paragraphEdits: Paragra
   def printFragments(elements: List[AgreementElement]): List[Frag] =
     tailRecurse(elements, 0, false)
 
-  private def recurse(elements: List[AgreementElement], conditionalBlockDepth: Int, inSection: Boolean, continue: List[Frag] => List[Frag] = identity): List[Frag] =
+  private def recurse(
+      elements: List[AgreementElement],
+      conditionalBlockDepth: Int,
+      inSection: Boolean,
+      continue: List[Frag] => List[Frag] = identity
+  ): List[Frag] =
     tailRecurse(elements, conditionalBlockDepth, inSection, continue)
 
-  @tailrec private def tailRecurse(elements: List[AgreementElement], conditionalBlockDepth: Int, inSection: Boolean, continue: List[Frag] => List[Frag] = identity): List[Frag] =
+  @tailrec private def tailRecurse(
+      elements: List[AgreementElement],
+      conditionalBlockDepth: Int,
+      inSection: Boolean,
+      continue: List[Frag] => List[Frag] = identity
+  ): List[Frag] =
     elements match {
       case Nil =>
         continue(Nil)
 
-      case x :: xs => x match {
+      case x :: xs =>
+        x match {
 
-        // If this paragraph contains a section definition, extract all following sections for processing together
-        case Paragraph((_: SectionElement) :: _) =>
+          // If this paragraph contains a section definition, extract all following sections for processing together
+          case Paragraph((_: SectionElement) :: _) =>
+            val fixed = elements map {
+              case Paragraph((s: SectionElement) :: xs) =>
+                List(s, Paragraph(PlainText(s.value + " ") :: xs))
+              case x => List(x)
+            }
 
-          val fixed = elements map {
-            case Paragraph((s: SectionElement) :: xs) => List(s, Paragraph(PlainText(s.value + " ") :: xs))
-            case x => List(x)
-          }
+            tailRecurse(
+              fixed.flatten,
+              conditionalBlockDepth,
+              inSection,
+              continue
+            )
 
-          tailRecurse(fixed.flatten, conditionalBlockDepth, inSection, continue)
+          case Paragraph(Nil) =>
+            tailRecurse(xs, conditionalBlockDepth, inSection, continue)
 
-        case Paragraph(Nil) =>
-          tailRecurse(xs, conditionalBlockDepth, inSection, continue)
+          case Paragraph(paragraphElements) =>
+            val paragraphCount = paragraphCounter.incrementAndGet()
 
-        case Paragraph(paragraphElements) =>
-          val paragraphCount = paragraphCounter.incrementAndGet()
+            // Generate overridden paragraph contents if required
+            val overridden =
+              paragraphEdits.edits.get(paragraphCount - 1) match {
 
-          // Generate overridden paragraph contents if required
-          val overridden = paragraphEdits.edits.get(paragraphCount - 1) match {
+                // If there is an overridden paragraph, render its content instead of this paragraph
+                case Some(str) =>
+                  // TODO: This should be refactored to use Result, but this is deferred since this printer is very sensitive to stack overflows
+                  MarkdownParser.parseMarkdownOrThrow(str).map(FreeText)
 
-            // If there is an overridden paragraph, render its content instead of this paragraph
-            case Some(str) =>
-              // TODO: This should be refactored to use Result, but this is deferred since this printer is very sensitive to stack overflows
-              MarkdownParser.parseMarkdownOrThrow(str).map(FreeText)
-
-            // Otherwise, render this paragraph as normal
-            case None =>
-              paragraphElements
-          }
-
-          // See if this paragraph is centered
-          val (align, remaining) = overridden match {
-            case FreeText(Centered) :: xs => (List("align-center"), xs)
-            case FreeText(Indent) :: xs => (List("indent"), xs)
-            case FreeText(RightAlign) :: xs => (List("align-right"), xs)
-            case FreeText(RightThreeQuarters) :: xs => (List("align-right-three-quarters"), xs)
-            case seq => (Nil, seq)
-          }
-
-          // Setup classes to be added to this paragraph element
-          val classes = (if (!inSection) List("no-section") else Nil) ++ align
-          val paragraph = if (classes.isEmpty) {
-            recurse(remaining, conditionalBlockDepth, inSection, { elems => List(p(elems)) })
-          } else {
-            recurse(remaining, conditionalBlockDepth, inSection, { elems => List(p(`class` := classes.mkString(" "))(elems)) })
-          }
-
-          // Recurse on the paragraph contents to render them
-          val innerFrag = if (preview) {
-            List(div(`class` := s"openlaw-paragraph paragraph-$paragraphCount")(paragraph))
-          } else {
-            paragraph
-          }
-
-          tailRecurse(xs, conditionalBlockDepth, inSection, { elems => continue(innerFrag ++ elems) })
-
-        case t: TableElement =>
-          val frag = table(`class` := "markdown-table")(
-            tr(`class` := "markdown-table-row")(
-              t.header.map { t =>
-                th(`class` := "markdown-table-header")(recurse(t, conditionalBlockDepth, inSection))
+                // Otherwise, render this paragraph as normal
+                case None =>
+                  paragraphElements
               }
-            ),
-            t.rows.map { row =>
+
+            // See if this paragraph is centered
+            val (align, remaining) = overridden match {
+              case FreeText(Centered) :: xs   => (List("align-center"), xs)
+              case FreeText(Indent) :: xs     => (List("indent"), xs)
+              case FreeText(RightAlign) :: xs => (List("align-right"), xs)
+              case FreeText(RightThreeQuarters) :: xs =>
+                (List("align-right-three-quarters"), xs)
+              case seq => (Nil, seq)
+            }
+
+            // Setup classes to be added to this paragraph element
+            val classes = (if (!inSection) List("no-section") else Nil) ++ align
+            val paragraph = if (classes.isEmpty) {
+              recurse(remaining, conditionalBlockDepth, inSection, { elems =>
+                List(p(elems))
+              })
+            } else {
+              recurse(remaining, conditionalBlockDepth, inSection, { elems =>
+                List(p(`class` := classes.mkString(" "))(elems))
+              })
+            }
+
+            // Recurse on the paragraph contents to render them
+            val innerFrag = if (preview) {
+              List(
+                div(`class` := s"openlaw-paragraph paragraph-$paragraphCount")(
+                  paragraph
+                )
+              )
+            } else {
+              paragraph
+            }
+
+            tailRecurse(xs, conditionalBlockDepth, inSection, { elems =>
+              continue(innerFrag ++ elems)
+            })
+
+          case t: TableElement =>
+            val frag = table(`class` := "markdown-table")(
               tr(`class` := "markdown-table-row")(
-                row.map { t =>
-                  td(`class` := "markdown-table-data")(recurse(t, conditionalBlockDepth, inSection))
+                t.header.map { t =>
+                  th(`class` := "markdown-table-header")(
+                    recurse(t, conditionalBlockDepth, inSection)
+                  )
+                }
+              ),
+              t.rows.map { row =>
+                tr(`class` := "markdown-table-row")(
+                  row.map { t =>
+                    td(`class` := "markdown-table-data")(
+                      recurse(t, conditionalBlockDepth, inSection)
+                    )
+                  }
+                )
+              }
+            )
+            tailRecurse(xs, conditionalBlockDepth, inSection, { elems =>
+              continue(frag +: elems)
+            })
+
+          case section @ SectionElement(_, level, _, _, _, _) =>
+            // partition out all content that will be within the newly defined sections
+            val higherLevel = level - 1
+            val (content, remaining) = partitionAt(xs) {
+              case SectionElement(_, thisLevel, _, _, _, _)
+                  if thisLevel === higherLevel =>
+                true
+            }
+            // Partition the elements into sections at this level
+            val sections = partitionSections(level, section +: content)
+            val afterBreak = sections.foldLeft(List[AgreementElement]()) {
+              case (accu, (_, elements)) =>
+                // bifurcate the sections around the section break
+                val (_, after) =
+                  elements.span(_ != Paragraph(List(FreeText(SectionBreak))))
+                accu ++ after
+            }
+
+            if (afterBreak.nonEmpty) {
+              val frag = ul(`class` := s"list-lvl-$level")(
+                sections.map {
+                  case (_, elements) =>
+                    // section break elements and after should not be given the `ul/list` class
+                    val filtered = elements filterNot afterBreak.contains
+                    recurse(filtered, conditionalBlockDepth, true, { elems =>
+                      List(li(elems))
+                    })
                 }
               )
+              tailRecurse(afterBreak, conditionalBlockDepth, inSection, {
+                elems =>
+                  continue(frag +: elems)
+              })
+            } else {
+              val frag = ul(`class` := s"list-lvl-$level")(
+                sections.map { section =>
+                  recurse(section._2, conditionalBlockDepth, true, { elems =>
+                    List(li(elems))
+                  })
+                }
+              )
+              tailRecurse(remaining, conditionalBlockDepth, inSection, {
+                elems =>
+                  continue(frag +: elems)
+              })
             }
-          )
-          tailRecurse(xs, conditionalBlockDepth, inSection, { elems => continue(frag +: elems) })
 
-        case section@SectionElement(_, level, _, _, _, _) =>
-          // partition out all content that will be within the newly defined sections
-          val higherLevel = level - 1
-          val (content, remaining) = partitionAt(xs) {
-            case SectionElement(_, thisLevel, _, _, _, _) if thisLevel === higherLevel => true
-          }
-          // Partition the elements into sections at this level
-          val sections = partitionSections(level, section +: content)
-          val afterBreak = sections.foldLeft(List[AgreementElement]()) {
-            case (accu, (_, elements)) =>
-            // bifurcate the sections around the section break
-              val (_, after) = elements.span(_ != Paragraph(List(FreeText(SectionBreak))))
-              accu ++ after
+          case VariableElement(name, variableType, content, dependencies) =>
+            // Do not highlight identity variables
+            val highlightType =
+              variableType.forall(v => !IdentityType.identityTypes.contains(v))
+
+            // Only add styling to highlight variable if there are no hidden variables that are dependencies for this one
+            val frags =
+              if (highlightType && preview && dependencies
+                    .forall(variable => !hiddenVariables.contains(variable))) {
+                val nameClass = name.name.replace(" ", "-")
+                List(
+                  span(
+                    `class` := s"markdown-variable markdown-variable-$nameClass"
+                  )(recurse(content, conditionalBlockDepth, inSection))
+                )
+              } else {
+                recurse(content, conditionalBlockDepth, inSection)
+              }
+            tailRecurse(xs, conditionalBlockDepth, inSection, { elems =>
+              continue(frags ++ elems)
+            })
+
+          case ImageElement(url) =>
+            tailRecurse(xs, conditionalBlockDepth, inSection, { elems =>
+              continue(
+                img(`class` := "markdown-embedded-image", src := url) +: elems
+              )
+            })
+
+          case ConditionalStart(dependencies) =>
+            val addDepth =
+              if (preview && dependencies
+                    .forall(variable => !hiddenVariables.contains(variable))) 1
+              else 0
+            tailRecurse(
+              xs,
+              conditionalBlockDepth + addDepth,
+              inSection,
+              continue
+            )
+
+          case ConditionalEnd(dependencies) =>
+            val removeDepth =
+              if (preview && dependencies
+                    .forall(variable => !hiddenVariables.contains(variable))) 1
+              else 0
+            tailRecurse(
+              xs,
+              conditionalBlockDepth - removeDepth,
+              inSection,
+              continue
+            )
+
+          case Link(label, url) =>
+            tailRecurse(xs, conditionalBlockDepth, inSection, { elems =>
+              continue(a(href := url)(label) +: elems)
+            })
+
+          case PlainText(str) =>
+            tailRecurse(xs, conditionalBlockDepth, inSection, { elems =>
+              continue(text(str) ++ elems)
+            })
+
+          case FreeText(t: Text) =>
+            // This might be necessary for some cases, but has not been enabled yet
+            // Consume any following text elements which are only newlines
+            //val remaining = xs.dropWhile(_ === FreeText(Text("\n")))
+
+            // Generate text output
+            val innerFrag = text(t.str)
+
+            val spanFrag: List[Frag] = if (conditionalBlockDepth > 0) {
+              List(span(`class` := "markdown-conditional-block")(innerFrag))
+            } else {
+              innerFrag
             }
 
-          if (afterBreak.nonEmpty) {
-            val frag = ul(`class` := s"list-lvl-$level")(
-              sections.map { case (_, elements) =>
-              // section break elements and after should not be given the `ul/list` class
-              val filtered = elements filterNot afterBreak.contains
-              recurse(filtered, conditionalBlockDepth, true, { elems => List(li(elems)) })
-              }
-            )
-            tailRecurse(afterBreak, conditionalBlockDepth, inSection, { elems => continue(frag +: elems) } )
-          }
-          else {
-            val frag = ul(`class` := s"list-lvl-$level")(
-              sections.map { section =>
-                recurse(section._2, conditionalBlockDepth, true, { elems => List(li(elems)) })
-              }
-            )
-            tailRecurse(remaining, conditionalBlockDepth, inSection, { elems => continue(frag +: elems) } )
-          }
+            tailRecurse(xs, conditionalBlockDepth, inSection, { elems =>
+              continue(spanFrag ++ elems)
+            })
 
-        case VariableElement(name, variableType, content, dependencies) =>
-          // Do not highlight identity variables
-          val highlightType = variableType.forall(v => !IdentityType.identityTypes.contains(v))
+          case FreeText(Em) =>
+            val (inner, remaining) = partitionAtItem[AgreementElement](xs, x)
+            val frag = em(recurse(inner, conditionalBlockDepth, inSection))
+            tailRecurse(remaining.drop(1), conditionalBlockDepth, inSection, {
+              elems =>
+                continue(frag +: elems)
+            })
 
-          // Only add styling to highlight variable if there are no hidden variables that are dependencies for this one
-          val frags = if (highlightType && preview && dependencies.forall(variable => !hiddenVariables.contains(variable))) {
-            val nameClass = name.name.replace(" ", "-")
-            List(span(`class` := s"markdown-variable markdown-variable-$nameClass")(recurse(content, conditionalBlockDepth, inSection)))
-          } else {
-            recurse(content, conditionalBlockDepth, inSection)
-          }
-          tailRecurse(xs, conditionalBlockDepth, inSection, { elems => continue(frags ++ elems) })
+          case FreeText(Strong) =>
+            val (inner, remaining) = partitionAtItem(xs, x)
+            val frag = strong(recurse(inner, conditionalBlockDepth, inSection))
+            tailRecurse(remaining.drop(1), conditionalBlockDepth, inSection, {
+              elems =>
+                continue(frag +: elems)
+            })
 
-        case ImageElement(url) =>
-          tailRecurse(xs, conditionalBlockDepth, inSection, { elems => continue(img(`class` := "markdown-embedded-image", src := url) +: elems) })
+          case FreeText(Under) =>
+            val (inner, remaining) = partitionAtItem(xs, x)
+            val frag = u(recurse(inner, conditionalBlockDepth, inSection))
+            tailRecurse(remaining.drop(1), conditionalBlockDepth, inSection, {
+              elems =>
+                continue(frag +: elems)
+            })
 
-        case ConditionalStart(dependencies) =>
-          val addDepth = if (preview && dependencies.forall(variable => !hiddenVariables.contains(variable))) 1 else 0
-          tailRecurse(xs, conditionalBlockDepth + addDepth, inSection, continue)
+          case FreeText(PageBreak) =>
+            tailRecurse(xs, conditionalBlockDepth, inSection, { elems =>
+              continue(hr(`class` := "pagebreak") +: elems)
+            })
 
-        case ConditionalEnd(dependencies) =>
-          val removeDepth = if (preview && dependencies.forall(variable => !hiddenVariables.contains(variable))) 1 else 0
-          tailRecurse(xs, conditionalBlockDepth - removeDepth, inSection, continue)
+          case FreeText(SectionBreak) =>
+            tailRecurse(xs, conditionalBlockDepth, inSection, { elems =>
+              continue(hr(`class` := "section-break") +: elems)
+            })
 
-        case Link(label, url) =>
-          tailRecurse(xs, conditionalBlockDepth, inSection, { elems => continue(a(href := url)(label) +: elems) } )
-
-        case PlainText(str) =>
-          tailRecurse(xs, conditionalBlockDepth, inSection, { elems => continue(text(str) ++ elems) })
-
-        case FreeText(t: Text) =>
-
-          // This might be necessary for some cases, but has not been enabled yet
-          // Consume any following text elements which are only newlines
-          //val remaining = xs.dropWhile(_ === FreeText(Text("\n")))
-
-          // Generate text output
-          val innerFrag = text(t.str)
-
-          val spanFrag: List[Frag] = if (conditionalBlockDepth > 0) {
-            List(span(`class` := "markdown-conditional-block")(innerFrag))
-          } else {
-            innerFrag
-          }
-
-          tailRecurse(xs, conditionalBlockDepth, inSection, { elems => continue(spanFrag ++ elems) } )
-
-        case FreeText(Em) =>
-          val (inner, remaining) = partitionAtItem[AgreementElement](xs, x)
-          val frag = em(recurse(inner, conditionalBlockDepth, inSection))
-          tailRecurse(remaining.drop(1), conditionalBlockDepth, inSection, { elems => continue(frag +: elems) })
-
-        case FreeText(Strong) =>
-          val (inner, remaining) = partitionAtItem(xs, x)
-          val frag = strong(recurse(inner, conditionalBlockDepth, inSection))
-          tailRecurse(remaining.drop(1), conditionalBlockDepth, inSection, { elems => continue(frag +: elems) })
-
-        case FreeText(Under) =>
-          val (inner, remaining) = partitionAtItem(xs, x)
-          val frag = u(recurse(inner, conditionalBlockDepth, inSection))
-          tailRecurse(remaining.drop(1), conditionalBlockDepth, inSection, { elems => continue(frag +: elems) })
-
-        case FreeText(PageBreak) =>
-          tailRecurse(xs, conditionalBlockDepth, inSection, { elems => continue(hr(`class` := "pagebreak") +: elems) })
-
-        case FreeText(SectionBreak) =>
-          tailRecurse(xs, conditionalBlockDepth, inSection, { elems => continue(hr(`class` := "section-break") +: elems) })
-
-        case FreeText(Centered) =>
-          tailRecurse(xs, conditionalBlockDepth, inSection, continue)
-
-        case HeaderAnnotation(content) =>
-          if(preview) {
-            tailRecurse(xs, conditionalBlockDepth, inSection, { elems => continue(span(`class` := "openlaw-annotation-header")(text(content)) +: elems) })
-          } else {
+          case FreeText(Centered) =>
             tailRecurse(xs, conditionalBlockDepth, inSection, continue)
-          }
 
-        case NoteAnnotation(content) =>
-          if(preview) {
-            tailRecurse(xs, conditionalBlockDepth, inSection, { elems => continue(span(`class` := "openlaw-annotation-note")(text(content)) +: elems) })
+          case HeaderAnnotation(content) =>
+            if (preview) {
+              tailRecurse(xs, conditionalBlockDepth, inSection, { elems =>
+                continue(
+                  span(`class` := "openlaw-annotation-header")(text(content)) +: elems
+                )
+              })
+            } else {
+              tailRecurse(xs, conditionalBlockDepth, inSection, continue)
+            }
 
-          } else {
+          case NoteAnnotation(content) =>
+            if (preview) {
+              tailRecurse(xs, conditionalBlockDepth, inSection, { elems =>
+                continue(
+                  span(`class` := "openlaw-annotation-note")(text(content)) +: elems
+                )
+              })
+
+            } else {
+              tailRecurse(xs, conditionalBlockDepth, inSection, continue)
+            }
+
+          case Title(title) =>
+            tailRecurse(xs, conditionalBlockDepth, inSection, { elems =>
+              continue(h1(`class` := "signature-title")(title.title) +: elems)
+            })
+
+          case x =>
+            logger.warn(s"unhandled element: $x")
             tailRecurse(xs, conditionalBlockDepth, inSection, continue)
-          }
-
-        case Title(title) =>
-          tailRecurse(xs, conditionalBlockDepth, inSection, { elems => continue(h1(`class` := "signature-title")(title.title) +: elems) })
-
-        case x =>
-          logger.warn(s"unhandled element: $x")
-          tailRecurse(xs, conditionalBlockDepth, inSection, continue)
-      }
+        }
     }
 }
