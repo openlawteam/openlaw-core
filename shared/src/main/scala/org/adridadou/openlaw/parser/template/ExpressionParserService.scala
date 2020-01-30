@@ -12,11 +12,16 @@ class ExpressionParserService() {
     val compiler = createExpressionParser(source)
 
     compiler.root.run() match {
-      case scala.util.Failure(parseError:ParseError) => Failure(compiler.formatError(parseError, new ErrorFormatter(showTraces = true)))
-      case scala.util.Failure(ex) => Failure(ex.getMessage)
+      case scala.util.Failure(parseError: ParseError) =>
+        Failure(
+          compiler
+            .formatError(parseError, new ErrorFormatter(showTraces = true))
+        )
+      case scala.util.Failure(ex)     => Failure(ex.getMessage)
       case scala.util.Success(result) => Success(result)
     }
   }
 
-  private def createExpressionParser(expr:String):ExpressionParser = new ExpressionParser(expr)
+  private def createExpressionParser(expr: String): ExpressionParser =
+    new ExpressionParser(expr)
 }

@@ -14,129 +14,198 @@ import EthereumHash._
 import LocalDateTimeHelper._
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 
-final case class EthereumSmartContractOracle() extends OpenlawOracle[EthereumSmartContractCallEvent] with LazyLogging {
+final case class EthereumSmartContractOracle()
+    extends OpenlawOracle[EthereumSmartContractCallEvent]
+    with LazyLogging {
 
-  override def incoming(vm: OpenlawVm, event: EthereumSmartContractCallEvent): Result[OpenlawVm] = event match {
-    case failedEvent:FailedEthereumSmartContractCallEvent =>
+  override def incoming(
+      vm: OpenlawVm,
+      event: EthereumSmartContractCallEvent
+  ): Result[OpenlawVm] = event match {
+    case failedEvent: FailedEthereumSmartContractCallEvent =>
       handleFailedEvent(vm, failedEvent)
     case _ =>
       handleEvent(vm, event)
   }
 
-  private def handleEvent(vm:OpenlawVm, event:EthereumSmartContractCallEvent): Result[OpenlawVm] = {
-    vm
-      .allActions
+  private def handleEvent(
+      vm: OpenlawVm,
+      event: EthereumSmartContractCallEvent
+  ): Result[OpenlawVm] = {
+    vm.allActions
       .flatMap { actions =>
         actions
-          .map { info => info.identifier.map((info, _)) }
+          .map { info =>
+            info.identifier.map((info, _))
+          }
           .sequence
           .flatMap { list =>
             list
               .find { case (_, id) => id === event.identifier }
-              .map { case (actionInfo, _) =>
-                vm.executions[EthereumSmartContractExecution](event.identifier).find(_.tx === event.hash) match {
-                  case Some(execution) =>
-                    Success(vm.newExecution(event.identifier, createNewExecution(vm, toOpenlawExecutionStatus(event), event, execution.scheduledDate)))
-                  case None =>
-                    getScheduledDate(actionInfo, vm, event) flatMap {
-                      case Some(scheduleDate) =>
-                        Success(vm.newExecution(event.identifier, createNewExecution(vm, toOpenlawExecutionStatus(event), event, scheduleDate)))
-                      case None =>
-                        logger.warn(s"the transaction ${event.hash.toString} has not been added yet")
-                        Success(vm)
-                    }
-                }
-              }.getOrElse(Failure(s"action not found for event ${event.typeIdentifier}"))
-            }
+              .map {
+                case (actionInfo, _) =>
+                  vm.executions[EthereumSmartContractExecution](
+                      event.identifier
+                    )
+                    .find(_.tx === event.hash) match {
+                    case Some(execution) =>
+                      Success(
+                        vm.newExecution(
+                          event.identifier,
+                          createNewExecution(
+                            vm,
+                            toOpenlawExecutionStatus(event),
+                            event,
+                            execution.scheduledDate
+                          )
+                        )
+                      )
+                    case None =>
+                      getScheduledDate(actionInfo, vm, event) flatMap {
+                        case Some(scheduleDate) =>
+                          Success(
+                            vm.newExecution(
+                              event.identifier,
+                              createNewExecution(
+                                vm,
+                                toOpenlawExecutionStatus(event),
+                                event,
+                                scheduleDate
+                              )
+                            )
+                          )
+                        case None =>
+                          logger.warn(
+                            s"the transaction ${event.hash.toString} has not been added yet"
+                          )
+                          Success(vm)
+                      }
+                  }
+              }
+              .getOrElse(
+                Failure(s"action not found for event ${event.typeIdentifier}")
+              )
+          }
       }
   }
 
-  private def handleFailedEvent(vm: OpenlawVm, event: FailedEthereumSmartContractCallEvent): Result[OpenlawVm] = {
+  private def handleFailedEvent(
+      vm: OpenlawVm,
+      event: FailedEthereumSmartContractCallEvent
+  ): Result[OpenlawVm] = {
     val failedExecution = EthereumSmartContractExecution(
       scheduledDate = event.scheduledDate,
       executionDate = event.executionDate,
       executionStatus = FailedExecution,
-      tx = EthereumHash.empty)
+      tx = EthereumHash.empty
+    )
 
     Success(vm.newExecution(event.identifier, failedExecution))
   }
 
-  private def toOpenlawExecutionStatus(event:EthereumSmartContractCallEvent):OpenlawExecutionStatus = event match {
-    case _:SuccessfulEthereumSmartContractCallEvent =>
+  private def toOpenlawExecutionStatus(
+      event: EthereumSmartContractCallEvent
+  ): OpenlawExecutionStatus = event match {
+    case _: SuccessfulEthereumSmartContractCallEvent =>
       SuccessfulExecution
-    case _:PendingEthereumSmartContractCallEvent=>
+    case _: PendingEthereumSmartContractCallEvent =>
       PendingExecution
-    case _:FailedEthereumSmartContractCallEvent =>
+    case _: FailedEthereumSmartContractCallEvent =>
       FailedExecution
   }
 
-  private def createNewExecution(vm:OpenlawVm, executionStatus:OpenlawExecutionStatus, event:EthereumSmartContractCallEvent, scheduledDate:LocalDateTime):EthereumSmartContractExecution = EthereumSmartContractExecution(
+  private def createNewExecution(
+      vm: OpenlawVm,
+      executionStatus: OpenlawExecutionStatus,
+      event: EthereumSmartContractCallEvent,
+      scheduledDate: LocalDateTime
+  ): EthereumSmartContractExecution =
+    EthereumSmartContractExecution(
       scheduledDate = scheduledDate,
       executionDate = event.executionDate,
       executionStatus = executionStatus,
-      tx = event.hash)
+      tx = event.hash
+    )
 
-  private def getScheduledDate(info:ActionInfo, vm:OpenlawVm, event:EthereumSmartContractCallEvent): Result[Option[LocalDateTime]] =
+  private def getScheduledDate(
+      info: ActionInfo,
+      vm: OpenlawVm,
+      event: EthereumSmartContractCallEvent
+  ): Result[Option[LocalDateTime]] =
     info.identifier.flatMap { id =>
-      vm.executions[EthereumSmartContractExecution](id).find(_.tx === event.hash) match {
+      vm.executions[EthereumSmartContractExecution](id)
+        .find(_.tx === event.hash) match {
         case Some(execution) =>
           Success(Some(execution.scheduledDate))
         case None =>
-          info.action.nextActionSchedule(info.executionResult, vm.executions(id))
+          info.action
+            .nextActionSchedule(info.executionResult, vm.executions(id))
       }
     }
 
   override def shouldExecute(event: OpenlawVmEvent): Boolean = event match {
-    case _:EthereumSmartContractCallEvent => true
-    case _ => false
+    case _: EthereumSmartContractCallEvent => true
+    case _                                 => false
   }
 }
 
 object PendingEthereumSmartContractCallEvent {
-  implicit val ethereumSmartContractCallEventEnc: Encoder[PendingEthereumSmartContractCallEvent] = deriveEncoder
-  implicit val ethereumSmartContractCallEventDec: Decoder[PendingEthereumSmartContractCallEvent] = deriveDecoder
+  implicit val ethereumSmartContractCallEventEnc
+      : Encoder[PendingEthereumSmartContractCallEvent] = deriveEncoder
+  implicit val ethereumSmartContractCallEventDec
+      : Decoder[PendingEthereumSmartContractCallEvent] = deriveDecoder
 }
 
 object FailedEthereumSmartContractCallEvent {
-  implicit val failedEthereumSmartContractCallEventEnc: Encoder[FailedEthereumSmartContractCallEvent] = deriveEncoder
-  implicit val failedEthereumSmartContractCallEventDec: Decoder[FailedEthereumSmartContractCallEvent] = deriveDecoder
+  implicit val failedEthereumSmartContractCallEventEnc
+      : Encoder[FailedEthereumSmartContractCallEvent] = deriveEncoder
+  implicit val failedEthereumSmartContractCallEventDec
+      : Decoder[FailedEthereumSmartContractCallEvent] = deriveDecoder
 }
 
 object SuccessfulEthereumSmartContractCallEvent {
-  implicit val successfulEthereumSmartContractCallEventEnc: Encoder[SuccessfulEthereumSmartContractCallEvent] = deriveEncoder
-  implicit val successfulEthereumSmartContractCallEventDec: Decoder[SuccessfulEthereumSmartContractCallEvent] = deriveDecoder
+  implicit val successfulEthereumSmartContractCallEventEnc
+      : Encoder[SuccessfulEthereumSmartContractCallEvent] = deriveEncoder
+  implicit val successfulEthereumSmartContractCallEventDec
+      : Decoder[SuccessfulEthereumSmartContractCallEvent] = deriveDecoder
 }
 
 sealed trait EthereumSmartContractCallEvent extends OpenlawVmEvent {
-  val identifier:ActionIdentifier
-  val hash:EthereumHash
-  val executionDate:LocalDateTime
+  val identifier: ActionIdentifier
+  val hash: EthereumHash
+  val executionDate: LocalDateTime
 }
 
 final case class PendingEthereumSmartContractCallEvent(
-                                                 identifier:ActionIdentifier,
-                                                 hash:EthereumHash,
-                                                 receiveAddress:EthereumAddress,
-                                                 executionDate:LocalDateTime) extends EthereumSmartContractCallEvent {
-  override def typeIdentifier: String = className[PendingEthereumSmartContractCallEvent]
+    identifier: ActionIdentifier,
+    hash: EthereumHash,
+    receiveAddress: EthereumAddress,
+    executionDate: LocalDateTime
+) extends EthereumSmartContractCallEvent {
+  override def typeIdentifier: String =
+    className[PendingEthereumSmartContractCallEvent]
   override def serialize: String = this.asJson.noSpaces
 }
 
 final case class SuccessfulEthereumSmartContractCallEvent(
-                                                        identifier:ActionIdentifier,
-                                                        hash:EthereumHash,
-                                                        receiveAddress:EthereumAddress,
-                                                        executionDate:LocalDateTime) extends EthereumSmartContractCallEvent {
-  override def typeIdentifier: String = className[SuccessfulEthereumSmartContractCallEvent]
+    identifier: ActionIdentifier,
+    hash: EthereumHash,
+    receiveAddress: EthereumAddress,
+    executionDate: LocalDateTime
+) extends EthereumSmartContractCallEvent {
+  override def typeIdentifier: String =
+    className[SuccessfulEthereumSmartContractCallEvent]
   override def serialize: String = this.asJson.noSpaces
 }
 
 final case class FailedEthereumSmartContractCallEvent(
-                                                 identifier:ActionIdentifier,
-                                                 hash:EthereumHash,
-                                                 errorMessage:String,
-                                                 scheduledDate:LocalDateTime,
-                                                 executionDate:LocalDateTime) extends EthereumSmartContractCallEvent {
-  override def typeIdentifier: String = className[FailedEthereumSmartContractCallEvent]
+    identifier: ActionIdentifier,
+    hash: EthereumHash,
+    errorMessage: String,
+    scheduledDate: LocalDateTime,
+    executionDate: LocalDateTime
+) extends EthereumSmartContractCallEvent {
+  override def typeIdentifier: String =
+    className[FailedEthereumSmartContractCallEvent]
   override def serialize: String = this.asJson.noSpaces
 }

@@ -16,9 +16,10 @@ import cats.implicits._
 import io.circe.parser.decode
 import org.adridadou.openlaw.parser.template.expressions.Expression
 
-final case class ExternalStorage(serviceName: Expression,
-                                 filePath: TemplatePath)
-    extends OpenlawNativeValue
+final case class ExternalStorage(
+    serviceName: Expression,
+    filePath: TemplatePath
+) extends OpenlawNativeValue
 
 object ExternalStorage {
   implicit val externalCallEnc: Encoder[ExternalStorage] = deriveEncoder
@@ -31,8 +32,8 @@ object ExternalStorageType extends VariableType("ExternalStorage") {
     classOf[ExternalStorage]
 
   override def construct(
-    constructorParams: Parameter,
-    executionResult: TemplateExecutionResult
+      constructorParams: Parameter,
+      executionResult: TemplateExecutionResult
   ): Result[Option[OpenlawValue]] = {
     constructorParams match {
       case Parameters(v) =>
@@ -70,8 +71,10 @@ object ExternalStorageType extends VariableType("ExternalStorage") {
     }
   }
 
-  private def getFilePath(executionResult: TemplateExecutionResult,
-                          filePathExp: Expression): Result[TemplatePath] = {
+  private def getFilePath(
+      executionResult: TemplateExecutionResult,
+      filePathExp: Expression
+  ): Result[TemplatePath] = {
     filePathExp.evaluate(executionResult).flatMap { option =>
       option
         .map({
@@ -92,8 +95,8 @@ object ExternalStorageType extends VariableType("ExternalStorage") {
   }
 
   override def cast(
-    value: String,
-    executionResult: TemplateExecutionResult
+      value: String,
+      executionResult: TemplateExecutionResult
   ): Result[ExternalStorage] =
     decode[ExternalStorage](value).leftMap(FailureException(_))
 
@@ -106,8 +109,8 @@ object ExternalStorageType extends VariableType("ExternalStorage") {
   override def thisType: VariableType = RegexType
 
   private def getIntegratedService(
-    serviceNameExp: Expression,
-    executionResult: TemplateExecutionResult
+      serviceNameExp: Expression,
+      executionResult: TemplateExecutionResult
   ): Result[Option[IntegratedServiceDefinition]] =
     serviceNameExp.evaluateT[OpenlawString](executionResult).map { option =>
       option

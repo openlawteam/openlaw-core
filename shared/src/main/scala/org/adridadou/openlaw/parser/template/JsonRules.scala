@@ -26,16 +26,18 @@ import CharPredicate.{Digit, Digit19, HexDigit}
   * This is a feature-complete JSON parser implementation that almost directly
   * models the JSON grammar presented at http://www.json.org as a parboiled2 PEG parser.
   */
-trait JsonRules extends GlobalRules with StringBuilding{
+trait JsonRules extends GlobalRules with StringBuilding {
 
   // the root rule
   def jsonDefinition = rule {
-      JsonObject |
+    JsonObject |
       JsonArray
   }
 
   def JsonObject: Rule1[Json] = rule {
-    ws2('{') ~ zeroOrMore(Pair).separatedBy(ws2(',')) ~ ws2('}') ~> ((fields: Seq[(String, Json)]) => Json.fromFields(fields))
+    ws2('{') ~ zeroOrMore(Pair).separatedBy(ws2(',')) ~ ws2('}') ~> (
+        (fields: Seq[(String, Json)]) => Json.fromFields(fields)
+    )
   }
 
   def Pair = rule {
@@ -49,13 +51,14 @@ trait JsonRules extends GlobalRules with StringBuilding{
     run {
       (cursorChar: @switch) match {
         case '"' => JsonString
-        case '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '-' => JsonNumber
+        case '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '-' =>
+          JsonNumber
         case '{' => JsonObject
         case '[' => JsonArray
         case 't' => JsonTrue
         case 'f' => JsonFalse
         case 'n' => JsonNull
-        case _ => MISMATCH
+        case _   => MISMATCH
       }
     }
   }
@@ -69,11 +72,15 @@ trait JsonRules extends GlobalRules with StringBuilding{
   }
 
   def JsonNumber = rule {
-    capture(Integer ~ optional(Frac) ~ optional(Exp)) ~> ((str) => Json.fromBigDecimal(BigDecimal(str))) ~ WhiteSpace
+    capture(Integer ~ optional(Frac) ~ optional(Exp)) ~> (
+        (str) => Json.fromBigDecimal(BigDecimal(str))
+    ) ~ WhiteSpace
   }
 
   def JsonArray = rule {
-    ws2('[') ~ zeroOrMore(Value).separatedBy(ws2(',')) ~ ws2(']') ~> (Json.arr(_: _*))
+    ws2('[') ~ zeroOrMore(Value).separatedBy(ws2(',')) ~ ws2(']') ~> (Json.arr(
+      _: _*
+    ))
   }
 
   def Characters = rule {
@@ -91,11 +98,14 @@ trait JsonRules extends GlobalRules with StringBuilding{
       | 'n' ~ appendSB('\n')
       | 'r' ~ appendSB('\r')
       | 't' ~ appendSB('\t')
-      | Unicode ~> { code => sb.append(code.toChar); () }
+      | Unicode ~> { code =>
+        sb.append(code.toChar); ()
+      }
   )
 
   def Unicode = rule {
-    'u' ~ capture(HexDigit ~ HexDigit ~ HexDigit ~ HexDigit) ~> (java.lang.Integer.parseInt(_, 16))
+    'u' ~ capture(HexDigit ~ HexDigit ~ HexDigit ~ HexDigit) ~> (java.lang.Integer
+      .parseInt(_, 16))
   }
 
   def Integer = rule {

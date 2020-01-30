@@ -2,7 +2,10 @@ logLevel := Level.Warn
 
 resolvers += "Typesafe Repository" at "https://repo.typesafe.com/typesafe/releases/"
 resolvers += "Bintray sbt-reactjs" at "https://dl.bintray.com/ddispaltro/sbt-plugins/"
-resolvers += Resolver.url("sbt-plugins", url("https://dl.bintray.com/ssidorenko/sbt-plugins/"))(Resolver.ivyStylePatterns)
+resolvers += Resolver.url(
+  "sbt-plugins",
+  url("https://dl.bintray.com/ssidorenko/sbt-plugins/")
+)(Resolver.ivyStylePatterns)
 
 addSbtPlugin("org.lyranthe.sbt" % "partial-unification" % "1.1.0")
 addSbtPlugin("org.wartremover" % "sbt-wartremover" % "2.4.2")

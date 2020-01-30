@@ -3,7 +3,7 @@ package org.adridadou.openlaw.values
 import cats.Eq
 import io.circe.{Decoder, Encoder, HCursor, Json}
 
-sealed abstract class ContractAccess(val name:String)
+sealed abstract class ContractAccess(val name: String)
 
 case object ContractSignable extends ContractAccess("signable")
 case object ContractNoAccess extends ContractAccess("noaccess")
@@ -26,6 +26,7 @@ object ContractAccess {
       name <- c.as[String]
     } yield ContractAccess(name)
   }
-  implicit val accessEncoder: Encoder[ContractAccess] = (a: ContractAccess) => Json.fromString(a.name)
+  implicit val accessEncoder: Encoder[ContractAccess] = (a: ContractAccess) =>
+    Json.fromString(a.name)
   implicit val eqForContractAccess: Eq[ContractAccess] = Eq.fromUniversalEquals
 }

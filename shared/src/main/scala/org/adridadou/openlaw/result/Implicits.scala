@@ -17,7 +17,7 @@ object Implicits {
 
   implicit class RichTry[T](val t: Try[T]) extends AnyVal {
     def toResult: Result[T] = t match {
-      case TSuccess(v) => Success(v)
+      case TSuccess(v)            => Success(v)
       case TFailure(e: Exception) => Failure(e)
 
       // don't try to handle Error instances
@@ -30,57 +30,64 @@ object Implicits {
   }
 
   implicit class RichFuture[T](val future: Future[T]) extends AnyVal {
-    def getResult(timeout: Duration): Result[T] = attempt(Await.result(future, timeout))
+    def getResult(timeout: Duration): Result[T] =
+      attempt(Await.result(future, timeout))
   }
 
   implicit class RichResult[T](val result: Result[T]) extends AnyVal {
     def addCause(cause: Failure[T]): ResultNel[T] = result match {
-      case Success(_) => cause.toResultNel
+      case Success(_)     => cause.toResultNel
       case Left(original) => FailureNel(original, cause.value)
     }
     def addFailure[U >: T](cause: FailureCause): ResultNel[U] = result match {
       case s @ Success(_) => s.toResultNel
       case Left(original) => FailureNel(cause, original)
     }
-    def addMessageToFailure[U >: T](message: String): ResultNel[U] = result match {
-      case s @ Success(_) => s.toResultNel
-      case Left(original) => FailureNel(FailureMessage(message), original)
-    }
+    def addMessageToFailure[U >: T](message: String): ResultNel[U] =
+      result match {
+        case s @ Success(_) => s.toResultNel
+        case Left(original) => FailureNel(FailureMessage(message), original)
+      }
     def convert(pf: PartialFunction[Exception, Exception]): Result[T] =
       result.left.map {
-        case FailureException(e, _) if pf.isDefinedAt(e) => FailureException(pf(e))
+        case FailureException(e, _) if pf.isDefinedAt(e) =>
+          FailureException(pf(e))
         case f => f
       }
-    def recoverMerge(f: FailureCause => T): T = result.fold(failure => f(failure), success => success)
-    def recoverWith(pf: PartialFunction[FailureCause, Result[T]]): Result[T] = result.leftFlatMap { error =>
-      if (pf.isDefinedAt(error)) {
-        pf(error)
-      } else {
-        result
+    def recoverMerge(f: FailureCause => T): T =
+      result.fold(failure => f(failure), success => success)
+    def recoverWith(pf: PartialFunction[FailureCause, Result[T]]): Result[T] =
+      result.leftFlatMap { error =>
+        if (pf.isDefinedAt(error)) {
+          pf(error)
+        } else {
+          result
+        }
       }
-    }
     def toResultNel: ResultNel[T] = result.toValidatedNel
     def toFuture: Future[T] = result match {
       case Success(value) => Future.successful(value)
-      case Failure(e, _) => Future.failed(e)
+      case Failure(e, _)  => Future.failed(e)
     }
     def getOrThrow(): T = result.valueOr(_.throwException())
   }
 
   implicit class RichOption[T](val option: Option[T]) extends AnyVal {
-    def toResult(message: String): Result[T] = option.map(x => Success(x)).getOrElse(Failure(message))
+    def toResult(message: String): Result[T] =
+      option.map(x => Success(x)).getOrElse(Failure(message))
   }
 
   implicit class RichResultNel[T](val result: ResultNel[T]) extends AnyVal {
     def toUnit: ResultNel[Unit] = result.map(_ => ())
     def toResult: Result[T] = result.toEither.leftMap {
       case NonEmptyList(x, Seq()) => x
-      case nel => FailureException(MultipleCauseException(nel))
+      case nel                    => FailureException(MultipleCauseException(nel))
     }
   }
 
   implicit def exception2Result[A](e: Exception): Result[A] = Failure[A](e)
-  implicit def unitResultConversion[T](wrapped: Result[T]): Result[Unit] = wrapped.map(_ => ())
-  implicit def failureCause2Exception[T](wrapped: FailureCause): Exception = wrapped.e
+  implicit def unitResultConversion[T](wrapped: Result[T]): Result[Unit] =
+    wrapped.map(_ => ())
+  implicit def failureCause2Exception[T](wrapped: FailureCause): Exception =
+    wrapped.e
 }
-

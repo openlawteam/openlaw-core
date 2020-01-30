@@ -17,7 +17,7 @@ class EthereumAddressSpec extends FlatSpec with Matchers with Checkers {
     check(forAll(Gen.listOfN(20, arbitrary[Byte]))(checkEncode))
   }
 
-  def checkEncode(lst:List[Byte]):Boolean = {
+  def checkEncode(lst: List[Byte]): Boolean = {
     val arr = lst.toArray
 
     val ethAddress = EthereumAddress(arr).right.value
