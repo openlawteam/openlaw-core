@@ -3,7 +3,6 @@ package org.adridadou.openlaw.parser.template
 import cats.implicits._
 import cats.Eq
 import java.time.{Clock, ZoneId}
-import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
 
 import io.circe._
@@ -434,6 +433,8 @@ trait TemplateExecutionResult {
   def getAllExecutionResults:List[TemplateExecutionResult] =
     subExecutions.values.flatMap(_.getAllExecutionResults).toList ++ List(this)
 
+  def toExecutionState:OpenlawExecutionState
+
   def withVariable(name:VariableName, value:OpenlawValue, varType:VariableType): Result[OpenlawExecutionState] =
     withVariable(name, Some(value), varType)
 
@@ -445,24 +446,19 @@ trait TemplateExecutionResult {
         for {
           parameters <- value
             .map(varType.internalFormat)
-            .map(_.map(internalFormat => TemplateParameters(name.name -> internalFormat)))
-            .getOrElse(Success(TemplateParameters()))
+            .map(_.map(internalFormat => this.parameters ++ Map(name -> internalFormat)))
+            .getOrElse(Success(this.parameters))
         } yield {
-          val result = OpenlawExecutionState(
-            id = TemplateExecutionResultId(UUID.randomUUID().toString),
-            info = info,
-            executionType = BlockExecution,
+          val executionState = this.toExecutionState
+          val newResult = executionState.copy(
             parameters = parameters,
-            sectionLevelStack = mutable.Buffer(),
-            template = CompiledAgreement(header = TemplateHeader()),
-            clock = clock,
-            parentExecution = Some(this),
-            executions = this.executions,
-            variableRedefinition = VariableRedefinition())
+            variablesInternal = mutable.Buffer(executionState.variablesInternal :_*),
+            executedVariablesInternal = mutable.Buffer(executionState.executedVariablesInternal :_*)
+          )
 
-          val r = result.registerNewType(varType) match {
+          val r = newResult.registerNewType(varType) match {
             case Success(newResult) => newResult
-            case Failure(_, _) => result
+            case Failure(_, _) => newResult
           }
 
           r.variablesInternal.append(VariableDefinition(name, Some(VariableTypeDefinition(name = varType.name, None))))
@@ -504,6 +500,34 @@ final case class SerializableTemplateExecutionResult(id:TemplateExecutionResultI
                                                processedSections:List[(Section, Int)],
                                                externalCallStructures:Map[ServiceName, IntegratedServiceDefinition],
                                                clock:Clock) extends TemplateExecutionResult {
+
+
+  override def toExecutionState: OpenlawExecutionState = OpenlawExecutionState(
+    id = this.id,
+    parameters = this.parameters,
+    executionType = this.executionType,
+    info = this.info,
+    executions = this.executions,
+    signatureProofs = this.signatureProofs,
+    template = CompiledAgreement(),
+    variablesInternal = mutable.Buffer(this.variables :_*),
+    aliasesInternal = mutable.Buffer(this.aliases :_*),
+    executedVariablesInternal = mutable.Buffer(this.executedVariables:_*),
+    variableSectionsInternal = mutable.Map(this.variableSections.map({case (name, sections) => name -> mutable.Buffer(sections :_*)}).toSeq: _*),
+    variableSectionListInternal = mutable.Buffer(this.variableSectionList :_*),
+    agreementsInternal = mutable.Buffer(this.agreements :_*),
+    subExecutionsInternal = mutable.Map(this.subExecutions.toSeq.map({case (name, subExecution) => name -> subExecution.toExecutionState}): _*),
+    state = ExecutionFinished,
+    parentExecution = this.parentExecution,
+    compiledAgreement = None,
+    variableRedefinition = VariableRedefinition(),
+    templateDefinition = this.templateDefinition,
+    mapping = this.mapping,
+    variableTypesInternal = mutable.Buffer(this.variableTypes :_*),
+    externalCallStructures = this.externalCallStructures,
+    clock = this.clock
+  )
+
 
   override def subExecutions: Map[VariableName, TemplateExecutionResult] = subExecutionIds.flatMap({case (identifier, executionId) => templateExecutions.get(executionId).map(identifier -> _)})
   override def parentExecution: Option[TemplateExecutionResult] = parentExecutionId.flatMap(templateExecutions.get)
@@ -568,6 +592,7 @@ final case class OpenlawExecutionState(
                                     externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] = Map.empty,
                                     clock:Clock) extends TemplateExecutionResult {
 
+
   def variables:List[VariableDefinition] = variablesInternal.toList
   def aliases:List[VariableAliasing] = aliasesInternal.toList
   def variableTypes:List[VariableType] = variableTypesInternal.toList
@@ -575,6 +600,8 @@ final case class OpenlawExecutionState(
   def executedVariables:List[VariableName] = executedVariablesInternal.toList
   def agreements:List[StructuredAgreement] = agreementsInternal.toList
   def variableSectionList:List[String] = variableSectionListInternal.toList
+
+  override def toExecutionState: OpenlawExecutionState = this
 
   override def variableSections: Map[String, List[VariableName]] = variableSectionsInternal.map({case (key,value) => key -> value.toList}).toMap
 
