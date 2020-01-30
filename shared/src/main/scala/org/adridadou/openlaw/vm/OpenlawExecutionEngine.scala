@@ -58,29 +58,33 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
   final def appendTemplateToExecutionResult(executionResult: OpenlawExecutionState, template: CompiledTemplate): Result[OpenlawExecutionState] = {
     //copy execution result to avoid modifying the one passed
     // append template elements and continue execution
-    val newExecutionResult = executionResult.copy(
+    val newExecutionResult = copyExecutionResultForAppendTemplate(executionResult).copy(
       template = executionResult.template.append(template),
-      variablesInternal = mutable.Buffer(executionResult.variablesInternal:_*),
-      aliasesInternal = mutable.Buffer(executionResult.aliasesInternal:_*),
-      executedVariablesInternal = mutable.Buffer(executionResult.executedVariablesInternal:_*),
-      variableSectionsInternal = mutable.Map(executionResult.variableSectionsInternal.toSeq:_*),
-      variableSectionListInternal = mutable.Buffer(executionResult.variableSectionListInternal:_*),
-      agreementsInternal = mutable.Buffer(),
-      subExecutionsInternal = mutable.Map(executionResult.subExecutionsInternal.toSeq:_*),
-      forEachExecutions = mutable.Buffer(executionResult.forEachExecutions:_*),
-      finishedEmbeddedExecutions = mutable.Buffer(executionResult.finishedEmbeddedExecutions:_*),
-      remainingElements = mutable.Buffer(template.block.elems:_*),
-      variableTypesInternal = mutable.Buffer(executionResult.variableTypesInternal:_*),
-      sectionLevelStack = mutable.Buffer(executionResult.sectionLevelStack:_*),
-      sectionNameMapping = mutable.Map(executionResult.sectionNameMapping.toSeq:_*),
-      sectionNameMappingInverseInternal = mutable.Map(executionResult.sectionNameMappingInverseInternal.toSeq:_*),
-      processedSectionsInternal = mutable.Buffer(executionResult.processedSectionsInternal:_*),
-      lastSectionByLevel = mutable.Map(executionResult.lastSectionByLevel.toSeq:_*),
-      state = ExecutionReady
+      remainingElements = mutable.Buffer(template.block.elems:_*)
     )
 
-    resumeExecution(newExecutionResult, Map())
+    resumeExecution(newExecutionResult, Map.empty)
   }
+
+  private def copyExecutionResultForAppendTemplate(executionResult: OpenlawExecutionState):OpenlawExecutionState = executionResult.copy(
+    parentExecution = executionResult.parentExecution.map({case parent:OpenlawExecutionState => copyExecutionResultForAppendTemplate(parent)}),
+    variablesInternal = mutable.Buffer(executionResult.variablesInternal:_*),
+    aliasesInternal = mutable.Buffer(executionResult.aliasesInternal:_*),
+    executedVariablesInternal = mutable.Buffer(executionResult.executedVariablesInternal:_*),
+    variableSectionsInternal = mutable.Map(executionResult.variableSectionsInternal.toSeq:_*),
+    variableSectionListInternal = mutable.Buffer(executionResult.variableSectionListInternal:_*),
+    agreementsInternal = mutable.Buffer(),
+    subExecutionsInternal = mutable.Map(executionResult.subExecutionsInternal.toSeq:_*),
+    forEachExecutions = mutable.Buffer(executionResult.forEachExecutions:_*),
+    finishedEmbeddedExecutions = mutable.Buffer(executionResult.finishedEmbeddedExecutions:_*),
+    variableTypesInternal = mutable.Buffer(executionResult.variableTypesInternal:_*),
+    sectionLevelStack = mutable.Buffer(executionResult.sectionLevelStack:_*),
+    sectionNameMapping = mutable.Map(executionResult.sectionNameMapping.toSeq:_*),
+    sectionNameMappingInverseInternal = mutable.Map(executionResult.sectionNameMappingInverseInternal.toSeq:_*),
+    processedSectionsInternal = mutable.Buffer(executionResult.processedSectionsInternal:_*),
+    lastSectionByLevel = mutable.Map(executionResult.lastSectionByLevel.toSeq:_*),
+    state = ExecutionReady
+  )
 
   /**
     * This method is used if the execution stops due to a missing template and you want to resume the execution

@@ -2579,8 +2579,11 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         "age" -> "37"
       )
     )
+
+    val Success(subResult) = result.withVariable(VariableName("dummy name"), None, NumberType)
+
     val Success(newResult) =
-      engine.appendTemplateToExecutionResult(result, template2)
+      engine.appendTemplateToExecutionResult(subResult, template2)
     newResult.agreements.size shouldBe 1
     newResult.state shouldBe ExecutionFinished
 
