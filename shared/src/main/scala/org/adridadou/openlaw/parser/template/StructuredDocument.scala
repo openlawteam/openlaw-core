@@ -3,7 +3,6 @@ package org.adridadou.openlaw.parser.template
 import cats.implicits._
 import cats.Eq
 import java.time.{Clock, ZoneId}
-import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicInteger
 
 import io.circe._
@@ -731,8 +730,7 @@ final case class SerializableTemplateExecutionResult(
     variableRedefinition = VariableRedefinition(),
     templateDefinition = this.templateDefinition,
     mapping = this.mapping,
-    variableTypesInternal =
-      new CopyOnWriteArrayList[VariableType](this.variableTypes.asJava).asScala,
+    variableTypesInternal = createConcurrentMutableBuffer(this.variableTypes),
     externalCallStructures = this.externalCallStructures,
     clock = this.clock
   )
