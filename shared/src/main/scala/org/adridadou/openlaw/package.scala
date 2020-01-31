@@ -2,7 +2,7 @@ package org.adridadou
 
 import java.time.LocalDateTime
 import org.adridadou.openlaw.parser.template.AgreementElement
-import scala.collection.{MapLike, mutable}
+import scala.collection.mutable
 import scala.collection.JavaConverters._
 import scala.language.implicitConversions
 
