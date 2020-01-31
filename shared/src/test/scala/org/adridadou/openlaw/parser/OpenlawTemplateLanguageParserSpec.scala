@@ -3,7 +3,11 @@ package org.adridadou.openlaw.parser
 import java.time.{Clock, LocalDateTime, ZoneOffset}
 import java.util.concurrent.atomic.AtomicInteger
 
-import org.adridadou.openlaw.{OpenlawMap, OpenlawString}
+import org.adridadou.openlaw.{
+  createConcurrentMutableBuffer,
+  OpenlawMap,
+  OpenlawString
+}
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes._
@@ -39,7 +43,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
     anonymousVariableCounter = new AtomicInteger(0),
     executionType = TemplateExecution,
     variableRedefinition = VariableRedefinition(),
-    remainingElements = mutable.Buffer(),
+    remainingElements = createConcurrentMutableBuffer,
     clock = clock
   )
 

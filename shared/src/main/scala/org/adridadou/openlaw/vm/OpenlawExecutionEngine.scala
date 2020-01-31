@@ -83,7 +83,8 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       anonymousVariableCounter = new AtomicInteger(0),
       executionType = TemplateExecution,
       variableRedefinition = mainTemplate.redefinition,
-      remainingElements = mutable.Buffer(mainTemplate.block.elems: _*),
+      remainingElements =
+        createConcurrentMutableBuffer(mainTemplate.block.elems),
       clock = mainTemplate.clock,
       signatureProofs = signatureProofs,
       externalCallStructures = externalCallStructures
@@ -101,7 +102,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     val newExecutionResult =
       copyExecutionResultForAppendTemplate(executionResult).copy(
         template = executionResult.template.append(template),
-        remainingElements = mutable.Buffer(template.block.elems: _*)
+        remainingElements = createConcurrentMutableBuffer(template.block.elems)
       )
 
     resumeExecution(newExecutionResult, Map.empty)
@@ -114,32 +115,37 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       case parent: OpenlawExecutionState =>
         copyExecutionResultForAppendTemplate(parent)
     }),
-    variablesInternal = mutable.Buffer(executionResult.variablesInternal: _*),
-    aliasesInternal = mutable.Buffer(executionResult.aliasesInternal: _*),
+    variablesInternal =
+      createConcurrentMutableBuffer(executionResult.variablesInternal),
+    aliasesInternal =
+      createConcurrentMutableBuffer(executionResult.aliasesInternal),
     executedVariablesInternal =
-      mutable.Buffer(executionResult.executedVariablesInternal: _*),
+      createConcurrentMutableBuffer(executionResult.executedVariablesInternal),
     variableSectionsInternal =
-      mutable.Map(executionResult.variableSectionsInternal.toSeq: _*),
-    variableSectionListInternal =
-      mutable.Buffer(executionResult.variableSectionListInternal: _*),
-    agreementsInternal = mutable.Buffer(),
+      createConcurrentMutableMap(executionResult.variableSectionsInternal),
+    variableSectionListInternal = createConcurrentMutableBuffer(
+      executionResult.variableSectionListInternal
+    ),
+    agreementsInternal = createConcurrentMutableBuffer,
     subExecutionsInternal =
-      mutable.Map(executionResult.subExecutionsInternal.toSeq: _*),
-    forEachExecutions = mutable.Buffer(executionResult.forEachExecutions: _*),
+      createConcurrentMutableMap(executionResult.subExecutionsInternal),
+    forEachExecutions =
+      createConcurrentMutableBuffer(executionResult.forEachExecutions),
     finishedEmbeddedExecutions =
-      mutable.Buffer(executionResult.finishedEmbeddedExecutions: _*),
-    variableTypesInternal = new CopyOnWriteArrayList[VariableType](
-      executionResult.variableTypesInternal.asJava
-    ).asScala,
-    sectionLevelStack = mutable.Buffer(executionResult.sectionLevelStack: _*),
+      createConcurrentMutableBuffer(executionResult.finishedEmbeddedExecutions),
+    variableTypesInternal =
+      createConcurrentMutableBuffer(executionResult.variableTypesInternal),
+    sectionLevelStack =
+      createConcurrentMutableBuffer(executionResult.sectionLevelStack),
     sectionNameMapping =
-      mutable.Map(executionResult.sectionNameMapping.toSeq: _*),
-    sectionNameMappingInverseInternal =
-      mutable.Map(executionResult.sectionNameMappingInverseInternal.toSeq: _*),
+      createConcurrentMutableMap(executionResult.sectionNameMapping),
+    sectionNameMappingInverseInternal = createConcurrentMutableMap(
+      executionResult.sectionNameMappingInverseInternal
+    ),
     processedSectionsInternal =
-      mutable.Buffer(executionResult.processedSectionsInternal: _*),
+      createConcurrentMutableBuffer(executionResult.processedSectionsInternal),
     lastSectionByLevel =
-      mutable.Map(executionResult.lastSectionByLevel.toSeq: _*),
+      createConcurrentMutableMap(executionResult.lastSectionByLevel),
     state = ExecutionReady
   )
 
@@ -604,7 +610,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       section: VariableSection
   ): Result[OpenlawExecutionState] = {
     val existingSection = executionResult.variableSectionsInternal
-      .getOrElse(section.name, collection.mutable.Buffer[VariableName]())
+      .getOrElse(section.name, createConcurrentMutableBuffer)
     existingSection.appendAll(section.variables.map(_.name))
 
     if (!executionResult.variableSectionsInternal.contains(section.name)) {

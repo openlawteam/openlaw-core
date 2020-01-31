@@ -1,9 +1,16 @@
 package org.adridadou
 
 import java.time.LocalDateTime
+import java.util.concurrent.{
+  ConcurrentHashMap,
+  CopyOnWriteArrayList,
+  CopyOnWriteArraySet
+}
 
 import org.adridadou.openlaw.parser.template.AgreementElement
 
+import scala.collection.{MapLike, mutable}
+import scala.collection.JavaConverters._
 import scala.language.implicitConversions
 
 package object openlaw {
@@ -138,4 +145,30 @@ package object openlaw {
     }
     override def hashCode: Int = underlying.hashCode
   }
+
+  // Creates a thread-safe mutable map.
+  def createConcurrentMutableMap[K, V]: mutable.Map[K, V] =
+    createConcurrentMutableMap(values = collection.Map.empty[K, V])
+
+  // Creates a thread-safe mutable map containing the provided entries.
+  def createConcurrentMutableMap[K, V](
+      values: collection.Map[K, V]
+  ): mutable.Map[K, V] =
+    new ConcurrentHashMap[K, V](values.asJava).asScala
+
+  // Creates a thread-safe mutable buffer.
+  def createConcurrentMutableBuffer[T]: mutable.Buffer[T] =
+    createConcurrentMutableBuffer(Nil)
+
+  // Creates a thread-safe mutable buffer containing the provided entries.
+  def createConcurrentMutableBuffer[T](values: Iterable[T]): mutable.Buffer[T] =
+    new CopyOnWriteArrayList[T](values.asJavaCollection).asScala
+
+  // Creates a thread-safe mutable set containing the optional provided entries.
+  def createConcurrentMutableSet[T]: mutable.Set[T] =
+    createConcurrentMutableSet(Nil)
+
+  // Creates a thread-safe mutable set containing the optional provided entries.
+  def createConcurrentMutableSet[T](values: Iterable[T]): mutable.Set[T] =
+    new CopyOnWriteArraySet[T](values.asJavaCollection).asScala
 }
