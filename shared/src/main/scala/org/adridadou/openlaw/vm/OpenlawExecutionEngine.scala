@@ -1,5 +1,6 @@
 package org.adridadou.openlaw.vm
 
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicInteger
 
 import org.adridadou.openlaw.result._
@@ -13,6 +14,7 @@ import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.printers.SectionHelper
 
 import scala.annotation.tailrec
+import scala.collection.JavaConverters._
 import scala.collection.mutable
 
 class OpenlawExecutionEngine extends VariableExecutionEngine {
@@ -126,8 +128,9 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     forEachExecutions = mutable.Buffer(executionResult.forEachExecutions: _*),
     finishedEmbeddedExecutions =
       mutable.Buffer(executionResult.finishedEmbeddedExecutions: _*),
-    variableTypesInternal =
-      mutable.Buffer(executionResult.variableTypesInternal: _*),
+    variableTypesInternal = new CopyOnWriteArrayList[VariableType](
+      executionResult.variableTypesInternal.asJava
+    ).asScala,
     sectionLevelStack = mutable.Buffer(executionResult.sectionLevelStack: _*),
     sectionNameMapping =
       mutable.Map(executionResult.sectionNameMapping.toSeq: _*),

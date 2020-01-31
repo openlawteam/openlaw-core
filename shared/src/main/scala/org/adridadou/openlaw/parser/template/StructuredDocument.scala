@@ -3,6 +3,7 @@ package org.adridadou.openlaw.parser.template
 import cats.implicits._
 import cats.Eq
 import java.time.{Clock, ZoneId}
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicInteger
 
 import io.circe._
@@ -29,6 +30,7 @@ import scala.reflect.ClassTag
 import VariableName._
 import cats.data.NonEmptyList
 import cats.data.Validated.{Invalid, Valid}
+import scala.collection.JavaConverters._
 
 trait TemplateExecutionResult {
 
@@ -717,7 +719,8 @@ final case class SerializableTemplateExecutionResult(
     variableRedefinition = VariableRedefinition(),
     templateDefinition = this.templateDefinition,
     mapping = this.mapping,
-    variableTypesInternal = mutable.Buffer(this.variableTypes: _*),
+    variableTypesInternal =
+      new CopyOnWriteArrayList[VariableType](this.variableTypes.asJava).asScala,
     externalCallStructures = this.externalCallStructures,
     clock = this.clock
   )
@@ -787,7 +790,7 @@ final case class OpenlawExecutionState(
     templateDefinition: Option[TemplateDefinition] = None,
     mapping: Map[VariableName, Expression] = Map.empty,
     variableTypesInternal: mutable.Buffer[VariableType] =
-      mutable.Buffer(VariableType.allTypes(): _*),
+      new CopyOnWriteArrayList[VariableType](VariableType.allTypes.asJava).asScala,
     sectionLevelStack: mutable.Buffer[Int] = mutable.Buffer(),
     sectionNameMapping: mutable.Map[String, VariableName] = mutable.Map.empty,
     sectionNameMappingInverseInternal: mutable.Map[VariableName, String] =
@@ -1059,7 +1062,7 @@ final case class OpenlawExecutionState(
   ): Result[OpenlawExecutionState] = {
     findVariableType(VariableTypeDefinition(variableType.name)) match {
       case None =>
-        variableTypesInternal append variableType
+        variableTypesInternal += variableType
         Success(this)
       case Some(_) =>
         Failure(
