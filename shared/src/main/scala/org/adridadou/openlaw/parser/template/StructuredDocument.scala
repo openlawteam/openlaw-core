@@ -12,7 +12,14 @@ import io.circe.syntax._
 import org.adridadou.openlaw.values.{TemplateParameters, TemplateTitle}
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.variableTypes._
-import org.adridadou.openlaw.{OpenlawMap, OpenlawNativeValue, OpenlawValue}
+import org.adridadou.openlaw.{
+  createConcurrentMutableBuffer,
+  createConcurrentMutableMap,
+  createConcurrentMutableSet,
+  OpenlawMap,
+  OpenlawNativeValue,
+  OpenlawValue
+}
 import org.adridadou.openlaw.oracles.SignatureProof
 import org.adridadou.openlaw.result.{
   Failure,
@@ -29,6 +36,7 @@ import scala.reflect.ClassTag
 import VariableName._
 import cats.data.NonEmptyList
 import cats.data.Validated.{Invalid, Valid}
+import scala.collection.JavaConverters._
 
 trait TemplateExecutionResult {
 
@@ -625,9 +633,10 @@ trait TemplateExecutionResult {
           val newResult = executionState.copy(
             parameters = parameters,
             variablesInternal =
-              mutable.Buffer(executionState.variablesInternal: _*),
-            executedVariablesInternal =
-              mutable.Buffer(executionState.executedVariablesInternal: _*)
+              createConcurrentMutableBuffer(executionState.variablesInternal),
+            executedVariablesInternal = createConcurrentMutableBuffer(
+              executionState.executedVariablesInternal
+            )
           )
 
           val r = newResult.registerNewType(varType) match {
@@ -698,26 +707,30 @@ final case class SerializableTemplateExecutionResult(
     executions = this.executions,
     signatureProofs = this.signatureProofs,
     template = CompiledAgreement(),
-    variablesInternal = mutable.Buffer(this.variables: _*),
-    aliasesInternal = mutable.Buffer(this.aliases: _*),
-    executedVariablesInternal = mutable.Buffer(this.executedVariables: _*),
-    variableSectionsInternal = mutable.Map(
+    variablesInternal = createConcurrentMutableBuffer(this.variables),
+    aliasesInternal = createConcurrentMutableBuffer(this.aliases),
+    executedVariablesInternal =
+      createConcurrentMutableBuffer(this.executedVariables),
+    variableSectionsInternal = createConcurrentMutableMap(
       this.variableSections
-        .map({ case (name, sections) => name -> mutable.Buffer(sections: _*) })
-        .toSeq: _*
+        .map({
+          case (name, sections) =>
+            name -> createConcurrentMutableBuffer(sections)
+        })
     ),
-    variableSectionListInternal = mutable.Buffer(this.variableSectionList: _*),
-    agreementsInternal = mutable.Buffer(this.agreements: _*),
-    subExecutionsInternal = mutable.Map(this.subExecutions.toSeq.map({
+    variableSectionListInternal =
+      createConcurrentMutableBuffer(this.variableSectionList),
+    agreementsInternal = createConcurrentMutableBuffer(this.agreements),
+    subExecutionsInternal = createConcurrentMutableMap(this.subExecutions.map({
       case (name, subExecution) => name -> subExecution.toExecutionState
-    }): _*),
+    })),
     state = ExecutionFinished,
     parentExecution = this.parentExecution,
     compiledAgreement = None,
     variableRedefinition = VariableRedefinition(),
     templateDefinition = this.templateDefinition,
     mapping = this.mapping,
-    variableTypesInternal = mutable.Buffer(this.variableTypes: _*),
+    variableTypesInternal = createConcurrentMutableBuffer(this.variableTypes),
     externalCallStructures = this.externalCallStructures,
     clock = this.clock
   )
@@ -747,7 +760,7 @@ object OpenlawExecutionState {
     template = CompiledAgreement(),
     executions = Map.empty,
     executionType = TemplateExecution,
-    remainingElements = mutable.Buffer(),
+    remainingElements = createConcurrentMutableBuffer,
     clock = Clock.systemDefaultZone,
     signatureProofs = Map.empty,
     parameters = TemplateParameters(),
@@ -765,35 +778,43 @@ final case class OpenlawExecutionState(
     template: CompiledTemplate,
     anonymousVariableCounter: AtomicInteger = new AtomicInteger(0),
     processedAnonymousVariableCounter: AtomicInteger = new AtomicInteger(0),
-    variablesInternal: mutable.Buffer[VariableDefinition] = mutable.Buffer(),
-    aliasesInternal: mutable.Buffer[VariableAliasing] = mutable.Buffer(),
-    executedVariablesInternal: mutable.Buffer[VariableName] = mutable.Buffer(),
+    variablesInternal: mutable.Buffer[VariableDefinition] =
+      createConcurrentMutableBuffer,
+    aliasesInternal: mutable.Buffer[VariableAliasing] =
+      createConcurrentMutableBuffer,
+    executedVariablesInternal: mutable.Buffer[VariableName] =
+      createConcurrentMutableBuffer,
     variableSectionsInternal: mutable.Map[String, mutable.Buffer[
       VariableName
-    ]] = mutable.Map.empty,
-    variableSectionListInternal: mutable.Buffer[String] = mutable.Buffer(),
-    agreementsInternal: mutable.Buffer[StructuredAgreement] = mutable.Buffer(),
+    ]] = createConcurrentMutableMap,
+    variableSectionListInternal: mutable.Buffer[String] =
+      createConcurrentMutableBuffer,
+    agreementsInternal: mutable.Buffer[StructuredAgreement] =
+      createConcurrentMutableBuffer,
     subExecutionsInternal: mutable.Map[VariableName, OpenlawExecutionState] =
-      mutable.Map.empty,
+      createConcurrentMutableMap,
     forEachExecutions: mutable.Buffer[TemplateExecutionResultId] =
-      mutable.Buffer(),
+      createConcurrentMutableBuffer,
     finishedEmbeddedExecutions: mutable.Buffer[OpenlawExecutionState] =
-      mutable.Buffer(),
+      createConcurrentMutableBuffer,
     state: TemplateExecutionState = ExecutionReady,
-    remainingElements: mutable.Buffer[TemplatePart] = mutable.Buffer(),
+    remainingElements: mutable.Buffer[TemplatePart] =
+      createConcurrentMutableBuffer,
     parentExecution: Option[TemplateExecutionResult] = None,
     compiledAgreement: Option[CompiledAgreement] = None,
     variableRedefinition: VariableRedefinition,
     templateDefinition: Option[TemplateDefinition] = None,
     mapping: Map[VariableName, Expression] = Map.empty,
     variableTypesInternal: mutable.Buffer[VariableType] =
-      mutable.Buffer(VariableType.allTypes(): _*),
-    sectionLevelStack: mutable.Buffer[Int] = mutable.Buffer(),
-    sectionNameMapping: mutable.Map[String, VariableName] = mutable.Map.empty,
+      createConcurrentMutableBuffer(VariableType.allTypes),
+    sectionLevelStack: mutable.Buffer[Int] = createConcurrentMutableBuffer,
+    sectionNameMapping: mutable.Map[String, VariableName] =
+      createConcurrentMutableMap,
     sectionNameMappingInverseInternal: mutable.Map[VariableName, String] =
-      mutable.Map.empty,
-    processedSectionsInternal: mutable.Buffer[(Section, Int)] = mutable.Buffer(),
-    lastSectionByLevel: mutable.Map[Int, String] = mutable.Map.empty,
+      createConcurrentMutableMap,
+    processedSectionsInternal: mutable.Buffer[(Section, Int)] =
+      createConcurrentMutableBuffer,
+    lastSectionByLevel: mutable.Map[Int, String] = createConcurrentMutableMap,
     externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] =
       Map.empty,
     clock: Clock
@@ -1059,7 +1080,7 @@ final case class OpenlawExecutionState(
   ): Result[OpenlawExecutionState] = {
     findVariableType(VariableTypeDefinition(variableType.name)) match {
       case None =>
-        variableTypesInternal append variableType
+        variableTypesInternal += variableType
         Success(this)
       case Some(_) =>
         Failure(
@@ -1114,7 +1135,7 @@ final case class OpenlawExecutionState(
   private def getSectionLevelStack(
       executionType: ExecutionType
   ): mutable.Buffer[Int] = executionType match {
-    case TemplateExecution => mutable.Buffer()
+    case TemplateExecution => createConcurrentMutableBuffer
     case _                 => this.sectionLevelStack
   }
 
@@ -1141,7 +1162,8 @@ final case class OpenlawExecutionState(
                 variableRedefinition = template.redefinition,
                 templateDefinition = Some(templateDefinition),
                 mapping = templateDefinition.mapping,
-                remainingElements = mutable.Buffer(template.block.elems: _*),
+                remainingElements =
+                  createConcurrentMutableBuffer(template.block.elems),
                 executions = this.executions
               )
 
@@ -1439,8 +1461,9 @@ final case class NoteAnnotation(content: String)
 }
 
 final case class DistinctVariableBuilder(
-    variables: mutable.Buffer[VariableDefinition] = mutable.Buffer(),
-    names: mutable.Set[VariableName] = mutable.Set()
+    variables: mutable.Buffer[VariableDefinition] =
+      createConcurrentMutableBuffer,
+    names: mutable.Set[VariableName] = createConcurrentMutableSet
 ) {
   def add(variable: VariableDefinition): DistinctVariableBuilder = {
     variables append variable

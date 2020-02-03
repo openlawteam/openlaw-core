@@ -1,9 +1,8 @@
 package org.adridadou
 
 import java.time.LocalDateTime
-
 import org.adridadou.openlaw.parser.template.AgreementElement
-
+import scala.collection.mutable
 import scala.language.implicitConversions
 
 package object openlaw {
@@ -138,4 +137,31 @@ package object openlaw {
     }
     override def hashCode: Int = underlying.hashCode
   }
+
+  // Creates a thread-safe mutable map.
+  def createConcurrentMutableMap[K, V]: mutable.Map[K, V] =
+    createConcurrentMutableMap(values = collection.Map.empty[K, V])
+
+  // Creates a thread-safe mutable map containing the provided entries.
+  def createConcurrentMutableMap[K, V](
+      values: collection.Map[K, V]
+  ): mutable.Map[K, V] =
+    (new mutable.LinkedHashMap[K, V]
+      with mutable.SynchronizedMap[K, V]) ++ values
+
+  // Creates a thread-safe mutable buffer.
+  def createConcurrentMutableBuffer[T]: mutable.Buffer[T] =
+    createConcurrentMutableBuffer(Nil)
+
+  // Creates a thread-safe mutable buffer containing the provided entries.
+  def createConcurrentMutableBuffer[T](values: Iterable[T]): mutable.Buffer[T] =
+    (new mutable.ArrayBuffer[T] with mutable.SynchronizedBuffer[T]) ++ values
+
+  // Creates a thread-safe mutable set containing the optional provided entries.
+  def createConcurrentMutableSet[T]: mutable.Set[T] =
+    createConcurrentMutableSet(Nil)
+
+  // Creates a thread-safe mutable set containing the optional provided entries.
+  def createConcurrentMutableSet[T](values: Iterable[T]): mutable.Set[T] =
+    (new mutable.HashSet[T] with mutable.SynchronizedSet[T]) ++ values
 }
