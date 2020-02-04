@@ -33,7 +33,7 @@ lazy val scalaTestV = "3.2.0-SNAP10"
 
 lazy val repositories = Seq(
   Resolver.jcenterRepo,
-  "central" at "http://central.maven.org/maven2/",
+  "central" at "https://repo1.maven.org/maven2/",
   "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases",
   "maven central" at "https://mvnrepository.com/repos/central",
   Resolver.mavenLocal
