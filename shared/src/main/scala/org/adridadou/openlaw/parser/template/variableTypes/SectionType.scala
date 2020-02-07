@@ -28,14 +28,18 @@ case object SectionType
   ): Result[SectionInfo] =
     decode[SectionInfo](value).leftMap(FailureException(_))
 
-  override def internalFormat(value: OpenlawValue): Result[String] =
-    VariableType.convert[OpenlawString](value)
+  override def internalFormat(value: OpenlawValue): Result[String] = value match {
+    case SectionInfo(_, _, value) =>
+      Success(value)
+    case value =>
+      VariableType.convert[OpenlawString](value)
+  }
+
 
   override def defaultFormatter: Formatter = new SectionFormatter
 
   override def getTypeClass: Class[SectionInfo] = classOf[SectionInfo]
 
-  // TODO: SectionType is a special type and we should handle it differently. i.e. it shouldn't be possible to use it in the code directly.
   override def checkTypeName(nameToCheck: String): Boolean =
     Seq("Section").exists(_.equalsIgnoreCase(nameToCheck))
 
