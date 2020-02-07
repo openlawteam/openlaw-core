@@ -28,13 +28,13 @@ case object SectionType
   ): Result[SectionInfo] =
     decode[SectionInfo](value).leftMap(FailureException(_))
 
-  override def internalFormat(value: OpenlawValue): Result[String] = value match {
-    case SectionInfo(_, _, value) =>
-      Success(value)
-    case value =>
-      VariableType.convert[OpenlawString](value)
-  }
-
+  override def internalFormat(value: OpenlawValue): Result[String] =
+    value match {
+      case SectionInfo(_, _, value) =>
+        Success(value)
+      case value =>
+        VariableType.convert[OpenlawString](value)
+    }
 
   override def defaultFormatter: Formatter = new SectionFormatter
 
