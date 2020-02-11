@@ -12,6 +12,7 @@ import org.adridadou.openlaw.parser.template.formatters.{
   UppercaseFormatter
 }
 import org.adridadou.openlaw.result.{Result, Success}
+import cats.implicits._
 
 case object TextType extends VariableType("Text") {
   override def cast(
@@ -24,9 +25,10 @@ case object TextType extends VariableType("Text") {
       optRight: Option[OpenlawValue],
       executionResult: TemplateExecutionResult
   ): Result[Option[OpenlawString]] =
-    combineConverted[OpenlawString, OpenlawString](optLeft, optRight) {
-      case (left, right) => Success(left + right)
-    }
+    (for {
+      left <- optLeft
+      right <- optRight
+    } yield Success(OpenlawString(left.toString + right.toString))).sequence
 
   override def divide(
       optLeft: Option[OpenlawValue],

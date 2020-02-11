@@ -1385,7 +1385,7 @@ final case class VariableElement(
     name: VariableName,
     variableType: Option[VariableType],
     content: List[AgreementElement],
-    dependencies: Seq[String]
+    dependencies: List[String]
 ) extends AgreementElement {
   override def serialize: Json = this.asJson
 }
@@ -1399,12 +1399,12 @@ final case class SectionElement(
 ) extends AgreementElement {
   override def serialize: Json = this.asJson
 }
-final case class ConditionalStart(dependencies: Seq[String])
+final case class ConditionalStart(dependencies: List[String])
     extends AgreementElement {
   override def serialize: Json = this.asJson
 }
 
-final case class ConditionalEnd(dependencies: Seq[String])
+final case class ConditionalEnd(dependencies: List[String])
     extends AgreementElement {
   override def serialize: Json = this.asJson
 }

@@ -377,7 +377,7 @@ final case class VariableDefinition(
       case _ =>
         exprs
           .flatMap {
-            case expr @ StringConstant(value, _) =>
+            case expr @ StringConstant(value) =>
               currentType.cast(value, executionResult) match {
                 case Success(_)    => None
                 case Failure(_, _) => Some(expr)
@@ -410,7 +410,7 @@ final case class VariableDefinition(
   ): Result[Unit] = {
     expr.expressionType(executionResult).flatMap { exprType =>
       expr match {
-        case StringConstant(str, _) =>
+        case StringConstant(str) =>
           choiceType.choices.values.find(_ === str) match {
             case Some(_) =>
               Success.unit

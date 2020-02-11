@@ -33,12 +33,12 @@ case object LinkType
   override def getTypeClass: Class[LinkInfo] = classOf[LinkInfo]
 
   override def checkTypeName(nameToCheck: String): Boolean =
-    Seq("Link").exists(_.equalsIgnoreCase(nameToCheck))
+    List("Link").exists(_.equalsIgnoreCase(nameToCheck))
 
   override def construct(
       constructorParams: Parameter,
       executionResult: TemplateExecutionResult
-  ): Result[Option[LinkInfo]] = {
+  ): Result[Option[LinkInfo]] =
     constructorParams match {
       case Parameters(seq) =>
         val map = seq.toMap
@@ -49,13 +49,12 @@ case object LinkType
       case _ =>
         Failure("""Link requires parameters, not a unique value or a list""")
     }
-  }
 
   def thisType: VariableType = LinkType
 
   private def getOneValueConstant(value: Parameter): Result[String] =
     value match {
-      case OneValueParameter(StringConstant(v, _)) =>
+      case OneValueParameter(StringConstant(v)) =>
         Success(v)
       case _ =>
         Failure("""Link requires "label" argument.""")

@@ -455,7 +455,9 @@ final case class CompiledAgreement(
           }
         }
       case ExpressionElement(expr, formatter) =>
-        generateExpression(expr, formatter, executionResult)
+        generateExpression(expr, formatter, executionResult).map(elems =>
+          renderedElements ++ elems
+        )
       case _ =>
         Success(renderedElements)
     }
@@ -463,14 +465,14 @@ final case class CompiledAgreement(
   private def getDependencies(
       name: VariableName,
       executionResult: TemplateExecutionResult
-  ): Result[Seq[String]] =
+  ): Result[List[String]] =
     executionResult.getAlias(name) match {
       case Some(alias) =>
         alias.variables(executionResult).map(_.map(_.name))
       case None =>
         executionResult.getVariable(name) match {
-          case Some(_) => Success(Seq(name.name))
-          case None    => Success(Seq())
+          case Some(_) => Success(List(name.name))
+          case None    => Success(Nil)
         }
     }
 
@@ -478,7 +480,7 @@ final case class CompiledAgreement(
       expression: Expression,
       formatter: Option[FormatterDefinition],
       executionResult: TemplateExecutionResult
-  ): Result[List[AgreementElement]] =
+  ): Result[List[AgreementElement]] = {
     for {
       valueOpt <- expression.evaluate(executionResult)
       expressionType <- expression.expressionType(executionResult)
@@ -488,6 +490,7 @@ final case class CompiledAgreement(
           Success(expressionType.missingValueFormat(expression.toString))
         )
     } yield result
+  }
 
   private def generateVariable(
       name: VariableName,

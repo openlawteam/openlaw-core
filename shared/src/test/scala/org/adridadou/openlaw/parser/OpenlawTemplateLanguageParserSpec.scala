@@ -23,8 +23,6 @@ import org.scalatest._
 import org.scalatest.EitherValues._
 import org.scalatest.OptionValues._
 
-import scala.collection.mutable
-
 /**
   * Created by davidroon on 05.05.17.
   */
@@ -845,7 +843,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
     executeTemplate(clauseText) match {
       case Success(r) =>
         r.getVariable("contractor").flatMap(_.defaultValue) match {
-          case Some(OneValueParameter(StringConstant(str, _))) =>
+          case Some(OneValueParameter(StringConstant(str))) =>
             str shouldBe "Hello my friend"
           case result => fail(result.toString)
         }
@@ -890,7 +888,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
         executionResult.getVariable("contractor") match {
           case Some(variable) =>
             variable.defaultValue match {
-              case Some(OneValueParameter(NumberConstant(n, _))) =>
+              case Some(OneValueParameter(NumberConstant(n))) =>
                 n shouldBe BigDecimal("24")
               case something =>
                 fail("default value is not correct:" + something)
@@ -908,7 +906,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
         executionResult.getVariable("contractor") match {
           case Some(variable) =>
             variable.defaultValue match {
-              case Some(OneValueParameter(StringConstant(text, _))) =>
+              case Some(OneValueParameter(StringConstant(text))) =>
                 text shouldBe "2017-06-24"
               case something =>
                 fail("default value is not correct:" + something)
@@ -928,7 +926,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
         executionResult
           .getVariable("contractor")
           .flatMap(_.defaultValue) match {
-          case Some(OneValueParameter(StringConstant(text, _))) =>
+          case Some(OneValueParameter(StringConstant(text))) =>
             text shouldBe "2017-06-24 13:45:00"
           case something => fail("default value is not correct:" + something)
         }

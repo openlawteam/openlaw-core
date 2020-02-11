@@ -41,12 +41,12 @@ case object SectionType
   override def getTypeClass: Class[SectionInfo] = classOf[SectionInfo]
 
   override def checkTypeName(nameToCheck: String): Boolean =
-    Seq("Section").exists(_.equalsIgnoreCase(nameToCheck))
+    List("Section").exists(_.equalsIgnoreCase(nameToCheck))
 
   override def construct(
       constructorParams: Parameter,
       executionResult: TemplateExecutionResult
-  ): Result[Option[SectionInfo]] = {
+  ): Result[Option[SectionInfo]] =
     constructorParams match {
       case Parameters(seq) =>
         val map = seq.toMap
@@ -60,13 +60,12 @@ case object SectionType
       case _ =>
         Failure("""Section requires parameters, not a unique value or a list""")
     }
-  }
 
   def thisType: VariableType = SectionType
 
   private def getOneValueConstant(value: Parameter): Result[String] =
     value match {
-      case OneValueParameter(StringConstant(v, _)) =>
+      case OneValueParameter(StringConstant(v)) =>
         Success(v)
       case _ =>
         Failure("""Section requires "numbering" argument.""")

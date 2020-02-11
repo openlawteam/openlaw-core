@@ -98,7 +98,7 @@ class ExpressionParserSpec extends FlatSpec with Matchers {
         )
       case Success(other) =>
         fail(
-          s"expression should be a boolean expression, instead it is ${other.getClass.getSimpleName} ${other}"
+          s"expression should be a boolean expression, instead it is ${other.getClass.getSimpleName} $other"
         )
       case Failure(_, message) => fail(message)
     }
@@ -117,7 +117,7 @@ class ExpressionParserSpec extends FlatSpec with Matchers {
           ) =>
       case Success(other) =>
         fail(
-          s"expression should be a boolean expression, instead it is ${other.getClass.getSimpleName} ${other}"
+          s"expression should be a boolean expression, instead it is ${other.getClass.getSimpleName} $other"
         )
       case Failure(_, message) => fail(message)
     }
@@ -127,14 +127,14 @@ class ExpressionParserSpec extends FlatSpec with Matchers {
     val text = "fill in the draft.isDone = true"
 
     service.parseExpression(text) match {
-      case Success(ComparisonExpression(_, BooleanConstant(true, _), Equals)) =>
+      case Success(ComparisonExpression(_, BooleanConstant(true), Equals)) =>
       case Success(ComparisonExpression(left, right, Equals)) =>
         fail(
           s"left expression is of type ${left.getClass.getSimpleName} right expression ${right.getClass.getSimpleName}"
         )
       case Success(other) =>
         fail(
-          s"expression should be a Comparison, instead it is ${other.getClass.getSimpleName} ${other}"
+          s"expression should be a Comparison, instead it is ${other.getClass.getSimpleName} $other"
         )
       case Failure(_, message) => fail(message)
     }
@@ -145,11 +145,11 @@ class ExpressionParserSpec extends FlatSpec with Matchers {
 
     service.parseExpression(text) match {
       case Success(
-          ComparisonExpression(_, BooleanConstant(false, _), Equals)
+          ComparisonExpression(_, BooleanConstant(false), Equals)
           ) =>
       case Success(other) =>
         fail(
-          s"expression should be a boolean expression, instead it is ${other.getClass.getSimpleName} ${other}"
+          s"expression should be a boolean expression, instead it is ${other.getClass.getSimpleName} $other"
         )
       case Failure(_, message) => fail(message)
     }
@@ -160,11 +160,11 @@ class ExpressionParserSpec extends FlatSpec with Matchers {
 
     service.parseExpression(text) match {
       case Success(
-          ComparisonExpression(_, BooleanConstant(false, _), Equals)
+          ComparisonExpression(_, BooleanConstant(false), Equals)
           ) =>
       case Success(other) =>
         fail(
-          s"expression should be a boolean expression, instead it is ${other.getClass.getSimpleName} ${other}"
+          s"expression should be a boolean expression, instead it is ${other.getClass.getSimpleName} $other"
         )
       case Failure(_, message) => fail(message)
     }
@@ -174,10 +174,10 @@ class ExpressionParserSpec extends FlatSpec with Matchers {
     val text = "true"
 
     service.parseExpression(text) match {
-      case Success(BooleanConstant(true, _)) =>
+      case Success(BooleanConstant(true)) =>
       case Success(other) =>
         fail(
-          s"expression should be a boolean expression, instead it is ${other.getClass.getSimpleName} ${other}"
+          s"expression should be a boolean expression, instead it is ${other.getClass.getSimpleName} $other"
         )
       case Failure(_, message) => fail(message)
     }
@@ -193,11 +193,11 @@ class ExpressionParserSpec extends FlatSpec with Matchers {
         |""".stripMargin
 
     service.parseExpression(tripleQuote + text + tripleQuote) match {
-      case Success(StringConstant(cText, _)) =>
+      case Success(StringConstant(cText)) =>
         text shouldBe cText
       case Success(other) =>
         fail(
-          s"expression should be a boolean expression, instead it is ${other.getClass.getSimpleName} ${other}"
+          s"expression should be a boolean expression, instead it is ${other.getClass.getSimpleName} $other"
         )
       case Failure(_, message) => fail(message)
     }
