@@ -98,7 +98,7 @@ class ExpressionParserSpec extends FlatSpec with Matchers {
         )
       case Success(other) =>
         fail(
-          s"expression should be a boolean expression, instead it is ${other.getClass.getSimpleName} ${other}"
+          s"expression should be a boolean expression, instead it is ${other.getClass.getSimpleName} $other"
         )
       case Failure(_, message) => fail(message)
     }
@@ -117,7 +117,7 @@ class ExpressionParserSpec extends FlatSpec with Matchers {
           ) =>
       case Success(other) =>
         fail(
-          s"expression should be a boolean expression, instead it is ${other.getClass.getSimpleName} ${other}"
+          s"expression should be a boolean expression, instead it is ${other.getClass.getSimpleName} $other"
         )
       case Failure(_, message) => fail(message)
     }
@@ -134,7 +134,7 @@ class ExpressionParserSpec extends FlatSpec with Matchers {
         )
       case Success(other) =>
         fail(
-          s"expression should be a Comparison, instead it is ${other.getClass.getSimpleName} ${other}"
+          s"expression should be a Comparison, instead it is ${other.getClass.getSimpleName} $other"
         )
       case Failure(_, message) => fail(message)
     }
@@ -149,7 +149,7 @@ class ExpressionParserSpec extends FlatSpec with Matchers {
           ) =>
       case Success(other) =>
         fail(
-          s"expression should be a boolean expression, instead it is ${other.getClass.getSimpleName} ${other}"
+          s"expression should be a boolean expression, instead it is ${other.getClass.getSimpleName} $other"
         )
       case Failure(_, message) => fail(message)
     }
@@ -164,7 +164,7 @@ class ExpressionParserSpec extends FlatSpec with Matchers {
           ) =>
       case Success(other) =>
         fail(
-          s"expression should be a boolean expression, instead it is ${other.getClass.getSimpleName} ${other}"
+          s"expression should be a boolean expression, instead it is ${other.getClass.getSimpleName} $other"
         )
       case Failure(_, message) => fail(message)
     }
@@ -177,7 +177,7 @@ class ExpressionParserSpec extends FlatSpec with Matchers {
       case Success(BooleanConstant(true)) =>
       case Success(other) =>
         fail(
-          s"expression should be a boolean expression, instead it is ${other.getClass.getSimpleName} ${other}"
+          s"expression should be a boolean expression, instead it is ${other.getClass.getSimpleName} $other"
         )
       case Failure(_, message) => fail(message)
     }
@@ -197,7 +197,7 @@ class ExpressionParserSpec extends FlatSpec with Matchers {
         text shouldBe cText
       case Success(other) =>
         fail(
-          s"expression should be a boolean expression, instead it is ${other.getClass.getSimpleName} ${other}"
+          s"expression should be a boolean expression, instead it is ${other.getClass.getSimpleName} $other"
         )
       case Failure(_, message) => fail(message)
     }

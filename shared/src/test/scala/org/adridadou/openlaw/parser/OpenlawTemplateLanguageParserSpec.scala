@@ -23,7 +23,6 @@ import org.scalatest._
 import org.scalatest.EitherValues._
 import org.scalatest.OptionValues._
 
-
 /**
   * Created by davidroon on 05.05.17.
   */
