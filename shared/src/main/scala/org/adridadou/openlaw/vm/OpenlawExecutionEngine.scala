@@ -1,6 +1,5 @@
 package org.adridadou.openlaw.vm
 
-import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicInteger
 
 import org.adridadou.openlaw.result._
@@ -14,8 +13,6 @@ import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.printers.SectionHelper
 
 import scala.annotation.tailrec
-import scala.collection.JavaConverters._
-import scala.collection.mutable
 
 class OpenlawExecutionEngine extends VariableExecutionEngine {
 
@@ -26,10 +23,10 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     execute(
       mainTemplate,
       TemplateParameters(),
-      Map(),
-      Map(),
-      Map(),
-      Map(),
+      Map.empty,
+      Map.empty,
+      Map.empty,
+      Map.empty,
       None,
       None
     )
@@ -41,7 +38,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       mainTemplate: CompiledTemplate,
       parameters: TemplateParameters
   ): Result[OpenlawExecutionState] =
-    execute(mainTemplate, parameters, Map(), Map(), Map(), Map(), None, None)
+    execute(mainTemplate, parameters, Map.empty, Map.empty, Map.empty, Map.empty, None, None)
 
   /**
     * Entry point. This is where you start the execution of the main template
@@ -51,14 +48,14 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       parameters: TemplateParameters,
       templates: Map[TemplateSourceIdentifier, CompiledTemplate],
       externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] =
-        Map()
+        Map.empty
   ): Result[OpenlawExecutionState] =
     execute(
       mainTemplate,
       parameters,
       templates,
-      Map(),
-      Map(),
+      Map.empty,
+      Map.empty,
       externalCallStructures,
       None,
       None
@@ -115,12 +112,9 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       case parent: OpenlawExecutionState =>
         copyExecutionResultForAppendTemplate(parent)
     }),
-    variablesInternal =
-      createConcurrentMutableBuffer(executionResult.variablesInternal),
-    aliasesInternal =
-      createConcurrentMutableBuffer(executionResult.aliasesInternal),
-    executedVariablesInternal =
-      createConcurrentMutableBuffer(executionResult.executedVariablesInternal),
+    variables = executionResult.variables,
+    aliases = executionResult.aliases,
+    executedVariables = executionResult.executedVariables,
     variableSectionsInternal =
       createConcurrentMutableMap(executionResult.variableSectionsInternal),
     variableSectionListInternal = createConcurrentMutableBuffer(
@@ -133,8 +127,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       createConcurrentMutableBuffer(executionResult.forEachExecutions),
     finishedEmbeddedExecutions =
       createConcurrentMutableBuffer(executionResult.finishedEmbeddedExecutions),
-    variableTypesInternal =
-      createConcurrentMutableBuffer(executionResult.variableTypesInternal),
+    variableTypes = executionResult.variableTypes,
     sectionLevelStack =
       createConcurrentMutableBuffer(executionResult.sectionLevelStack),
     sectionNameMapping =
@@ -232,26 +225,6 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
                 case _ =>
                   Success.unit
               }
-            } else if (executionResult.executionType === ClauseExecution) {
-              val variablesToAdd =
-                executionResult.variablesInternal.filter(variable =>
-                  variable.varType(executionResult) match {
-                    case _: NoShowInForm => false
-                    case _               => true
-                  }
-                )
-
-              val executedVariablesToAdd =
-                executionResult.executedVariablesInternal.filter(name =>
-                  executionResult.getAliasOrVariableType(name) match {
-                    case Success(_: NoShowInForm) => false
-                    case Success(_)               => true
-                    case _                        => false
-                  }
-                )
-              parent.variablesInternal.appendAll(variablesToAdd)
-              parent.executedVariablesInternal.appendAll(executedVariablesToAdd)
-              Success.unit
             } else {
               Success.unit
             }
@@ -454,8 +427,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
                     Some(VariableTypeDefinition("Section")),
                   defaultValue = Some(Parameters(params))
                 )
-                executionResult.variablesInternal.append(variable)
-                executionResult.executedVariablesInternal.append(name)
+
                 executionResult.sectionNameMapping put (section.uuid, name)
                 executionResult.sectionNameMappingInverseInternal put (name, section.uuid)
                 executionResult.addLastSectionByLevel(
@@ -468,7 +440,10 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
                   SectionHelper.calculateNumberInList(section.lvl, numbering)
                 )
 
-                executionResult
+                executionResult.copy(
+                  variables = executionResult.variables ++ List(variable),
+                  executedVariables = executionResult.executedVariables ++ List(name)
+                )
               }
             }
         }
@@ -483,13 +458,12 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       .toCompiledTemplate(executionResult)
       .flatMap {
         case (template, expressionType) =>
-          val initialValue: Result[OpenlawExecutionState] =
-            Success(executionResult)
-          foreachBlock.expression
+          val initialValue: Result[OpenlawExecutionState] = foreachBlock.expression
             .variables(executionResult)
             .map(vars =>
-              executionResult.executedVariablesInternal appendAll vars
-            )
+              executionResult.copy(
+                executedVariables = executionResult.executedVariables ++ vars
+              ))
 
           val elementsResult =
             foreachBlock.expression
@@ -501,20 +475,20 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
 
           elementsResult.flatMap { elements =>
             elements.foldLeft(initialValue)((eitherExecutionResult, element) =>
-              eitherExecutionResult.flatMap(_ => {
+              eitherExecutionResult.flatMap(er => {
                 val anonymousVariable =
                   executionResult.createAnonymousVariable()
-                executionResult.variablesInternal append VariableDefinition(
+                val er1 = executionResult.copy(variables = er.variables ++ List(VariableDefinition(
                   name = anonymousVariable,
                   variableTypeDefinition =
                     Some(VariableTypeDefinition(TemplateType.name)),
                   defaultValue = Some(
                     OneValueParameter(StringConstant(anonymousVariable.name))
                   )
-                )
-                executionResult.executedVariablesInternal append anonymousVariable
+                )),
+                executedVariables = er.executedVariables ++ List(anonymousVariable))
 
-                executionResult
+                er1
                   .startForEachExecution(
                     anonymousVariable,
                     template,
@@ -522,7 +496,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
                     element,
                     expressionType
                   )
-                  .map(_ => executionResult)
+                  .map(_ => er1)
               })
             )
           }
@@ -540,8 +514,9 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
           subBlock.conditionalExpression
             .variables(executionResult)
             .map(vars =>
-              executionResult.executedVariablesInternal appendAll vars
-            )
+              executionResult.copy(
+                executedVariables = executionResult.executedVariables ++ vars
+            ))
       }
     })
 
@@ -734,15 +709,14 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       executionResult: OpenlawExecutionState,
       variable: VariableDefinition,
       executed: Boolean
-  ): Result[OpenlawExecutionState] = {
+  ): Result[OpenlawExecutionState] =
     executionResult.getExpression(variable.name) match {
       case Some(_: VariableDefinition) =>
         processDefinedVariable(executionResult, variable, executed)
       case Some(alias: VariableAliasing) if variable.nameOnly =>
         alias.expr
           .variables(executionResult)
-          .map(vars => executionResult.executedVariablesInternal appendAll vars)
-          .map(_ => executionResult)
+          .map(vars => executionResult.copy(executedVariables = executionResult.executedVariables ++ vars))
       case Some(mappingExpression: MappingExpression) =>
         if (executed) {
           executionResult.parentExecution.map({
@@ -754,7 +728,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
                     .flatMap(name => parent.getVariable(name))
                     .foldLeft(initialValue)((parentExecution, subVariable) =>
                       parentExecution.flatMap(pe => {
-                        if (pe.variablesInternal
+                        if (pe.variables
                               .map(_.name)
                               .contains(subVariable.name)) {
                           executeVariable(pe, subVariable)
@@ -774,7 +748,6 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       case None =>
         processNewVariable(executionResult, variable, executed)
     }
-  }
 
   private def executeConditionalBlock(
       executionResult: OpenlawExecutionState,
@@ -792,36 +765,36 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
               addNewVariable(executionResult, variable)
             case _ =>
           }
-          Success(YesNoType)
+          Success((YesNoType, executionResult))
         case _ =>
           expr
             .variables(executionResult)
-            .map(vars =>
-              executionResult.executedVariablesInternal appendAll vars
-            )
-          expr.expressionType(executionResult)
+            .flatMap(vars => {
+              val er = executionResult.copy(executedVariables = executionResult.executedVariables ++ vars)
+              expr.expressionType(er).map(exprType => (exprType, er))
+            })
       }
 
-      exprTypeResult.flatMap { exprType =>
+      exprTypeResult.flatMap { case (exprType, er) =>
         if (exprType === YesNoType) {
 
           expr
-            .evaluate(executionResult)
+            .evaluate(er)
             .flatMap(_.map(VariableType.convert[OpenlawBoolean](_)).sequence)
             .flatMap { option =>
               if (option.exists(x => x === true)) {
-                executionResult.remainingElements.prependAll(subBlock.elems)
-                Success(executionResult)
+                er.remainingElements.prependAll(subBlock.elems)
+                Success(er)
               } else {
                 elseSubBlock
                   .map(_.elems)
                   .map(elems => {
-                    executionResult.remainingElements.prependAll(elems)
-                    executionResult
+                    er.remainingElements.prependAll(elems)
+                    er
                   })
-                  .getOrElse(executionResult)
-                val y = expr.validate(executionResult)
-                val t = y.map(_ => executionResult)
+                  .getOrElse(er)
+                val y = expr.validate(er)
+                val t = y.map(_ => er)
                 t
               }
             }

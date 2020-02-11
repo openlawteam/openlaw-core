@@ -61,7 +61,7 @@ trait VariableExecutionEngine {
       executionResult: OpenlawExecutionState,
       variable: VariableDefinition,
       executed: Boolean
-  ): Result[OpenlawExecutionState] = {
+  ): Result[OpenlawExecutionState] =
     missingVariables match {
       case Nil =>
         variable.verifyConstructor(executionResult).flatMap { _ =>
@@ -80,13 +80,12 @@ trait VariableExecutionEngine {
           .map(v => "\"" + v.name + "\"")
           .mkString(",")} are used in the constructor but have not been defined")
     }
-  }
 
   protected def processDefinedVariable(
       executionResult: OpenlawExecutionState,
       variable: VariableDefinition,
       executed: Boolean
-  ): Result[OpenlawExecutionState] = {
+  ): Result[OpenlawExecutionState] =
     if (variable.nameOnly) {
       if (executed) {
         executeVariable(executionResult, variable)
@@ -105,7 +104,6 @@ trait VariableExecutionEngine {
           }
       }
     }
-  }
 
   protected def validateVariableRedefinition(
       executionResult: OpenlawExecutionState,
@@ -142,22 +140,24 @@ trait VariableExecutionEngine {
   protected def executeVariable(
       executionResult: OpenlawExecutionState,
       variable: VariableDefinition
-  ): Result[OpenlawExecutionState] = {
-    executionResult.executedVariablesInternal append variable.name
+  ): Result[OpenlawExecutionState] =
     executionResult
       .getVariable(variable.name)
       .map(_.varType(executionResult)) match {
       case Some(TemplateType) =>
-        executionResult.executedVariablesInternal append variable.name
         startSubExecution(
           variable,
-          executionResult,
+          executionResult.copy(
+            executedVariables = executionResult.executedVariables ++ List(variable.name)
+          ),
           executionType = TemplateExecution
         )
       case Some(ClauseType) =>
         startSubExecution(
           variable,
-          executionResult,
+          executionResult.copy(
+            executedVariables = executionResult.executedVariables ++ List(variable.name)
+          ),
           executionType = ClauseExecution
         )
       case _ =>
@@ -166,11 +166,11 @@ trait VariableExecutionEngine {
         currentVariable
           .variables(executionResult)
           .map { list =>
-            executionResult.executedVariablesInternal appendAll list
-            executionResult
+            executionResult.copy(
+              executedVariables = executionResult.executedVariables ++ (variable.name :: list)
+            )
           }
     }
-  }
 
   private def startSubExecution(
       variable: VariableDefinition,
@@ -198,10 +198,11 @@ trait VariableExecutionEngine {
       executionResult: OpenlawExecutionState,
       variable: VariableDefinition
   ): Unit =
-    executionResult.variablesInternal append redefineDescription(
+    executionResult.copy(
+      variables = executionResult.variables ++ List(redefineDescription(
       executionResult,
       redefineType(executionResult, variable)
-    )
+    )))
 
   private def redefineType(
       executionResult: OpenlawExecutionState,
@@ -332,9 +333,13 @@ trait VariableExecutionEngine {
       variables <- alias.variables(executionResult)
       result <- {
         if (newType === oldType) {
-          executionResult.aliasesInternal.prepend(alias)
-          if (executed) {
-            executionResult.executedVariablesInternal appendAll variables
+          var er = executionResult.copy(
+            aliases = alias :: executionResult.aliases
+          )
+          er = if (executed) {
+            er.copy(executedVariables = er.executedVariables ++ variables)
+          } else {
+            er
           }
 
           val unknownVariables = variables
@@ -344,10 +349,9 @@ trait VariableExecutionEngine {
             .filter(variable => executionResult.getAlias(variable.name).isEmpty)
 
           if (unknownVariables.isEmpty) {
-            alias.validate(executionResult).map { _ =>
-              executionResult.aliasesInternal.prepend(alias)
-              executionResult
-            }
+            for {
+            _ <- alias.validate(executionResult)
+            } yield er.copy(aliases = alias :: er.aliases)
           } else {
             Failure(
               s"alias expression uses undefined variables ${unknownVariables.map(_.name).mkString(",")}"
@@ -366,27 +370,26 @@ trait VariableExecutionEngine {
       executionResult: OpenlawExecutionState,
       alias: VariableAliasing,
       executed: Boolean
-  ): Result[OpenlawExecutionState] =
-    alias
-      .variables(executionResult)
-      .flatMap { variables =>
-        variables
-          .filter(variable => executionResult.getVariable(variable).isEmpty)
-          .filter(variable => executionResult.getAlias(variable).isEmpty) match {
-          case Nil =>
-            alias.validate(executionResult).flatMap { _ =>
-              executionResult.aliasesInternal.prepend(alias)
-              alias.expr.variables(executionResult).flatMap { variables =>
-                if (executed) {
-                  executionResult.executedVariablesInternal appendAll variables
-                }
-                alias.expr.validate(executionResult).map(_ => executionResult)
-              }
-            }
-          case variables =>
-            Failure(
-              s"alias expression uses undefined variables ${variables.map(_.name).mkString(",")}"
-            )
-        }
-      }
+  ): Result[OpenlawExecutionState] = for {
+    variables <- alias.variables(executionResult)
+    result <- variables
+      .filter(variable => executionResult.getVariable(variable).isEmpty)
+      .filter(variable => executionResult.getAlias(variable).isEmpty) match {
+      case Nil =>
+        for {
+          _ <- alias.validate(executionResult)
+        } yield executionResult.copy(aliases = alias :: executionResult.aliases)
+    alias.expr.variables (executionResult).flatMap {
+    variables =>
+    if (executed) {
+      executionResult.copy(executedVariables = executionResult.executedVariables ++ variables)
+    }
+      alias.expr.validate (executionResult).map (_ => executionResult)
+    }
+      case variables =>
+        Failure(
+          s"alias expression uses undefined variables ${variables.map(_.name).mkString(",")}"
+        )
+    }
+  } yield result
 }

@@ -23,8 +23,6 @@ import org.scalatest._
 import org.scalatest.EitherValues._
 import org.scalatest.OptionValues._
 
-import scala.collection.mutable
-
 /**
   * Created by davidroon on 05.05.17.
   */
@@ -49,10 +47,10 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
 
   private def structureAgreement(
       text: String,
-      p: Map[String, String] = Map(),
-      templates: Map[TemplateSourceIdentifier, CompiledTemplate] = Map(),
+      p: Map[String, String] = Map.empty,
+      templates: Map[TemplateSourceIdentifier, CompiledTemplate] = Map.empty,
       externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] =
-        Map()
+        Map.empty
   ): Result[StructuredAgreement] =
     compiledTemplate(text).flatMap({
       case agreement: CompiledAgreement =>
@@ -180,10 +178,9 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
     || val21 | val22 | val23 |
     |This is a test.""".stripMargin
 
-    structureAgreement(text)
+    val Success(element) = structureAgreement(text)
       .map(_.paragraphs.head.elements(3))
-      .right
-      .value match {
+    element match {
       case tableElement: TableElement =>
         tableElement.rows.head.head.head shouldBe a[VariableElement]
       case _ => fail("not a table element!")
@@ -201,10 +198,9 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
     || val41 | val42 | val43 |
     |This is a test.""".stripMargin
 
-    structureAgreement(text)
+    val Success(element) = structureAgreement(text)
       .map(_.paragraphs.head.elements(3))
-      .right
-      .value match {
+    element match {
       case tableElement: TableElement =>
         tableElement.rows.head.head.head shouldBe a[VariableElement]
         tableElement.rows(1).head.head should not be a[VariableElement]
@@ -224,10 +220,9 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
     || val21 | val22 | val23 |
     |This is a test.""".stripMargin
 
-    structureAgreement(text, Map("conditional1" -> "true"))
+    val Success(element) = structureAgreement(text, Map("conditional1" -> "true"))
       .map(_.paragraphs.head.elements(3))
-      .right
-      .value match {
+    element match {
       case tableElement: TableElement =>
         tableElement.rows.head.head.head shouldBe a[ConditionalStart]
       case _ => fail("not table element!")
