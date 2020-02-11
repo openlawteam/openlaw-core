@@ -3,7 +3,7 @@ package org.adridadou.openlaw.parser.template.variableTypes
 import VariableType._
 import org.adridadou.openlaw.parser.template.formatters.Formatter
 import cats.implicits._
-import org.adridadou.openlaw.{OpenlawBigDecimal, OpenlawValue}
+import org.adridadou.openlaw.{OpenlawBigDecimal, OpenlawString, OpenlawValue}
 import org.adridadou.openlaw.parser.template.expressions.{
   Expression,
   ValueExpression
@@ -46,9 +46,14 @@ case object NumberType extends VariableType("Number") {
       optLeft: Option[OpenlawValue],
       optRight: Option[OpenlawValue],
       executionResult: TemplateExecutionResult
-  ): Result[Option[OpenlawBigDecimal]] =
-    combineConverted[OpenlawBigDecimal, OpenlawBigDecimal](optLeft, optRight) {
-      case (left, right) => Success(left + right)
+  ): Result[Option[OpenlawValue]] =
+    combine(optLeft, optRight) {
+      case (left: OpenlawBigDecimal, right: OpenlawBigDecimal) =>
+        Success(left.underlying + right.underlying)
+      case (left: OpenlawString, right: OpenlawBigDecimal) =>
+        Success(left + right.toString)
+      case (left: OpenlawBigDecimal, right: OpenlawString) =>
+        Success(left.toString + right)
     }
 
   override def minus(

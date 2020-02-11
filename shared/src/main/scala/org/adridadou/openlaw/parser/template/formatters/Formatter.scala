@@ -19,7 +19,7 @@ trait Formatter {
   ): Result[List[AgreementElement]]
 }
 
-class DefaultFormatter extends Formatter {
+object DefaultFormatter extends Formatter {
   override def format(
       value: OpenlawValue,
       executionResult: TemplateExecutionResult

@@ -2389,8 +2389,9 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
   it should "be possible to define expression directly between [[ ]]" in {
     val template =
-      compile("""<%[[first name:Text]] [[last name:Text]]%>
-          |[[first name + " and " + last name]]""".stripMargin)
+      compile(
+        """<%[[first name:Text]] [[last name:Text]]%>[[first name + " and " + last name]]""".stripMargin
+      )
 
     val Success(result) = engine.execute(
       template,
@@ -2403,9 +2404,9 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
   it should "be able to define a function type" in {
     val template =
-      compile("""[[function variable:Function<Text>(name => name + " and all")]]
-          |
-          |[[function variable("David Roon")]]""".stripMargin)
+      compile(
+        """[[function variable:Function<Text>(name => name + " and all")]][[function variable("David Roon")]]""".stripMargin
+      )
 
     val Success(result) = engine.execute(template, TemplateParameters())
     result.state shouldBe ExecutionFinished
@@ -2715,5 +2716,49 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         ) -> clause1
       )
     )
+  }
+
+  it should "let us append date type to string" in {
+    val template =
+      compile("""<%
+        |[[text:Text]]
+        |[[number:Number]]
+        |[[address:EthAddress]]
+        |[[date:Date]]
+        |%>
+        |[[text + number]] [[text  + address]] [[text + date]]
+        |[[number + text]] [[address  + text]] [[date + text]]""".stripMargin)
+
+    val result = engine
+      .execute(
+        template,
+        TemplateParameters(
+          "text" -> "hello world",
+          "number" -> "1234",
+          "date" -> DateType
+            .internalFormat(
+              LocalDateTime
+                .now()
+                .withYear(2020)
+                .withMonth(1)
+                .withDayOfMonth(1)
+                .withHour(10)
+                .withMinute(0)
+                .withSecond(0)
+            )
+            .getOrThrow(),
+          "address" -> EthAddressType
+            .internalFormat(
+              EthereumAddress("0xcFc2206eAbFDc5f3d9e7fA54f855A8C15D196c05")
+                .getOrThrow()
+            )
+            .getOrThrow()
+        )
+      )
+      .getOrThrow()
+
+    val text = parser.forReview(result.agreements.head)
+
+    text shouldBe "<p class=\"no-section\"><br />hello world1234 hello worldcfc2206eabfdc5f3d9e7fa54f855a8c15d196c05 hello world2020-01-01T10:00<br />1234hello world 0xcfc2206eabfdc5f3d9e7fa54f855a8c15d196c05hello world 2020-01-01T10:00hello world</p>"
   }
 }

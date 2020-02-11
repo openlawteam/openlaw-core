@@ -43,6 +43,25 @@ case object EthAddressType extends VariableType("EthAddress") {
       }
     } yield result
 
+  override def plus(
+      optLeft: Option[OpenlawValue],
+      optRight: Option[OpenlawValue],
+      executionResult: TemplateExecutionResult
+  ): Result[Option[OpenlawValue]] = {
+    combine(optLeft, optRight) {
+      case (left: OpenlawString, right: EthereumAddress) =>
+        Success(left + right.withLeading0x)
+      case (left: EthereumAddress, right: OpenlawString) =>
+        Success(left.withLeading0x + right)
+      case _ =>
+        Failure(
+          new UnsupportedOperationException(
+            s"$name type does not support addition"
+          )
+        )
+    }
+  }
+
   override def getTypeClass: Class[EthereumAddress] = classOf[EthereumAddress]
 
   def thisType: VariableType = EthAddressType

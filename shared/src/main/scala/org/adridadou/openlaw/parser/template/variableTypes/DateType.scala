@@ -72,22 +72,20 @@ abstract class DateTypeTrait(
       optLeft: Option[OpenlawValue],
       optRight: Option[OpenlawValue],
       executionResult: TemplateExecutionResult
-  ): Result[Option[OpenlawDateTime]] =
+  ): Result[Option[OpenlawValue]] =
     combine(optLeft, optRight) {
       case (left, period: Period) =>
         VariableType.convert[OpenlawDateTime](left).map(x => plus(x, period))
       case (left, OpenlawString(str)) =>
         PeriodType
-          .cast(str, executionResult)
-          .addMessageToFailure(
-            s"you can only make an addition between a date and a period. You are making an addition between a ${left.getClass.getSimpleName} and ${str.getClass.getSimpleName}"
-          )
-          .toResult
-          .flatMap { period =>
+          .cast(str, executionResult) match {
+          case Success(period) =>
             VariableType
               .convert[OpenlawDateTime](left)
               .map(x => plus(x, period))
-          }
+          case Failure(ex, message) =>
+            Success(OpenlawString(left.toString + str))
+        }
     }
 
   override def operationWith(
@@ -95,6 +93,7 @@ abstract class DateTypeTrait(
       operation: ValueOperation
   ): VariableType = (rightType, operation) match {
     case (_: DateTypeTrait, Minus) => PeriodType
+    case (TextType, Plus)          => TextType
     case _                         => this
   }
 

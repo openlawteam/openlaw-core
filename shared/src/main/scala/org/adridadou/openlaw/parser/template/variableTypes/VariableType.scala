@@ -293,7 +293,11 @@ abstract class VariableType(val name: String) {
       rightType: VariableType,
       operation: ValueOperation
   ): VariableType =
-    this
+    if (thisType === TextType || rightType === TextType) {
+      TextType
+    } else {
+      this
+    }
 
   def access(
       value: OpenlawValue,
@@ -454,7 +458,7 @@ abstract class VariableType(val name: String) {
   }
 
   def defaultFormatter: Formatter =
-    new DefaultFormatter
+    DefaultFormatter
 
   def getFormatter(
       name: FormatterDefinition,

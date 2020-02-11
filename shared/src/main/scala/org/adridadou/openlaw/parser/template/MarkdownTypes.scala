@@ -6,6 +6,7 @@ import io.circe.generic.auto._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.result.{Failure, Result, Success}
+import org.adridadou.openlaw.result.Implicits._
 import org.adridadou.openlaw.values.TemplateParameters
 import io.circe.generic.semiauto._
 import io.circe.syntax._
@@ -22,11 +23,11 @@ case object EmptyTemplatePart extends TemplatePart
 
 trait ConstantExpression extends Expression {
 
-  def typeFunction: TemplateExecutionResult => VariableType
+  val constantType: VariableType
 
   override def expressionType(
       executionResult: TemplateExecutionResult
-  ): Result[VariableType] = Success(typeFunction(executionResult))
+  ): Result[VariableType] = Success(constantType)
 
   override def validate(
       executionResult: TemplateExecutionResult
@@ -43,29 +44,36 @@ trait ConstantExpression extends Expression {
 
 final case class NoopConstant(varType: VariableType)
     extends ConstantExpression {
-  override def typeFunction: TemplateExecutionResult => VariableType =
-    _ => varType
+  override val constantType: VariableType = varType
   override def evaluate(
       executionResult: TemplateExecutionResult
   ): Result[Option[OpenlawValue]] = Success(None)
 }
 
 final case class StringConstant(
-    value: String,
-    typeFunction: TemplateExecutionResult => VariableType = _ => TextType
+    value: String
 ) extends ConstantExpression {
+
+  override val constantType: VariableType = {
+    new PeriodTypeParser(value).root.run().toResult match {
+      case Success(_) => PeriodType
+      case _          => TextType
+    }
+  }
+
   override def evaluate(
       executionResult: TemplateExecutionResult
   ): Result[Option[OpenlawValue]] =
-    typeFunction(executionResult).cast(value, executionResult).map(Some(_))
+    constantType.cast(value, executionResult).map(Some(_))
 
   override def toString: String = "\"" + value + "\""
 }
 
 final case class BooleanConstant(
-    value: Boolean,
-    typeFunction: TemplateExecutionResult => VariableType = _ => YesNoType
+    value: Boolean
 ) extends ConstantExpression {
+  override val constantType: VariableType = YesNoType
+
   override def evaluate(
       executionResult: TemplateExecutionResult
   ): Result[Option[OpenlawValue]] =
@@ -76,20 +84,22 @@ final case class BooleanConstant(
 
 final case class JsonConstant(
     value: String,
-    typeFunction: TemplateExecutionResult => VariableType = _ => TextType
+    constantType: VariableType = TextType
 ) extends ConstantExpression {
   override def evaluate(
       executionResult: TemplateExecutionResult
   ): Result[Option[OpenlawValue]] =
-    typeFunction(executionResult).cast(value, executionResult).map(Some(_))
+    Success(Some(OpenlawString(value)))
 
   override def toString: String = value
 }
 
 final case class NumberConstant(
-    value: BigDecimal,
-    typeFunction: TemplateExecutionResult => VariableType = _ => NumberType
+    value: BigDecimal
 ) extends ConstantExpression {
+
+  override val constantType: VariableType = NumberType
+
   override def evaluate(
       executionResult: TemplateExecutionResult
   ): Result[Option[OpenlawValue]] =
