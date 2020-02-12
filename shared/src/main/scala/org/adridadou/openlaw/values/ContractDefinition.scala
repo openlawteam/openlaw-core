@@ -1,5 +1,7 @@
 package org.adridadou.openlaw.values
 
+import java.time.LocalDateTime
+
 import org.adridadou.openlaw.oracles.{CryptoService, UserId}
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template.variableTypes.{
@@ -10,9 +12,10 @@ import org.adridadou.openlaw.parser.template.variableTypes.{
 final case class ContractDefinition(
     creatorId: UserId = UserId.SYSTEM_ID,
     mainTemplate: TemplateId,
-    templates: Map[TemplateSourceIdentifier, TemplateId] = Map(),
+    templates: Map[TemplateSourceIdentifier, TemplateId] = Map.empty,
     parameters: TemplateParameters,
-    paragraphs: Map[Int, ParagraphEdits] = Map()
+    paragraphs: Map[Int, ParagraphEdits] = Map.empty,
+    creationDate: LocalDateTime = LocalDateTime.now
 ) {
 
   def id(crypto: CryptoService): ContractId =

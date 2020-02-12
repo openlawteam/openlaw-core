@@ -195,6 +195,7 @@ final case class OpenlawVmState(
           executions,
           externalCallStructures,
           Some(definition.id(crypto)),
+          Some(definition.creationDate),
           profileAddress
         )
       ) match {
