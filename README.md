@@ -1,6 +1,6 @@
 # Shared Scala libraries for the OpenLaw project
 
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/4fe8f703ef3546738530fdcc585ccd2d)](https://www.codacy.com)
+[![CodeFactor](https://www.codefactor.io/repository/github/openlawteam/openlaw-core/badge)](https://www.codefactor.io/repository/github/openlawteam/openlaw-core)
 
 ## Getting started
 
