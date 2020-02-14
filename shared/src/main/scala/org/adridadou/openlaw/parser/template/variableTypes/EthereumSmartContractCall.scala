@@ -198,7 +198,10 @@ final case class EthereumSmartContractCall(
               case Nil =>
                 Some(
                   getStartDate(executionResult)
-                    .map(_.getOrElse(LocalDateTime.now(executionResult.clock)))
+                    .map(
+                      _.orElse(executionResult.info.creationDate)
+                        .getOrElse(executionResult.info.now)
+                    )
                 )
               case list =>
                 val lastDate = list.maxBy(_.toEpochSecond(ZoneOffset.UTC))

@@ -1,5 +1,7 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
+import java.time.LocalDateTime
+
 import cats.implicits._
 import org.adridadou.openlaw.parser.template.{
   TemplateExecutionResult,
@@ -14,6 +16,7 @@ import io.circe.parser._
 import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawValue}
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success}
+import LocalDateTimeHelper._
 
 case object OLOwnType extends VariableType("OLInfo") with NoShowInForm {
 
@@ -34,7 +37,11 @@ case object OLOwnType extends VariableType("OLInfo") with NoShowInForm {
       expr: Expression,
       executionResult: TemplateExecutionResult
   ): Result[VariableType] = keys match {
-    case Nil      => Success(OLOwnType)
+    case Nil => Success(OLOwnType)
+    case VariableMemberKey(Left(VariableName("now"))) :: Nil =>
+      Success(DateTimeType)
+    case VariableMemberKey(Left(VariableName("creationDate"))) :: Nil =>
+      Success(DateTimeType)
     case _ :: Nil => Success(TextType)
     case _ =>
       Failure(
@@ -79,11 +86,21 @@ case object OLOwnType extends VariableType("OLInfo") with NoShowInForm {
       case "id" => Success(info.id.map(_.id).getOrElse("-"))
       case "profileaddress" =>
         Success(info.profileAddress.map(_.withLeading0x).getOrElse("-"))
+      case "now" =>
+        DateTimeType.internalFormat(info.now)
       case _ => Failure(s"property '$property' not found for type 'OLInfo'")
     }
 
   private def checkProperty(key: String): Result[Unit] =
-    accessProperty(OLInformation(id = None, profileAddress = None), key) match {
+    accessProperty(
+      OLInformation(
+        id = None,
+        profileAddress = None,
+        creationDate = None,
+        now = LocalDateTime.now()
+      ),
+      key
+    ) match {
       case Left(ex) => Failure(ex)
       case Right(_) => Success(())
     }
@@ -96,5 +113,7 @@ object OLInformation {
 
 final case class OLInformation(
     id: Option[ContractId] = None,
-    profileAddress: Option[EthereumAddress] = None
+    creationDate: Option[LocalDateTime] = None,
+    profileAddress: Option[EthereumAddress] = None,
+    now: LocalDateTime = LocalDateTime.now()
 ) extends OpenlawNativeValue

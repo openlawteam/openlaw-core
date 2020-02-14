@@ -1,5 +1,6 @@
 package org.adridadou.openlaw.vm
 
+import java.time.LocalDateTime
 import java.util.concurrent.atomic.AtomicInteger
 
 import org.adridadou.openlaw.result._
@@ -23,10 +24,11 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     execute(
       mainTemplate,
       TemplateParameters(),
-      Map(),
-      Map(),
-      Map(),
-      Map(),
+      Map.empty,
+      Map.empty,
+      Map.empty,
+      Map.empty,
+      None,
       None,
       None
     )
@@ -38,7 +40,17 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       mainTemplate: CompiledTemplate,
       parameters: TemplateParameters
   ): Result[OpenlawExecutionState] =
-    execute(mainTemplate, parameters, Map(), Map(), Map(), Map(), None, None)
+    execute(
+      mainTemplate,
+      parameters,
+      Map.empty,
+      Map.empty,
+      Map.empty,
+      Map.empty,
+      None,
+      None,
+      None
+    )
 
   /**
     * Entry point. This is where you start the execution of the main template
@@ -54,9 +66,10 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       mainTemplate,
       parameters,
       templates,
-      Map(),
-      Map(),
+      Map.empty,
+      Map.empty,
       externalCallStructures,
+      None,
       None,
       None
     )
@@ -69,12 +82,18 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       executions: Map[ActionIdentifier, Executions],
       externalCallStructures: Map[ServiceName, IntegratedServiceDefinition],
       id: Option[ContractId],
+      creationDate: Option[LocalDateTime],
       profileAddress: Option[EthereumAddress]
   ): Result[OpenlawExecutionState] = {
     val executionResult = OpenlawExecutionState(
       parameters = parameters,
       id = TemplateExecutionResultId("@@anonymous_main_template_id@@"),
-      info = OLInformation(id = id, profileAddress = profileAddress),
+      info = OLInformation(
+        id = id,
+        profileAddress = profileAddress,
+        creationDate = creationDate,
+        now = LocalDateTime.now(mainTemplate.clock)
+      ),
       template = mainTemplate,
       executions = executions,
       anonymousVariableCounter = new AtomicInteger(0),

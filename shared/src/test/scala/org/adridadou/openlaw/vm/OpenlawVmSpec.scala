@@ -605,7 +605,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     val definition = ContractDefinition(
       creatorId = UserId("hello@world.com"),
       mainTemplate = templateId,
-      templates = Map(),
+      templates = Map.empty,
       parameters = TemplateParameters()
     )
 
