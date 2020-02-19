@@ -1940,7 +1940,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     parser.compileTemplate(text) match {
       case Right(template) => template
       case Failure(ex, message) =>
-        fail(message, ex)
+        throw new RuntimeException(message, ex)
     }
 
   it should "be possible to add descriptions to properties of a Structure" in {
@@ -2760,5 +2760,26 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     val text = parser.forReview(result.agreements.head)
 
     text shouldBe "<p class=\"no-section\"><br />hello world1234 hello worldcfc2206eabfdc5f3d9e7fa54f855a8c15d196c05 hello world2020-01-01T10:00<br />1234hello world 0xcfc2206eabfdc5f3d9e7fa54f855a8c15d196c05hello world 2020-01-01T10:00hello world</p>"
+  }
+
+  it should "be possible to define a structure within a structure" in {
+    val template =
+      compile("""
+        |[[struct a: Structure(
+        |a: Text;
+        |b: Number
+        |)]]
+        |
+        |[[struct b:Structure(
+        |a: struct a;
+        |b: struct a;
+        |c: Text)]]
+        |
+        |[[some value:struct b]]
+        |""".stripMargin)
+
+    val result = engine.execute(template).getOrThrow()
+
+    result.buildStructureValueFromVariables.getOrThrow()
   }
 }

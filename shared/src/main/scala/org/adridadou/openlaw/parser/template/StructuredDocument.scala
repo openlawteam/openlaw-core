@@ -1232,7 +1232,7 @@ final case class OpenlawExecutionState(
   def buildStructureValueFromVariables
       : Result[OpenlawMap[VariableName, OpenlawValue]] =
     for {
-      values <- variablesInternal
+      values <- variablesThatAreNotTypeDefinition
         .map(variable => variable.evaluate(this).map(variable.name -> _))
         .toList
         .sequence
@@ -1240,9 +1240,20 @@ final case class OpenlawExecutionState(
       values.flatMap({ case (name, optValue) => optValue.map(name -> _) }).toMap
     )
 
+  private def variablesThatAreNotTypeDefinition
+      : mutable.Buffer[VariableDefinition] =
+    variablesInternal.filter(_.varType(this) match {
+      case AbstractStructureType => false
+      case ChoiceType            => false
+      case AbstractDomainType    => false
+      case _                     => true
+    })
+
   def buildStructureFromVariables: Structure =
     buildStructure(
-      variablesInternal.map(variable => variable.name -> variable).toMap
+      variablesThatAreNotTypeDefinition
+        .map(variable => variable.name -> variable)
+        .toMap
     )
 
   def buildStructure(
