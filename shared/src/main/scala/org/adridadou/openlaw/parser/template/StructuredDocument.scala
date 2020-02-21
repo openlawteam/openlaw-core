@@ -1452,6 +1452,7 @@ final case class Paragraph(elements: List[AgreementElement] = Nil)
 
 final case class TableElement(
     header: List[List[AgreementElement]],
+    alignment: List[(Alignment, Border)],
     rows: List[List[List[AgreementElement]]]
 ) extends AgreementElement {
   val rowCount: Int = rows.size
