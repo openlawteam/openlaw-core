@@ -299,17 +299,13 @@ trait ExpressionRules extends JsonRules {
 
   def parametersDefinition: Rule1[Parameter] = rule {
     parametersMapDefinition |
-      valueParameterDefinition
-  }
-
-  def valueParameterDefinition: Rule1[Parameter] = rule {
-    oneOrMore(ws ~ (FunctionRule | ExpressionRule) ~ ws)
-      .separatedBy(",") ~> { s: Seq[Expression] =>
-      s.toList match {
-        case head :: Nil => OneValueParameter(head)
-        case lst         => ListParameter(lst)
-      }
-    }
+      (oneOrMore(ws ~ (FunctionRule | ExpressionRule) ~ ws)
+        .separatedBy(",") ~> { s: Seq[Expression] =>
+        s.toList match {
+          case head :: Nil => OneValueParameter(head)
+          case lst         => ListParameter(lst)
+        }
+      })
   }
 
   def parametersMapDefinition: Rule1[Parameters] = rule {

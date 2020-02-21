@@ -1,9 +1,6 @@
 package org.adridadou.openlaw.parser
 
-import cats.implicits._
 import cats.Eq
-import org.adridadou.openlaw.result.{Result, Success}
-import org.adridadou.openlaw.result.Implicits.RichOption
 
 package object template {
 
@@ -44,15 +41,18 @@ package object template {
   case object Hide extends SectionSymbol
 
   object SectionFormat {
-    val values: Seq[SectionFormat] =
-      Seq(Period, Parens, RightParen, PeriodNested)
+    val values: Seq[SectionFormat] = Seq(Period, Parens, RightParen)
     def withNameOption(name: String): Option[SectionFormat] =
       values.find(_.toString.toLowerCase.equals(name.toLowerCase))
   }
-  sealed trait SectionFormat
-  case object Plain extends SectionFormat
+  sealed trait SectionFormat {
+    def formatString: String = this match {
+      case Period     => "%s."
+      case Parens     => "(%s)"
+      case RightParen => "%s)"
+    }
+  }
   case object Period extends SectionFormat
-  case object PeriodNested extends SectionFormat
   case object Parens extends SectionFormat
   case object RightParen extends SectionFormat
 
@@ -66,13 +66,4 @@ package object template {
   case object AlignLeft extends SectionAlign
   case object AlignRight extends SectionAlign
   case object AlignRightThreeQuarters extends SectionAlign
-
-  sealed trait Border
-  final case object ShowBorder extends Border
-  final case object HideBorder extends Border
-
-  sealed trait Alignment
-  final case object RightAlignment extends Alignment
-  final case object LeftAlignment extends Alignment
-  final case object CenterAlignment extends Alignment
 }

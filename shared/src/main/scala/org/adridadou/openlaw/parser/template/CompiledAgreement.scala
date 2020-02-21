@@ -150,8 +150,6 @@ final case class CompiledAgreement(
         }
     }
 
-  private def mergeTableIfNecessary() = {}
-
   private def getAgreementElementsFromElement(
       renderedElements: List[AgreementElement],
       element: TemplatePart,
@@ -172,27 +170,15 @@ final case class CompiledAgreement(
             .sequence
         } yield {
           if (headerElements.isEmpty) {
-            renderedElements.reverse match {
-              case FreeText(Text(str)) :: (previousTable: TableElement) :: _
-                  if str.trim.isEmpty =>
-                renderedElements.init.init :+ previousTable
-                  .copy(rows = previousTable.rows ++ rowElements)
-              case (previousTable: TableElement) :: _ =>
+            renderedElements.lastOption match {
+              case Some(previousTable: TableElement) =>
                 renderedElements.init :+ previousTable
                   .copy(rows = previousTable.rows ++ rowElements)
               case _ =>
-                renderedElements :+ TableElement(
-                  headerElements,
-                  t.alignment,
-                  rowElements
-                )
+                renderedElements :+ TableElement(headerElements, rowElements)
             }
           } else {
-            renderedElements :+ TableElement(
-              headerElements,
-              t.alignment,
-              rowElements
-            )
+            renderedElements :+ TableElement(headerElements, rowElements)
           }
         }
 

@@ -1,17 +1,9 @@
 package org.adridadou.openlaw.parser.template.printers
 
-import org.adridadou.openlaw.parser.template.{
-  Parens,
-  Period,
-  PeriodNested,
-  RightParen,
-  _
-}
+import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.values.TemplateTitle
 import cats.implicits._
-import org.adridadou.openlaw.generateFullSectionValue
-import org.adridadou.openlaw.parser.template.variableTypes.SectionInfo
-import org.adridadou.openlaw.result.{Result, Success}
+import org.adridadou.openlaw.result.Result
 import org.adridadou.openlaw.result.Implicits.RichOption
 
 trait AgreementPrinter[T] {
@@ -116,11 +108,9 @@ object SectionHelper {
   }
 
   def generateReferenceValue(
-      section: Section,
       lvl: Int,
       sections: Seq[Int],
-      overrideSymbol: Option[SectionSymbol],
-      executionResult: OpenlawExecutionState
+      overrideSymbol: Option[SectionSymbol]
   ): Result[String] = {
     val numberInList = calculateNumberInList(lvl, sections)
     SectionFormats
@@ -129,36 +119,31 @@ object SectionHelper {
       .map {
         case (symbol, _, _, _, _) =>
           formatSectionValue(
-            section,
-            executionResult,
             numberInList,
             overrideSymbol.getOrElse(symbol),
-            Plain
+            "%s"
           )
       }
   }
 
   def generateListNumber(
-      section: Section,
+      lvl: Int,
       sections: Seq[Int],
       overrideSymbol: Option[SectionSymbol],
-      overrideFormat: Option[SectionFormat],
-      executionResult: OpenlawExecutionState
+      overrideFormat: Option[SectionFormat]
   ): Result[String] = {
-    val numberInList = calculateNumberInList(section.lvl, sections)
+    val numberInList = calculateNumberInList(lvl, sections)
     SectionFormats
-      .get(section.lvl - 1)
+      .get(lvl - 1)
       .toResult(s"we handle only ${SectionFormats.size} levels for now")
       .map {
         case (symbol, _, format, _, _) =>
           val sectionSymbol = overrideSymbol.getOrElse(symbol)
           val sectionFormat = overrideFormat.getOrElse(format)
           formatSectionValue(
-            section,
-            executionResult,
             numberInList,
             sectionSymbol,
-            sectionFormat
+            sectionFormat.formatString
           )
       }
   }
@@ -166,65 +151,18 @@ object SectionHelper {
   def calculateNumberInList(lvl: Int, sections: Seq[Int]): Int =
     sections.reverse.takeWhile(_ >= lvl).count(_ === lvl)
 
-  private def formatSectionSymbol(
-      format: SectionFormat,
-      section: Section,
-      symbol: String,
-      executionResult: OpenlawExecutionState
-  ): String =
-    format match {
-      case Plain      => "%s".format(symbol)
-      case Period     => "%s.".format(symbol)
-      case Parens     => "(%s)".format(symbol)
-      case RightParen => "%s)".format(symbol)
-      case PeriodNested =>
-        generateFullSectionValue(section, symbol, executionResult)
-    }
-
   private def formatSectionValue(
-      section: Section,
-      executionResult: OpenlawExecutionState,
       index: Int,
       sectionSymbol: SectionSymbol,
-      format: SectionFormat
+      formatString: String
   ): String =
     sectionSymbol match {
-      case Decimal =>
-        formatSectionSymbol(
-          format,
-          section,
-          index.toString,
-          executionResult
-        )
-      case LowerLetter =>
-        formatSectionSymbol(
-          format,
-          section,
-          lowerLetter(index),
-          executionResult
-        )
-      case UpperLetter =>
-        formatSectionSymbol(
-          format,
-          section,
-          lowerLetter(index).toUpperCase,
-          executionResult
-        )
-      case LowerRoman =>
-        formatSectionSymbol(
-          format,
-          section,
-          toRomanNumerals(index),
-          executionResult
-        )
-      case UpperRoman =>
-        formatSectionSymbol(
-          format,
-          section,
-          toRomanNumerals(index).toUpperCase,
-          executionResult
-        )
-      case Hide => ""
+      case Decimal     => formatString.format(index.toString)
+      case LowerLetter => formatString.format(lowerLetter(index))
+      case UpperLetter => formatString.format(lowerLetter(index).toUpperCase)
+      case LowerRoman  => formatString.format(toRomanNumerals(index))
+      case UpperRoman  => formatString.format(toRomanNumerals(index).toUpperCase)
+      case Hide        => ""
     }
 
   private def lowerLetter(index: Int): String =

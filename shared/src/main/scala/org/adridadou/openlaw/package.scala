@@ -1,13 +1,7 @@
 package org.adridadou
 
 import java.time.LocalDateTime
-
-import org.adridadou.openlaw.parser.template.{
-  AgreementElement,
-  OpenlawExecutionState,
-  Section
-}
-
+import org.adridadou.openlaw.parser.template.AgreementElement
 import scala.collection.mutable
 import scala.language.implicitConversions
 
@@ -170,18 +164,4 @@ package object openlaw {
   // Creates a thread-safe mutable set containing the optional provided entries.
   def createConcurrentMutableSet[T](values: Iterable[T]): mutable.Set[T] =
     (new mutable.HashSet[T] with mutable.SynchronizedSet[T]) ++ values
-
-  def generateFullSectionValue(
-      section: Section,
-      sectionValue: String,
-      executionResult: OpenlawExecutionState
-  ): String = {
-    val fullSectionValue = (1 to section.lvl)
-      .map({
-        case section.lvl => sectionValue
-        case idx         => executionResult.getLastSectionByLevel(idx)
-      })
-      .mkString(".")
-    fullSectionValue
-  }
 }

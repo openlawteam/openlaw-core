@@ -1232,7 +1232,7 @@ final case class OpenlawExecutionState(
   def buildStructureValueFromVariables
       : Result[OpenlawMap[VariableName, OpenlawValue]] =
     for {
-      values <- variablesThatAreNotTypeDefinition
+      values <- variablesInternal
         .map(variable => variable.evaluate(this).map(variable.name -> _))
         .toList
         .sequence
@@ -1240,20 +1240,9 @@ final case class OpenlawExecutionState(
       values.flatMap({ case (name, optValue) => optValue.map(name -> _) }).toMap
     )
 
-  private def variablesThatAreNotTypeDefinition
-      : mutable.Buffer[VariableDefinition] =
-    variablesInternal.filter(_.varType(this) match {
-      case AbstractStructureType => false
-      case ChoiceType            => false
-      case AbstractDomainType    => false
-      case _                     => true
-    })
-
   def buildStructureFromVariables: Structure =
     buildStructure(
-      variablesThatAreNotTypeDefinition
-        .map(variable => variable.name -> variable)
-        .toMap
+      variablesInternal.map(variable => variable.name -> variable).toMap
     )
 
   def buildStructure(
@@ -1452,7 +1441,6 @@ final case class Paragraph(elements: List[AgreementElement] = Nil)
 
 final case class TableElement(
     header: List[List[AgreementElement]],
-    alignment: List[(Alignment, Border)],
     rows: List[List[List[AgreementElement]]]
 ) extends AgreementElement {
   val rowCount: Int = rows.size

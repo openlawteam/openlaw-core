@@ -15,7 +15,6 @@ class BlockRulesSpec
   case class TestParser(string: String) extends BlockRules {
     val input = ParserInput(string)
 
-    def BlockRule = rule { blockRule ~ EOI }
     def TableColumnEntry = rule { tableColumnEntry ~ EOI }
     def TableRow = rule { tableRow ~ EOI }
     def TableHeaderBreakString = rule { tableHeaderBreakString ~ EOI }
@@ -151,10 +150,7 @@ class BlockRulesSpec
     TestParser("---").TableHeaderBreakString.run() shouldBe a[Success[_]]
     TestParser(":--").TableHeaderBreakString.run() shouldBe a[Success[_]]
     TestParser("--:").TableHeaderBreakString.run() shouldBe a[Success[_]]
-    TestParser("==:").TableHeaderBreakString.run() shouldBe a[Success[_]]
     TestParser(":-:").TableHeaderBreakString.run() shouldBe a[Success[_]]
-    TestParser(":=-").TableHeaderBreakString.run() shouldBe a[Failure[_]]
-    TestParser(":-=").TableHeaderBreakString.run() shouldBe a[Failure[_]]
     TestParser("::-").TableHeaderBreakString.run() shouldBe a[Failure[_]]
     TestParser("::--").TableHeaderBreakString.run() shouldBe a[Failure[_]]
     TestParser("::").TableHeaderBreakString.run() shouldBe a[Failure[_]]
@@ -189,18 +185,13 @@ class BlockRulesSpec
 
   it should "parse a table construct" in {
     val table = "| head1 | head2 | head3 | \n" +
-      "| --- | ==: | :-: |\n" +
+      "| --- | --- | --- |\n" +
       "| entry11 | entry12 | entry13 |\n" +
       "| entry21 | entry22 | entry23 |\n"
 
     val expected = List(
       Table(
         List(List(Text("head1")), List(Text("head2")), List(Text("head3"))),
-        List(
-          LeftAlignment -> ShowBorder,
-          RightAlignment -> HideBorder,
-          CenterAlignment -> ShowBorder
-        ),
         List(
           List(
             List(Text("entry11")),
@@ -216,81 +207,6 @@ class BlockRulesSpec
       )
     )
     checkResult(TestParser(table), TestParser(table).Table.run()) shouldBe expected
-  }
-
-  it should "parse a table construct with header and no rows" in {
-    val table =
-      "| Lender | Closing / Subsequent Closing Date | Principal Balance of Promissory Note |\n" +
-        "| --------- | --------- | --------- |\n"
-
-    checkResult(TestParser(table), TestParser(table).Table.run()) shouldBe List(
-      Table(
-        List(
-          List(Text("Lender")),
-          List(Text("Closing / Subsequent Closing Date")),
-          List(Text("Principal Balance of Promissory Note"))
-        ),
-        List(
-          LeftAlignment -> ShowBorder,
-          LeftAlignment -> ShowBorder,
-          LeftAlignment -> ShowBorder
-        ),
-        Nil
-      )
-    )
-
-    checkResult(TestParser(table), TestParser(table).BlockRule.run()) shouldBe Block(
-      List(
-        TemplateText(
-          List(
-            Table(
-              List(
-                List(Text("Lender")),
-                List(Text("Closing / Subsequent Closing Date")),
-                List(Text("Principal Balance of Promissory Note"))
-              ),
-              List(
-                LeftAlignment -> ShowBorder,
-                LeftAlignment -> ShowBorder,
-                LeftAlignment -> ShowBorder
-              ),
-              Nil
-            )
-          )
-        )
-      )
-    )
-  }
-
-  it should "parse a table construct with loop" in {
-    val table =
-      "| Lender | Closing / Subsequent Closing Date | Principal Balance of Promissory Note |\n" +
-        "| --------- | --------- | --------- |\n" +
-        "{{#for each Lender: Lenders =>\n" +
-        "| [[Lender.First Name]] [[Lender.Last Name]] | [[Effective Date]] / [[Closing Date]] | $[[Lender.Investment Amount]] |\n" +
-        "}}\n"
-
-    val b =
-      TemplateText(
-        List(
-          Table(
-            List(
-              List(Text("Lender")),
-              List(Text("Closing / Subsequent Closing Date")),
-              List(Text("Principal Balance of Promissory Note"))
-            ),
-            List(
-              (LeftAlignment, ShowBorder),
-              (LeftAlignment, ShowBorder),
-              (LeftAlignment, ShowBorder)
-            ),
-            List()
-          )
-        )
-      )
-
-    checkResult(TestParser(table), TestParser(table).BlockRule.run())
-      .elems(0) shouldBe b
   }
 
   private def checkResult[T](compiler: TestParser, result: Try[T]): T =

@@ -1818,8 +1818,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
     engine.execute(template, TemplateParameters("texts" -> paramValue)) match {
       case Right(result) =>
-        parser.forReview(result.agreements.head) shouldBe
-          """<p class="no-section">this is a test<br /><br />        </p><p class="no-section">to see if for each works<br /><br />       </p><p class="no-section"><br /><br />       </p><p class="no-section"><table class="markdown-table"><tr class="markdown-table-row"><th class="markdown-table-header align-left border-show">head1</th><th class="markdown-table-header align-left border-show">head2</th><th class="markdown-table-header align-left border-show">head3</th></tr><tr class="markdown-table-row"><td class="markdown-table-data align-left border-show">val11</td><td class="markdown-table-data align-left border-show">val12</td><td class="markdown-table-data align-left border-show">text1</td></tr><tr class="markdown-table-row"><td class="markdown-table-data align-left border-show">val11</td><td class="markdown-table-data align-left border-show">val12</td><td class="markdown-table-data align-left border-show">text2</td></tr><tr class="markdown-table-row"><td class="markdown-table-data align-left border-show">val11</td><td class="markdown-table-data align-left border-show">val12</td><td class="markdown-table-data align-left border-show">text3</td></tr></table></p>""".stripMargin
+        parser.forReview(result.agreements.head)
       case Left(ex) =>
         ex.printStackTrace()
         fail(ex.message)
@@ -1941,7 +1940,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     parser.compileTemplate(text) match {
       case Right(template) => template
       case Failure(ex, message) =>
-        throw new RuntimeException(message, ex)
+        fail(message, ex)
     }
 
   it should "be possible to add descriptions to properties of a Structure" in {
@@ -2024,7 +2023,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       """
         |{{conditional =>
         || Optionee | Title | Address | Ethereum Address | Option Type | Number of Shares | Exercise Price | Vesting Commencement Date | Vesting Method | State of Residence |
-        || --------- | --------- | --------- | --------- | --------- | --------- | --------- | --------- | ----- | --- |
+        || --------- | --------- | --------- | --------- | --------- | --------- | --------- | --------- |
         || [[Optionee 1 Name]] | [[Optionee 1 Title]] | [[Optionee 1 Address: Address]] | [[Optionee 1 Ethereum Address]] | [[Optionee 1 Option Type]] | [[Optionee 1 Shares: Number]] | [[Option Exercise Price: Number]] | [[Optionee 1 Vesting Commencement Date]] | [[Optionee 1 Vesting Method]] | [[Optionee 1 State]] |}}
       """.stripMargin
     )
@@ -2032,7 +2031,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     val Right(result) =
       engine.execute(template, TemplateParameters("conditional" -> "true"))
 
-    parser.forReview(result.agreements.head) shouldBe """<p class="no-section"><br /><table class="markdown-table"><tr class="markdown-table-row"><th class="markdown-table-header align-left border-show">Optionee</th><th class="markdown-table-header align-left border-show">Title</th><th class="markdown-table-header align-left border-show">Address</th><th class="markdown-table-header align-left border-show">Ethereum Address</th><th class="markdown-table-header align-left border-show">Option Type</th><th class="markdown-table-header align-left border-show">Number of Shares</th><th class="markdown-table-header align-left border-show">Exercise Price</th><th class="markdown-table-header align-left border-show">Vesting Commencement Date</th><th class="markdown-table-header align-left border-show">Vesting Method</th><th class="markdown-table-header align-left border-show">State of Residence</th></tr><tr class="markdown-table-row"><td class="markdown-table-data align-left border-show">[[Optionee 1 Name]]</td><td class="markdown-table-data align-left border-show">[[Optionee 1 Title]]</td><td class="markdown-table-data align-left border-show">[[Optionee 1 Address]]</td><td class="markdown-table-data align-left border-show">[[Optionee 1 Ethereum Address]]</td><td class="markdown-table-data align-left border-show">[[Optionee 1 Option Type]]</td><td class="markdown-table-data align-left border-show">[[Optionee 1 Shares]]</td><td class="markdown-table-data align-left border-show">[[Option Exercise Price]]</td><td class="markdown-table-data align-left border-show">[[Optionee 1 Vesting Commencement Date]]</td><td class="markdown-table-data align-left border-show">[[Optionee 1 Vesting Method]]</td><td class="markdown-table-data align-left border-show">[[Optionee 1 State]]</td></tr></table><br />      </p>"""
+    parser.forReview(result.agreements.head) shouldBe "<p class=\"no-section\"><br /><table class=\"markdown-table\"><tr class=\"markdown-table-row\"><th class=\"markdown-table-header\">Optionee</th><th class=\"markdown-table-header\">Title</th><th class=\"markdown-table-header\">Address</th><th class=\"markdown-table-header\">Ethereum Address</th><th class=\"markdown-table-header\">Option Type</th><th class=\"markdown-table-header\">Number of Shares</th><th class=\"markdown-table-header\">Exercise Price</th><th class=\"markdown-table-header\">Vesting Commencement Date</th><th class=\"markdown-table-header\">Vesting Method</th><th class=\"markdown-table-header\">State of Residence</th></tr><tr class=\"markdown-table-row\"><td class=\"markdown-table-data\">[[Optionee 1 Name]]</td><td class=\"markdown-table-data\">[[Optionee 1 Title]]</td><td class=\"markdown-table-data\">[[Optionee 1 Address]]</td><td class=\"markdown-table-data\">[[Optionee 1 Ethereum Address]]</td><td class=\"markdown-table-data\">[[Optionee 1 Option Type]]</td><td class=\"markdown-table-data\">[[Optionee 1 Shares]]</td><td class=\"markdown-table-data\">[[Option Exercise Price]]</td><td class=\"markdown-table-data\">[[Optionee 1 Vesting Commencement Date]]</td><td class=\"markdown-table-data\">[[Optionee 1 Vesting Method]]</td><td class=\"markdown-table-data\">[[Optionee 1 State]]</td></tr></table><br />      </p>"
   }
 
   it should "see when a value has been defined for a collection while validating" in {
@@ -2761,26 +2760,5 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     val text = parser.forReview(result.agreements.head)
 
     text shouldBe "<p class=\"no-section\"><br />hello world1234 hello worldcfc2206eabfdc5f3d9e7fa54f855a8c15d196c05 hello world2020-01-01T10:00<br />1234hello world 0xcfc2206eabfdc5f3d9e7fa54f855a8c15d196c05hello world 2020-01-01T10:00hello world</p>"
-  }
-
-  it should "be possible to define a structure within a structure" in {
-    val template =
-      compile("""
-        |[[struct a: Structure(
-        |a: Text;
-        |b: Number
-        |)]]
-        |
-        |[[struct b:Structure(
-        |a: struct a;
-        |b: struct a;
-        |c: Text)]]
-        |
-        |[[some value:struct b]]
-        |""".stripMargin)
-
-    val result = engine.execute(template).getOrThrow()
-
-    result.buildStructureValueFromVariables.getOrThrow()
   }
 }

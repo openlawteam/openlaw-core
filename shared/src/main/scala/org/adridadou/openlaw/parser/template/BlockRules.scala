@@ -5,7 +5,7 @@ import java.util.UUID
 
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.variableTypes.YesNoType
-import org.parboiled2.{Parser, Rule0, Rule1, Rule2}
+import org.parboiled2.{Parser, Rule0, Rule1}
 
 import scala.annotation.tailrec
 
@@ -361,7 +361,7 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   }
 
   def table: Rule1[Seq[Table]] = rule {
-    tableWithHeaderAndRow | tableWithoutRow | tableWithoutHeader
+    tableWithHeaderAndRow | tableWithoutHeader | tableWithoutRow
   }
 
   def EndOfBlock: Rule0 = rule {
@@ -372,13 +372,11 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
     tableHeader ~ nl ~ whitespace ~ oneOrMore(tableRow ~ EndOfBlock) ~> (
         (
             headers: Seq[Seq[TemplatePart]],
-            alignment: Seq[(Alignment, Border)],
             rows: Seq[Seq[Seq[TemplatePart]]]
         ) =>
           Seq(
             Table(
               headers.map(_.toList).toList,
-              alignment.toList,
               rows.map(_.map(_.toList).toList).toList
             )
           )
@@ -388,25 +386,21 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   def tableWithoutHeader: Rule1[Seq[Table]] = rule {
     oneOrMore(tableRow ~ EndOfBlock) ~> (
         (rows: Seq[Seq[Seq[TemplatePart]]]) =>
-          Seq(Table(Nil, Nil, rows.map(_.map(_.toList).toList).toList))
+          Seq(Table(Nil, rows.map(_.map(_.toList).toList).toList))
       )
   }
 
   def tableWithoutRow: Rule1[Seq[Table]] = rule {
     tableHeader ~ nl ~> (
-        (
-            headers: Seq[Seq[TemplatePart]],
-            alignment: Seq[(Alignment, Border)]
-        ) => Seq(Table(headers.map(_.toList).toList, alignment.toList, Nil))
-    )
+        (headers: Seq[Seq[TemplatePart]]) =>
+          Seq(Table(headers.map(_.toList).toList, Nil))
+      )
   }
 
-  def tableHeader: Rule2[Seq[Seq[TemplatePart]], Seq[(Alignment, Border)]] =
-    rule {
-      tableRow ~ nl ~ whitespace ~ tableHeaderBreak ~ whitespace
-    }
-
-  def tableHeaderBreak: Rule1[Seq[(Alignment, Border)]] = rule {
+  def tableHeader: Rule1[Seq[Seq[TemplatePart]]] = rule {
+    tableRow ~ nl ~ whitespace ~ tableHeaderBreak ~ whitespace
+  }
+  def tableHeaderBreak: Rule0 = rule {
     whitespace ~ pipe ~ oneOrMore(tableHeaderBreakString)
       .separatedBy(pipe) ~ whitespace ~ pipe ~ whitespace
   }
@@ -425,31 +419,11 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
     )) ~ optional(pipe) ~ whitespace
   }
 
-  def showBorder: Rule1[Border] = rule { oneOrMore("-") ~> (() => ShowBorder) }
-  def hideBorder: Rule1[Border] = rule { oneOrMore("=") ~> (() => HideBorder) }
-
-  def leftAlignment: Rule1[(Alignment, Border)] = rule {
-    optional(":") ~ (showBorder | hideBorder) ~> (
-        (border: Border) => LeftAlignment -> border
-    )
-  }
-
-  def rightAlignment: Rule1[(Alignment, Border)] = rule {
-    (showBorder | hideBorder) ~ ":" ~> (
-        (border: Border) => RightAlignment -> border
-    )
-  }
-
-  def centerAlignment: Rule1[(Alignment, Border)] = rule {
-    ":" ~ (showBorder | hideBorder) ~ ":" ~> (
-        (border: Border) => CenterAlignment -> border
-    )
-  }
-
-  def tableHeaderBreakString: Rule1[(Alignment, Border)] = rule {
-    whitespace ~ (rightAlignment | centerAlignment | leftAlignment) ~ whitespace ~> (
-        (alignment: (Alignment, Border)) => alignment
-    )
+  def tableHeaderBreakString: Rule0 = rule {
+    whitespace ~ (oneOrMore("-") ~ ":" |
+      whitespace ~ oneOrMore("-") ~ whitespace |
+      ":" ~ oneOrMore("-") ~ ":" |
+      ":" ~ oneOrMore("-")) ~ whitespace
   }
 
   def headerAnnotationPart: Rule1[HeaderAnnotation] = rule {

@@ -89,26 +89,6 @@ final case class XHtmlAgreementPrinter(
   def printFragments(elements: List[AgreementElement]): List[Frag] =
     tailRecurse(elements, 0, false)
 
-  private def generateClass(
-      cls: String,
-      pair: Option[(Alignment, Border)]
-  ): String =
-    pair
-      .map {
-        case (alignment, border) =>
-          val alignClass = alignment match {
-            case LeftAlignment   => "align-left"
-            case CenterAlignment => "align-center"
-            case RightAlignment  => "align-right"
-          }
-          val borderClass = border match {
-            case ShowBorder => "border-show"
-            case HideBorder => "border-hide"
-          }
-          s"$cls $alignClass $borderClass"
-      }
-      .getOrElse(cls)
-
   private def recurse(
       elements: List[AgreementElement],
       conditionalBlockDepth: Int,
@@ -205,30 +185,18 @@ final case class XHtmlAgreementPrinter(
           case t: TableElement =>
             val frag = table(`class` := "markdown-table")(
               tr(`class` := "markdown-table-row")(
-                t.header.zipWithIndex.map {
-                  case (header: List[AgreementElement], i: Int) =>
-                    th(
-                      `class` := generateClass(
-                        "markdown-table-header",
-                        t.alignment.get(i)
-                      )
-                    )(
-                      recurse(header, conditionalBlockDepth, inSection)
-                    )
+                t.header.map { t =>
+                  th(`class` := "markdown-table-header")(
+                    recurse(t, conditionalBlockDepth, inSection)
+                  )
                 }
               ),
               t.rows.map { row =>
                 tr(`class` := "markdown-table-row")(
-                  row.zipWithIndex.map {
-                    case (row, i) =>
-                      td(
-                        `class` := generateClass(
-                          "markdown-table-data",
-                          t.alignment.get(i)
-                        )
-                      )(
-                        recurse(row, conditionalBlockDepth, inSection)
-                      )
+                  row.map { t =>
+                    td(`class` := "markdown-table-data")(
+                      recurse(t, conditionalBlockDepth, inSection)
+                    )
                   }
                 )
               }

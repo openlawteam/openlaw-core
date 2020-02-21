@@ -110,7 +110,6 @@ final case class NumberConstant(
 
 final case class Table(
     header: List[List[TemplatePart]],
-    alignment: List[(Alignment, Border)],
     rows: List[List[List[TemplatePart]]]
 ) extends TemplatePart
 
