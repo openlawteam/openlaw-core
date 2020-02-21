@@ -133,7 +133,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
     tableElement shouldBe a[TableElement]
     resultShouldBe(
       forReview(text),
-      """<p class="no-section"><table class="markdown-table"><tr class="markdown-table-row"><th class="markdown-table-header">head1</th><th class="markdown-table-header">head2</th><th class="markdown-table-header">head3</th></tr><tr class="markdown-table-row"><td class="markdown-table-data">val11</td><td class="markdown-table-data">val12</td><td class="markdown-table-data">val13</td></tr><tr class="markdown-table-row"><td class="markdown-table-data">val21</td><td class="markdown-table-data">val22</td><td class="markdown-table-data">val23</td></tr></table></p>"""
+      """<p class="no-section"><table class="markdown-table"><tr class="markdown-table-row"><th class="markdown-table-header align-left border-show">head1</th><th class="markdown-table-header align-left border-show">head2</th><th class="markdown-table-header align-left border-show">head3</th></tr><tr class="markdown-table-row"><td class="markdown-table-data align-left border-show">val11</td><td class="markdown-table-data align-left border-show">val12</td><td class="markdown-table-data align-left border-show">val13</td></tr><tr class="markdown-table-row"><td class="markdown-table-data align-left border-show">val21</td><td class="markdown-table-data align-left border-show">val22</td><td class="markdown-table-data align-left border-show">val23</td></tr></table></p>"""
     )
   }
 
@@ -627,6 +627,26 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
     resultShouldBe(
       forReview("^(_(format: 'RightParen')) Section 1", Map()),
       """<ul class="list-lvl-1"><li><p>1)  Section 1</p></li></ul>"""
+    )
+
+    val text =
+      """^ Section 1
+        |^^(_(format: 'PeriodNested')) Section 1.a
+        |""".stripMargin
+    resultShouldBe(
+      forReview(text, Map()),
+      """<ul class="list-lvl-1"><li><p>1.  Section 1<br /></p><ul class="list-lvl-2"><li><p>1.a  Section 1.a<br /></p></li></ul></li></ul>"""
+    )
+
+    val text2 =
+      """^ Section
+        |^^ Section
+        |^^^ Section
+        |^^^^(_(format: 'PeriodNested'))
+        |""".stripMargin
+    resultShouldBe(
+      forReview(text2, Map()),
+      """<ul class="list-lvl-1"><li><p>1.  Section<br /></p><ul class="list-lvl-2"><li><p>(a)  Section<br /></p><ul class="list-lvl-3"><li><p>(i)  Section<br /></p><ul class="list-lvl-4"><li><p>1.a.i.1 <br /></p></li></ul></li></ul></li></ul></li></ul>"""
     )
   }
 

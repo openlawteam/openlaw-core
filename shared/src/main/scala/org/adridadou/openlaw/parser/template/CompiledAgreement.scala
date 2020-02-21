@@ -175,10 +175,18 @@ final case class CompiledAgreement(
                 renderedElements.init :+ previousTable
                   .copy(rows = previousTable.rows ++ rowElements)
               case _ =>
-                renderedElements :+ TableElement(headerElements, rowElements)
+                renderedElements :+ TableElement(
+                  headerElements,
+                  t.alignment,
+                  rowElements
+                )
             }
           } else {
-            renderedElements :+ TableElement(headerElements, rowElements)
+            renderedElements :+ TableElement(
+              headerElements,
+              t.alignment,
+              rowElements
+            )
           }
         }
 

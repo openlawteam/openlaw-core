@@ -3,6 +3,7 @@ package org.adridadou.openlaw.vm
 import java.time.LocalDateTime
 import java.util.concurrent.atomic.AtomicInteger
 
+import org.adridadou.openlaw.generateFullSectionValue
 import org.adridadou.openlaw.result._
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes._
@@ -349,7 +350,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     case foreachBlock: ForEachBlock =>
       executeForEachBlock(executionResult, foreachBlock)
 
-    case Table(header, rows) =>
+    case Table(header, alignment, rows) =>
       val initialValue: Result[OpenlawExecutionState] = Success(executionResult)
       (header.flatten ++ rows.flatten.flatten)
         .foldLeft(initialValue)((exec, elem) =>
@@ -379,20 +380,6 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
 
     case _ =>
       Success(executionResult)
-  }
-
-  private def generateFullSectionValue(
-      section: Section,
-      sectionValue: String,
-      executionResult: OpenlawExecutionState
-  ): String = {
-    val fullSectionValue = (1 to section.lvl)
-      .map({
-        case section.lvl => sectionValue
-        case idx         => executionResult.getLastSectionByLevel(idx)
-      })
-      .mkString(".")
-    fullSectionValue
   }
 
   private def processSection(
@@ -435,15 +422,18 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
             } yield {
               for {
                 sectionValue <- SectionHelper.generateListNumber(
+                  section,
+                  numbering,
+                  overrideSymbol,
+                  overrideFormat,
+                  executionResult
+                )
+                referenceValue <- SectionHelper.generateReferenceValue(
+                  section,
                   section.lvl,
                   numbering,
                   overrideSymbol,
-                  overrideFormat
-                )
-                referenceValue <- SectionHelper.generateReferenceValue(
-                  section.lvl,
-                  numbering,
-                  overrideSymbol
+                  executionResult
                 )
               } yield {
                 val params = List(
