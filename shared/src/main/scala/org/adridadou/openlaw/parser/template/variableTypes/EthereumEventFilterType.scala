@@ -135,7 +135,11 @@ case object EthereumEventFilterType
             Left(variableName)
           ) :: Nil =>
         propertyDef(variableName, expr, executionResult).map(_.typeDef)
-      case _ => super.keysType(keys, expr, executionResult)
+      case _ =>
+        Failure(
+          s"Ethereum event only support 'txt', 'received', 'executionDate' and 'event' invalid call with: ${keys
+            .mkString(".")}"
+        )
     }
 
   override def validateKeys(
@@ -194,7 +198,8 @@ case object EthereumEventFilterType
           } yield data
         case _ =>
           Failure(
-            s"Ethereum event only support one level of properties. invalid property access ${keys.mkString(".")}"
+            s"Ethereum event only support 'txt', 'received', 'executionDate' and 'event' invalid call with: ${keys
+              .mkString(".")}"
           )
       }
     }).flatten
