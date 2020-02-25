@@ -6,6 +6,7 @@ import org.adridadou.openlaw.oracles.{CryptoService, UserId}
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template.variableTypes.{
   EthereumData,
+  EthereumHash,
   TemplateSourceIdentifier
 }
 
@@ -15,7 +16,10 @@ final case class ContractDefinition(
     templates: Map[TemplateSourceIdentifier, TemplateId] = Map.empty,
     parameters: TemplateParameters,
     paragraphs: Map[Int, ParagraphEdits] = Map.empty,
-    creationDate: LocalDateTime = LocalDateTime.now
+    creationDate: LocalDateTime = LocalDateTime.now,
+    // If the contract is instead formed by a PDF file rather than an openlaw template, we include the hash of the PDF
+    // file
+    pdfHash: Option[EthereumHash] = None
 ) {
 
   def id(crypto: CryptoService): ContractId =
@@ -26,7 +30,8 @@ final case class ContractDefinition(
       mainTemplate.id + "#" +
       paramsToChecksum(parameters) + "#" +
       templatesKey + "#" +
-      templateScopeKey
+      templateScopeKey +
+      addPdfHash()
 
   private def templatesKey: String =
     templates
@@ -34,6 +39,13 @@ final case class ContractDefinition(
       .toSeq
       .sorted
       .mkString("#")
+
+  private def addPdfHash(): String = {
+    pdfHash match {
+      case Some(hash) => "#" + hash.toString
+      case None       => ""
+    }
+  }
 
   private def templateScopeKey: String =
     paragraphs.toSeq
