@@ -54,9 +54,6 @@ case object IdentityType extends VariableType(name = "Identity") {
       case _ => super.construct(constructorParams, executionResult)
     }
 
-  override def missingValueFormat(name: String): List[AgreementElement] =
-    List(FreeText(Text("")))
-
   override def internalFormat(value: OpenlawValue): Result[String] =
     VariableType.convert[Identity](value).map(_.asJson.noSpaces)
 

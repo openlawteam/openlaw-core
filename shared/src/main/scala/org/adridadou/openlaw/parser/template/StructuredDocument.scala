@@ -36,6 +36,8 @@ import scala.reflect.ClassTag
 import VariableName._
 import cats.data.NonEmptyList
 import cats.data.Validated.{Invalid, Valid}
+import org.adridadou.openlaw.parser.template.formatters.Formatter
+
 import scala.collection.JavaConverters._
 
 trait TemplateExecutionResult {
@@ -1208,14 +1210,16 @@ final case class OpenlawExecutionState(
   }
 
   def structuredMainTemplate(
-      agreement: CompiledAgreement
+      agreement: CompiledAgreement,
+      overriddenFormatter: (Option[FormatterDefinition], TemplateExecutionResult) => Option[Formatter]
   ): Result[StructuredAgreement] =
-    agreement.structuredMainTemplate(this)
+    agreement.structuredMainTemplate(this, overriddenFormatter)
 
   def structuredInternal(
-      agreement: CompiledAgreement
+      agreement: CompiledAgreement,
+      overriddenFormatter: (Option[FormatterDefinition], TemplateExecutionResult) => Option[Formatter]
   ): Result[StructuredAgreement] =
-    agreement.structuredInternal(this, templateDefinition.flatMap(_.path))
+    agreement.structuredInternal(this, templateDefinition.flatMap(_.path), overriddenFormatter)
 
   def findExecutionResultInternal(
       executionResultId: TemplateExecutionResultId
@@ -1544,3 +1548,5 @@ object ActionIdentifier {
 }
 
 final case class ActionIdentifier(identifier: String)
+
+final case class LazyAgreementData(agreement: CompiledAgreement, executionResult: TemplateExecutionResult)

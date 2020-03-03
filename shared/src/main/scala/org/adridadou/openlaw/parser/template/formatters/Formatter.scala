@@ -17,6 +17,7 @@ trait Formatter {
       value: OpenlawValue,
       executionResult: TemplateExecutionResult
   ): Result[List[AgreementElement]]
+  def missingValueFormat(name: String): List[AgreementElement]
 }
 
 object DefaultFormatter extends Formatter {
@@ -31,4 +32,8 @@ object DefaultFormatter extends Formatter {
         )
       )
     )
+  override def missingValueFormat(
+      name: String
+  ): List[AgreementElement] =
+    List(FreeText(Text(s"[[${name}]]")))
 }

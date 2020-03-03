@@ -18,7 +18,12 @@ class UppercaseFormatter extends Formatter {
       value: OpenlawValue,
       executionResult: TemplateExecutionResult
   ): Result[List[AgreementElement]] =
-    VariableType.convert[OpenlawString](value) map {
-      case str => List(FreeText(Text(str.toUpperCase)))
-    }
+    VariableType.convert[OpenlawString](value) map (
+        str => List(FreeText(Text(str.toUpperCase)))
+    )
+
+  override def missingValueFormat(
+                                   name: String
+                                 ): List[AgreementElement] =
+    List(FreeText(Text(s"[[$name]]")))
 }

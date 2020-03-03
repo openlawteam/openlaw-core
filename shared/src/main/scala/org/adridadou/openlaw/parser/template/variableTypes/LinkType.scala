@@ -69,4 +69,9 @@ class LinkFormatter extends Formatter {
     VariableType.convert[LinkInfo](value) map {
       case LinkInfo(labelValue, urlValue) => List(Link(labelValue, urlValue))
     }
+
+  override def missingValueFormat(
+                                   name: String
+                                 ): List[AgreementElement] =
+    List(FreeText(Text(s"[[$name]]")))
 }

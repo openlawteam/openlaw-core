@@ -338,6 +338,11 @@ class PatternFormat(pattern: String) extends Formatter {
     DateHelper.convertToDate(value, executionResult.clock).map { zonedDate =>
       List(FreeText(Text(formatter.format(zonedDate.underlying))))
     }
+
+  override def missingValueFormat(
+                                   name: String
+                                 ): List[AgreementElement] =
+    List(FreeText(Text(s"[[$name]]")))
 }
 
 class YearFormatter extends PatternFormat("yyyy")
@@ -364,6 +369,10 @@ class SimpleDateFormatter extends Formatter {
           )
         )
       })
+  override def missingValueFormat(
+                                   name: String
+                                 ): List[AgreementElement] =
+    List(FreeText(Text(s"[[$name]]")))
 }
 
 class SimpleDateTimeFormatter extends Formatter {
@@ -396,6 +405,11 @@ class SimpleDateTimeFormatter extends Formatter {
 
   private def formatNumber(value: Integer): String =
     String.format("%02d", value)
+
+  override def missingValueFormat(
+                                   name: String
+                                 ): List[AgreementElement] =
+    List(FreeText(Text(s"[[$name]]")))
 }
 
 object DateHelper {

@@ -14,6 +14,11 @@ object ImageFormatter extends Formatter {
     case OpenlawString(url) => Success(List(ImageElement(url)))
     case _                  => Failure("unsupported image value found: $value")
   }
+
+  override def missingValueFormat(
+                                   name: String
+                                 ): List[AgreementElement] =
+    List(FreeText(Text(s"[[$name]]")))
 }
 
 case object ImageType extends VariableType("Image") {

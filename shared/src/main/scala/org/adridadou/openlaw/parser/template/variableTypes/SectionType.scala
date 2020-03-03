@@ -81,4 +81,8 @@ class SectionFormatter extends Formatter {
       case SectionInfo(_, _, referenceValue) =>
         List(FreeText(Text(referenceValue)))
     }
+  override def missingValueFormat(
+      name: String
+  ): List[AgreementElement] =
+    List(FreeText(Text(s"[[$name]]")))
 }

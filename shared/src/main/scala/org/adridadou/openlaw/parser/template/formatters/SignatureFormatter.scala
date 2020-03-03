@@ -31,4 +31,9 @@ class SignatureFormatter extends Formatter {
         "invalid type " + other.getClass.getSimpleName + ". expecting Identity"
       )
   }
+
+  override def missingValueFormat(
+                                   name: String
+                                 ): List[AgreementElement] =
+    List(FreeText(Text(s"{{signature of $name}}")))
 }

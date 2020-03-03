@@ -158,7 +158,7 @@ final case class OpenlawVmState(
         case (templateDefinition, id) =>
           currentTemplates.get(id).map(templateDefinition -> _)
       })
-      executionEngine.resumeExecution(execution, templates)
+      executionEngine.resumeExecution(execution, templates, (_, _) => None)
   }
 
   def createNewExecutionResult(
@@ -196,7 +196,8 @@ final case class OpenlawVmState(
           externalCallStructures,
           Some(definition.id(crypto)),
           Some(definition.creationDate),
-          profileAddress
+          profileAddress,
+          (_, _) => None
         )
       ) match {
       case None => None

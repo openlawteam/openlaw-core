@@ -146,4 +146,9 @@ object AddressFormatter extends Formatter {
         s"incompatible type. Expecting address, got ${value.getClass.getSimpleName}"
       )
   }
+
+  override def missingValueFormat(
+                                   name: String
+                                 ): List[AgreementElement] =
+    List(FreeText(Text(s"[[$name]]")))
 }
