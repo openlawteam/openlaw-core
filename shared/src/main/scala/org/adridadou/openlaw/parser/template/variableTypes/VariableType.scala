@@ -304,13 +304,12 @@ abstract class VariableType(val name: String) {
       variableName: VariableName,
       keys: List[VariableMemberKey],
       executionResult: TemplateExecutionResult
-  ): Result[Option[OpenlawValue]] = {
+  ): Result[Option[OpenlawValue]] =
     if (keys.isEmpty) {
       Success(Some(value))
     } else {
       Failure(s"The variable $variableName of type $name has no properties")
     }
-  }
 
   def getTypeClass: Class[_ <: OpenlawValue]
 
@@ -436,9 +435,6 @@ abstract class VariableType(val name: String) {
       executionResult: TemplateExecutionResult
   ): Result[OpenlawValue]
 
-  def missingValueFormat(name: String): List[AgreementElement] =
-    List(FreeText(Text(s"[[${name}]]")))
-
   def internalFormat(value: OpenlawValue): Result[String]
 
   def construct(
@@ -508,16 +504,6 @@ abstract class VariableType(val name: String) {
         "invalid parameter type " + param.getClass.getSimpleName + " expecting single expression"
       )
   }
-
-  def format(
-      formatter: Option[FormatterDefinition],
-      value: OpenlawValue,
-      executionResult: TemplateExecutionResult
-  ): Result[List[AgreementElement]] =
-    formatter
-      .map(getFormatter(_, executionResult))
-      .getOrElse(Success(defaultFormatter))
-      .flatMap(_.format(value, executionResult))
 
   def getMandatoryParameter(
       name: String,

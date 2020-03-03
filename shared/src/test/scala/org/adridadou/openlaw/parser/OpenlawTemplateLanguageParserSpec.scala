@@ -37,7 +37,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
     id = TemplateExecutionResultId("@@anonymous_main_template_id@@"),
     info = OLInformation(),
     template = CompiledAgreement(),
-    executions = Map(),
+    executions = Map.empty,
     anonymousVariableCounter = new AtomicInteger(0),
     executionType = TemplateExecution,
     variableRedefinition = VariableRedefinition(),
@@ -47,10 +47,10 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
 
   private def structureAgreement(
       text: String,
-      p: Map[String, String] = Map(),
-      templates: Map[TemplateSourceIdentifier, CompiledTemplate] = Map(),
+      p: Map[String, String] = Map.empty,
+      templates: Map[TemplateSourceIdentifier, CompiledTemplate] = Map.empty,
       externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] =
-        Map()
+        Map.empty
   ): Result[StructuredAgreement] =
     compiledTemplate(text).flatMap({
       case agreement: CompiledAgreement =>
@@ -62,17 +62,17 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
             templates,
             externalCallStructures
           )
-          .flatMap(agreement.structuredMainTemplate)
+          .flatMap(agreement.structuredMainTemplate(_, (_, _) => None))
       case _ =>
         Failure("was expecting agreement")
     })
 
   private def executeTemplate(
       text: String,
-      p: Map[String, String] = Map(),
-      templates: Map[TemplateSourceIdentifier, CompiledTemplate] = Map(),
+      p: Map[String, String] = Map.empty,
+      templates: Map[TemplateSourceIdentifier, CompiledTemplate] = Map.empty,
       externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] =
-        Map()
+        Map.empty
   ): Result[OpenlawExecutionState] =
     compiledTemplate(text).flatMap({
       case agreement: CompiledAgreement =>
@@ -99,14 +99,14 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
 
   private def forReview(
       text: String,
-      params: Map[String, String] = Map(),
-      paragraphs: ParagraphEdits = ParagraphEdits(Map())
+      params: Map[String, String] = Map.empty,
+      paragraphs: ParagraphEdits = ParagraphEdits(Map.empty)
   ): Result[String] =
     structureAgreement(text, params).map(service.forReview(_, paragraphs))
   private def forPreview(
       text: String,
-      params: Map[String, String] = Map(),
-      paragraphs: ParagraphEdits = ParagraphEdits(Map())
+      params: Map[String, String] = Map.empty,
+      paragraphs: ParagraphEdits = ParagraphEdits(Map.empty)
   ): Result[String] =
     structureAgreement(text, params).map(service.forPreview(_, paragraphs))
 
@@ -115,7 +115,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
       case Right(actual) if actual === expected =>
       case Right(actual) =>
         throw new RuntimeException(s"$actual should be $expected")
-      case Failure(e, message) => throw new RuntimeException(e)
+      case Failure(e, message) => throw new RuntimeException(message, e)
     }
 
   "Markdown parser service" should "handle tables" in {
@@ -597,54 +597,54 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
 
   it should "be able to override section symbols" in {
     resultShouldBe(
-      forReview("^ Section 1", Map()),
+      forReview("^ Section 1", Map.empty),
       """<ul class="list-lvl-1"><li><p>1.  Section 1</p></li></ul>"""
     )
     resultShouldBe(
-      forReview("^(_(symbol: 'Decimal')) Section 1", Map()),
+      forReview("^(_(symbol: 'Decimal')) Section 1", Map.empty),
       """<ul class="list-lvl-1"><li><p>1.  Section 1</p></li></ul>"""
     )
     resultShouldBe(
-      forReview("^(_(symbol: 'Fake')) Section 1", Map()),
+      forReview("^(_(symbol: 'Fake')) Section 1", Map.empty),
       """<ul class="list-lvl-1"><li><p>1.  Section 1</p></li></ul>"""
     )
     resultShouldBe(
-      forReview("^(_(symbol: 'LowerLetter')) Section 1", Map()),
+      forReview("^(_(symbol: 'LowerLetter')) Section 1", Map.empty),
       """<ul class="list-lvl-1"><li><p>a.  Section 1</p></li></ul>"""
     )
     resultShouldBe(
-      forReview("^(_(symbol: 'UpperLetter')) Section 1", Map()),
+      forReview("^(_(symbol: 'UpperLetter')) Section 1", Map.empty),
       """<ul class="list-lvl-1"><li><p>A.  Section 1</p></li></ul>"""
     )
     resultShouldBe(
-      forReview("^(_(symbol: 'LowerRoman')) Section 1", Map()),
+      forReview("^(_(symbol: 'LowerRoman')) Section 1", Map.empty),
       """<ul class="list-lvl-1"><li><p>i.  Section 1</p></li></ul>"""
     )
     resultShouldBe(
-      forReview("^(_(symbol: 'UpperRoman')) Section 1", Map()),
+      forReview("^(_(symbol: 'UpperRoman')) Section 1", Map.empty),
       """<ul class="list-lvl-1"><li><p>I.  Section 1</p></li></ul>"""
     )
     resultShouldBe(
-      forReview("^(_(symbol: 'Hide')) Section 1", Map()),
+      forReview("^(_(symbol: 'Hide')) Section 1", Map.empty),
       """<ul class="list-lvl-1"><li><p>  Section 1</p></li></ul>"""
     )
   }
 
   it should "be able to override section formats" in {
     resultShouldBe(
-      forReview("^ Section 1", Map()),
+      forReview("^ Section 1", Map.empty),
       """<ul class="list-lvl-1"><li><p>1.  Section 1</p></li></ul>"""
     )
     resultShouldBe(
-      forReview("^(_(format: 'Period')) Section 1", Map()),
+      forReview("^(_(format: 'Period')) Section 1", Map.empty),
       """<ul class="list-lvl-1"><li><p>1.  Section 1</p></li></ul>"""
     )
     resultShouldBe(
-      forReview("^(_(format: 'Parens')) Section 1", Map()),
+      forReview("^(_(format: 'Parens')) Section 1", Map.empty),
       """<ul class="list-lvl-1"><li><p>(1)  Section 1</p></li></ul>"""
     )
     resultShouldBe(
-      forReview("^(_(format: 'RightParen')) Section 1", Map()),
+      forReview("^(_(format: 'RightParen')) Section 1", Map.empty),
       """<ul class="list-lvl-1"><li><p>1)  Section 1</p></li></ul>"""
     )
 
@@ -653,7 +653,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
         |^^(_(format: 'PeriodNested')) Section 1.a
         |""".stripMargin
     resultShouldBe(
-      forReview(text, Map()),
+      forReview(text, Map.empty),
       """<ul class="list-lvl-1"><li><p>1.  Section 1<br /></p><ul class="list-lvl-2"><li><p>1.a  Section 1.a<br /></p></li></ul></li></ul>"""
     )
 
@@ -664,7 +664,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
         |^^^^(_(format: 'PeriodNested'))
         |""".stripMargin
     resultShouldBe(
-      forReview(text2, Map()),
+      forReview(text2, Map.empty),
       """<ul class="list-lvl-1"><li><p>1.  Section<br /></p><ul class="list-lvl-2"><li><p>(a)  Section<br /></p><ul class="list-lvl-3"><li><p>(i)  Section<br /></p><ul class="list-lvl-4"><li><p>1.a.i.1 <br /></p></li></ul></li></ul></li></ul></li></ul>"""
     )
   }
@@ -678,7 +678,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
         |[[s1ai]]
       """.stripMargin
     resultShouldBe(
-      forReview(text, Map()),
+      forReview(text, Map.empty),
       """<ul class="list-lvl-1"><li><p>1.  Section 1<br /></p><ul class="list-lvl-2"><li><p>(a)  Section 1.a<br /></p><ul class="list-lvl-3"><li><p>(i)  Section 1.a.i</p><p>1.a.i<br />      </p></li></ul></li></ul></li></ul>"""
     )
   }
@@ -692,59 +692,62 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
         |[[s1ai]]
       """.stripMargin
     resultShouldBe(
-      forReview(text, Map()),
+      forReview(text, Map.empty),
       """<ul class="list-lvl-1"><li><p>1.  Section 1<br /></p><ul class="list-lvl-2"><li><p>(a)  Section 1.a<br /></p><ul class="list-lvl-3"><li><p>1.  Section 1.a.i</p><p>1.a.1<br />      </p></li></ul></li></ul></li></ul>"""
     )
   }
 
   it should "be able to override section symbols and formats" in {
     resultShouldBe(
-      forReview("^ Section 1", Map()),
+      forReview("^ Section 1", Map.empty),
       """<ul class="list-lvl-1"><li><p>1.  Section 1</p></li></ul>"""
     )
     resultShouldBe(
       forReview(
         "^(_(symbol: 'UpperRoman'; format: 'Period')) Section 1",
-        Map()
+        Map.empty
       ),
       """<ul class="list-lvl-1"><li><p>I.  Section 1</p></li></ul>"""
     )
     resultShouldBe(
       forReview(
         "^(_(symbol: 'LowerLetter'; format: 'Parens')) Section 1",
-        Map()
+        Map.empty
       ),
       """<ul class="list-lvl-1"><li><p>(a)  Section 1</p></li></ul>"""
     )
     resultShouldBe(
       forReview(
         "^(_(symbol: 'UpperLetter'; format: 'RightParen')) Section 1",
-        Map()
+        Map.empty
       ),
       """<ul class="list-lvl-1"><li><p>A)  Section 1</p></li></ul>"""
     )
     resultShouldBe(
-      forReview("^(_(symbol: 'Hide'; format: 'RightParen')) Section 1", Map()),
+      forReview(
+        "^(_(symbol: 'Hide'; format: 'RightParen')) Section 1",
+        Map.empty
+      ),
       """<ul class="list-lvl-1"><li><p>  Section 1</p></li></ul>"""
     )
   }
 
   it should "be able to override subsequent section symbols and formats" in {
     resultShouldBe(
-      forReview("^ Section 1^ Section 2", Map()),
+      forReview("^ Section 1^ Section 2", Map.empty),
       """<ul class="list-lvl-1"><li><p>1.  Section 1</p></li><li><p>2.  Section 2</p></li></ul>"""
     )
     resultShouldBe(
       forReview(
         "^(_(symbol: 'LowerLetter'; format: 'Parens')) Section 1^ Section 2",
-        Map()
+        Map.empty
       ),
       """<ul class="list-lvl-1"><li><p>(a)  Section 1</p></li><li><p>(b)  Section 2</p></li></ul>"""
     )
     resultShouldBe(
       forReview(
         "^(_(symbol: 'LowerLetter')) Section 1^ Section 2^(_(format: 'Parens')) Section 3^ Section 4",
-        Map()
+        Map.empty
       ),
       """<ul class="list-lvl-1"><li><p>a.  Section 1</p></li><li><p>b.  Section 2</p></li><li><p>(c)  Section 3</p></li><li><p>(d)  Section 4</p></li></ul>"""
     )
@@ -752,15 +755,15 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
 
   it should "not be able to emphasize sections" in {
     resultShouldBe(
-      forReview("* ^ Section 1 *", Map()),
+      forReview("* ^ Section 1 *", Map.empty),
       """<p class="no-section">* </p><ul class="list-lvl-1"><li><p>1.  Section 1 *</p></li></ul>"""
     )
     resultShouldBe(
-      forReview("** ^ Section 1 **", Map()),
+      forReview("** ^ Section 1 **", Map.empty),
       """<p class="no-section">** </p><ul class="list-lvl-1"><li><p>1.  Section 1 **</p></li></ul>"""
     )
     resultShouldBe(
-      forReview("*** ^ Section 1 ***", Map()),
+      forReview("*** ^ Section 1 ***", Map.empty),
       """<p class="no-section">*** </p><ul class="list-lvl-1"><li><p>1.  Section 1 ***</p></li></ul>"""
     )
   }
@@ -791,15 +794,15 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
 
   it should "not be able to emphasize across newlines" in {
     resultShouldBe(
-      forReview("* This is \n text. *", Map()),
+      forReview("* This is \n text. *", Map.empty),
       """<p class="no-section">* This is <br /> text. *</p>"""
     )
     resultShouldBe(
-      forReview("** This is \n text. **", Map()),
+      forReview("** This is \n text. **", Map.empty),
       """<p class="no-section">** This is <br /> text. **</p>"""
     )
     resultShouldBe(
-      forReview("*** This is \n text. ***", Map()),
+      forReview("*** This is \n text. ***", Map.empty),
       """<p class="no-section">*** This is <br /> text. ***</p>"""
     )
   }
@@ -1221,28 +1224,37 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
 
   it should "format dates with built in formatters" in {
     resultShouldBe(
-      forReview("""[[date:DateTime("2017-06-24 13:45:00") | year]]""", Map()),
+      forReview(
+        """[[date:DateTime("2017-06-24 13:45:00") | year]]""",
+        Map.empty
+      ),
       """<p class="no-section">2017</p>"""
     )
     resultShouldBe(
-      forReview("""[[date:DateTime("2017-06-24 13:45:00") | day]]""", Map()),
+      forReview(
+        """[[date:DateTime("2017-06-24 13:45:00") | day]]""",
+        Map.empty
+      ),
       """<p class="no-section">24</p>"""
     )
     resultShouldBe(
       forReview(
         """[[date:DateTime("2017-06-24 13:45:00") | day_name]]""",
-        Map()
+        Map.empty
       ),
       """<p class="no-section">Saturday</p>"""
     )
     resultShouldBe(
-      forReview("""[[date:DateTime("2017-06-24 13:45:00") | month]]""", Map()),
+      forReview(
+        """[[date:DateTime("2017-06-24 13:45:00") | month]]""",
+        Map.empty
+      ),
       """<p class="no-section">6</p>"""
     )
     resultShouldBe(
       forReview(
         """[[date:DateTime("2017-06-24 13:45:00") | month_name]]""",
-        Map()
+        Map.empty
       ),
       """<p class="no-section">June</p>"""
     )
@@ -1506,7 +1518,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
         .stripMargin
 
     (
-      forReview(source, Map(), ParagraphEdits(Map(2 -> "hello world"))),
+      forReview(source, Map.empty, ParagraphEdits(Map(2 -> "hello world"))),
       """<p class="no-section">Effective Date:  [[Effective Date]]</p><p class="no-section">In consideration and as a condition of my employment, continued employment, or payment for services rendered as an independent contractor, consultant, or advisor ("Service Relationship") by [[Company]]     or any of its current or future subsidiaries, affiliates, successors or assigns (collectively, the "Company"), and my receipt of compensation now and hereafter paid to me by the Company, I hereby agree as follows:</p><ul class="list-lvl-1"><li><p>1. hello world</p><ul class="list-lvl-2"><li><p>(a) 	<strong>Confidential Information.</strong>  I agree that all information, whether or not in writing, concerning the Company’s business, technology, business relationships or financial affairs which the Company has not released to the general public (collectively, "Confidential Information") is and will be the exclusive property of the Company. By way of illustration, Confidential Information may include information or material which has not been made generally available to the public, such as: (i) corporate information, including plans, strategies, methods, policies, resolutions, negotiations, or litigation; (ii) marketing information, including strategies, methods, customer identities or other information about customers, prospect identities or other information about prospects, or market analyses or projections; (iii) financial information, including cost and performance data, debt arrangements, equity structure, investors and holdings, purchasing and sales data and price lists; and (d) operational and technological information, including plans, specifications, manuals, forms, templates, software, designs, methods, procedures, formulas, discoveries, inventions, improvements, concepts and ideas; and (e) personnel information, including personnel lists, reporting or organizational structure, resumes, personnel data, compensation structure, performance evaluations and termination arrangements or documents. Confidential Information also includes information received in confidence by the Company from its customers or suppliers or other third parties.</p></li><li><p>(b)  <strong>Nondisclosure; Recognition of Company’s Rights.</strong>  I will not, at any time, without the Company’s prior written permission, either during or after my Service Relationship with the Company, disclose any Confidential Information to anyone outside of the Company, or use or permit to be used any Confidential Information for any purpose other than the performance of my duties as a Service Provider of the Company. I will cooperate with the Company and use my best efforts to prevent the unauthorized disclosure of all Proprietary Information. I will deliver to the Company all copies of Confidential Information in my possession or control upon the earlier of a request by the Company or termination of my service relationship with the Company.</p></li></ul></li></ul>"""
     )
   }
@@ -1575,7 +1587,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
         |We're excited to offer you a position with""".stripMargin
 
     resultShouldBe(
-      forReview(text, Map()),
+      forReview(text, Map.empty),
       """<p class="no-section"><br /><strong>[[Company Name]]</strong><br />[[Company Street]]<br />[[Company City]], [[Company State]] [[Company Zip]]</p><p class="no-section">[[Effective Date]]</p><p class="no-section">[[Employee First Name]] [[Employee Last Name]]<br />[[Employee Street]]<br />[[Employee City]], [[Employee State]] [[Employee Zip]]</p><p class="no-section"><strong>Re:  Offer Letter</strong></p><p class="no-section">Dear [[Employee First Name]]:</p><p class="no-section">We're excited to offer you a position with</p>""".stripMargin
     )
   }
@@ -1609,7 +1621,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
       """.stripMargin
 
     resultShouldBe(
-      forPreview(text = text, params = Map()),
+      forPreview(text = text, params = Map.empty),
       """<div class="openlaw-paragraph paragraph-1"><p class="no-section"><br /></p></div><div class="openlaw-paragraph paragraph-2"><p class="no-section">_______________________<br />Test<br />      </p></div>"""
     )
   }
@@ -1630,7 +1642,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
       """.stripMargin
 
     resultShouldBe(
-      forReview(text = text, params = Map()),
+      forReview(text = text, params = Map.empty),
       """<p class="no-section"><br /></p><p class="no-section">_______________________<br />Joseph Lubin, Mitglied des Verwaltungsrates (Board Member) ConsenSys AG</p><p class="no-section">On behalf of the Contractor:</p><p class="no-section"><br />_______________________<br />By: [[Contractor First Name]] [[Contractor Last Name]]<br />      </p>"""
     )
   }
@@ -1751,7 +1763,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
   it should "be able to list a variable that is in bold" in {
     val text = "** [[My Var:Text]] **"
 
-    executeTemplate(text, Map()) match {
+    executeTemplate(text, Map.empty) match {
       case Right(executionResult) =>
         executionResult.getVariables.map(_.name.name) should contain("My Var")
       case Left(ex) => fail(ex)
@@ -1762,7 +1774,10 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
     val text =
       """[[My Number:Number(12)]][[My Number 2:Number(My Number + 10)]]""".stripMargin
 
-    resultShouldBe(forReview(text, Map()), """<p class="no-section">1222</p>""")
+    resultShouldBe(
+      forReview(text, Map.empty),
+      """<p class="no-section">1222</p>"""
+    )
   }
 
   it should "read a property from an address" in {
@@ -2204,7 +2219,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
         |{{Stock Award "A Restricted Stock Grant?" => {{Board Action "Do you want to execute a unanimous action of the board?" => }}}}
       """.stripMargin
 
-    executeTemplate(text, Map()) match {
+    executeTemplate(text, Map.empty) match {
       case Right(executionResult) =>
         executionResult.getAllExecutedVariables.map({
           case (_, name) => name.name
@@ -2383,7 +2398,7 @@ here""".stripMargin
     executeTemplate(
       input,
       Map("param1" -> "5", "param2" -> "5"),
-      Map(),
+      Map.empty,
       Map(
         ServiceName("FakeServiceInput") -> IntegratedServiceDefinition(
           inputStructureType,
@@ -2468,8 +2483,8 @@ here""".stripMargin
 
     executeTemplate(
       text,
-      Map(),
-      Map(),
+      Map.empty,
+      Map.empty,
       Map(
         ServiceName("MyService") -> IntegratedServiceDefinition.signatureDefinition
       )
@@ -2498,8 +2513,8 @@ here""".stripMargin
 
     executeTemplate(
       text,
-      Map(),
-      Map(),
+      Map.empty,
+      Map.empty,
       Map(
         ServiceName("Dropbox") -> IntegratedServiceDefinition.signatureDefinition
       )
@@ -2531,8 +2546,8 @@ here""".stripMargin
 
     executeTemplate(
       textMissingFile,
-      Map(),
-      Map(),
+      Map.empty,
+      Map.empty,
       Map(
         ServiceName("Dropbox") -> IntegratedServiceDefinition.signatureDefinition
       )
@@ -2554,8 +2569,8 @@ here""".stripMargin
 
     executeTemplate(
       textMissingFile,
-      Map(),
-      Map(),
+      Map.empty,
+      Map.empty,
       Map(
         ServiceName("Dropbox") -> IntegratedServiceDefinition.signatureDefinition
       )
@@ -2580,8 +2595,8 @@ here""".stripMargin
 
     executeTemplate(
       textMissingFile,
-      Map(),
-      Map(),
+      Map.empty,
+      Map.empty,
       Map(
         ServiceName("Dropbox") -> IntegratedServiceDefinition.signatureDefinition
       )

@@ -7,6 +7,7 @@ import io.circe.parser.decode
 import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawString, OpenlawValue}
 import org.adridadou.openlaw.parser.template.formatters.Formatter
 import org.adridadou.openlaw.parser.template._
+import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success}
 
 object LinkInfo {
@@ -63,10 +64,16 @@ case object LinkType
 
 class LinkFormatter extends Formatter {
   override def format(
+      expression: Expression,
       value: OpenlawValue,
       executionResult: TemplateExecutionResult
   ): Result[List[AgreementElement]] =
     VariableType.convert[LinkInfo](value) map {
       case LinkInfo(labelValue, urlValue) => List(Link(labelValue, urlValue))
     }
+
+  override def missingValueFormat(
+      expression: Expression
+  ): List[AgreementElement] =
+    List(FreeText(Text(s"[[$expression]]")))
 }

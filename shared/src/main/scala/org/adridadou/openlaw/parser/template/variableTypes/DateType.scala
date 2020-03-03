@@ -17,9 +17,9 @@ import org.adridadou.openlaw.parser.template.{
   Text,
   ValueOperation
 }
-
 import org.adridadou.openlaw.parser.template.formatters.Formatter
 import cats.implicits._
+import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.{
   OpenlawDateTime,
   OpenlawInt,
@@ -332,12 +332,18 @@ class PatternFormat(pattern: String) extends Formatter {
     DateTimeFormatter.ofPattern(pattern, Locale.ENGLISH)
 
   override def format(
+      expression: Expression,
       value: OpenlawValue,
       executionResult: TemplateExecutionResult
   ): Result[List[AgreementElement]] =
     DateHelper.convertToDate(value, executionResult.clock).map { zonedDate =>
       List(FreeText(Text(formatter.format(zonedDate.underlying))))
     }
+
+  override def missingValueFormat(
+      expression: Expression
+  ): List[AgreementElement] =
+    List(FreeText(Text(s"[[$expression]]")))
 }
 
 class YearFormatter extends PatternFormat("yyyy")
@@ -348,6 +354,7 @@ class MonthNameFormatter extends PatternFormat("MMMM")
 
 class SimpleDateFormatter extends Formatter {
   override def format(
+      expression: Expression,
       value: OpenlawValue,
       executionResult: TemplateExecutionResult
   ): Result[List[AgreementElement]] =
@@ -364,10 +371,15 @@ class SimpleDateFormatter extends Formatter {
           )
         )
       })
+  override def missingValueFormat(
+      expression: Expression
+  ): List[AgreementElement] =
+    List(FreeText(Text(s"[[$expression]]")))
 }
 
 class SimpleDateTimeFormatter extends Formatter {
   override def format(
+      expression: Expression,
       value: OpenlawValue,
       executionResult: TemplateExecutionResult
   ): Result[List[AgreementElement]] =
@@ -396,6 +408,11 @@ class SimpleDateTimeFormatter extends Formatter {
 
   private def formatNumber(value: Integer): String =
     String.format("%02d", value)
+
+  override def missingValueFormat(
+      expression: Expression
+  ): List[AgreementElement] =
+    List(FreeText(Text(s"[[$expression]]")))
 }
 
 object DateHelper {

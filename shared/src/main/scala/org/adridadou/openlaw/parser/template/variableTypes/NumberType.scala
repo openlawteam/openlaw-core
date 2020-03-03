@@ -158,6 +158,7 @@ trait NumberFormatter {
 
 case object NoTrailingZerosFormatter extends Formatter with NumberFormatter {
   override def format(
+      expression: Expression,
       value: OpenlawValue,
       executionResult: TemplateExecutionResult
   ): Result[List[AgreementElement]] =
@@ -165,10 +166,16 @@ case object NoTrailingZerosFormatter extends Formatter with NumberFormatter {
       .convert[OpenlawBigDecimal](value)
       .map(_.bigDecimal.stripTrailingZeros())
       .map(bd => List(FreeText(Text(formatNumber(bd)))))
+
+  override def missingValueFormat(
+      expression: Expression
+  ): List[AgreementElement] =
+    List(FreeText(Text(s"[[$expression]]")))
 }
 
 case object RawNumberFormatter extends Formatter with NumberFormatter {
   override def format(
+      expression: Expression,
       value: OpenlawValue,
       executionResult: TemplateExecutionResult
   ): Result[List[AgreementElement]] =
@@ -176,15 +183,21 @@ case object RawNumberFormatter extends Formatter with NumberFormatter {
       .convert[OpenlawBigDecimal](value)
       .map(_.bigDecimal.stripTrailingZeros().toPlainString)
       .map(str => List(FreeText(Text(str))))
+
+  override def missingValueFormat(
+      expression: Expression
+  ): List[AgreementElement] =
+    List(FreeText(Text(s"[[$expression]]")))
 }
 
 final case class Rounding(expr: Expression)
     extends Formatter
     with NumberFormatter {
   override def format(
+      expression: Expression,
       value: OpenlawValue,
       executionResult: TemplateExecutionResult
-  ): Result[List[AgreementElement]] = {
+  ): Result[List[AgreementElement]] =
     expr
       .evaluate(executionResult)
       .flatMap { valueOpt =>
@@ -206,5 +219,9 @@ final case class Rounding(expr: Expression)
           case Some(Failure(e, message)) => Failure(e, message)
         }
       }
-  }
+
+  override def missingValueFormat(
+      expression: Expression
+  ): List[AgreementElement] =
+    List(FreeText(Text(s"[[$expression]]")))
 }

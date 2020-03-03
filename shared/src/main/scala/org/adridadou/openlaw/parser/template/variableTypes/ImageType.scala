@@ -4,16 +4,23 @@ import cats.implicits._
 import org.adridadou.openlaw.{OpenlawString, OpenlawValue}
 import org.adridadou.openlaw.parser.template.formatters.Formatter
 import org.adridadou.openlaw.parser.template._
+import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 object ImageFormatter extends Formatter {
   def format(
+      expression: Expression,
       value: OpenlawValue,
       executionResult: TemplateExecutionResult
   ): Result[List[AgreementElement]] = value match {
     case OpenlawString(url) => Success(List(ImageElement(url)))
     case _                  => Failure("unsupported image value found: $value")
   }
+
+  override def missingValueFormat(
+      expression: Expression
+  ): List[AgreementElement] =
+    List(FreeText(Text(s"[[$expression]]")))
 }
 
 case object ImageType extends VariableType("Image") {

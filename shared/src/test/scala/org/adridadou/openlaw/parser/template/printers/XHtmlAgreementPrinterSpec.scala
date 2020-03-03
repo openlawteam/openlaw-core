@@ -23,15 +23,15 @@ class XHtmlAgreementPrinterSpec
 
   private def structureAgreement(
       text: String,
-      p: Map[String, String] = Map(),
-      templates: Map[TemplateSourceIdentifier, CompiledTemplate] = Map()
+      p: Map[String, String] = Map.empty,
+      templates: Map[TemplateSourceIdentifier, CompiledTemplate] = Map.empty
   ): Result[StructuredAgreement] =
     compiledTemplate(text).flatMap({
       case agreement: CompiledAgreement =>
         val params = p.map({ case (k, v) => VariableName(k) -> v })
         engine
           .execute(agreement, TemplateParameters(params), templates)
-          .flatMap(agreement.structuredMainTemplate)
+          .flatMap(agreement.structuredMainTemplate(_, (_, _) => None))
       case _ =>
         Failure("was expecting agreement")
     })
@@ -41,14 +41,14 @@ class XHtmlAgreementPrinterSpec
 
   private def forReview(
       text: String,
-      params: Map[String, String] = Map(),
-      paragraphs: ParagraphEdits = ParagraphEdits(Map())
+      params: Map[String, String] = Map.empty,
+      paragraphs: ParagraphEdits = ParagraphEdits(Map.empty)
   ): Result[String] =
     structureAgreement(text, params).map(service.forReview(_, paragraphs))
   private def forPreview(
       text: String,
-      params: Map[String, String] = Map(),
-      paragraphs: ParagraphEdits = ParagraphEdits(Map())
+      params: Map[String, String] = Map.empty,
+      paragraphs: ParagraphEdits = ParagraphEdits(Map.empty)
   ): Result[String] =
     structureAgreement(text, params).map(service.forPreview(_, paragraphs))
 
@@ -88,7 +88,7 @@ class XHtmlAgreementPrinterSpec
 
     val agreement = structureAgreement(text)
     val html = XHtmlAgreementPrinter(false)
-      .printParagraphs(agreement.right.value.paragraphs.toList)
+      .printParagraphs(agreement.right.value.paragraphs)
       .print
     html shouldBe
       """<p class="no-section"></p><ul class="list-lvl-1"><li><p>1.  <strong>Section 1</strong></p><p>This is a test.</p></li><li><p>2.  Section 2.</p><p>This is a test.</p><ul class="list-lvl-2"><li><p>(a)  Section 2.a</p><p>This is a test.</p></li><li><p>(b)  Section 2.b</p><p>This is a test.</p></li></ul></li><li><p>3.  Section 3.</p><p>This is a test.<br /></p></li></ul>"""
@@ -104,7 +104,7 @@ class XHtmlAgreementPrinterSpec
 
     val agreement = structureAgreement(text)
     val html = XHtmlAgreementPrinter(false)
-      .printParagraphs(agreement.right.value.paragraphs.toList)
+      .printParagraphs(agreement.right.value.paragraphs)
       .print
     html shouldBe """<p class="no-section">This is a test<br /></p><p class="no-section">Another line</p>"""
   }
@@ -120,7 +120,7 @@ class XHtmlAgreementPrinterSpec
     val text = """\right **[[Company Name | Uppercase]]**"""
     val agreement = structureAgreement(text)
     val html = XHtmlAgreementPrinter(false)
-      .printParagraphs(agreement.right.value.paragraphs.toList)
+      .printParagraphs(agreement.right.value.paragraphs)
       .print
     html shouldBe """<p class="no-section align-right"> <strong>[[Company Name]]</strong></p>"""
   }
@@ -129,7 +129,7 @@ class XHtmlAgreementPrinterSpec
     val text = """\right __[[Company Name | Uppercase]]__"""
     val agreement = structureAgreement(text)
     val html = XHtmlAgreementPrinter(false)
-      .printParagraphs(agreement.right.value.paragraphs.toList)
+      .printParagraphs(agreement.right.value.paragraphs)
       .print
     html shouldBe """<p class="no-section align-right"> <u>[[Company Name]]</u></p>"""
   }
@@ -138,7 +138,7 @@ class XHtmlAgreementPrinterSpec
     val text = """\right-three-quarters **[[Company Name | Uppercase]]**"""
     val agreement = structureAgreement(text)
     val html = XHtmlAgreementPrinter(false)
-      .printParagraphs(agreement.right.value.paragraphs.toList)
+      .printParagraphs(agreement.right.value.paragraphs)
       .print
     html shouldBe """<p class="no-section align-right-three-quarters"> <strong>[[Company Name]]</strong></p>"""
   }
@@ -158,7 +158,7 @@ class XHtmlAgreementPrinterSpec
 
     val agreement = structureAgreement(text)
     val html = XHtmlAgreementPrinter(false)
-      .printParagraphs(agreement.right.value.paragraphs.toList)
+      .printParagraphs(agreement.right.value.paragraphs)
       .print
     html shouldBe """<p class="no-section align-center"> <strong>BYLAWS</strong><br /> <strong>OF</strong><br /> <strong>[[Company Name]]</strong><br /> (A DELAWARE CORPORATION)<br /></p><ul class="list-lvl-1"><li><p>1.  <strong>Offices</strong></p><ul class="list-lvl-2"><li><p>(a)  <strong>Registered Office</strong>.  The registered office of the corporation in the State of Delaware shall be [[Registered Agent Address]], and the name of the registered agent of the corporation in the State of Delaware at such address is [[Registered Agent Name]].<br /></p></li></ul></li></ul>"""
 
