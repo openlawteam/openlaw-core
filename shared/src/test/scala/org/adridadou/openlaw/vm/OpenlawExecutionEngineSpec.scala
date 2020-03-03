@@ -5,6 +5,7 @@ import java.time.{Clock, LocalDateTime}
 import org.adridadou.openlaw.result.Implicits.failureCause2Exception
 import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template._
+import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.Formatter
 import org.adridadou.openlaw.parser.template.variableTypes.{VariableType, _}
 import org.adridadou.openlaw.result.{Failure, Result, Success}
@@ -2784,12 +2785,11 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
   it should "be possible to re-define a formatter" in {
     val template =
-      compile("""
-                |[[some value:Identity | signature]]
-                |""".stripMargin)
+      compile("""[[some value:Identity | signature]]""".stripMargin)
 
-    val someNewFormatter = new Formatter {
+    val someNewFormatter: Formatter = new Formatter {
       override def format(
+          expression: Expression,
           value: OpenlawValue,
           executionResult: TemplateExecutionResult
       ): Result[List[
@@ -2799,13 +2799,21 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
           executionResult.signatureProofs
             .get(email)
             .map(p => Success(List(FreeText(Text(s"s/${p.fullName}")))))
-            .getOrElse(Success(List(FreeText(Text(s"")))))
+            .getOrElse(
+              Success(
+                List(
+                  FreeText(Text(s"{{signature of ${expression.toString} }}"))
+                )
+              )
+            )
+        case _ =>
+          Failure("it should be an identity, nothing else!")
       }
       override def missingValueFormat(
-          name: String
+          expression: Expression
       ): List[
         AgreementElement
-      ] = List(FreeText(Text(s"{{signature of ${name}}")))
+      ] = List(FreeText(Text(s"{{signature of $expression }}")))
     }
 
     val result = engine
@@ -2833,6 +2841,19 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       )
       .getOrThrow()
 
-    println(parser.forReview(result.agreements.head))
+    val initialResult = engine
+      .execute(
+        template,
+        TemplateParameters(
+          "some value" -> IdentityType
+            .internalFormat(Identity(Email("some@email.com").getOrThrow()))
+            .getOrThrow()
+        )
+      )
+      .getOrThrow()
+
+    parser.forReview(initialResult.agreements.head) shouldBe "<p class=\"no-section\"></p>"
+
+    parser.forReview(result.agreements.head) shouldBe "<p class=\"no-section\">{{signature of some value }}</p>"
   }
 }

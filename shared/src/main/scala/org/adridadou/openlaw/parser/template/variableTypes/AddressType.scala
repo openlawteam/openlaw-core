@@ -71,7 +71,7 @@ object AddressType extends VariableType(name = "Address") {
       keys: List[VariableMemberKey],
       expression: Expression,
       executionResult: TemplateExecutionResult
-  ): Result[Unit] = keys.toList match {
+  ): Result[Unit] = keys match {
     case Nil => Success.unit
     case VariableMemberKey(Left(VariableName(head))) :: tail if tail.isEmpty =>
       checkProperty(head)
@@ -136,6 +136,7 @@ object Address {
 
 object AddressFormatter extends Formatter {
   override def format(
+      expression: Expression,
       value: OpenlawValue,
       executionResult: TemplateExecutionResult
   ): Result[List[AgreementElement]] = value match {
@@ -148,7 +149,7 @@ object AddressFormatter extends Formatter {
   }
 
   override def missingValueFormat(
-      name: String
+      expression: Expression
   ): List[AgreementElement] =
-    List(FreeText(Text(s"[[$name]]")))
+    List(FreeText(Text(s"[[$expression]]")))
 }

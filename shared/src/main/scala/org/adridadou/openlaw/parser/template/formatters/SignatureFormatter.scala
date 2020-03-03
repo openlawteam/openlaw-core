@@ -2,6 +2,7 @@ package org.adridadou.openlaw.parser.template.formatters
 
 import org.adridadou.openlaw.OpenlawValue
 import org.adridadou.openlaw.parser.template._
+import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.variableTypes.Identity
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 
@@ -10,6 +11,7 @@ import org.adridadou.openlaw.result.{Failure, Result, Success}
   */
 class SignatureFormatter extends Formatter {
   override def format(
+      expression: Expression,
       value: OpenlawValue,
       executionResult: TemplateExecutionResult
   ): Result[List[AgreementElement]] = value match {
@@ -25,7 +27,7 @@ class SignatureFormatter extends Formatter {
             )
           )
         })
-        .getOrElse(Right(Nil))
+        .getOrElse(Success(Nil))
     case other =>
       Failure(
         "invalid type " + other.getClass.getSimpleName + ". expecting Identity"
@@ -33,7 +35,7 @@ class SignatureFormatter extends Formatter {
   }
 
   override def missingValueFormat(
-      name: String
+      expression: Expression
   ): List[AgreementElement] =
-    List(FreeText(Text(s"{{signature of $name}}")))
+    List(FreeText(Text(s"{{signature of $expression}}")))
 }

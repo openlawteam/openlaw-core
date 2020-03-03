@@ -594,8 +594,8 @@ final case class CompiledAgreement(
         .orElse(formatter.map(olType.getFormatter(_, executionResult)))
         .getOrElse(Success(olType.defaultFormatter))
       result <- value
-        .map(f.format(_, executionResult))
-        .getOrElse(Success(f.missingValueFormat(expression.toString)))
+        .map(f.format(expression, _, executionResult))
+        .getOrElse(Success(f.missingValueFormat(expression)))
     } yield result
 
   private def generateVariable(
