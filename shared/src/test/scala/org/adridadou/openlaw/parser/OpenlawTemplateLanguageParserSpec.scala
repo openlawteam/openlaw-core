@@ -137,6 +137,25 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
     )
   }
 
+  it should "be able to define styling of tables with no header" in {
+    val text =
+      """| ===== | ===== | ===== |
+         | val11 | val12 | val13 |
+         | val21 | val22 | val23 |"""
+
+    val template = service.compileTemplate(text).getOrThrow()
+    template shouldBe a[CompiledAgreement]
+
+    val tableElement =
+      structureAgreement(text).map(_.paragraphs.head.elements.head).getOrThrow()
+    tableElement shouldBe a[TableElement]
+
+    resultShouldBe(
+      forReview(text),
+      """<p class="no-section"><table class="markdown-table"><tr class="markdown-table-row"></tr><tr class="markdown-table-row"><td class="markdown-table-data align-left border-hide">val11</td><td class="markdown-table-data align-left border-hide">val12</td><td class="markdown-table-data align-left border-hide">val13</td></tr><tr class="markdown-table-row"><td class="markdown-table-data align-left border-hide">val21</td><td class="markdown-table-data align-left border-hide">val22</td><td class="markdown-table-data align-left border-hide">val23</td></tr></table></p>""".stripMargin
+    )
+  }
+
   it should "handle tables following other elements" in {
     val text =
       """This is a test.
