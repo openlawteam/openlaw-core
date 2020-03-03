@@ -1809,16 +1809,14 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
           collectionType
         )
       )
-      .right
-      .value
+      .getOrThrow()
 
     engine.execute(template, TemplateParameters("texts" -> paramValue)) match {
       case Success(result) =>
         parser.forReview(result.agreements.head) shouldBe
           """<p class="no-section">this is a test<br /><br />        </p><p class="no-section">to see if for each works<br /><br />       </p><p class="no-section"><br /><br />       </p><p class="no-section"><table class="markdown-table"><tr class="markdown-table-row"><th class="markdown-table-header align-left border-show">head1</th><th class="markdown-table-header align-left border-show">head2</th><th class="markdown-table-header align-left border-show">head3</th></tr><tr class="markdown-table-row"><td class="markdown-table-data align-left border-show">val11</td><td class="markdown-table-data align-left border-show">val12</td><td class="markdown-table-data align-left border-show">text1</td></tr><tr class="markdown-table-row"><td class="markdown-table-data align-left border-show">val11</td><td class="markdown-table-data align-left border-show">val12</td><td class="markdown-table-data align-left border-show">text2</td></tr><tr class="markdown-table-row"><td class="markdown-table-data align-left border-show">val11</td><td class="markdown-table-data align-left border-show">val12</td><td class="markdown-table-data align-left border-show">text3</td></tr></table></p>""".stripMargin
-      case Left(ex) =>
-        ex.printStackTrace()
-        fail(ex.message)
+      case Failure(ex, message) =>
+        fail(message, ex)
     }
   }
 
@@ -2027,7 +2025,6 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
     val Success(result) =
       engine.execute(template, TemplateParameters("conditional" -> "true"))
-
     parser.forReview(result.agreements.head) shouldBe """<p class="no-section"><br /><table class="markdown-table"><tr class="markdown-table-row"><th class="markdown-table-header align-left border-show">Optionee</th><th class="markdown-table-header align-left border-show">Title</th><th class="markdown-table-header align-left border-show">Address</th><th class="markdown-table-header align-left border-show">Ethereum Address</th><th class="markdown-table-header align-left border-show">Option Type</th><th class="markdown-table-header align-left border-show">Number of Shares</th><th class="markdown-table-header align-left border-show">Exercise Price</th><th class="markdown-table-header align-left border-show">Vesting Commencement Date</th><th class="markdown-table-header align-left border-show">Vesting Method</th><th class="markdown-table-header align-left border-show">State of Residence</th></tr><tr class="markdown-table-row"><td class="markdown-table-data align-left border-show">[[Optionee 1 Name]]</td><td class="markdown-table-data align-left border-show">[[Optionee 1 Title]]</td><td class="markdown-table-data align-left border-show">[[Optionee 1 Address]]</td><td class="markdown-table-data align-left border-show">[[Optionee 1 Ethereum Address]]</td><td class="markdown-table-data align-left border-show">[[Optionee 1 Option Type]]</td><td class="markdown-table-data align-left border-show">[[Optionee 1 Shares]]</td><td class="markdown-table-data align-left border-show">[[Option Exercise Price]]</td><td class="markdown-table-data align-left border-show">[[Optionee 1 Vesting Commencement Date]]</td><td class="markdown-table-data align-left border-show">[[Optionee 1 Vesting Method]]</td><td class="markdown-table-data align-left border-show">[[Optionee 1 State]]</td></tr></table><br />      </p>"""
   }
 

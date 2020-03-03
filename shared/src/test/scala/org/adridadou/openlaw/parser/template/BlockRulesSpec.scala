@@ -20,7 +20,6 @@ class BlockRulesSpec
     def TableRow = rule { tableRow ~ EOI }
     def TableHeaderBreakString = rule { tableHeaderBreakString ~ EOI }
     def TableHeaderBreak = rule { tableHeaderBreak ~ EOI }
-    def TableHeader = rule { tableHeader ~ EOI }
     def Table = rule { tableKey ~ EOI }
   }
 
@@ -176,15 +175,6 @@ class BlockRulesSpec
       .run() shouldBe a[Failure[_]]
     TestParser("|:: | --- | ---|").TableHeaderBreak.run() shouldBe a[Failure[_]]
     TestParser("|: | --- | ---|").TableHeaderBreak.run() shouldBe a[Failure[_]]
-  }
-
-  it should "parse a table header" in {
-    val tableHeader = "| head1 | head2 | head3 |\n" +
-      "| --- | --- | --- |"
-    checkResult(
-      TestParser(tableHeader),
-      TestParser(tableHeader).TableHeader.run()
-    )
   }
 
   it should "parse a table construct" in {

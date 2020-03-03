@@ -377,7 +377,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     case foreachBlock: ForEachBlock =>
       executeForEachBlock(executionResult, foreachBlock)
 
-    case Table(header, alignment, rows) =>
+    case Table(header, _, rows) =>
       val initialValue: Result[OpenlawExecutionState] = Success(executionResult)
       (header.flatten ++ rows.flatten.flatten)
         .foldLeft(initialValue)((exec, elem) =>
