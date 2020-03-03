@@ -167,8 +167,8 @@ case object NoTrailingZerosFormatter extends Formatter with NumberFormatter {
       .map(bd => List(FreeText(Text(formatNumber(bd)))))
 
   override def missingValueFormat(
-                                   name: String
-                                 ): List[AgreementElement] =
+      name: String
+  ): List[AgreementElement] =
     List(FreeText(Text(s"[[$name]]")))
 }
 
@@ -183,8 +183,8 @@ case object RawNumberFormatter extends Formatter with NumberFormatter {
       .map(str => List(FreeText(Text(str))))
 
   override def missingValueFormat(
-                                   name: String
-                                 ): List[AgreementElement] =
+      name: String
+  ): List[AgreementElement] =
     List(FreeText(Text(s"[[$name]]")))
 }
 
@@ -219,7 +219,7 @@ final case class Rounding(expr: Expression)
   }
 
   override def missingValueFormat(
-                                   name: String
-                                 ): List[AgreementElement] =
+      name: String
+  ): List[AgreementElement] =
     List(FreeText(Text(s"[[$name]]")))
 }

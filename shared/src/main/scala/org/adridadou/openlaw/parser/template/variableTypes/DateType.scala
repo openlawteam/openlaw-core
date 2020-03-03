@@ -340,8 +340,8 @@ class PatternFormat(pattern: String) extends Formatter {
     }
 
   override def missingValueFormat(
-                                   name: String
-                                 ): List[AgreementElement] =
+      name: String
+  ): List[AgreementElement] =
     List(FreeText(Text(s"[[$name]]")))
 }
 
@@ -370,8 +370,8 @@ class SimpleDateFormatter extends Formatter {
         )
       })
   override def missingValueFormat(
-                                   name: String
-                                 ): List[AgreementElement] =
+      name: String
+  ): List[AgreementElement] =
     List(FreeText(Text(s"[[$name]]")))
 }
 
@@ -407,8 +407,8 @@ class SimpleDateTimeFormatter extends Formatter {
     String.format("%02d", value)
 
   override def missingValueFormat(
-                                   name: String
-                                 ): List[AgreementElement] =
+      name: String
+  ): List[AgreementElement] =
     List(FreeText(Text(s"[[$name]]")))
 }
 

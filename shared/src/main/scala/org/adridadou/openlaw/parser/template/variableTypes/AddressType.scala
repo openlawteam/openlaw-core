@@ -148,7 +148,7 @@ object AddressFormatter extends Formatter {
   }
 
   override def missingValueFormat(
-                                   name: String
-                                 ): List[AgreementElement] =
+      name: String
+  ): List[AgreementElement] =
     List(FreeText(Text(s"[[$name]]")))
 }

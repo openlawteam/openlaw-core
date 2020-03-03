@@ -33,7 +33,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       None,
       None,
       None,
-      (_,_) => None
+      (_, _) => None
     )
 
   /**
@@ -53,7 +53,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       None,
       None,
       None,
-      (_,_) => None
+      (_, _) => None
     )
 
   /**
@@ -63,8 +63,12 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       mainTemplate: CompiledTemplate,
       parameters: TemplateParameters,
       templates: Map[TemplateSourceIdentifier, CompiledTemplate],
-      externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] = Map.empty,
-      overriddenFormatter: (Option[FormatterDefinition], TemplateExecutionResult) => Option[Formatter] = (_, _) => None
+      externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] =
+        Map.empty,
+      overriddenFormatter: (
+          Option[FormatterDefinition],
+          TemplateExecutionResult
+      ) => Option[Formatter] = (_, _) => None
   ): Result[OpenlawExecutionState] =
     execute(
       mainTemplate,
@@ -89,7 +93,10 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       id: Option[ContractId],
       creationDate: Option[LocalDateTime],
       profileAddress: Option[EthereumAddress],
-      overriddenFormatter: (Option[FormatterDefinition], TemplateExecutionResult) => Option[Formatter]
+      overriddenFormatter: (
+          Option[FormatterDefinition],
+          TemplateExecutionResult
+      ) => Option[Formatter]
   ): Result[OpenlawExecutionState] = {
     val executionResult = OpenlawExecutionState(
       parameters = parameters,
@@ -118,7 +125,10 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
   final def appendTemplateToExecutionResult(
       executionResult: OpenlawExecutionState,
       template: CompiledTemplate,
-      overriddenFormatter: (Option[FormatterDefinition], TemplateExecutionResult) => Option[Formatter]
+      overriddenFormatter: (
+          Option[FormatterDefinition],
+          TemplateExecutionResult
+      ) => Option[Formatter]
   ): Result[OpenlawExecutionState] = {
     //copy execution result to avoid modifying the one passed
     // append template elements and continue execution
@@ -179,7 +189,10 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
   final def resumeExecution(
       executionResult: OpenlawExecutionState,
       templates: Map[TemplateSourceIdentifier, CompiledTemplate],
-      overriddenFormatter: (Option[FormatterDefinition], TemplateExecutionResult) => Option[Formatter] = (_,_) => None
+      overriddenFormatter: (
+          Option[FormatterDefinition],
+          TemplateExecutionResult
+      ) => Option[Formatter] = (_, _) => None
   ): Result[OpenlawExecutionState] = {
     executionResult.state match {
       case ExecutionFinished =>
@@ -187,8 +200,9 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
           case Some(_) =>
             // has to be in a matcher for tail call optimization
             finishExecution(executionResult, templates, overriddenFormatter) match {
-              case Success(result) => resumeExecution(result, templates, overriddenFormatter)
-              case f               => f
+              case Success(result) =>
+                resumeExecution(result, templates, overriddenFormatter)
+              case f => f
             }
           case None =>
             if (executionResult.agreements.isEmpty) {
@@ -220,7 +234,8 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
               template,
               willBeUsedForEmbedded
             ) match {
-              case Success(result)   => resumeExecution(result, templates, overriddenFormatter)
+              case Success(result) =>
+                resumeExecution(result, templates, overriddenFormatter)
               case f @ Failure(_, _) => f
             }
           case None => Success(executionResult)
@@ -229,8 +244,9 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       case ExecutionReady =>
         // has to be in a matcher for tail call optimization
         executeInternal(executionResult, templates) match {
-          case Success(result) => resumeExecution(result, templates, overriddenFormatter)
-          case f               => f
+          case Success(result) =>
+            resumeExecution(result, templates, overriddenFormatter)
+          case f => f
         }
       case ExecutionFailed(Failure(ex, message)) =>
         Failure(ex, message)
@@ -240,7 +256,10 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
   private def finishExecution(
       executionResult: OpenlawExecutionState,
       templates: Map[TemplateSourceIdentifier, CompiledTemplate],
-      overriddenFormatter: (Option[FormatterDefinition], TemplateExecutionResult) => Option[Formatter]
+      overriddenFormatter: (
+          Option[FormatterDefinition],
+          TemplateExecutionResult
+      ) => Option[Formatter]
   ): Result[OpenlawExecutionState] =
     executionResult.parentExecution
       .map {

@@ -44,14 +44,20 @@ final case class CompiledAgreement(
 
   def structuredMainTemplate(
       executionResult: OpenlawExecutionState,
-      overriddenFormatter: (Option[FormatterDefinition], TemplateExecutionResult) => Option[Formatter]
+      overriddenFormatter: (
+          Option[FormatterDefinition],
+          TemplateExecutionResult
+      ) => Option[Formatter]
   ): Result[StructuredAgreement] =
     structured(executionResult, None, mainTemplate = true, overriddenFormatter)
 
   def structuredInternal(
       executionResult: OpenlawExecutionState,
       path: Option[TemplatePath],
-      overriddenFormatter: (Option[FormatterDefinition], TemplateExecutionResult) => Option[Formatter]
+      overriddenFormatter: (
+          Option[FormatterDefinition],
+          TemplateExecutionResult
+      ) => Option[Formatter]
   ): Result[StructuredAgreement] =
     structured(executionResult, path, mainTemplate = false, overriddenFormatter)
 
@@ -59,19 +65,23 @@ final case class CompiledAgreement(
       executionResult: OpenlawExecutionState,
       path: Option[TemplatePath],
       mainTemplate: Boolean,
-      overriddenFormatter: (Option[FormatterDefinition], TemplateExecutionResult) => Option[Formatter]
+      overriddenFormatter: (
+          Option[FormatterDefinition],
+          TemplateExecutionResult
+      ) => Option[Formatter]
   ): Result[StructuredAgreement] =
-    getAgreementElements(Nil, block.elems, executionResult, overriddenFormatter).map { elements =>
-      val paragraphs = cleanupParagraphs(generateParagraphs(elements))
-      StructuredAgreement(
-        executionResultId = executionResult.id,
-        header = header,
-        templateDefinition = executionResult.templateDefinition,
-        path = path,
-        mainTemplate = mainTemplate,
-        paragraphs = paragraphs
-      )
-    }
+    getAgreementElements(Nil, block.elems, executionResult, overriddenFormatter)
+      .map { elements =>
+        val paragraphs = cleanupParagraphs(generateParagraphs(elements))
+        StructuredAgreement(
+          executionResultId = executionResult.id,
+          header = header,
+          templateDefinition = executionResult.templateDefinition,
+          path = path,
+          mainTemplate = mainTemplate,
+          paragraphs = paragraphs
+        )
+      }
 
   private def cleanupParagraphs(paragraphs: List[Paragraph]): List[Paragraph] =
     paragraphs
@@ -138,7 +148,10 @@ final case class CompiledAgreement(
       renderedElements: List[AgreementElement],
       elements: List[TemplatePart],
       executionResult: OpenlawExecutionState,
-      overriddenFormatter: (Option[FormatterDefinition], TemplateExecutionResult) => Option[Formatter]
+      overriddenFormatter: (
+          Option[FormatterDefinition],
+          TemplateExecutionResult
+      ) => Option[Formatter]
   ): Result[List[AgreementElement]] =
     elements match {
       case Nil =>
@@ -151,27 +164,49 @@ final case class CompiledAgreement(
           overriddenFormatter
         ) match {
           case Success(list) =>
-            getAgreementElements(list, rest, executionResult, overriddenFormatter)
+            getAgreementElements(
+              list,
+              rest,
+              executionResult,
+              overriddenFormatter
+            )
           case f => f
         }
     }
 
   private def getAgreementElementsFromElement(
-                                               renderedElements: List[AgreementElement],
-                                               element: TemplatePart,
-                                               executionResult: OpenlawExecutionState,
-                                               overriddenFormatter: (Option[FormatterDefinition], TemplateExecutionResult) => Option[Formatter]
+      renderedElements: List[AgreementElement],
+      element: TemplatePart,
+      executionResult: OpenlawExecutionState,
+      overriddenFormatter: (
+          Option[FormatterDefinition],
+          TemplateExecutionResult
+      ) => Option[Formatter]
   ): Result[List[AgreementElement]] =
     element match {
       case t: Table =>
         for {
           headerElements <- t.header
-            .map(entry => getAgreementElements(Nil, entry, executionResult, overriddenFormatter))
+            .map(entry =>
+              getAgreementElements(
+                Nil,
+                entry,
+                executionResult,
+                overriddenFormatter
+              )
+            )
             .sequence
           rowElements <- t.rows
             .map(seq =>
               seq
-                .map(entry => getAgreementElements(Nil, entry, executionResult, overriddenFormatter))
+                .map(entry =>
+                  getAgreementElements(
+                    Nil,
+                    entry,
+                    executionResult,
+                    overriddenFormatter
+                  )
+                )
                 .sequence
             )
             .sequence
@@ -202,7 +237,12 @@ final case class CompiledAgreement(
         }
 
       case TemplateText(textElements) =>
-        getAgreementElements(renderedElements, textElements, executionResult, overriddenFormatter)
+        getAgreementElements(
+          renderedElements,
+          textElements,
+          executionResult,
+          overriddenFormatter
+        )
       case Text(str)    => Success(renderedElements :+ FreeText(Text(str)))
       case Em           => Success(renderedElements :+ FreeText(Em))
       case Strong       => Success(renderedElements :+ FreeText(Strong))
@@ -240,7 +280,10 @@ final case class CompiledAgreement(
                   Nil,
                   variableDefinition.formatter,
                   executionResult,
-                  overriddenFormatter(variableDefinition.formatter, executionResult)
+                  overriddenFormatter(
+                    variableDefinition.formatter,
+                    executionResult
+                  )
                 ).map { list =>
                   renderedElements :+ VariableElement(
                     variableDefinition.name,
@@ -273,7 +316,10 @@ final case class CompiledAgreement(
                   Nil,
                   variableDefinition.formatter,
                   executionResult,
-                  overriddenFormatter(variableDefinition.formatter, executionResult)
+                  overriddenFormatter(
+                    variableDefinition.formatter,
+                    executionResult
+                  )
                 ).map { list =>
                   renderedElements :+ VariableElement(
                     variableDefinition.name,
@@ -373,7 +419,12 @@ final case class CompiledAgreement(
             val subExecution =
               executionResult.finishedEmbeddedExecutions.remove(0)
             subElements.flatMap(
-              getAgreementElements(_, subBlock.elems, subExecution, overriddenFormatter)
+              getAgreementElements(
+                _,
+                subBlock.elems,
+                subExecution,
+                overriddenFormatter
+              )
             )
           })
         }).flatten
@@ -414,76 +465,84 @@ final case class CompiledAgreement(
             .flatMap(definition => executionResult.getVariable(definition.name))
             .flatMap(_.evaluate(executionResult).sequence)
             .sequence
-        } yield
-          value match {
-            case Some(value: SectionInfo) =>
-              for {
-                overrideSymbolValue <- overrideSymbol
-                overrideFormatValue <- overrideFormat
-              } yield renderedElements.:+(
-                SectionElement(
-                  value.numbering,
-                  lvl,
-                  number,
-                  resetNumbering,
-                  overrideSymbolValue,
-                  overrideFormatValue
-                )
+        } yield value match {
+          case Some(value: SectionInfo) =>
+            for {
+              overrideSymbolValue <- overrideSymbol
+              overrideFormatValue <- overrideFormat
+            } yield renderedElements.:+(
+              SectionElement(
+                value.numbering,
+                lvl,
+                number,
+                resetNumbering,
+                overrideSymbolValue,
+                overrideFormatValue
               )
+            )
 
-            case None =>
-              val name = executionResult.sectionNameMapping(uuid)
-              val result = executionResult
-                .getVariable(name)
-                .flatMap(_.evaluate(executionResult).sequence)
-                .sequence
+          case None =>
+            val name = executionResult.sectionNameMapping(uuid)
+            val result = executionResult
+              .getVariable(name)
+              .flatMap(_.evaluate(executionResult).sequence)
+              .sequence
 
-              result.flatMap { r =>
-                r match {
-                  case Some(v) =>
-                    for {
-                      overrideSymbolValue <- overrideSymbol
-                      overrideFormatValue <- overrideFormat
-                      info <- VariableType.convert[SectionInfo](v)
-                    } yield renderedElements.:+(
-                      SectionElement(
-                        info.numbering,
-                        lvl,
-                        number,
-                        resetNumbering,
-                        overrideSymbolValue,
-                        overrideFormatValue
-                      )
+            result.flatMap { r =>
+              r match {
+                case Some(v) =>
+                  for {
+                    overrideSymbolValue <- overrideSymbol
+                    overrideFormatValue <- overrideFormat
+                    info <- VariableType.convert[SectionInfo](v)
+                  } yield renderedElements.:+(
+                    SectionElement(
+                      info.numbering,
+                      lvl,
+                      number,
+                      resetNumbering,
+                      overrideSymbolValue,
+                      overrideFormatValue
                     )
+                  )
 
-                  case None =>
-                    Failure(
-                      "Section referenced before it has been rendered. The executor can't guess the section number before rendering it yet."
-                    )
-                }
+                case None =>
+                  Failure(
+                    "Section referenced before it has been rendered. The executor can't guess the section number before rendering it yet."
+                  )
               }
-            case Some(v) =>
-              Failure(
-                s"error while rendering sections the variable should be a section but is ${v.getClass.getSimpleName}"
-              )
-          }).flatten
+            }
+          case Some(v) =>
+            Failure(
+              s"error while rendering sections the variable should be a section but is ${v.getClass.getSimpleName}"
+            )
+        }).flatten
 
       case VariableMember(name, keys, formatter) =>
-        val variableFormatterDefinition = executionResult.getVariable(name).flatMap(_.formatter)
+        val variableFormatterDefinition =
+          executionResult.getVariable(name).flatMap(_.formatter)
         val definition =
           executionResult.getVariable(name).map(_.varType(executionResult))
         getDependencies(name, executionResult).flatMap { seq =>
-          generateVariable(name, keys, formatter, executionResult, overriddenFormatter(variableFormatterDefinition, executionResult)).map {
-            variable =>
-              renderedElements.:+(
-                VariableElement(name, definition, variable, seq)
-              )
+          generateVariable(
+            name,
+            keys,
+            formatter,
+            executionResult,
+            overriddenFormatter(variableFormatterDefinition, executionResult)
+          ).map { variable =>
+            renderedElements.:+(
+              VariableElement(name, definition, variable, seq)
+            )
           }
         }
       case ExpressionElement(expr, formatter) =>
-        generateExpression(expr, formatter, executionResult, overriddenFormatter(None, executionResult)).map(elems =>
-          renderedElements ++ elems
-        )
+        generateExpression(
+          expr,
+          formatter,
+          executionResult,
+          overriddenFormatter(None, executionResult)
+        ).map(elems => renderedElements ++ elems)
       case _ =>
         Success(renderedElements)
     }
@@ -511,22 +570,32 @@ final case class CompiledAgreement(
     for {
       valueOpt <- expression.evaluate(executionResult)
       expressionType <- expression.expressionType(executionResult)
-      result <- format(expressionType, formatterDefinition, valueOpt, expression, executionResult, overriddenFormatter)
+      result <- format(
+        expressionType,
+        formatterDefinition,
+        valueOpt,
+        expression,
+        executionResult,
+        overriddenFormatter
+      )
     } yield result
 
   private def format(
-              olType: VariableType,
-              formatter: Option[FormatterDefinition],
-              value: Option[OpenlawValue],
-              expression: Expression,
-              executionResult: TemplateExecutionResult,
-              overriddenFormatter: Option[Formatter]
-            ): Result[List[AgreementElement]] =
+      olType: VariableType,
+      formatter: Option[FormatterDefinition],
+      value: Option[OpenlawValue],
+      expression: Expression,
+      executionResult: TemplateExecutionResult,
+      overriddenFormatter: Option[Formatter]
+  ): Result[List[AgreementElement]] =
     for {
-      f <- overriddenFormatter.map(Success(_))
+      f <- overriddenFormatter
+        .map(Success(_))
         .orElse(formatter.map(olType.getFormatter(_, executionResult)))
         .getOrElse(Success(olType.defaultFormatter))
-      result <- value.map(f.format(_, executionResult)).getOrElse(Success(f.missingValueFormat(expression.toString)))
+      result <- value
+        .map(f.format(_, executionResult))
+        .getOrElse(Success(f.missingValueFormat(expression.toString)))
     } yield result
 
   private def generateVariable(
@@ -538,10 +607,24 @@ final case class CompiledAgreement(
   ): Result[List[AgreementElement]] =
     for {
       varType <- executionResult.getAliasOrVariableType(name)
-      valueOpt <- executionResult.getExpression(name).map(expression => expression.evaluate(executionResult)).sequence.map(_.flatten)
+      valueOpt <- executionResult
+        .getExpression(name)
+        .map(expression => expression.evaluate(executionResult))
+        .sequence
+        .map(_.flatten)
       keysType <- varType.keysType(keys, name, executionResult)
-      keysValue <- valueOpt.map(varType.access(_, name, keys, executionResult)).sequence.map(_.flatten)
-      result <- format(keysType, formatter, keysValue, name, executionResult, overriddenFormatter)
+      keysValue <- valueOpt
+        .map(varType.access(_, name, keys, executionResult))
+        .sequence
+        .map(_.flatten)
+      result <- format(
+        keysType,
+        formatter,
+        keysValue,
+        name,
+        executionResult,
+        overriddenFormatter
+      )
     } yield result
 
   override def withRedefinition(

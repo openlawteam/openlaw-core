@@ -1211,15 +1211,25 @@ final case class OpenlawExecutionState(
 
   def structuredMainTemplate(
       agreement: CompiledAgreement,
-      overriddenFormatter: (Option[FormatterDefinition], TemplateExecutionResult) => Option[Formatter]
+      overriddenFormatter: (
+          Option[FormatterDefinition],
+          TemplateExecutionResult
+      ) => Option[Formatter]
   ): Result[StructuredAgreement] =
     agreement.structuredMainTemplate(this, overriddenFormatter)
 
   def structuredInternal(
       agreement: CompiledAgreement,
-      overriddenFormatter: (Option[FormatterDefinition], TemplateExecutionResult) => Option[Formatter]
+      overriddenFormatter: (
+          Option[FormatterDefinition],
+          TemplateExecutionResult
+      ) => Option[Formatter]
   ): Result[StructuredAgreement] =
-    agreement.structuredInternal(this, templateDefinition.flatMap(_.path), overriddenFormatter)
+    agreement.structuredInternal(
+      this,
+      templateDefinition.flatMap(_.path),
+      overriddenFormatter
+    )
 
   def findExecutionResultInternal(
       executionResultId: TemplateExecutionResultId
@@ -1549,4 +1559,7 @@ object ActionIdentifier {
 
 final case class ActionIdentifier(identifier: String)
 
-final case class LazyAgreementData(agreement: CompiledAgreement, executionResult: TemplateExecutionResult)
+final case class LazyAgreementData(
+    agreement: CompiledAgreement,
+    executionResult: TemplateExecutionResult
+)

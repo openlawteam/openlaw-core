@@ -2582,7 +2582,11 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       result.withVariable(VariableName("dummy name"), None, NumberType)
 
     val Success(newResult) =
-      engine.appendTemplateToExecutionResult(subResult, template2, (_,_) => None)
+      engine.appendTemplateToExecutionResult(
+        subResult,
+        template2,
+        (_, _) => None
+      )
     newResult.agreements.size shouldBe 1
     newResult.state shouldBe ExecutionFinished
 
@@ -2792,9 +2796,10 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         AgreementElement
       ]] = value match {
         case Identity(email) =>
-          executionResult.signatureProofs.get(email)
+          executionResult.signatureProofs
+            .get(email)
             .map(p => Success(List(FreeText(Text(s"s/${p.fullName}")))))
-          .getOrElse(Success(List(FreeText(Text(s"")))))
+            .getOrElse(Success(List(FreeText(Text(s"")))))
       }
       override def missingValueFormat(
           name: String
@@ -2803,26 +2808,30 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       ] = List(FreeText(Text(s"{{signature of ${name}}")))
     }
 
-    val result = engine.execute(
-      template,
-      TemplateParameters("some value" -> IdentityType.internalFormat(Identity(Email("some@email.com").getOrThrow())).getOrThrow()),
-      Map.empty,
-      Map.empty,
-      Map.empty,
-      Map.empty,
-      None,
-      None,
-      None,
-      (definition, _) => {
-        definition match {
-          case Some(FormatterDefinition("signature",_)) =>
-            Some(someNewFormatter)
-          case _ => None
+    val result = engine
+      .execute(
+        template,
+        TemplateParameters(
+          "some value" -> IdentityType
+            .internalFormat(Identity(Email("some@email.com").getOrThrow()))
+            .getOrThrow()
+        ),
+        Map.empty,
+        Map.empty,
+        Map.empty,
+        Map.empty,
+        None,
+        None,
+        None,
+        (definition, _) => {
+          definition match {
+            case Some(FormatterDefinition("signature", _)) =>
+              Some(someNewFormatter)
+            case _ => None
+          }
         }
-      }
-    )
+      )
       .getOrThrow()
-
 
     println(parser.forReview(result.agreements.head))
   }

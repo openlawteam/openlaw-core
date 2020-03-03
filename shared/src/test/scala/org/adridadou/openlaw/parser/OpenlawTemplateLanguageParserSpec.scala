@@ -62,7 +62,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
             templates,
             externalCallStructures
           )
-          .flatMap(agreement.structuredMainTemplate(_, (_,_) => None))
+          .flatMap(agreement.structuredMainTemplate(_, (_, _) => None))
       case _ =>
         Failure("was expecting agreement")
     })
@@ -705,7 +705,10 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
       """<ul class="list-lvl-1"><li><p>A)  Section 1</p></li></ul>"""
     )
     resultShouldBe(
-      forReview("^(_(symbol: 'Hide'; format: 'RightParen')) Section 1", Map.empty),
+      forReview(
+        "^(_(symbol: 'Hide'; format: 'RightParen')) Section 1",
+        Map.empty
+      ),
       """<ul class="list-lvl-1"><li><p>  Section 1</p></li></ul>"""
     )
   }
@@ -1202,11 +1205,17 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
 
   it should "format dates with built in formatters" in {
     resultShouldBe(
-      forReview("""[[date:DateTime("2017-06-24 13:45:00") | year]]""", Map.empty),
+      forReview(
+        """[[date:DateTime("2017-06-24 13:45:00") | year]]""",
+        Map.empty
+      ),
       """<p class="no-section">2017</p>"""
     )
     resultShouldBe(
-      forReview("""[[date:DateTime("2017-06-24 13:45:00") | day]]""", Map.empty),
+      forReview(
+        """[[date:DateTime("2017-06-24 13:45:00") | day]]""",
+        Map.empty
+      ),
       """<p class="no-section">24</p>"""
     )
     resultShouldBe(
@@ -1217,7 +1226,10 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
       """<p class="no-section">Saturday</p>"""
     )
     resultShouldBe(
-      forReview("""[[date:DateTime("2017-06-24 13:45:00") | month]]""", Map.empty),
+      forReview(
+        """[[date:DateTime("2017-06-24 13:45:00") | month]]""",
+        Map.empty
+      ),
       """<p class="no-section">6</p>"""
     )
     resultShouldBe(
@@ -1743,7 +1755,10 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
     val text =
       """[[My Number:Number(12)]][[My Number 2:Number(My Number + 10)]]""".stripMargin
 
-    resultShouldBe(forReview(text, Map.empty), """<p class="no-section">1222</p>""")
+    resultShouldBe(
+      forReview(text, Map.empty),
+      """<p class="no-section">1222</p>"""
+    )
   }
 
   it should "read a property from an address" in {

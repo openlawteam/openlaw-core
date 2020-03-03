@@ -1,7 +1,10 @@
 package org.adridadou.openlaw.parser.template.formatters
 
 import org.adridadou.openlaw.OpenlawValue
-import org.adridadou.openlaw.parser.template.{AgreementElement, TemplateExecutionResult}
+import org.adridadou.openlaw.parser.template.{
+  AgreementElement,
+  TemplateExecutionResult
+}
 import org.adridadou.openlaw.result.{Result, Success}
 
 /**
@@ -14,7 +17,7 @@ class NoopFormatter extends Formatter {
   ): Result[List[AgreementElement]] = Success(Nil)
 
   override def missingValueFormat(
-                                   name: String
-                                 ): List[AgreementElement] =
+      name: String
+  ): List[AgreementElement] =
     Nil
 }

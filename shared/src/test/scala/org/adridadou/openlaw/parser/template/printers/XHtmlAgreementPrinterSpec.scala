@@ -31,7 +31,7 @@ class XHtmlAgreementPrinterSpec
         val params = p.map({ case (k, v) => VariableName(k) -> v })
         engine
           .execute(agreement, TemplateParameters(params), templates)
-          .flatMap(agreement.structuredMainTemplate(_, (_,_) => None))
+          .flatMap(agreement.structuredMainTemplate(_, (_, _) => None))
       case _ =>
         Failure("was expecting agreement")
     })
