@@ -34,7 +34,6 @@ import org.adridadou.openlaw.values.{
 }
 import org.adridadou.openlaw.vm.{
   ContractCreated,
-  ContractStopped,
   OpenlawVm,
   OpenlawVmProvider,
   TestAccount,
@@ -167,7 +166,7 @@ class ExternalCallTypeSpec extends FlatSpec with Matchers {
 
   }
 
-  it should "stop contract if the success external call does not have a valid event signature" in {
+  it should "ignore the response if the success external call does not have a valid event signature" in {
     val (
       caller: Caller,
       abi: IntegratedServiceDefinition,
@@ -218,7 +217,10 @@ class ExternalCallTypeSpec extends FlatSpec with Matchers {
       case None => fail("no execution result found!")
     }
 
-    vm.applyEvent(successfulExternalCallEvent)
+    vm.applyEvent(successfulExternalCallEvent) shouldBe Failure(
+      "Invalid signature for result data"
+    )
+
     vm.allExecutions.exists {
       case (actionId, execs) =>
         actionId === identifier && execs.exists {
@@ -226,8 +228,6 @@ class ExternalCallTypeSpec extends FlatSpec with Matchers {
           case _: PendingExternalCallExecution    => true
         }
     } shouldBe true
-
-    vm.executionState shouldBe ContractStopped
   }
 
   private def createAndSignContract = {

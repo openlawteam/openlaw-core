@@ -23,7 +23,7 @@ import LocalDateTimeHelper._
 
 final case class ExternalCallOracle(
     crypto: CryptoService,
-    externalSignatureAccounts: Map[ServiceName, EthereumAddress] = Map()
+    externalSignatureAccounts: Map[ServiceName, EthereumAddress] = Map.empty
 ) extends OpenlawOracle[ExternalCallEvent]
     with LazyLogging {
 
@@ -32,7 +32,7 @@ final case class ExternalCallOracle(
       event: ExternalCallEvent
   ): Result[OpenlawVm] = event match {
     case failedEvent: FailedExternalCallEvent =>
-      handleFailedEvent(vm, failedEvent)
+      handleFailedEvent(vm, failedEvent, failedEvent.scheduledDate)
     case successEvent: SuccessfulExternalCallEvent =>
       handleSuccessEvent(vm, successEvent)
     case _ =>
@@ -46,10 +46,11 @@ final case class ExternalCallOracle(
 
   private def handleFailedEvent(
       vm: OpenlawVm,
-      event: FailedExternalCallEvent
+      event: FailedExternalCallEvent,
+      scheduledDate: LocalDateTime
   ): Result[OpenlawVm] = {
     val failedExecution = FailedExternalCallExecution(
-      scheduledDate = event.scheduledDate,
+      scheduledDate = scheduledDate,
       executionDate = event.executionDate,
       errorMessage = event.errorMessage,
       requestIdentifier = event.requestIdentifier
@@ -61,32 +62,16 @@ final case class ExternalCallOracle(
   private def handleSuccessEvent(
       vm: OpenlawVm,
       event: SuccessfulExternalCallEvent
-  ): Result[OpenlawVm] = {
+  ): Result[OpenlawVm] =
     getExternalServiceAccount(event.serviceName).flatMap(account =>
       getSignedData(event.caller, event.identifier, event.result)
         .flatMap(signedData => verify(signedData, account, event.signature))
-    ) match {
-      case Success(_) =>
-        handleEvent(vm, event)
-      case Failure(_, msg) =>
-        handleFailedEvent(
-          vm,
-          FailedExternalCallEvent(
-            event.caller,
-            event.identifier,
-            event.requestIdentifier,
-            event.executionDate,
-            event.executionDate,
-            msg
-          )
-        )
-    }
-  }
+    ) flatMap (_ => handleEvent(vm, event))
 
   private def handleEvent(
       vm: OpenlawVm,
       event: ExternalCallEvent
-  ): Result[OpenlawVm] = {
+  ): Result[OpenlawVm] =
     vm.allActions.flatMap { seq =>
       seq
         .map(info => info.identifier.map(identifier => (identifier, info)))
@@ -98,14 +83,14 @@ final case class ExternalCallOracle(
               case (_, actionInfo) =>
                 vm.executions[ExternalCallExecution](event.identifier)
                   .find(_.requestIdentifier === event.requestIdentifier) match {
-                  case Some(execution) =>
+                  case Some(execution: PendingExternalCallExecution) =>
                     Success(
                       vm.newExecution(
                         event.identifier,
                         event.toExecution(execution.scheduledDate)
                       )
                     )
-                  case None =>
+                  case _ =>
                     getScheduledDate(actionInfo, vm, event) flatMap {
                       case Some(scheduleDate) =>
                         Success(
@@ -118,6 +103,7 @@ final case class ExternalCallOracle(
                         logger.warn(
                           s"the external call ${event.requestIdentifier} has not been scheduled yet"
                         )
+
                         Success(vm)
                     }
                 }
@@ -127,24 +113,25 @@ final case class ExternalCallOracle(
             )
         }
     }
-  }
 
   private def getScheduledDate(
       info: ActionInfo,
       vm: OpenlawVm,
       event: ExternalCallEvent
-  ): Result[Option[LocalDateTime]] = {
-    info.identifier.flatMap { id =>
-      vm.executions[ExternalCallExecution](id)
+  ): Result[Option[LocalDateTime]] =
+    for {
+      id <- info.identifier
+      scheduledDate <- vm
+        .executions[ExternalCallExecution](id)
         .find(_.requestIdentifier === event.requestIdentifier) match {
-        case Some(execution) =>
+        case Some(execution: PendingExternalCallExecution) =>
           Success(Some(execution.scheduledDate))
-        case None =>
+
+        case _ =>
           info.action
             .nextActionSchedule(info.executionResult, vm.executions(id))
       }
-    }
-  }
+    } yield scheduledDate
 
   private def getExternalServiceAccount(
       serviceName: ServiceName
@@ -255,8 +242,8 @@ final case class FailedExternalCallEvent(
     caller: Caller,
     identifier: ActionIdentifier,
     requestIdentifier: RequestIdentifier,
-    executionDate: LocalDateTime,
     scheduledDate: LocalDateTime,
+    executionDate: LocalDateTime,
     errorMessage: String
 ) extends ExternalCallEvent {
   override def typeIdentifier: String =

@@ -76,7 +76,7 @@ object ServiceName {
 
   implicit val serviceNameEq: Eq[ServiceName] = Eq.fromUniversalEquals
 
-  val openlawServiceName = ServiceName("Openlaw")
+  val openlawServiceName: ServiceName = ServiceName("Openlaw")
 }
 
 final case class ServiceName(serviceName: String)
@@ -196,6 +196,62 @@ final case class ExternalCall(
   ): Result[Option[Period]] =
     every.map(getPeriod(_, executionResult)).sequence
 
+  private def callToRerun(
+      executions: List[ExternalCallExecution]
+  ): Option[LocalDateTime] =
+    executions
+      .find { execution =>
+        execution.executionStatus match {
+          case FailedExecution =>
+            execution.executionDate
+              .isBefore(
+                LocalDateTime.now
+                  .minus(5, ChronoUnit.MINUTES)
+              )
+          case _ =>
+            false
+        }
+      }
+      .map(_.scheduledDate)
+
+  private def getNextScheduledRun(
+      executions: List[ExternalCallExecution],
+      executionResult: TemplateExecutionResult
+  ): Result[Option[LocalDateTime]] =
+    executions.map(_.scheduledDate) match {
+      case Nil =>
+        getStartDate(executionResult)
+          .map(_.orElse(Some(executionResult.info.now)))
+      case list =>
+        val lastDate = list.maxBy(_.toEpochSecond(ZoneOffset.UTC))
+        for {
+          schedulePeriodOption <- getEvery(executionResult)
+          endDate <- getEndDate(executionResult)
+          nextDateOpt <- DateTimeType.plus(
+            Some(OpenlawDateTime(lastDate)),
+            schedulePeriodOption,
+            executionResult
+          )
+        } yield nextDateOpt.flatMap({
+          case nextDate: OpenlawDateTime =>
+            filterDateAfterEndDate(endDate, nextDate.underlying)
+          case _ => None
+        })
+    }
+
+  private def filterDateAfterEndDate(
+      endDate: Option[LocalDateTime],
+      nextDate: LocalDateTime
+  ): Option[LocalDateTime] =
+    if (endDate.forall(date =>
+          nextDate
+            .isBefore(date) || nextDate === date
+        )) {
+      Some(nextDate)
+    } else {
+      None
+    }
+
   override def nextActionSchedule(
       executionResult: TemplateExecutionResult,
       pastExecutions: List[OpenlawExecution]
@@ -204,69 +260,9 @@ final case class ExternalCall(
       executions <- pastExecutions
         .map(VariableType.convert[ExternalCallExecution])
         .sequence
-      result <- {
-        val callToRerun: Option[LocalDateTime] = executions
-          .find { execution =>
-            execution.executionStatus match {
-              case FailedExecution =>
-                execution.executionDate
-                  .isBefore(
-                    LocalDateTime
-                      .now(executionResult.clock)
-                      .minus(5, ChronoUnit.MINUTES)
-                  )
-              case _ =>
-                false
-            }
-          }
-          .map(_.scheduledDate)
-
-        callToRerun
-          .map(Success(_))
-          .orElse {
-            executions.map(_.scheduledDate) match {
-              case Nil =>
-                Some(
-                  getStartDate(executionResult)
-                    .map(_.getOrElse(LocalDateTime.now(executionResult.clock)))
-                )
-              case list =>
-                val lastDate = list.maxBy(_.toEpochSecond(ZoneOffset.UTC))
-                (for {
-                  schedulePeriodOption <- getEvery(executionResult)
-                  endDate <- getEndDate(executionResult)
-                } yield {
-                  schedulePeriodOption
-                    .map { schedulePeriod =>
-                      DateTimeType
-                        .plus(
-                          Some(OpenlawDateTime(lastDate)),
-                          Some(schedulePeriod),
-                          executionResult
-                        )
-                        .flatMap { p =>
-                          p.map(
-                              VariableType
-                                .convert[OpenlawDateTime](_)
-                                .map(_.underlying)
-                            )
-                            .sequence
-                            .map(pOption =>
-                              pOption.filter(nextDate =>
-                                endDate.forall(date =>
-                                  nextDate.isBefore(date) || nextDate === date
-                                )
-                              )
-                            )
-                        }
-                    }
-                    .flatMap(_.sequence)
-                }).sequence.map(_.flatten)
-            }
-          }
-          .sequence
-      }
-    } yield result
+      rerunSchedule = callToRerun(executions)
+      nextCall <- getNextScheduledRun(executions, executionResult)
+    } yield rerunSchedule.orElse(nextCall)
 }
 
 object ExternalCall {
