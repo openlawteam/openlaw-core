@@ -2,7 +2,6 @@ package org.adridadou.openlaw.parser.template
 
 import java.time.Clock
 
-import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template.printers.{
   AgreementPrinter,
   XHtmlAgreementPrinter
@@ -165,51 +164,21 @@ class OpenlawTemplateLanguageParserService(val internalClock: Clock) {
   }
 
   def forPreview(
-      structuredAgreement: StructuredAgreement,
-      overriddenParagraphs: ParagraphEdits
-  ): String =
-    XHtmlAgreementPrinter(preview = true, paragraphEdits = overriddenParagraphs)
-      .printParagraphs(structuredAgreement.paragraphs)
-      .print
-
-  def forPreview(
-      structuredAgreement: StructuredAgreement,
-      overriddenParagraphs: ParagraphEdits,
-      hiddenVariables: List[String]
+      structuredAgreement: StructuredAgreement
   ): String =
     XHtmlAgreementPrinter(
-      preview = true,
-      paragraphEdits = overriddenParagraphs,
-      hiddenVariables = hiddenVariables
+      preview = true
     ).printParagraphs(structuredAgreement.paragraphs).print
 
-  def forPreview(paragraph: Paragraph, variables: List[String]): String =
-    XHtmlAgreementPrinter(preview = true, hiddenVariables = variables)
-      .printParagraphs(List(paragraph))
-      .print
-
-  def forReview(structuredAgreement: StructuredAgreement): String =
-    forReview(structuredAgreement, ParagraphEdits())
-
   def forReview(
-      structuredAgreement: StructuredAgreement,
-      overriddenParagraphs: ParagraphEdits
+      structuredAgreement: StructuredAgreement
   ): String =
-    XHtmlAgreementPrinter(preview = false, overriddenParagraphs, Nil)
+    XHtmlAgreementPrinter(preview = false)
       .printParagraphs(structuredAgreement.paragraphs)
       .print
 
-  def forReview(
-      structuredAgreement: StructuredAgreement,
-      overriddenParagraphs: ParagraphEdits,
-      variables: List[String]
-  ): String =
-    XHtmlAgreementPrinter(preview = false, overriddenParagraphs, variables)
-      .printParagraphs(structuredAgreement.paragraphs)
-      .print
-
-  def forReview(paragraph: Paragraph, variables: List[String]): String =
-    XHtmlAgreementPrinter(preview = false, hiddenVariables = variables)
+  def forReview(paragraph: Paragraph): String =
+    XHtmlAgreementPrinter(preview = false)
       .printParagraphs(List(paragraph))
       .print
 
@@ -229,9 +198,7 @@ class OpenlawTemplateLanguageParserService(val internalClock: Clock) {
 
   def render[T](
       structuredAgreement: StructuredAgreement,
-      overriddenParagraphs: ParagraphEdits,
-      agreementPrinter: AgreementPrinter[T],
-      hiddenVariables: Set[String]
+      agreementPrinter: AgreementPrinter[T]
   ): Result[AgreementPrinter[T]] =
     structuredAgreement.paragraphs
       .foldLeft(Success(agreementPrinter)) {
@@ -239,8 +206,6 @@ class OpenlawTemplateLanguageParserService(val internalClock: Clock) {
           result.flatMap(printer =>
             renderParagraph(
               paragraph,
-              overriddenParagraphs,
-              hiddenVariables,
               printer
             )
           )
@@ -257,23 +222,19 @@ class OpenlawTemplateLanguageParserService(val internalClock: Clock) {
       .flatMap(_.foldLeft(Success(p)) {
         case (result, elem) =>
           result.flatMap(printer =>
-            renderElement(FreeText(elem), Paragraph(), None, Set(), printer)
+            renderElement(FreeText(elem), Paragraph(), printer)
           )
       })
-      .map(_.newState(p.state.copy(overriddenParagraphGenerated = true)))
+      .map(_.newState(p.state))
 
   private def renderParagraph[T](
       paragraph: Paragraph,
-      overriddenParagraphs: ParagraphEdits,
-      hiddenVariables: Set[String],
       agreementPrinter: AgreementPrinter[T]
   ): Result[AgreementPrinter[T]] = {
     if (hasContent(paragraph)) {
       val p = agreementPrinter
         .paragraphStart()
 
-      val optParagraph =
-        overriddenParagraphs.edits.get(agreementPrinter.state.paragraphIndex)
       paragraph.elements
         .foldLeft(Success(p)) {
           case (result, element) =>
@@ -281,8 +242,6 @@ class OpenlawTemplateLanguageParserService(val internalClock: Clock) {
               renderElement(
                 element,
                 paragraph,
-                optParagraph,
-                hiddenVariables,
                 printer
               )
             )
@@ -292,8 +251,7 @@ class OpenlawTemplateLanguageParserService(val internalClock: Clock) {
       paragraph.elements
         .foldLeft(Success(agreementPrinter)) {
           case (result, element) =>
-            result.flatMap(printer =>
-              renderElement(element, paragraph, None, hiddenVariables, printer)
+            result.flatMap(printer => renderElement(element, paragraph, printer)
             )
         }
     }
@@ -310,73 +268,45 @@ class OpenlawTemplateLanguageParserService(val internalClock: Clock) {
   private def renderElement[T](
       element: AgreementElement,
       docParagraph: Paragraph,
-      optParagraph: Option[String],
-      hiddenVariables: Set[String],
       agreementPrinter: AgreementPrinter[T]
   ): Result[AgreementPrinter[T]] = {
-    (element, optParagraph) match {
-      case (table: TableElement, _) =>
+    element match {
+      case table: TableElement =>
         Success(agreementPrinter.table(table) {
           (element: AgreementElement, printer: AgreementPrinter[T]) =>
             renderElement(
               element,
               docParagraph,
-              optParagraph,
-              hiddenVariables,
               printer
             )
         })
-      case (_: FreeText, _) if !agreementPrinter.state.headerGenerated =>
+      case _: FreeText if !agreementPrinter.state.headerGenerated =>
         renderElement(
           element,
           docParagraph,
-          optParagraph,
-          hiddenVariables,
           agreementPrinter.paragraphHeader(docParagraph)
         )
-      case (_: VariableElement, _) if !agreementPrinter.state.headerGenerated =>
+      case _: VariableElement if !agreementPrinter.state.headerGenerated =>
         renderElement(
           element,
           docParagraph,
-          optParagraph,
-          hiddenVariables,
           agreementPrinter.paragraphHeader(docParagraph)
         )
-      case (_: FreeText, Some(paragraph))
-          if !agreementPrinter.state.overriddenParagraphGenerated =>
-        handleOverriddenParagraph(agreementPrinter, paragraph)
-      case (_: VariableElement, Some(paragraph))
-          if !agreementPrinter.state.overriddenParagraphGenerated =>
-        handleOverriddenParagraph(agreementPrinter, paragraph)
-      case (_: SectionElement, Some(paragraph))
-          if !agreementPrinter.state.overriddenParagraphGenerated =>
-        handleOverriddenParagraph(agreementPrinter, paragraph)
-      case (_: FreeText, _)
-          if agreementPrinter.state.overriddenParagraphGenerated =>
-        Success(agreementPrinter)
-      case (_: VariableElement, _)
-          if agreementPrinter.state.overriddenParagraphGenerated =>
-        Success(agreementPrinter)
-      case (_: SectionElement, _)
-          if agreementPrinter.state.overriddenParagraphGenerated =>
-        Success(agreementPrinter)
-      case (txt: FreeText, _) if agreementPrinter.state.conditionalDepth > 0 =>
+
+      case txt: FreeText if agreementPrinter.state.conditionalDepth > 0 =>
         Success(
           agreementPrinter
             .conditionalTextStart()
             .text(txt.elem)
             .conditionalTextEnd()
         )
-      case (txt: FreeText, _) =>
+      case txt: FreeText =>
         Success(agreementPrinter.text(txt.elem))
-      case (image: ImageElement, _) =>
+      case image: ImageElement =>
         Success(agreementPrinter.image(image))
-      case (link: Link, _) =>
+      case link: Link =>
         Success(agreementPrinter.link(link))
-      case (variable: VariableElement, _)
-          if variable.dependencies.forall(variable =>
-            !hiddenVariables.contains(variable)
-          ) =>
+      case variable: VariableElement =>
         variable.content
           .foldLeft(Success(agreementPrinter.variableStart(variable.name)))(
             (result, elem) =>
@@ -384,35 +314,17 @@ class OpenlawTemplateLanguageParserService(val internalClock: Clock) {
                 renderElement(
                   elem,
                   docParagraph,
-                  optParagraph,
-                  hiddenVariables,
                   p
                 )
               )
           )
           .map(_.variableEnd())
-      case (variable: VariableElement, _) =>
-        variable.content
-          .foldLeft(Success(agreementPrinter))((result, elem) =>
-            result.flatMap(p =>
-              renderElement(
-                elem,
-                docParagraph,
-                optParagraph,
-                hiddenVariables,
-                p
-              )
-            )
-          )
-      case (ConditionalStart(dependencies), _)
-          if dependencies.forall(variable => !hiddenVariables.contains(variable)
-          ) =>
+
+      case ConditionalStart(_) =>
         Success(agreementPrinter.conditionalStart())
-      case (ConditionalEnd(dependencies), _)
-          if dependencies.forall(variable => !hiddenVariables.contains(variable)
-          ) =>
+      case ConditionalEnd(_) =>
         Success(agreementPrinter.conditionalEnd())
-      case (section: SectionElement, _) =>
+      case section: SectionElement =>
         Success(
           agreementPrinter
             .sectionStart(section)

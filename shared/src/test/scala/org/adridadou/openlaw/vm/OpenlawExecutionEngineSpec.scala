@@ -3,7 +3,6 @@ package org.adridadou.openlaw.vm
 import java.time.{Clock, LocalDateTime}
 
 import org.adridadou.openlaw.result.Implicits.failureCause2Exception
-import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.Formatter
@@ -152,7 +151,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
               .map(_.name.name) shouldBe Seq("My Variable 2")
             newResult.agreements.size shouldBe 1
 
-            parser.forReview(newResult.agreements.head, ParagraphEdits()) shouldBe """<p class="no-section">it is just another template hello</p>"""
+            parser.forReview(newResult.agreements.head) shouldBe """<p class="no-section">it is just another template hello</p>"""
           case Left(ex) =>
             fail(ex)
         }
@@ -413,7 +412,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         )
         result.agreements.size shouldBe 1
 
-        parser.forReview(result.agreements.head, ParagraphEdits()) shouldBe """<p class="no-section"><br /></p><p class="no-section">[[My Variable]] - [[Other one]]<br /><br />    </p>"""
+        parser.forReview(result.agreements.head) shouldBe """<p class="no-section"><br /></p><p class="no-section">[[My Variable]] - [[Other one]]<br /><br />    </p>"""
 
       case Failure(ex, message) =>
         fail(message, ex)
@@ -507,7 +506,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       Map(TemplateSourceIdentifier(TemplateTitle("template")) -> subTemplate)
     ) match {
       case Success(result) =>
-        parser.forReview(result.agreements.head, ParagraphEdits()) shouldBe """<p class="no-section">Hello world</p>"""
+        parser.forReview(result.agreements.head) shouldBe """<p class="no-section">Hello world</p>"""
       case Left(ex) =>
         fail(ex)
     }
@@ -651,7 +650,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
     engine.execute(mainTemplate, TemplateParameters(), Map()) match {
       case Success(result) =>
-        parser.forReview(result.agreements.head, ParagraphEdits()) shouldBe """<p class="no-section">HELLO WORLD</p>"""
+        parser.forReview(result.agreements.head) shouldBe """<p class="no-section">HELLO WORLD</p>"""
       case Left(ex) =>
         fail(ex)
     }
@@ -671,7 +670,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       Map()
     ) match {
       case Success(result) =>
-        parser.forReview(result.agreements.head, ParagraphEdits()) shouldBe """<p class="no-section">3 minutes 10 seconds</p>"""
+        parser.forReview(result.agreements.head) shouldBe """<p class="no-section">3 minutes 10 seconds</p>"""
       case Left(ex) =>
         fail(ex)
     }
@@ -691,7 +690,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       Map()
     ) match {
       case Success(result) =>
-        parser.forReview(result.agreements.head, ParagraphEdits()) shouldBe """<p class="no-section">1 minute 1 second</p>"""
+        parser.forReview(result.agreements.head) shouldBe """<p class="no-section">1 minute 1 second</p>"""
       case Left(ex) =>
         fail(ex)
     }
@@ -711,7 +710,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       Map()
     ) match {
       case Success(result) =>
-        parser.forReview(result.agreements.head, ParagraphEdits()) shouldBe """<p class="no-section">1 minute 20 seconds</p>"""
+        parser.forReview(result.agreements.head) shouldBe """<p class="no-section">1 minute 20 seconds</p>"""
       case Left(ex) =>
         fail(ex)
     }
@@ -747,7 +746,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     ) match {
       case Success(result) =>
         result.state shouldBe ExecutionFinished
-        val text = parser.forReview(result.agreements.head, ParagraphEdits())
+        val text = parser.forReview(result.agreements.head)
         text shouldBe """<p class="no-section">test1<br />test2<br />test3<br /><br />        </p>"""
       case Left(ex) =>
         fail(ex)
@@ -862,7 +861,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
           "number",
           "My Collection"
         )
-        parser.forReview(result.agreements.head, ParagraphEdits()) shouldBe """<p class="no-section">test1 - 10<br />test2 - 10<br />test3 - 10<br /><br />        </p>"""
+        parser.forReview(result.agreements.head) shouldBe """<p class="no-section">test1 - 10<br />test2 - 10<br />test3 - 10<br /><br />        </p>"""
       case Left(ex) =>
         fail(ex)
     }
@@ -1202,7 +1201,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     ) match {
       case Success(result) =>
         result.state shouldBe ExecutionFinished
-        val text = parser.forReview(result.agreements.head, ParagraphEdits())
+        val text = parser.forReview(result.agreements.head)
         text shouldBe """<p class="no-section"><br /></p><p class="no-section align-center"><strong>ACTION BY WRITTEN CONSENT OF</strong><br /><strong>SOLE INCORPORATOR </strong><strong>OF</strong><br /><strong>[[Company Name]]</strong></p><p class="no-section">The undersigned <u>Name</u>, being the sole incorporator of <strong>[[Company Name]]</strong>, a Delaware corporation (the &quot;<strong><em>Company</em></strong>&quot;), pursuant to Section 108 of the Delaware General Corporation Law, adopts the following resolution by written consent:</p><p class="no-section"><strong>Appointment of Directors</strong></p><p class="no-section"><strong>Resolved,</strong> that, effective as of this date, the following person is appointed an initial director of the Company to serve until the earliest of (i) the Company’s first annual meeting of stockholders, (ii) the due election and qualification of such director’s successor or (iii) such director’s death, resignation or removal:</p><p class="no-section">test1test2test3<br />      </p>"""
       case Failure(ex, message) =>
         fail(message, ex)
@@ -1219,7 +1218,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     engine.execute(template, TemplateParameters("value" -> "value 1")) match {
       case Success(result) =>
         result.state shouldBe ExecutionFinished
-        val text = parser.forReview(result.agreements.head, ParagraphEdits())
+        val text = parser.forReview(result.agreements.head)
         text shouldBe """<p class="no-section">hello<br />      </p>"""
       case Left(ex) =>
         fail(ex)
@@ -1268,7 +1267,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     ) match {
       case Success(result) =>
         result.state shouldBe ExecutionFinished
-        val text = parser.forReview(result.agreements.head, ParagraphEdits())
+        val text = parser.forReview(result.agreements.head)
         text shouldBe """<ul class="list-lvl-1"><li><p>1. <strong>Pre-employment Conditions.</strong></p><p></p><ul class="list-lvl-2"><li><p>(a) <em>Additional Agreements</em> Your acceptance of this offer and commencement of employment with the Company is contingent upon the execution, and delivery to an officer of the Company, prior to or on your Start Date,   .</p></li><li><p>(b) <em>Right to Work.</em> For purposes of</p></li><li><p>(c) <em>No Conflicting Obligations.</em> You understand and agree that by<br />      </p></li></ul></li></ul>"""
       case Left(ex) =>
         fail(ex)
@@ -1309,7 +1308,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     ) match {
       case Success(result) =>
         result.state shouldBe ExecutionFinished
-        val text = parser.forReview(result.agreements.head, ParagraphEdits())
+        val text = parser.forReview(result.agreements.head)
         text shouldBe """<p class="no-section"><br /></p><ul class="list-lvl-1"><li><p>1.  <strong> some test </strong><br /></p><ul class="list-lvl-2"><li><p>(a)  <strong> hello </strong> as mentioned in 1.a<br /></p></li><li><p>(b)  <strong> world </strong> as mentioned in 1.b<br /></p></li><li><p>(c)  <strong> me </strong> as mentioned in 1.c<br /></p></li></ul></li><li><p>2.  <strong>hello world </strong> 2<br />              </p></li></ul>"""
       case Failure(ex, message) =>
         fail(message, ex)
@@ -1325,7 +1324,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     engine.execute(template, TemplateParameters()) match {
       case Success(result) =>
         result.state shouldBe ExecutionFinished
-        val text = parser.forReview(result.agreements.head, ParagraphEdits())
+        val text = parser.forReview(result.agreements.head)
         text shouldBe """<ul class="list-lvl-1"><li><p>1.  hello</p><p>finishing [[my]] friend</p></li></ul>"""
       case Left(ex) =>
         fail(ex)
@@ -1371,7 +1370,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     engine.execute(template) match {
       case Success(result) =>
         result.state shouldBe ExecutionFinished
-        val text = parser.forReview(result.agreements.head, ParagraphEdits())
+        val text = parser.forReview(result.agreements.head)
         text shouldBe """<ul class="list-lvl-1"><li><p>1.  first section</p></li><li><p>2.  second section</p><ul class="list-lvl-2"><li><p>(a)  first sub section</p></li><li><p>(b)  second sub section</p></li><li><p>(a)  reset the section</p></li></ul></li><li><p>3.  go back to the section 2.a</p></li></ul>"""
       case Left(ex) =>
         fail(ex)
@@ -1394,9 +1393,9 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     engine.execute(template) match {
       case Success(result) =>
         result.state shouldBe ExecutionFinished
-        val text = parser.forReview(result.agreements.head, ParagraphEdits())
+        val text = parser.forReview(result.agreements.head)
         text shouldBe """<p class="no-section"><br />before the annotation</p><p class="no-section"></p><p class="no-section">after the annotation<br />        </p>"""
-        val text2 = parser.forPreview(result.agreements.head, ParagraphEdits())
+        val text2 = parser.forPreview(result.agreements.head)
         text2 shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="no-section"><br />before the annotation</p></div><div class="openlaw-paragraph paragraph-2"><p class="no-section"><span class="openlaw-annotation-header"><br />this is some text for my annotation<br /></span></p></div><div class="openlaw-paragraph paragraph-3"><p class="no-section">after the annotation<br />        </p></div>"""
       case Left(ex) =>
         fail(ex)
@@ -1419,9 +1418,9 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     engine.execute(template) match {
       case Success(result) =>
         result.state shouldBe ExecutionFinished
-        val text = parser.forReview(result.agreements.head, ParagraphEdits())
+        val text = parser.forReview(result.agreements.head)
         text shouldBe """<p class="no-section"><br />before the annotation</p><p class="no-section"></p><p class="no-section">after the annotation<br />        </p>"""
-        val text2 = parser.forPreview(result.agreements.head, ParagraphEdits())
+        val text2 = parser.forPreview(result.agreements.head)
         text2 shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="no-section"><br />before the annotation</p></div><div class="openlaw-paragraph paragraph-2"><p class="no-section"><span class="openlaw-annotation-note"><br />this is some text for my annotation<br /></span></p></div><div class="openlaw-paragraph paragraph-3"><p class="no-section">after the annotation<br />        </p></div>"""
       case Left(ex) =>
         fail(ex)
@@ -1500,7 +1499,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     engine.execute(compiledTemplate, parameters, Map()) match {
       case Success(result) =>
         result.state shouldBe ExecutionFinished
-        val text = parser.forReview(result.agreements.head, ParagraphEdits())
+        val text = parser.forReview(result.agreements.head)
         text shouldBe """<p class="no-section"><br /></p><ul class="list-lvl-1"><li><p>1.  bla bla bla</p><p>1</p><p>2</p></li><li><p>2.  bla bla bla<br />      </p></li></ul>"""
       case Left(ex) => fail(ex)
     }
@@ -2325,7 +2324,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     ) match {
       case Success(result) =>
         result.state shouldBe ExecutionFinished
-        val text = parser.forReview(result.agreements.head, ParagraphEdits())
+        val text = parser.forReview(result.agreements.head)
         text shouldBe "<p class=\"no-section\"><br /> <strong>Test Agreement - structure</strong></p><p class=\"no-section\"># Structure definition<br /></p><p class=\"no-section\"># Structure type var<br /></p><p class=\"no-section\"><strong>Emergency Contact</strong><br />Name: test<br />Age: [[Medical Contact]]<br />DOB: [[Medical Contact]]<br />Address: [[Medical Contact]]</p><p class=\"no-section\"><br />              </p>"
       case Failure(_, message) =>
         fail(message)
@@ -2391,7 +2390,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       TemplateParameters("first name" -> "David", "last name" -> "Roon")
     )
     result.state shouldBe ExecutionFinished
-    val text = parser.forReview(result.agreements.head, ParagraphEdits())
+    val text = parser.forReview(result.agreements.head)
     text shouldBe "<p class=\"no-section\">David and Roon</p>"
   }
 
@@ -2404,7 +2403,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     val Success(result) = engine.execute(template, TemplateParameters())
     result.state shouldBe ExecutionFinished
 
-    val text = parser.forReview(result.agreements.head, ParagraphEdits())
+    val text = parser.forReview(result.agreements.head)
     text shouldBe "<p class=\"no-section\">David Roon and all</p>"
   }
 
@@ -2546,7 +2545,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       engine.execute(template, TemplateParameters("some text" -> "openlaw"))
     result.state shouldBe ExecutionFinished
 
-    val text = parser.forReview(result.agreements.head, ParagraphEdits())
+    val text = parser.forReview(result.agreements.head)
     text shouldBe """<p class="no-section"> openlaw<br />regex match with openlaw</p>"""
 
     val Success(result2) = engine.execute(
@@ -2555,7 +2554,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     )
     result2.state shouldBe ExecutionFinished
 
-    val text2 = parser.forReview(result2.agreements.head, ParagraphEdits())
+    val text2 = parser.forReview(result2.agreements.head)
     text2 shouldBe """<p class="no-section"> something else<br /></p>"""
   }
 

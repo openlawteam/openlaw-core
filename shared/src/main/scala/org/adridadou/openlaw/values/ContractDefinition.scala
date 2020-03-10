@@ -3,7 +3,6 @@ package org.adridadou.openlaw.values
 import java.time.LocalDateTime
 
 import org.adridadou.openlaw.oracles.{CryptoService, UserId}
-import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template.variableTypes.{
   EthereumData,
   EthereumHash,
@@ -15,7 +14,6 @@ final case class ContractDefinition(
     mainTemplate: TemplateId,
     templates: Map[TemplateSourceIdentifier, TemplateId] = Map.empty,
     parameters: TemplateParameters,
-    paragraphs: Map[Int, ParagraphEdits] = Map.empty,
     creationDate: LocalDateTime = LocalDateTime.now,
     // If the contract is instead formed by a PDF file rather than an openlaw template, we include the hash of the PDF
     // file
@@ -30,7 +28,6 @@ final case class ContractDefinition(
       mainTemplate.id + "#" +
       paramsToChecksum(parameters) + "#" +
       templatesKey + "#" +
-      templateScopeKey +
       addPdfHash()
 
   private def templatesKey: String =
@@ -47,29 +44,13 @@ final case class ContractDefinition(
     }
   }
 
-  private def templateScopeKey: String =
-    paragraphs.toSeq
-      .sortBy({ case (key, _) => key })
-      .map({
-        case (index: Int, edits: ParagraphEdits) =>
-          s"$index#${editsToChecksum(edits)}"
-      })
-      .mkString("#")
-
   private def paramsToChecksum(parameters: TemplateParameters): String =
     parameters.params.toSeq
       .sortBy({ case (key, _) => key.name })
       .map({ case (key, value) => s"${key.name}||$value" })
       .mkString("#")
-
-  private def editsToChecksum(edits: ParagraphEdits): String =
-    edits.edits.toSeq
-      .sortBy({ case (key, _) => key })
-      .map({ case (key, value) => s"$key||$value" })
-      .mkString("#")
 }
 
 final case class TemplateScope(
-    parameters: TemplateParameters = TemplateParameters(),
-    paragraphEdits: ParagraphEdits = ParagraphEdits()
+    parameters: TemplateParameters = TemplateParameters()
 )

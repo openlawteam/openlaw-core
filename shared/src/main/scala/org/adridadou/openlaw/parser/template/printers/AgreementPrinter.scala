@@ -10,8 +10,7 @@ import org.adridadou.openlaw.parser.template.{
 import org.adridadou.openlaw.values.TemplateTitle
 import cats.implicits._
 import org.adridadou.openlaw.generateFullSectionValue
-import org.adridadou.openlaw.parser.template.variableTypes.SectionInfo
-import org.adridadou.openlaw.result.{Result, Success}
+import org.adridadou.openlaw.result.Result
 import org.adridadou.openlaw.result.Implicits.RichOption
 
 trait AgreementPrinter[T] {
@@ -50,8 +49,7 @@ trait AgreementPrinter[T] {
   def paragraphStart(): AgreementPrinter[T] =
     newState(
       state.copy(
-        paragraphIndex = state.paragraphIndex + 1,
-        overriddenParagraphGenerated = false
+        paragraphIndex = state.paragraphIndex + 1
       )
     )
   def paragraphEnd(): AgreementPrinter[T] = this
@@ -84,8 +82,7 @@ final case class PrinterState(
     em: Boolean = false,
     strong: Boolean = false,
     under: Boolean = false,
-    sections: List[Int] = Nil,
-    overriddenParagraphGenerated: Boolean = false
+    sections: List[Int] = Nil
 )
 
 object SectionHelper {

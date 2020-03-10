@@ -2,7 +2,6 @@ package org.adridadou.openlaw.parser.template.printers
 
 import java.time.Clock
 
-import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.result.Implicits.failureCause2Exception
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes._
@@ -38,29 +37,6 @@ class XHtmlAgreementPrinterSpec
 
   private def compiledTemplate(text: String): Result[CompiledTemplate] =
     service.compileTemplate(text)
-
-  private def forReview(
-      text: String,
-      params: Map[String, String] = Map.empty,
-      paragraphs: ParagraphEdits = ParagraphEdits(Map.empty)
-  ): Result[String] =
-    structureAgreement(text, params).map(service.forReview(_, paragraphs))
-  private def forPreview(
-      text: String,
-      params: Map[String, String] = Map.empty,
-      paragraphs: ParagraphEdits = ParagraphEdits(Map.empty)
-  ): Result[String] =
-    structureAgreement(text, params).map(service.forPreview(_, paragraphs))
-
-  private def resultShouldBe(
-      result: Either[String, String],
-      expected: String
-  ): Unit = result match {
-    case Right(actual) if actual === expected =>
-    case Right(actual) =>
-      throw new RuntimeException(s"$actual should be $expected")
-    case Left(ex) => throw new RuntimeException(ex)
-  }
 
   "The XHtmlAgreementPrinter" should "print a simple agreement" in {
     val text = """[[Id:Identity]]
@@ -247,7 +223,7 @@ class XHtmlAgreementPrinterSpec
     | yet another paragraph after the conditional""".stripMargin
 
     val agreement = structureAgreement(text, Map("if me" -> "true"))
-    val html = service.forPreview(agreement.right.value, ParagraphEdits())
+    val html = service.forPreview(agreement.right.value)
     html shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="no-section">before the conditional<br /></p></div><div class="openlaw-paragraph paragraph-2"><p class="no-section"><span class="markdown-conditional-block">in the conditional </span> after the conditional<br /> this too<br /></p></div><div class="openlaw-paragraph paragraph-3"><p class="no-section">yet another paragraph after the conditional</p></div>"""
   }
 
@@ -265,7 +241,7 @@ class XHtmlAgreementPrinterSpec
     val template = service.compileTemplate(text).right.value
     engine.execute(template, TemplateParameters("if me" -> "true"), Map()) match {
       case Right(result) =>
-        val text = service.forPreview(result.agreements.head, ParagraphEdits())
+        val text = service.forPreview(result.agreements.head)
         text shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="no-section">before the conditional</p></div><div class="openlaw-paragraph paragraph-2"><p class="no-section"><span class="markdown-conditional-block">in the conditional </span></p></div><div class="openlaw-paragraph paragraph-3"><p class="no-section">after the conditional<br />this too<br /></p></div><div class="openlaw-paragraph paragraph-4"><p class="no-section">yet another paragraph after the conditional</p></div>"""
       case Left(ex) => fail(ex)
     }
