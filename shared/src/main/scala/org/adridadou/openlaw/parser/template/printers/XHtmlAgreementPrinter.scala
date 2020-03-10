@@ -3,7 +3,6 @@ package org.adridadou.openlaw.parser.template.printers
 import java.util.concurrent.atomic.AtomicInteger
 
 import cats.implicits._
-import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes.IdentityType
 import scalatags.Text.all._
@@ -27,9 +26,7 @@ object XHtmlAgreementPrinter {
 }
 
 final case class XHtmlAgreementPrinter(
-    preview: Boolean,
-    paragraphEdits: ParagraphEdits = ParagraphEdits(),
-    hiddenVariables: List[String] = Nil
+    preview: Boolean
 ) extends LazyLogging {
 
   private def partitionAtItem[T](seq: List[T], t: T): (List[T], List[T]) =
@@ -151,22 +148,8 @@ final case class XHtmlAgreementPrinter(
           case Paragraph(paragraphElements) =>
             val paragraphCount = paragraphCounter.incrementAndGet()
 
-            // Generate overridden paragraph contents if required
-            val overridden =
-              paragraphEdits.edits.get(paragraphCount - 1) match {
-
-                // If there is an overridden paragraph, render its content instead of this paragraph
-                case Some(str) =>
-                  // TODO: This should be refactored to use Result, but this is deferred since this printer is very sensitive to stack overflows
-                  MarkdownParser.parseMarkdownOrThrow(str).map(FreeText)
-
-                // Otherwise, render this paragraph as normal
-                case None =>
-                  paragraphElements
-              }
-
             // See if this paragraph is centered
-            val (align, remaining) = overridden match {
+            val (align, remaining) = paragraphElements match {
               case FreeText(Centered) :: xs   => (List("align-center"), xs)
               case FreeText(Indent) :: xs     => (List("indent"), xs)
               case FreeText(RightAlign) :: xs => (List("align-right"), xs)
@@ -291,8 +274,7 @@ final case class XHtmlAgreementPrinter(
 
             // Only add styling to highlight variable if there are no hidden variables that are dependencies for this one
             val frags =
-              if (highlightType && preview && dependencies
-                    .forall(variable => !hiddenVariables.contains(variable))) {
+              if (highlightType && preview) {
                 val nameClass = name.name.replace(" ", "-")
                 List(
                   span(
@@ -315,9 +297,11 @@ final case class XHtmlAgreementPrinter(
 
           case ConditionalStart(dependencies) =>
             val addDepth =
-              if (preview && dependencies
-                    .forall(variable => !hiddenVariables.contains(variable))) 1
-              else 0
+              if (preview) {
+                1
+              } else {
+                0
+              }
             tailRecurse(
               xs,
               conditionalBlockDepth + addDepth,
@@ -327,9 +311,11 @@ final case class XHtmlAgreementPrinter(
 
           case ConditionalEnd(dependencies) =>
             val removeDepth =
-              if (preview && dependencies
-                    .forall(variable => !hiddenVariables.contains(variable))) 1
-              else 0
+              if (preview) {
+                1
+              } else {
+                0
+              }
             tailRecurse(
               xs,
               conditionalBlockDepth - removeDepth,

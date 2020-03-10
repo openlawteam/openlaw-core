@@ -8,7 +8,6 @@ import org.adridadou.openlaw.{
   OpenlawMap,
   OpenlawString
 }
-import org.adridadou.openlaw.parser.contract.ParagraphEdits
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.result.{Failure, Result, Success}
@@ -99,16 +98,14 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
 
   private def forReview(
       text: String,
-      params: Map[String, String] = Map.empty,
-      paragraphs: ParagraphEdits = ParagraphEdits(Map.empty)
+      params: Map[String, String] = Map.empty
   ): Result[String] =
-    structureAgreement(text, params).map(service.forReview(_, paragraphs))
+    structureAgreement(text, params).map(service.forReview)
   private def forPreview(
       text: String,
-      params: Map[String, String] = Map.empty,
-      paragraphs: ParagraphEdits = ParagraphEdits(Map.empty)
+      params: Map[String, String] = Map.empty
   ): Result[String] =
-    structureAgreement(text, params).map(service.forPreview(_, paragraphs))
+    structureAgreement(text, params).map(service.forPreview)
 
   private def resultShouldBe(result: Result[String], expected: String): Unit =
     result match {
@@ -1504,25 +1501,6 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
     }
   }
 
-  it should "not break a paragraph from a variable" in {
-    val source =
-      """Effective Date:  [[Effective Date: DateTime]]
-                   |
-                   |In consideration and as a condition of my employment, continued employment, or payment for services rendered as an independent contractor, consultant, or advisor ("Service Relationship") by [[Company]] {{Corporation "Is the company a corporation?" => , a [[StateOfIncorporation "What state is the first party incorporated in?"]] corporation, }} {{LLC "An LLC?" => a [[StateOfIncorporation "What state company incorporated in?"]] limited liability company, }} {{PBC "A Public Benefit Corporation?" => , a [[StateOfIncorporation "What state is the company incorporated in?"]] public benefit corporation, }}  or any of its current or future subsidiaries, affiliates, successors or assigns (collectively, the "Company"), and my receipt of compensation now and hereafter paid to me by the Company, I hereby agree as follows:
-                   |
-                   |^**Confidential Information Protections.**
-                   |
-                   |^^	**Confidential Information.**  I agree that all information, whether or not in writing, concerning the Company’s business, technology, business relationships or financial affairs which the Company has not released to the general public (collectively, "Confidential Information") is and will be the exclusive property of the Company. By way of illustration, Confidential Information may include information or material which has not been made generally available to the public, such as: (i) corporate information, including plans, strategies, methods, policies, resolutions, negotiations, or litigation; (ii) marketing information, including strategies, methods, customer identities or other information about customers, prospect identities or other information about prospects, or market analyses or projections; (iii) financial information, including cost and performance data, debt arrangements, equity structure, investors and holdings, purchasing and sales data and price lists; and (d) operational and technological information, including plans, specifications, manuals, forms, templates, software, designs, methods, procedures, formulas, discoveries, inventions, improvements, concepts and ideas; and (e) personnel information, including personnel lists, reporting or organizational structure, resumes, personnel data, compensation structure, performance evaluations and termination arrangements or documents. Confidential Information also includes information received in confidence by the Company from its customers or suppliers or other third parties.
-                   |
-                   |^^ **Nondisclosure; Recognition of Company’s Rights.**  I will not, at any time, without the Company’s prior written permission, either during or after my Service Relationship with the Company, disclose any Confidential Information to anyone outside of the Company, or use or permit to be used any Confidential Information for any purpose other than the performance of my duties as a Service Provider of the Company. I will cooperate with the Company and use my best efforts to prevent the unauthorized disclosure of all Proprietary Information. I will deliver to the Company all copies of Confidential Information in my possession or control upon the earlier of a request by the Company or termination of my service relationship with the Company."""
-        .stripMargin
-
-    (
-      forReview(source, Map.empty, ParagraphEdits(Map(2 -> "hello world"))),
-      """<p class="no-section">Effective Date:  [[Effective Date]]</p><p class="no-section">In consideration and as a condition of my employment, continued employment, or payment for services rendered as an independent contractor, consultant, or advisor ("Service Relationship") by [[Company]]     or any of its current or future subsidiaries, affiliates, successors or assigns (collectively, the "Company"), and my receipt of compensation now and hereafter paid to me by the Company, I hereby agree as follows:</p><ul class="list-lvl-1"><li><p>1. hello world</p><ul class="list-lvl-2"><li><p>(a) 	<strong>Confidential Information.</strong>  I agree that all information, whether or not in writing, concerning the Company’s business, technology, business relationships or financial affairs which the Company has not released to the general public (collectively, "Confidential Information") is and will be the exclusive property of the Company. By way of illustration, Confidential Information may include information or material which has not been made generally available to the public, such as: (i) corporate information, including plans, strategies, methods, policies, resolutions, negotiations, or litigation; (ii) marketing information, including strategies, methods, customer identities or other information about customers, prospect identities or other information about prospects, or market analyses or projections; (iii) financial information, including cost and performance data, debt arrangements, equity structure, investors and holdings, purchasing and sales data and price lists; and (d) operational and technological information, including plans, specifications, manuals, forms, templates, software, designs, methods, procedures, formulas, discoveries, inventions, improvements, concepts and ideas; and (e) personnel information, including personnel lists, reporting or organizational structure, resumes, personnel data, compensation structure, performance evaluations and termination arrangements or documents. Confidential Information also includes information received in confidence by the Company from its customers or suppliers or other third parties.</p></li><li><p>(b)  <strong>Nondisclosure; Recognition of Company’s Rights.</strong>  I will not, at any time, without the Company’s prior written permission, either during or after my Service Relationship with the Company, disclose any Confidential Information to anyone outside of the Company, or use or permit to be used any Confidential Information for any purpose other than the performance of my duties as a Service Provider of the Company. I will cooperate with the Company and use my best efforts to prevent the unauthorized disclosure of all Proprietary Information. I will deliver to the Company all copies of Confidential Information in my possession or control upon the earlier of a request by the Company or termination of my service relationship with the Company.</p></li></ul></li></ul>"""
-    )
-  }
-
   it should "compile this piece" in {
     val text =
       """"==Effective Date==
@@ -1589,25 +1567,6 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
     resultShouldBe(
       forReview(text, Map.empty),
       """<p class="no-section"><br /><strong>[[Company Name]]</strong><br />[[Company Street]]<br />[[Company City]], [[Company State]] [[Company Zip]]</p><p class="no-section">[[Effective Date]]</p><p class="no-section">[[Employee First Name]] [[Employee Last Name]]<br />[[Employee Street]]<br />[[Employee City]], [[Employee State]] [[Employee Zip]]</p><p class="no-section"><strong>Re:  Offer Letter</strong></p><p class="no-section">Dear [[Employee First Name]]:</p><p class="no-section">We're excited to offer you a position with</p>""".stripMargin
-    )
-  }
-
-  it should "be able to override paragraphs" in {
-    val text =
-      """hello my friend
-        |
-        |^ this is a new paragraph [[My Variable]]
-        |
-        |and this is too
-      """.stripMargin
-
-    resultShouldBe(
-      forReview(
-        text = text,
-        paragraphs =
-          ParagraphEdits(Map(2 -> "now I want this new text [[My Variable]]"))
-      ),
-      """<p class="no-section">hello my friend</p><ul class="list-lvl-1"><li><p>1.  this is a new paragraph [[My Variable]]</p><p>now I want this new text [[My Variable]]</p></li></ul>"""
     )
   }
 
@@ -1914,8 +1873,8 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
     executeTemplate(text) match {
       case Right(executionResult) =>
         executionResult.findVariableType(VariableTypeDefinition("Amount")) match {
-          case Some(domainType: DefinedDomainType) =>
-            val Right(newExecutionResult) =
+          case Some(_: DefinedDomainType) =>
+            val Success(newExecutionResult) =
               executeTemplate(text, Map("amount" -> "-5"))
             newExecutionResult.validate.toResult.left.value.message should be(
               "amount must be greater than 0!"
