@@ -8,6 +8,7 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.{Decoder, Encoder}
 import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawString, OpenlawValue}
 import org.adridadou.openlaw.oracles.UserId
+import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.variableTypes.EthereumAddress.hex2bytes
 import org.adridadou.openlaw.parser.template.{
   Parameter,
@@ -44,10 +45,23 @@ case object EthAddressType extends VariableType("EthAddress") {
     } yield result
 
   override def plus(
+      left: Expression,
+      right: Expression,
+      executionResult: TemplateExecutionResult
+  ): Result[Option[
+    OpenlawValue
+  ]] =
+    for {
+      leftValue <- left.evaluate(executionResult)
+      rightValue <- right.evaluate(executionResult)
+      result <- plus(leftValue, rightValue, executionResult)
+    } yield result
+
+  def plus(
       optLeft: Option[OpenlawValue],
       optRight: Option[OpenlawValue],
       executionResult: TemplateExecutionResult
-  ): Result[Option[OpenlawValue]] = {
+  ): Result[Option[OpenlawValue]] =
     combine(optLeft, optRight) {
       case (left: OpenlawString, right: EthereumAddress) =>
         Success(left + right.withLeading0x)
@@ -60,7 +74,6 @@ case object EthAddressType extends VariableType("EthAddress") {
           )
         )
     }
-  }
 
   override def getTypeClass: Class[EthereumAddress] = classOf[EthereumAddress]
 

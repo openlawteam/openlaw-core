@@ -143,8 +143,7 @@ final case class ForEachBlock(
           CompiledDeal(
             TemplateHeader(),
             Block(List(specialCodeBlock) ++ block.elems),
-            VariableRedefinition(),
-            executionResult.clock
+            VariableRedefinition()
           ),
           listType.typeParameter
         )

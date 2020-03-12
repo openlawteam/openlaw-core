@@ -36,13 +36,12 @@ import org.scalatest.{FlatSpec, Matchers}
 import scala.util.Random
 
 class ExternalCallOracleSpec extends FlatSpec with Matchers with Checkers {
-  private val clock = Clock.systemUTC()
   private val parser: OpenlawTemplateLanguageParserService =
-    new OpenlawTemplateLanguageParserService(clock)
+    new OpenlawTemplateLanguageParserService()
   private val engine = new OpenlawExecutionEngine()
   private val vmProvider: OpenlawVmProvider = new OpenlawVmProvider(
     TestCryptoService,
-    new OpenlawTemplateLanguageParserService(Clock.systemUTC())
+    parser
   )
   private val serverAccount: TestAccount = TestAccount.newRandom
 
@@ -54,7 +53,7 @@ class ExternalCallOracleSpec extends FlatSpec with Matchers with Checkers {
     """.stripMargin
 
   private val Success(executionResult) = parser
-    .compileTemplate(structureTemplate, clock)
+    .compileTemplate(structureTemplate)
     .flatMap(t => engine.execute(t))
 
   private val Some(structure) =
@@ -72,21 +71,33 @@ class ExternalCallOracleSpec extends FlatSpec with Matchers with Checkers {
     caller,
     ActionIdentifier("failedExternalCall"),
     requestIdentifier,
-    LocalDateTime.parse("2018-12-12T00:00:00"),
-    LocalDateTime.parse("2018-12-12T00:10:00"),
+    LocalDateTime
+      .parse("2018-12-12T00:00:00")
+      .atZone(Clock.systemDefaultZone().getZone)
+      .toInstant,
+    LocalDateTime
+      .parse("2018-12-12T00:10:00")
+      .atZone(Clock.systemDefaultZone().getZone)
+      .toInstant,
     "some error"
   )
   private val pendingExecutionCallEvent = PendingExternalCallEvent(
     caller,
     ActionIdentifier("pendingExternalCall"),
     requestIdentifier,
-    LocalDateTime.parse("2018-12-12T00:00:00")
+    LocalDateTime
+      .parse("2018-12-12T00:00:00")
+      .atZone(Clock.systemDefaultZone().getZone)
+      .toInstant
   )
   private val successExecutionCallEvent = SuccessfulExternalCallEvent(
     caller,
     ActionIdentifier("successExternalCall"),
     requestIdentifier,
-    LocalDateTime.parse("2018-12-12T00:00:00"),
+    LocalDateTime
+      .parse("2018-12-12T00:00:00")
+      .atZone(Clock.systemDefaultZone().getZone)
+      .toInstant,
     output,
     serviceName,
     signature

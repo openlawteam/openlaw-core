@@ -30,11 +30,10 @@ trait Expression {
       right: Expression,
       executionResult: TemplateExecutionResult
   ): Result[Option[OpenlawValue]] =
-    (for {
+    for {
       exprType <- expressionType(executionResult)
-      thisValue <- evaluate(executionResult)
-      rightValue <- right.evaluate(executionResult)
-    } yield exprType.plus(thisValue, rightValue, executionResult)).flatten
+      result <- exprType.plus(this, right, executionResult)
+    } yield result
 
   def multiply(
       right: Expression,

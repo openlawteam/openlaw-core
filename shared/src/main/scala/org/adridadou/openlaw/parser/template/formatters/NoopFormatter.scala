@@ -18,6 +18,12 @@ class NoopFormatter extends Formatter {
       executionResult: TemplateExecutionResult
   ): Result[List[AgreementElement]] = Success(Nil)
 
+  override def stringFormat(
+      expression: Expression,
+      value: OpenlawValue,
+      executionResult: TemplateExecutionResult
+  ): Result[String] =
+    Success("")
   override def missingValueFormat(
       expression: Expression
   ): List[AgreementElement] =

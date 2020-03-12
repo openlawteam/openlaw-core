@@ -1,6 +1,6 @@
 package org.adridadou.openlaw.vm
 
-import java.time.LocalDateTime
+import java.time.{Instant, LocalDateTime}
 import java.util.concurrent.atomic.AtomicInteger
 
 import org.adridadou.openlaw.generateFullSectionValue
@@ -91,7 +91,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       executions: Map[ActionIdentifier, Executions],
       externalCallStructures: Map[ServiceName, IntegratedServiceDefinition],
       id: Option[ContractId],
-      creationDate: Option[LocalDateTime],
+      creationDate: Option[Instant],
       profileAddress: Option[EthereumAddress],
       overriddenFormatter: (
           Option[FormatterDefinition],
@@ -105,7 +105,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
         id = id,
         profileAddress = profileAddress,
         creationDate = creationDate,
-        now = LocalDateTime.now(mainTemplate.clock)
+        now = Instant.now()
       ),
       template = mainTemplate,
       executions = executions,
@@ -114,7 +114,6 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
       variableRedefinition = mainTemplate.redefinition,
       remainingElements =
         createConcurrentMutableBuffer(mainTemplate.block.elems),
-      clock = mainTemplate.clock,
       signatureProofs = signatureProofs,
       externalCallStructures = externalCallStructures
     )

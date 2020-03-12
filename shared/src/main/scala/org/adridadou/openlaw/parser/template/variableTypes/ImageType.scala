@@ -21,6 +21,12 @@ object ImageFormatter extends Formatter {
       expression: Expression
   ): List[AgreementElement] =
     List(FreeText(Text(s"[[$expression]]")))
+  override def stringFormat(
+      expression: Expression,
+      value: OpenlawValue,
+      executionResult: TemplateExecutionResult
+  ): Result[String] =
+    Success("image here")
 }
 
 case object ImageType extends VariableType("Image") {

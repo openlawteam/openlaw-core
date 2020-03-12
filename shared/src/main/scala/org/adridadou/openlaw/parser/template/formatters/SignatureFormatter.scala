@@ -34,6 +34,23 @@ class SignatureFormatter extends Formatter {
       )
   }
 
+  override def stringFormat(
+      expression: Expression,
+      value: OpenlawValue,
+      executionResult: TemplateExecutionResult
+  ): Result[String] =
+    value match {
+      case identity: Identity =>
+        executionResult
+          .getSignatureProof(identity)
+          .map(proof => Success(s"/s/ ${proof.fullName}"))
+          .getOrElse(Success(missingValueString(expression)))
+      case other =>
+        Failure(
+          "invalid type " + other.getClass.getSimpleName + ". expecting Identity"
+        )
+    }
+
   override def missingValueFormat(
       expression: Expression
   ): List[AgreementElement] =

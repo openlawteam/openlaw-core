@@ -1,6 +1,6 @@
 package org.adridadou.openlaw.oracles
 
-import java.time.LocalDateTime
+import java.time.{Instant, LocalDateTime}
 
 import cats.implicits._
 import io.circe.syntax._
@@ -28,11 +28,11 @@ object EthereumEventFilterExecution {
 }
 
 final case class EthereumEventFilterExecution(
-    executionDate: LocalDateTime,
+    executionDate: Instant,
     executionStatus: OpenlawExecutionStatus = PendingExecution,
     event: EthereumEventFilterEvent
 ) extends OpenlawExecution {
-  val scheduledDate: LocalDateTime = executionDate
+  val scheduledDate: Instant = executionDate
 
   override def key: Any = event.hash
 
@@ -159,7 +159,7 @@ final case class EthereumEventFilterEvent(
     smartContractAddress: EthereumAddress,
     eventType: String,
     values: Map[VariableName, String],
-    executionDate: LocalDateTime
+    executionDate: Instant
 ) extends OpenlawVmEvent {
 
   override def typeIdentifier: String = className[EthereumEventFilterEvent]

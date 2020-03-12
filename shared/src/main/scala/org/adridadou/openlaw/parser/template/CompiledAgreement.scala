@@ -14,8 +14,7 @@ import scala.annotation.tailrec
 final case class CompiledAgreement(
     header: TemplateHeader = TemplateHeader(Map.empty),
     block: Block = Block(),
-    redefinition: VariableRedefinition = VariableRedefinition(),
-    clock: Clock = Clock.systemDefaultZone
+    redefinition: VariableRedefinition = VariableRedefinition()
 ) extends CompiledTemplate {
 
   override def append(template: CompiledTemplate): CompiledTemplate =

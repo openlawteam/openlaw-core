@@ -13,6 +13,7 @@ import org.adridadou.openlaw.parser.template.formatters.{
 }
 import org.adridadou.openlaw.result.{Result, Success}
 import cats.implicits._
+import org.adridadou.openlaw.parser.template.expressions.Expression
 
 case object TextType extends VariableType("Text") {
   override def cast(
@@ -21,14 +22,24 @@ case object TextType extends VariableType("Text") {
   ): Result[OpenlawString] = Success(value)
 
   override def plus(
-      optLeft: Option[OpenlawValue],
-      optRight: Option[OpenlawValue],
+      left: Expression,
+      right: Expression,
       executionResult: TemplateExecutionResult
   ): Result[Option[OpenlawString]] =
-    (for {
-      left <- optLeft
-      right <- optRight
-    } yield Success(OpenlawString(left.toString + right.toString))).sequence
+    for {
+      leftValue <- left.evaluate(executionResult)
+      rightValue <- right.evaluate(executionResult)
+      leftType <- left.expressionType(executionResult)
+      rightType <- right.expressionType(executionResult)
+      leftString <- leftValue
+        .map(leftType.defaultFormatter.stringFormat(left, _, executionResult))
+        .getOrElse(Success(leftType.defaultFormatter.missingValueString(left)))
+      rightString <- rightValue
+        .map(rightType.defaultFormatter.stringFormat(right, _, executionResult))
+        .getOrElse(
+          Success(rightType.defaultFormatter.missingValueString(right))
+        )
+    } yield Some(OpenlawString(leftString + rightString))
 
   override def divide(
       optLeft: Option[OpenlawValue],

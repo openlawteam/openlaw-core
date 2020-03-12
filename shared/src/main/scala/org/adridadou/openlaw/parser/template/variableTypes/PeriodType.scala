@@ -12,12 +12,15 @@ import org.adridadou.openlaw.parser.template.{
 }
 import org.adridadou.openlaw.{
   OpenlawBigDecimal,
-  OpenlawDateTime,
+  OpenlawInstant,
   OpenlawNativeValue,
   OpenlawValue
 }
 import org.adridadou.openlaw.result.{Failure, Result, Success}
-import org.adridadou.openlaw.parser.template.expressions.ValueExpression
+import org.adridadou.openlaw.parser.template.expressions.{
+  Expression,
+  ValueExpression
+}
 
 import scala.language.implicitConversions
 import scala.math.BigDecimal
@@ -25,13 +28,26 @@ import scala.math.BigDecimal
 case object PeriodType extends VariableType("Period") {
 
   override def plus(
+      left: Expression,
+      right: Expression,
+      executionResult: TemplateExecutionResult
+  ): Result[Option[
+    OpenlawValue
+  ]] =
+    for {
+      leftValue <- left.evaluate(executionResult)
+      rightValue <- right.evaluate(executionResult)
+      result <- plus(leftValue, rightValue, executionResult)
+    } yield result
+
+  def plus(
       optLeft: Option[OpenlawValue],
       optRight: Option[OpenlawValue],
       executionResult: TemplateExecutionResult
   ): Result[Option[OpenlawValue]] =
     combine(optLeft, optRight) {
       case (left, period: Period) => convert[Period](left).map(plus(_, period))
-      case (left, date: OpenlawDateTime) =>
+      case (left, date: OpenlawInstant) =>
         convert[Period](left).map(DateTimeType.plus(date, _))
     }
 

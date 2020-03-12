@@ -1,7 +1,7 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
 import java.time.temporal.ChronoUnit
-import java.time.{Clock, LocalDateTime, ZoneOffset}
+import java.time.Instant
 
 import cats.implicits._
 import cats.kernel.Eq
@@ -9,7 +9,7 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe._
 import org.adridadou.openlaw.oracles.CryptoService
 import org.adridadou.openlaw.{
-  OpenlawDateTime,
+  OpenlawInstant,
   OpenlawNativeValue,
   OpenlawString,
   OpenlawValue,
@@ -25,7 +25,7 @@ import org.adridadou.openlaw.values.ContractId
 import org.adridadou.openlaw.vm.OpenlawExecutionEngine
 
 object IntegratedServiceDefinition {
-  val parser = new OpenlawTemplateLanguageParserService(Clock.systemUTC())
+  val parser = new OpenlawTemplateLanguageParserService()
   val engine = new OpenlawExecutionEngine()
   private val signatureDefinitionStr =
     "[[Input:Structure(signerEmail: Text; contractContentBase64: Text; contractTitle: Text)]] [[Output:Structure(signerEmail: Text; signature: Text; recordLink: Text)]]"
@@ -44,7 +44,7 @@ object IntegratedServiceDefinition {
   private def getStructure(
       input: String,
       variableTypeName: String
-  ): result.Result[Structure] = {
+  ): result.Result[Structure] =
     parser
       .compileTemplate(input)
       .flatMap(template => engine.execute(template))
@@ -54,7 +54,6 @@ object IntegratedServiceDefinition {
         case Some(_)                       => Failure("invalid type")
         case None                          => Failure(s"no type found named $variableTypeName")
       })
-  }
 
   implicit val integratedServiceDefinitionEnc
       : Encoder[IntegratedServiceDefinition] = deriveEncoder
@@ -183,12 +182,12 @@ final case class ExternalCall(
 
   def getStartDate(
       executionResult: TemplateExecutionResult
-  ): Result[Option[LocalDateTime]] =
+  ): Result[Option[Instant]] =
     startDate.map(getDate(_, executionResult).map(_.underlying)).sequence
 
   def getEndDate(
       executionResult: TemplateExecutionResult
-  ): Result[Option[LocalDateTime]] =
+  ): Result[Option[Instant]] =
     endDate.map(getDate(_, executionResult).map(_.underlying)).sequence
 
   def getEvery(
@@ -198,14 +197,14 @@ final case class ExternalCall(
 
   private def callToRerun(
       executions: List[ExternalCallExecution]
-  ): Option[LocalDateTime] =
+  ): Option[Instant] =
     executions
       .find { execution =>
         execution.executionStatus match {
           case FailedExecution =>
             execution.executionDate
               .isBefore(
-                LocalDateTime.now
+                Instant.now
                   .minus(5, ChronoUnit.MINUTES)
               )
           case _ =>
@@ -217,32 +216,34 @@ final case class ExternalCall(
   private def getNextScheduledRun(
       executions: List[ExternalCallExecution],
       executionResult: TemplateExecutionResult
-  ): Result[Option[LocalDateTime]] =
+  ): Result[Option[Instant]] =
     executions.map(_.scheduledDate) match {
       case Nil =>
         getStartDate(executionResult)
           .map(_.orElse(Some(executionResult.info.now)))
       case list =>
-        val lastDate = list.maxBy(_.toEpochSecond(ZoneOffset.UTC))
+        val lastDate = list.maxBy(_.getEpochSecond)
         for {
           schedulePeriodOption <- getEvery(executionResult)
           endDate <- getEndDate(executionResult)
           nextDateOpt <- DateTimeType.plus(
-            Some(OpenlawDateTime(lastDate)),
+            StringConstant("last date"),
+            Some(OpenlawInstant(lastDate)),
+            DateTimeType,
             schedulePeriodOption,
             executionResult
           )
         } yield nextDateOpt.flatMap({
-          case nextDate: OpenlawDateTime =>
+          case nextDate: OpenlawInstant =>
             filterDateAfterEndDate(endDate, nextDate.underlying)
           case _ => None
         })
     }
 
   private def filterDateAfterEndDate(
-      endDate: Option[LocalDateTime],
-      nextDate: LocalDateTime
-  ): Option[LocalDateTime] =
+      endDate: Option[Instant],
+      nextDate: Instant
+  ): Option[Instant] =
     if (endDate.forall(date =>
           nextDate
             .isBefore(date) || nextDate === date
@@ -255,7 +256,7 @@ final case class ExternalCall(
   override def nextActionSchedule(
       executionResult: TemplateExecutionResult,
       pastExecutions: List[OpenlawExecution]
-  ): Result[Option[LocalDateTime]] =
+  ): Result[Option[Instant]] =
     for {
       executions <- pastExecutions
         .map(VariableType.convert[ExternalCallExecution])

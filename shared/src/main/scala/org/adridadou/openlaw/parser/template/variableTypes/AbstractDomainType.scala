@@ -137,11 +137,11 @@ final case class DefinedDomainType(domain: DomainInformation, typeName: String)
   }
 
   override def plus(
-      optLeft: Option[OpenlawValue],
-      optRight: Option[OpenlawValue],
+      left: Expression,
+      right: Expression,
       executionResult: TemplateExecutionResult
   ): Result[Option[OpenlawValue]] =
-    domain.typeDefinition.plus(optLeft, optRight, executionResult)
+    domain.typeDefinition.plus(left, right, executionResult)
 
   override def minus(
       optLeft: Option[OpenlawValue],

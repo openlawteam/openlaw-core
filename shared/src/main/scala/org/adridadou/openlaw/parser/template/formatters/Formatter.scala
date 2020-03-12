@@ -19,7 +19,17 @@ trait Formatter {
       value: OpenlawValue,
       executionResult: TemplateExecutionResult
   ): Result[List[AgreementElement]]
+
+  def stringFormat(
+      expression: Expression,
+      value: OpenlawValue,
+      executionResult: TemplateExecutionResult
+  ): Result[String]
+
   def missingValueFormat(expression: Expression): List[AgreementElement]
+
+  def missingValueString(expression: Expression): String =
+    s"[[$expression]]"
 }
 
 object DefaultFormatter extends Formatter {
@@ -39,4 +49,13 @@ object DefaultFormatter extends Formatter {
       expression: Expression
   ): List[AgreementElement] =
     List(FreeText(Text(s"[[$expression]]")))
+
+  override def stringFormat(
+      expression: Expression,
+      value: OpenlawValue,
+      executionResult: TemplateExecutionResult
+  ): Result[String] =
+    Success(
+      Option(value).map(_.toString).getOrElse(missingValueString(expression))
+    )
 }
