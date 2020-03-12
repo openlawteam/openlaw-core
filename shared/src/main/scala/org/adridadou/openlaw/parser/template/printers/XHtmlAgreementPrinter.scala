@@ -385,7 +385,20 @@ final case class XHtmlAgreementPrinter(
               continue(hr(`class` := "section-break") +: elems)
             })
 
+          // Ignore unexpected alignment, should only be at beginning of paragraph
           case FreeText(Centered) =>
+            tailRecurse(xs, conditionalBlockDepth, inSection, continue)
+
+          // Ignore unexpected alignment, should only be at beginning of paragraph
+          case FreeText(Indent) =>
+            tailRecurse(xs, conditionalBlockDepth, inSection, continue)
+
+          // Ignore unexpected alignment, should only be at beginning of paragraph
+          case FreeText(RightAlign) =>
+            tailRecurse(xs, conditionalBlockDepth, inSection, continue)
+
+          // Ignore unexpected alignment, should only be at beginning of paragraph
+          case FreeText(RightThreeQuarters) =>
             tailRecurse(xs, conditionalBlockDepth, inSection, continue)
 
           case HeaderAnnotation(content) =>
