@@ -1,7 +1,7 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
 import cats.implicits._
-import java.time.{Instant, LocalDateTime}
+import java.time.Instant
 
 import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawString}
 import org.adridadou.openlaw.parser.abi.AbiParser.AbiType

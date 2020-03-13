@@ -25,26 +25,14 @@ case object LargeTextType extends VariableType("LargeText") {
       left: Expression,
       right: Expression,
       executionResult: TemplateExecutionResult
-  ): Result[Option[OpenlawValue]] =
-    for {
-      leftValue <- left.evaluate(executionResult)
-      rightValue <- right.evaluate(executionResult)
-      result <- combineConverted[OpenlawString, OpenlawValue](
-        leftValue,
-        rightValue
-      ) {
-        case (leftValue, rightValue) => Success(leftValue + rightValue)
-      }
-    } yield result
+  ): Result[Option[OpenlawValue]] = TextType.plus(left, right, executionResult)
 
   override def divide(
-      optLeft: Option[OpenlawValue],
-      optRight: Option[OpenlawValue],
+      left: Expression,
+      right: Expression,
       executionResult: TemplateExecutionResult
   ): Result[Option[OpenlawValue]] =
-    combineConverted[OpenlawString, OpenlawValue](optLeft, optRight) {
-      case (left, right) => Success(TemplatePath(List(left, right)))
-    }
+    TextType.divide(left, right, executionResult)
 
   override def operationWith(
       rightType: VariableType,

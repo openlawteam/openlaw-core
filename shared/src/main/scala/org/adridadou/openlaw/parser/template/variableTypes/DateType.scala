@@ -133,6 +133,17 @@ abstract class DateTypeTrait(
   }
 
   override def minus(
+      left: Expression,
+      right: Expression,
+      executionResult: TemplateExecutionResult
+  ): Result[Option[OpenlawValue]] =
+    for {
+      leftValue <- left.evaluate(executionResult)
+      rightValue <- right.evaluate(executionResult)
+      result <- minus(leftValue, rightValue, executionResult)
+    } yield result
+
+  def minus(
       optLeft: Option[OpenlawValue],
       optRight: Option[OpenlawValue],
       executionResult: TemplateExecutionResult

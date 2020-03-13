@@ -1,6 +1,6 @@
 package org.adridadou.openlaw.oracles
 
-import java.time.{Instant, LocalDateTime}
+import java.time.Instant
 
 import cats.implicits._
 import io.circe.syntax._

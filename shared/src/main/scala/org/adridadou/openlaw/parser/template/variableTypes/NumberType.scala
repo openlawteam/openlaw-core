@@ -70,6 +70,17 @@ case object NumberType extends VariableType("Number") {
     }
 
   override def minus(
+      left: Expression,
+      right: Expression,
+      executionResult: TemplateExecutionResult
+  ): Result[Option[OpenlawBigDecimal]] =
+    for {
+      leftValue <- left.evaluate(executionResult)
+      rightValue <- right.evaluate(executionResult)
+      result <- minus(leftValue, rightValue, executionResult)
+    } yield result
+
+  def minus(
       optLeft: Option[OpenlawValue],
       optRight: Option[OpenlawValue],
       executionResult: TemplateExecutionResult
@@ -79,6 +90,17 @@ case object NumberType extends VariableType("Number") {
     }
 
   override def multiply(
+      left: Expression,
+      right: Expression,
+      executionResult: TemplateExecutionResult
+  ): Result[Option[OpenlawBigDecimal]] =
+    for {
+      leftValue <- left.evaluate(executionResult)
+      rightValue <- right.evaluate(executionResult)
+      result <- multiply(leftValue, rightValue, executionResult)
+    } yield result
+
+  def multiply(
       optLeft: Option[OpenlawValue],
       optRight: Option[OpenlawValue],
       executionResult: TemplateExecutionResult
@@ -88,6 +110,17 @@ case object NumberType extends VariableType("Number") {
     }
 
   override def divide(
+      left: Expression,
+      right: Expression,
+      executionResult: TemplateExecutionResult
+  ): Result[Option[OpenlawBigDecimal]] =
+    for {
+      leftValue <- left.evaluate(executionResult)
+      rightValue <- right.evaluate(executionResult)
+      result <- divide(leftValue, rightValue, executionResult)
+    } yield result
+
+  def divide(
       optLeft: Option[OpenlawValue],
       optRight: Option[OpenlawValue],
       executionResult: TemplateExecutionResult

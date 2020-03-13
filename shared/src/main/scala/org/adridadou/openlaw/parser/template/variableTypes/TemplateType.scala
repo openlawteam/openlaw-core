@@ -52,14 +52,11 @@ case object TemplatePathType
     TemplatePathType
 
   override def divide(
-      optLeft: Option[OpenlawValue],
-      optRight: Option[OpenlawValue],
+      left: Expression,
+      right: Expression,
       executionResult: TemplateExecutionResult
   ): Result[Option[TemplatePath]] =
-    combineConverted[TemplatePath, OpenlawString, TemplatePath](
-      optLeft,
-      optRight
-    ) { case (left, right) => Success(TemplatePath(left.path ++ Seq(right))) }
+    TemplatePathType.divide(left, right, executionResult)
 }
 
 object TemplateDefinition {

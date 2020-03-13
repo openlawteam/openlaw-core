@@ -54,6 +54,17 @@ case object PeriodType extends VariableType("Period") {
   private def plus(left: Period, right: Period): Period = left.plus(right)
 
   override def minus(
+      left: Expression,
+      right: Expression,
+      executionResult: TemplateExecutionResult
+  ): Result[Option[Period]] =
+    for {
+      leftValue <- left.evaluate(executionResult)
+      rightValue <- right.evaluate(executionResult)
+      result <- minus(leftValue, rightValue, executionResult)
+    } yield result
+
+  def minus(
       optLeft: Option[OpenlawValue],
       optRight: Option[OpenlawValue],
       executionResult: TemplateExecutionResult
@@ -65,6 +76,17 @@ case object PeriodType extends VariableType("Period") {
   private def minus(left: Period, right: Period): Period = left.minus(right)
 
   override def divide(
+      left: Expression,
+      right: Expression,
+      executionResult: TemplateExecutionResult
+  ): Result[Option[Period]] =
+    for {
+      leftValue <- left.evaluate(executionResult)
+      rightValue <- right.evaluate(executionResult)
+      result <- divide(leftValue, rightValue, executionResult)
+    } yield result
+
+  def divide(
       optLeft: Option[OpenlawValue],
       optRight: Option[OpenlawValue],
       executionResult: TemplateExecutionResult

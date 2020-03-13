@@ -1,6 +1,6 @@
 package org.adridadou.openlaw.oracles
 
-import java.time.{Instant, LocalDateTime}
+import java.time.Instant
 
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}

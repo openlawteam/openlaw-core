@@ -1,6 +1,6 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
-import java.time.{Instant, LocalDateTime, ZoneOffset}
+import java.time.Instant
 
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.{
@@ -396,8 +396,8 @@ abstract class VariableType(val name: String) {
       new UnsupportedOperationException(s"$name type does not support addition")
     )
   def minus(
-      optLeft: Option[OpenlawValue],
-      optRight: Option[OpenlawValue],
+      left: Expression,
+      right: Expression,
       executionResult: TemplateExecutionResult
   ): Result[Option[OpenlawValue]] =
     Failure(
@@ -406,8 +406,8 @@ abstract class VariableType(val name: String) {
       )
     )
   def multiply(
-      optLeft: Option[OpenlawValue],
-      optRight: Option[OpenlawValue],
+      left: Expression,
+      right: Expression,
       executionResult: TemplateExecutionResult
   ): Result[Option[OpenlawValue]] =
     Failure(
@@ -416,8 +416,8 @@ abstract class VariableType(val name: String) {
       )
     )
   def divide(
-      optLeft: Option[OpenlawValue],
-      optRight: Option[OpenlawValue],
+      left: Expression,
+      right: Expression,
       executionResult: TemplateExecutionResult
   ): Result[Option[OpenlawValue]] =
     Failure(
@@ -666,16 +666,6 @@ object VariableType {
 }
 
 object LocalDateTimeHelper {
-  implicit val dateDecoder: Decoder[LocalDateTime] = (c: HCursor) => {
-    for {
-      epoch <- c.as[Long]
-    } yield LocalDateTime.ofEpochSecond(epoch, 0, ZoneOffset.UTC)
-  }
-
-  implicit val dateEncoder: Encoder[LocalDateTime] = (a: LocalDateTime) =>
-    Json.fromLong(a.toEpochSecond(ZoneOffset.UTC))
-  implicit val eqForLocalDateTime: Eq[LocalDateTime] = Eq.fromUniversalEquals
-
   implicit val instantDecoder: Decoder[Instant] = (c: HCursor) => {
     for {
       epoch <- c.as[Long]

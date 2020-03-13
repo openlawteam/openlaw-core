@@ -20,11 +20,10 @@ trait Expression {
       right: Expression,
       executionResult: TemplateExecutionResult
   ): Result[Option[OpenlawValue]] =
-    (for {
+    for {
       exprType <- expressionType(executionResult)
-      thisValue <- evaluate(executionResult)
-      rightValue <- right.evaluate(executionResult)
-    } yield exprType.minus(thisValue, rightValue, executionResult)).flatten
+      result <- exprType.minus(this, right, executionResult)
+    } yield result
 
   def plus(
       right: Expression,
@@ -39,21 +38,19 @@ trait Expression {
       right: Expression,
       executionResult: TemplateExecutionResult
   ): Result[Option[OpenlawValue]] =
-    (for {
+    for {
       exprType <- expressionType(executionResult)
-      thisValue <- evaluate(executionResult)
-      rightValue <- right.evaluate(executionResult)
-    } yield exprType.multiply(thisValue, rightValue, executionResult)).flatten
+      result <- exprType.multiply(this, right, executionResult)
+    } yield result
 
   def divide(
       right: Expression,
       executionResult: TemplateExecutionResult
   ): Result[Option[OpenlawValue]] =
-    (for {
+    for {
       exprType <- expressionType(executionResult)
-      thisValue <- evaluate(executionResult)
-      rightValue <- right.evaluate(executionResult)
-    } yield exprType.divide(thisValue, rightValue, executionResult)).flatten
+      result <- exprType.divide(this, right, executionResult)
+    } yield result
 
   def expressionType(
       executionResult: TemplateExecutionResult

@@ -1,6 +1,6 @@
 package org.adridadou.openlaw.vm
 
-import java.time.{Instant, LocalDateTime}
+import java.time.Instant
 import java.util.concurrent.atomic.AtomicInteger
 
 import org.adridadou.openlaw.generateFullSectionValue
