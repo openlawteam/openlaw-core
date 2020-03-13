@@ -1,7 +1,5 @@
 package org.adridadou.openlaw.parser.template
 
-import java.time.Clock
-
 import cats.implicits._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.formatters.Formatter

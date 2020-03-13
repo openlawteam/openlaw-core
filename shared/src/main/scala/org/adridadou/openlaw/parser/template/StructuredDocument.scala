@@ -2,7 +2,6 @@ package org.adridadou.openlaw.parser.template
 
 import cats.implicits._
 import cats.Eq
-import java.time.{Clock, ZoneId}
 import java.util.concurrent.atomic.AtomicInteger
 
 import io.circe._
