@@ -1,6 +1,6 @@
 package org.adridadou.openlaw.oracles
 
-import java.time.LocalDateTime
+import java.time.Instant
 
 import org.adridadou.openlaw.parser.template.{
   ActionIdentifier,
@@ -18,7 +18,6 @@ import io.circe.syntax._
 import cats.implicits._
 import cats.kernel.Eq
 import slogging.LazyLogging
-
 import LocalDateTimeHelper._
 
 final case class ExternalCallOracle(
@@ -47,7 +46,7 @@ final case class ExternalCallOracle(
   private def handleFailedEvent(
       vm: OpenlawVm,
       event: FailedExternalCallEvent,
-      scheduledDate: LocalDateTime
+      scheduledDate: Instant
   ): Result[OpenlawVm] = {
     val failedExecution = FailedExternalCallExecution(
       scheduledDate = scheduledDate,
@@ -118,7 +117,7 @@ final case class ExternalCallOracle(
       info: ActionInfo,
       vm: OpenlawVm,
       event: ExternalCallEvent
-  ): Result[Option[LocalDateTime]] =
+  ): Result[Option[Instant]] =
     for {
       id <- info.identifier
       scheduledDate <- vm
@@ -214,23 +213,23 @@ sealed trait ExternalCallEvent extends OpenlawVmEvent {
   val caller: Caller
   val identifier: ActionIdentifier
   val requestIdentifier: RequestIdentifier
-  val executionDate: LocalDateTime
+  val executionDate: Instant
 
-  def toExecution(scheduledDate: LocalDateTime): ExternalCallExecution
+  def toExecution(scheduledDate: Instant): ExternalCallExecution
 }
 
 final case class PendingExternalCallEvent(
     caller: Caller,
     identifier: ActionIdentifier,
     requestIdentifier: RequestIdentifier,
-    executionDate: LocalDateTime
+    executionDate: Instant
 ) extends ExternalCallEvent {
   override def typeIdentifier: String = className[PendingExternalCallEvent]
 
   override def serialize: String = this.asJson.noSpaces
 
   override def toExecution(
-      scheduledDate: LocalDateTime
+      scheduledDate: Instant
   ): ExternalCallExecution = PendingExternalCallExecution(
     scheduledDate = scheduledDate,
     executionDate = executionDate,
@@ -242,8 +241,8 @@ final case class FailedExternalCallEvent(
     caller: Caller,
     identifier: ActionIdentifier,
     requestIdentifier: RequestIdentifier,
-    scheduledDate: LocalDateTime,
-    executionDate: LocalDateTime,
+    scheduledDate: Instant,
+    executionDate: Instant,
     errorMessage: String
 ) extends ExternalCallEvent {
   override def typeIdentifier: String =
@@ -252,7 +251,7 @@ final case class FailedExternalCallEvent(
   override def serialize: String = this.asJson.noSpaces
 
   override def toExecution(
-      scheduledDate: LocalDateTime
+      scheduledDate: Instant
   ): ExternalCallExecution = FailedExternalCallExecution(
     scheduledDate = scheduledDate,
     executionDate = executionDate,
@@ -265,7 +264,7 @@ final case class SuccessfulExternalCallEvent(
     caller: Caller,
     identifier: ActionIdentifier,
     requestIdentifier: RequestIdentifier,
-    executionDate: LocalDateTime,
+    executionDate: Instant,
     result: String,
     serviceName: ServiceName,
     signature: EthereumSignature
@@ -282,7 +281,7 @@ final case class SuccessfulExternalCallEvent(
     structure.cast(result, executionResult)
 
   override def toExecution(
-      scheduledDate: LocalDateTime
+      scheduledDate: Instant
   ): ExternalCallExecution = SuccessfulExternalCallExecution(
     scheduledDate = scheduledDate,
     executionDate = executionDate,

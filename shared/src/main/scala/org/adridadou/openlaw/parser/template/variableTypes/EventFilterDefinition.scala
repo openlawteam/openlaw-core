@@ -1,7 +1,7 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
 import cats.implicits._
-import java.time.LocalDateTime
+import java.time.Instant
 
 import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawString}
 import org.adridadou.openlaw.parser.abi.AbiParser.AbiType
@@ -113,9 +113,9 @@ final case class EventFilterDefinition(
   def nextActionSchedule(
       executionResult: TemplateExecutionResult,
       pastExecutions: List[OpenlawExecution]
-  ): Result[Option[LocalDateTime]] =
+  ): Result[Option[Instant]] =
     pastExecutions match {
-      case Nil => Success(Some(LocalDateTime.now))
+      case Nil => Success(Some(executionResult.info.now))
       case _   => Success(None)
     }
 

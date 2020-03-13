@@ -76,4 +76,12 @@ class LinkFormatter extends Formatter {
       expression: Expression
   ): List[AgreementElement] =
     List(FreeText(Text(s"[[$expression]]")))
+  override def stringFormat(
+      expression: Expression,
+      value: OpenlawValue,
+      executionResult: TemplateExecutionResult
+  ): Result[String] =
+    VariableType.convert[LinkInfo](value) map {
+      case LinkInfo(labelValue, urlValue) => s"$labelValue[$urlValue]"
+    }
 }

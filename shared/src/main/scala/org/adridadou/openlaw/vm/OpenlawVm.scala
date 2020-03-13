@@ -1,6 +1,6 @@
 package org.adridadou.openlaw.vm
 
-import java.time.{Clock, LocalDateTime, ZoneOffset}
+import java.time.Instant
 
 import cats.Eq
 import cats.implicits._
@@ -31,10 +31,10 @@ object Executions {
 }
 
 final case class Executions(
-    executionMap: Map[LocalDateTime, OpenlawExecution] = Map.empty,
+    executionMap: Map[Instant, OpenlawExecution] = Map.empty,
     executionInit: Option[OpenlawExecutionInit] = None
 ) {
-  def update(key: LocalDateTime, value: OpenlawExecution): Executions =
+  def update(key: Instant, value: OpenlawExecution): Executions =
     this.copy(executionMap = executionMap + (key -> value))
 
   def update(executionInit: OpenlawExecutionInit): Executions =
@@ -56,8 +56,7 @@ final case class OpenlawVmState(
     executionState: ContractExecutionState,
     crypto: CryptoService,
     externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] =
-      Map.empty,
-    clock: Clock
+      Map.empty
 ) extends LazyLogging {
 
   def updateTemplate(
@@ -200,12 +199,13 @@ final case class OpenlawVmState(
           (_, _) => None
         )
       ) match {
-      case None => None
-      case Some(Right(result)) =>
+      case None =>
+        None
+      case Some(Success(result)) =>
         Some(result)
-      case Some(Left(ex)) =>
-        ex.e.printStackTrace()
-        logger.warn(ex.message, ex.e)
+      case Some(Failure(ex, message)) =>
+        ex.printStackTrace()
+        logger.warn(message, ex)
         None
     }
   }
@@ -229,11 +229,10 @@ final case class OpenlawVm(
     definition = contractDefinition,
     profileAddress = profileAddress,
     executionEngine = new OpenlawExecutionEngine(),
-    executions = Map(),
-    signatures = Map(),
+    executions = Map.empty,
+    signatures = Map.empty,
     optExecutionResult = None,
     executionState = ContractCreated,
-    clock = parser.internalClock,
     crypto = crypto,
     externalCallStructures = externalCallStructures
   )
@@ -269,14 +268,14 @@ final case class OpenlawVm(
       .map(list =>
         list
           .sortBy {
-            case (_, nextDate) => nextDate.toEpochSecond(ZoneOffset.UTC)
+            case (_, nextDate) => nextDate.getEpochSecond
           }
           .map { case (info, _) => info }
       )
 
   def executionState: ContractExecutionState = state.executionState
 
-  def nextActionSchedule: Result[Option[LocalDateTime]] =
+  def nextActionSchedule: Result[Option[Instant]] =
     nextAction.flatMap { option =>
       option.flatMap { info =>
         info.identifier.flatMap { id =>
@@ -364,7 +363,7 @@ final case class OpenlawVm(
     state.executions.map({
       case (identifier, executions) =>
         identifier -> executions.executionMap.values.toList
-          .sortBy(_.scheduledDate.toEpochSecond(ZoneOffset.UTC))
+          .sortBy(_.scheduledDate.getEpochSecond)
     })
 
   def executions[T <: OpenlawExecution](identifier: ActionIdentifier)(
@@ -615,8 +614,7 @@ final case class UpdateExecutionStateCommand(
 
 final case class ExecutionScope(
     template: CompiledTemplate,
-    vm: OpenlawVm,
-    clock: Clock
+    vm: OpenlawVm
 )
 
 abstract sealed class ContractExecutionState(val state: String)

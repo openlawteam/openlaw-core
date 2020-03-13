@@ -43,6 +43,19 @@ case object NumberType extends VariableType("Number") {
   }
 
   override def plus(
+      left: Expression,
+      right: Expression,
+      executionResult: TemplateExecutionResult
+  ): Result[Option[
+    OpenlawValue
+  ]] =
+    for {
+      leftValue <- left.evaluate(executionResult)
+      rightValue <- right.evaluate(executionResult)
+      result <- plus(leftValue, rightValue, executionResult)
+    } yield result
+
+  def plus(
       optLeft: Option[OpenlawValue],
       optRight: Option[OpenlawValue],
       executionResult: TemplateExecutionResult
@@ -57,6 +70,17 @@ case object NumberType extends VariableType("Number") {
     }
 
   override def minus(
+      left: Expression,
+      right: Expression,
+      executionResult: TemplateExecutionResult
+  ): Result[Option[OpenlawBigDecimal]] =
+    for {
+      leftValue <- left.evaluate(executionResult)
+      rightValue <- right.evaluate(executionResult)
+      result <- minus(leftValue, rightValue, executionResult)
+    } yield result
+
+  def minus(
       optLeft: Option[OpenlawValue],
       optRight: Option[OpenlawValue],
       executionResult: TemplateExecutionResult
@@ -66,6 +90,17 @@ case object NumberType extends VariableType("Number") {
     }
 
   override def multiply(
+      left: Expression,
+      right: Expression,
+      executionResult: TemplateExecutionResult
+  ): Result[Option[OpenlawBigDecimal]] =
+    for {
+      leftValue <- left.evaluate(executionResult)
+      rightValue <- right.evaluate(executionResult)
+      result <- multiply(leftValue, rightValue, executionResult)
+    } yield result
+
+  def multiply(
       optLeft: Option[OpenlawValue],
       optRight: Option[OpenlawValue],
       executionResult: TemplateExecutionResult
@@ -75,6 +110,17 @@ case object NumberType extends VariableType("Number") {
     }
 
   override def divide(
+      left: Expression,
+      right: Expression,
+      executionResult: TemplateExecutionResult
+  ): Result[Option[OpenlawBigDecimal]] =
+    for {
+      leftValue <- left.evaluate(executionResult)
+      rightValue <- right.evaluate(executionResult)
+      result <- divide(leftValue, rightValue, executionResult)
+    } yield result
+
+  def divide(
       optLeft: Option[OpenlawValue],
       optRight: Option[OpenlawValue],
       executionResult: TemplateExecutionResult
@@ -171,6 +217,15 @@ case object NoTrailingZerosFormatter extends Formatter with NumberFormatter {
       expression: Expression
   ): List[AgreementElement] =
     List(FreeText(Text(s"[[$expression]]")))
+  override def stringFormat(
+      expression: Expression,
+      value: OpenlawValue,
+      executionResult: TemplateExecutionResult
+  ): Result[String] =
+    VariableType
+      .convert[OpenlawBigDecimal](value)
+      .map(_.bigDecimal.stripTrailingZeros())
+      .map(bd => formatNumber(bd))
 }
 
 case object RawNumberFormatter extends Formatter with NumberFormatter {
@@ -188,6 +243,15 @@ case object RawNumberFormatter extends Formatter with NumberFormatter {
       expression: Expression
   ): List[AgreementElement] =
     List(FreeText(Text(s"[[$expression]]")))
+
+  override def stringFormat(
+      expression: Expression,
+      value: OpenlawValue,
+      executionResult: TemplateExecutionResult
+  ): Result[String] =
+    VariableType
+      .convert[OpenlawBigDecimal](value)
+      .map(_.bigDecimal.stripTrailingZeros().toPlainString)
 }
 
 final case class Rounding(expr: Expression)
@@ -198,6 +262,20 @@ final case class Rounding(expr: Expression)
       value: OpenlawValue,
       executionResult: TemplateExecutionResult
   ): Result[List[AgreementElement]] =
+    stringFormat(expression, value, executionResult).map(s =>
+      List(FreeText(Text(s)))
+    )
+
+  override def missingValueFormat(
+      expression: Expression
+  ): List[AgreementElement] =
+    List(FreeText(Text(s"[[$expression]]")))
+
+  override def stringFormat(
+      expression: Expression,
+      value: OpenlawValue,
+      executionResult: TemplateExecutionResult
+  ): Result[String] =
     expr
       .evaluate(executionResult)
       .flatMap { valueOpt =>
@@ -213,15 +291,11 @@ final case class Rounding(expr: Expression)
               )
             x
           } match {
-          case None => Success(List(FreeText(Text(value.toString))))
+          case None =>
+            Success(value.toString)
           case Some(Success(result)) =>
-            Success(List(FreeText(Text(result.toString))))
+            Success(result.toString)
           case Some(Failure(e, message)) => Failure(e, message)
         }
       }
-
-  override def missingValueFormat(
-      expression: Expression
-  ): List[AgreementElement] =
-    List(FreeText(Text(s"[[$expression]]")))
 }

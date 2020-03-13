@@ -1,6 +1,6 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
-import java.time.LocalDateTime
+import java.time.Instant
 
 import io.circe._
 import io.circe.syntax._
@@ -174,11 +174,11 @@ final case class SignatureAction(
   override def nextActionSchedule(
       executionResult: TemplateExecutionResult,
       pastExecutions: List[OpenlawExecution]
-  ): Result[Option[LocalDateTime]] =
+  ): Result[Option[Instant]] =
     if (executionResult.hasSigned(email)) {
       Success(None)
     } else {
-      Success(Some(LocalDateTime.now))
+      Success(Some(Instant.now))
     }
 
   override def identifier(

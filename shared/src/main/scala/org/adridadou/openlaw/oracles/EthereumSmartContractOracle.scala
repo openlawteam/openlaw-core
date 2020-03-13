@@ -1,6 +1,6 @@
 package org.adridadou.openlaw.oracles
 
-import java.time.LocalDateTime
+import java.time.Instant
 
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
@@ -118,7 +118,7 @@ final case class EthereumSmartContractOracle()
       vm: OpenlawVm,
       executionStatus: OpenlawExecutionStatus,
       event: EthereumSmartContractCallEvent,
-      scheduledDate: LocalDateTime
+      scheduledDate: Instant
   ): EthereumSmartContractExecution =
     EthereumSmartContractExecution(
       scheduledDate = scheduledDate,
@@ -131,7 +131,7 @@ final case class EthereumSmartContractOracle()
       info: ActionInfo,
       vm: OpenlawVm,
       event: EthereumSmartContractCallEvent
-  ): Result[Option[LocalDateTime]] =
+  ): Result[Option[Instant]] =
     info.identifier.flatMap { id =>
       vm.executions[EthereumSmartContractExecution](id)
         .find(_.tx === event.hash) match {
@@ -173,14 +173,14 @@ object SuccessfulEthereumSmartContractCallEvent {
 sealed trait EthereumSmartContractCallEvent extends OpenlawVmEvent {
   val identifier: ActionIdentifier
   val hash: EthereumHash
-  val executionDate: LocalDateTime
+  val executionDate: Instant
 }
 
 final case class PendingEthereumSmartContractCallEvent(
     identifier: ActionIdentifier,
     hash: EthereumHash,
     receiveAddress: EthereumAddress,
-    executionDate: LocalDateTime
+    executionDate: Instant
 ) extends EthereumSmartContractCallEvent {
   override def typeIdentifier: String =
     className[PendingEthereumSmartContractCallEvent]
@@ -191,7 +191,7 @@ final case class SuccessfulEthereumSmartContractCallEvent(
     identifier: ActionIdentifier,
     hash: EthereumHash,
     receiveAddress: EthereumAddress,
-    executionDate: LocalDateTime
+    executionDate: Instant
 ) extends EthereumSmartContractCallEvent {
   override def typeIdentifier: String =
     className[SuccessfulEthereumSmartContractCallEvent]
@@ -202,8 +202,8 @@ final case class FailedEthereumSmartContractCallEvent(
     identifier: ActionIdentifier,
     hash: EthereumHash,
     errorMessage: String,
-    scheduledDate: LocalDateTime,
-    executionDate: LocalDateTime
+    scheduledDate: Instant,
+    executionDate: Instant
 ) extends EthereumSmartContractCallEvent {
   override def typeIdentifier: String =
     className[FailedEthereumSmartContractCallEvent]

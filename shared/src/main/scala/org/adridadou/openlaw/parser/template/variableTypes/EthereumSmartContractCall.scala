@@ -1,13 +1,9 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
-import java.time.{LocalDateTime, ZoneOffset}
+import java.time.Instant
 import java.time.temporal.ChronoUnit
 
-import org.adridadou.openlaw.{
-  OpenlawDateTime,
-  OpenlawNativeValue,
-  OpenlawString
-}
+import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawString, OpenlawInstant}
 import org.adridadou.openlaw.parser.template._
 import VariableType._
 import org.adridadou.openlaw.parser.template.expressions.Expression
@@ -102,11 +98,11 @@ final case class EthereumSmartContractCall(
     every.map(getPeriod(_, executionResult)).sequence
   def getStartDate(
       executionResult: TemplateExecutionResult
-  ): Result[Option[LocalDateTime]] =
+  ): Result[Option[Instant]] =
     startDate.map(getDate(_, executionResult).map(_.underlying)).sequence
   def getEndDate(
       executionResult: TemplateExecutionResult
-  ): Result[Option[LocalDateTime]] =
+  ): Result[Option[Instant]] =
     endDate.map(getDate(_, executionResult).map(_.underlying)).sequence
   def getFunctionName(
       executionResult: TemplateExecutionResult
@@ -169,20 +165,20 @@ final case class EthereumSmartContractCall(
   override def nextActionSchedule(
       executionResult: TemplateExecutionResult,
       pastExecutions: List[OpenlawExecution]
-  ): Result[Option[LocalDateTime]] =
+  ): Result[Option[Instant]] =
     for {
       executions <- pastExecutions
         .map(VariableType.convert[EthereumSmartContractExecution])
         .sequence
       result <- {
-        val callToRerun: Option[LocalDateTime] = executions
+        val callToRerun: Option[Instant] = executions
           .find { execution =>
             execution.executionStatus match {
               case FailedExecution =>
                 execution.executionDate
                   .isBefore(
-                    LocalDateTime
-                      .now(executionResult.clock)
+                    Instant
+                      .now()
                       .minus(5, ChronoUnit.MINUTES)
                   )
               case _ =>
@@ -204,7 +200,7 @@ final case class EthereumSmartContractCall(
                     )
                 )
               case list =>
-                val lastDate = list.maxBy(_.toEpochSecond(ZoneOffset.UTC))
+                val lastDate = list.maxBy(_.getEpochSecond)
                 (for {
                   schedulePeriodOption <- getEvery(executionResult)
                   endDate <- getEndDate(executionResult)
@@ -213,14 +209,16 @@ final case class EthereumSmartContractCall(
                     .map { schedulePeriod =>
                       DateTimeType
                         .plus(
-                          Some(OpenlawDateTime(lastDate)),
+                          StringConstant("should not happen"),
+                          Some(OpenlawInstant(lastDate)),
+                          DateTimeType,
                           Some(schedulePeriod),
                           executionResult
                         )
                         .flatMap { p =>
                           p.map(
                               VariableType
-                                .convert[OpenlawDateTime](_)
+                                .convert[OpenlawInstant](_)
                                 .map(_.underlying)
                             )
                             .sequence

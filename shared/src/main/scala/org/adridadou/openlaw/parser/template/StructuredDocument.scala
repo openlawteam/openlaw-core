@@ -2,7 +2,6 @@ package org.adridadou.openlaw.parser.template
 
 import cats.implicits._
 import cats.Eq
-import java.time.{Clock, ZoneId}
 import java.util.concurrent.atomic.AtomicInteger
 
 import io.circe._
@@ -44,7 +43,6 @@ trait TemplateExecutionResult {
 
   private val expressionParser = new ExpressionParserService
   def id: TemplateExecutionResultId
-  def clock: Clock
   def templateDefinition: Option[TemplateDefinition]
   def subExecutions: Map[VariableName, TemplateExecutionResult]
   def signatureProofs: Map[Email, SignatureProof]
@@ -665,12 +663,6 @@ object SerializableTemplateExecutionResult {
       : Decoder[SerializableTemplateExecutionResult] = deriveDecoder
   implicit val serializableTemplateExecutionResultEq
       : Eq[SerializableTemplateExecutionResult] = Eq.fromUniversalEquals
-
-  implicit val clockEnc: Encoder[Clock] = (a: Clock) =>
-    Json.fromString(a.getZone.getId)
-  implicit val clockDec: Decoder[Clock] = (c: HCursor) =>
-    c.as[String].map(id => Clock.system(ZoneId.of(id)))
-  implicit val clockDecEq: Eq[Clock] = Eq.fromUniversalEquals
 }
 
 final case class SerializableTemplateExecutionResult(
@@ -697,8 +689,7 @@ final case class SerializableTemplateExecutionResult(
     parameters: TemplateParameters,
     executionType: ExecutionType,
     processedSections: List[(Section, Int)],
-    externalCallStructures: Map[ServiceName, IntegratedServiceDefinition],
-    clock: Clock
+    externalCallStructures: Map[ServiceName, IntegratedServiceDefinition]
 ) extends TemplateExecutionResult {
 
   override def toExecutionState: OpenlawExecutionState = OpenlawExecutionState(
@@ -733,8 +724,7 @@ final case class SerializableTemplateExecutionResult(
     templateDefinition = this.templateDefinition,
     mapping = this.mapping,
     variableTypesInternal = createConcurrentMutableBuffer(this.variableTypes),
-    externalCallStructures = this.externalCallStructures,
-    clock = this.clock
+    externalCallStructures = this.externalCallStructures
   )
 
   override def subExecutions: Map[VariableName, TemplateExecutionResult] =
@@ -763,7 +753,6 @@ object OpenlawExecutionState {
     executions = Map.empty,
     executionType = TemplateExecution,
     remainingElements = createConcurrentMutableBuffer,
-    clock = Clock.systemDefaultZone,
     signatureProofs = Map.empty,
     parameters = TemplateParameters(),
     variableRedefinition = VariableRedefinition()
@@ -818,8 +807,7 @@ final case class OpenlawExecutionState(
       createConcurrentMutableBuffer,
     lastSectionByLevel: mutable.Map[Int, String] = createConcurrentMutableMap,
     externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] =
-      Map.empty,
-    clock: Clock
+      Map.empty
 ) extends TemplateExecutionResult {
 
   def variables: List[VariableDefinition] = variablesInternal.toList
@@ -1049,8 +1037,7 @@ final case class OpenlawExecutionState(
       parameters = parameters,
       executionType = executionType,
       processedSections = processedSections,
-      externalCallStructures = externalCallStructures,
-      clock = clock
+      externalCallStructures = externalCallStructures
     )
   }
 
@@ -1159,7 +1146,6 @@ final case class OpenlawExecutionState(
                 executionType = executionType,
                 sectionLevelStack = getSectionLevelStack(executionType),
                 template = template,
-                clock = clock,
                 parentExecution = Some(this),
                 variableRedefinition = template.redefinition,
                 templateDefinition = Some(templateDefinition),

@@ -1,6 +1,6 @@
 package org.adridadou.openlaw.parser.template.variabletypes
 
-import java.time.{Clock, LocalDateTime}
+import java.time.Instant
 
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.scalatest.{FlatSpec, Matchers}
@@ -44,11 +44,10 @@ import play.api.libs.json.Json
 class ExternalCallTypeSpec extends FlatSpec with Matchers {
 
   val parser: OpenlawTemplateLanguageParserService =
-    new OpenlawTemplateLanguageParserService(Clock.systemUTC())
+    new OpenlawTemplateLanguageParserService()
   val exprParser = new ExpressionParserService()
   val vmProvider: OpenlawVmProvider =
     new OpenlawVmProvider(TestCryptoService, parser)
-  val clock: Clock = Clock.systemUTC()
   val serverAccount: TestAccount = TestAccount.newRandom
   val cryptoService = TestCryptoService
 
@@ -100,7 +99,7 @@ class ExternalCallTypeSpec extends FlatSpec with Matchers {
       caller,
       identifier,
       requestIdentifier,
-      LocalDateTime.now
+      Instant.now
     )
     vm.applyEvent(pendingExternalCallEvent)
     vm.allExecutions.exists {
@@ -134,7 +133,7 @@ class ExternalCallTypeSpec extends FlatSpec with Matchers {
           caller,
           identifier,
           requestIdentifier,
-          LocalDateTime.now,
+          Instant.now,
           output,
           serviceName,
           eventSignature
@@ -181,7 +180,7 @@ class ExternalCallTypeSpec extends FlatSpec with Matchers {
       caller,
       identifier,
       requestIdentifier,
-      LocalDateTime.now
+      Instant.now
     )
     vm.applyEvent(pendingExternalCallEvent)
     vm.allExecutions.exists {
@@ -209,7 +208,7 @@ class ExternalCallTypeSpec extends FlatSpec with Matchers {
           caller,
           identifier,
           requestIdentifier,
-          LocalDateTime.now,
+          Instant.now,
           output,
           serviceName,
           invalidEventSignature

@@ -12,12 +12,15 @@ import org.adridadou.openlaw.parser.template.{
 }
 import org.adridadou.openlaw.{
   OpenlawBigDecimal,
-  OpenlawDateTime,
+  OpenlawInstant,
   OpenlawNativeValue,
   OpenlawValue
 }
 import org.adridadou.openlaw.result.{Failure, Result, Success}
-import org.adridadou.openlaw.parser.template.expressions.ValueExpression
+import org.adridadou.openlaw.parser.template.expressions.{
+  Expression,
+  ValueExpression
+}
 
 import scala.language.implicitConversions
 import scala.math.BigDecimal
@@ -25,19 +28,43 @@ import scala.math.BigDecimal
 case object PeriodType extends VariableType("Period") {
 
   override def plus(
+      left: Expression,
+      right: Expression,
+      executionResult: TemplateExecutionResult
+  ): Result[Option[
+    OpenlawValue
+  ]] =
+    for {
+      leftValue <- left.evaluate(executionResult)
+      rightValue <- right.evaluate(executionResult)
+      result <- plus(leftValue, rightValue, executionResult)
+    } yield result
+
+  def plus(
       optLeft: Option[OpenlawValue],
       optRight: Option[OpenlawValue],
       executionResult: TemplateExecutionResult
   ): Result[Option[OpenlawValue]] =
     combine(optLeft, optRight) {
       case (left, period: Period) => convert[Period](left).map(plus(_, period))
-      case (left, date: OpenlawDateTime) =>
+      case (left, date: OpenlawInstant) =>
         convert[Period](left).map(DateTimeType.plus(date, _))
     }
 
   private def plus(left: Period, right: Period): Period = left.plus(right)
 
   override def minus(
+      left: Expression,
+      right: Expression,
+      executionResult: TemplateExecutionResult
+  ): Result[Option[Period]] =
+    for {
+      leftValue <- left.evaluate(executionResult)
+      rightValue <- right.evaluate(executionResult)
+      result <- minus(leftValue, rightValue, executionResult)
+    } yield result
+
+  def minus(
       optLeft: Option[OpenlawValue],
       optRight: Option[OpenlawValue],
       executionResult: TemplateExecutionResult
@@ -49,6 +76,17 @@ case object PeriodType extends VariableType("Period") {
   private def minus(left: Period, right: Period): Period = left.minus(right)
 
   override def divide(
+      left: Expression,
+      right: Expression,
+      executionResult: TemplateExecutionResult
+  ): Result[Option[Period]] =
+    for {
+      leftValue <- left.evaluate(executionResult)
+      rightValue <- right.evaluate(executionResult)
+      result <- divide(leftValue, rightValue, executionResult)
+    } yield result
+
+  def divide(
       optLeft: Option[OpenlawValue],
       optRight: Option[OpenlawValue],
       executionResult: TemplateExecutionResult
