@@ -2477,7 +2477,7 @@ here""".stripMargin
       Map.empty,
       Map.empty,
       Map(
-        ServiceName("Dropbox") -> IntegratedServiceDefinition.signatureDefinition
+        ServiceName("Dropbox") -> IntegratedServiceDefinition.storageDefinition
       )
     ) match {
       case Right(executionResult) =>
@@ -2510,7 +2510,7 @@ here""".stripMargin
       Map.empty,
       Map.empty,
       Map(
-        ServiceName("Dropbox") -> IntegratedServiceDefinition.signatureDefinition
+        ServiceName("Dropbox") -> IntegratedServiceDefinition.storageDefinition
       )
     ) match {
       case Right(executionResult) =>
@@ -2533,7 +2533,7 @@ here""".stripMargin
       Map.empty,
       Map.empty,
       Map(
-        ServiceName("Dropbox") -> IntegratedServiceDefinition.signatureDefinition
+        ServiceName("Dropbox") -> IntegratedServiceDefinition.storageDefinition
       )
     ) match {
       case Right(executionResult) =>
@@ -2559,7 +2559,7 @@ here""".stripMargin
       Map.empty,
       Map.empty,
       Map(
-        ServiceName("Dropbox") -> IntegratedServiceDefinition.signatureDefinition
+        ServiceName("Dropbox") -> IntegratedServiceDefinition.storageDefinition
       )
     ) match {
       case Right(executionResult) =>
