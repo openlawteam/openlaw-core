@@ -950,7 +950,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
             }
           case None => fail("contractor variable not found")
         }
-      case Left(ex) => fail(ex)
+      case Failure(ex, message) => fail(message, ex)
     }
   }
 
@@ -967,9 +967,8 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
             text shouldBe "2017-06-24 13:45:00"
           case something => fail("default value is not correct:" + something)
         }
-      case Left(ex) =>
-        ex.e.printStackTrace()
-        fail(ex)
+      case Failure(ex, message) =>
+        fail(message, ex)
     }
   }
 

@@ -178,7 +178,7 @@ final case class SignatureAction(
     if (executionResult.hasSigned(email)) {
       Success(None)
     } else {
-      Success(Some(Instant.now))
+      Success(Some(executionResult.info.now))
     }
 
   override def identifier(

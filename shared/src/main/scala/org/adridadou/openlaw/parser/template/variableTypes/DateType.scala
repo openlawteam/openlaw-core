@@ -89,10 +89,12 @@ abstract class DateTypeTrait(
       executionResult: TemplateExecutionResult
   ): Result[Option[OpenlawValue]] = {
     (leftValue, rightValue) match {
-      case (Some(l), Some(period: Period)) =>
-        VariableType
-          .convert[OpenlawInstant](l)
-          .map(x => Some(plus(x, period)))
+      case (Some(l: OpenlawInstant), Some(period: Period)) =>
+        Success(Some(plus(l, period)))
+      case (Some(l: OpenlawString), Some(period: Period)) =>
+        attempt(Instant.ofEpochMilli(l.underlying.toLong)).map(i =>
+          Some(plus(i, period))
+        )
       case (Some(l), Some(OpenlawString(str))) =>
         PeriodType.cast(str, executionResult) match {
           case Success(period) =>
@@ -120,15 +122,16 @@ abstract class DateTypeTrait(
   }
 
   def plus(d: OpenlawInstant, p: Period): OpenlawInstant = {
-    ZonedDateTime
+    val zonedDate = ZonedDateTime
       .ofInstant(d.underlying, Clock.systemDefaultZone().getZone)
+    zonedDate
       .plusSeconds(p.seconds)
-      .plus(p.minutes, ChronoUnit.MINUTES)
-      .plus(p.hours, ChronoUnit.HOURS)
-      .plus(p.days, ChronoUnit.DAYS)
-      .plus(p.weeks, ChronoUnit.WEEKS)
-      .plus(p.months, ChronoUnit.MONTHS)
-      .plus(p.years, ChronoUnit.YEARS)
+      .plusMinutes(p.minutes)
+      .plusHours(p.hours)
+      .plusDays(p.days)
+      .plusWeeks(p.weeks)
+      .plusMonths(p.months)
+      .plusYears(p.years)
       .toInstant
   }
 
@@ -225,13 +228,13 @@ abstract class DateTypeTrait(
       formatter: FormatterDefinition,
       executionResult: TemplateExecutionResult
   ): Result[Formatter] = formatter.name.toLowerCase match {
-    case "date"       => Success(new SimpleDateFormatter)
-    case "datetime"   => Success(new SimpleDateTimeFormatter)
-    case "year"       => Success(new YearFormatter)
-    case "day_name"   => Success(new DayNameFormatter)
-    case "day"        => Success(new DayFormatter)
-    case "month_name" => Success(new MonthNameFormatter)
-    case "month"      => Success(new MonthFormatter)
+    case "date"       => Success(SimpleDateFormatter)
+    case "datetime"   => Success(SimpleDateTimeFormatter)
+    case "year"       => Success(YearFormatter)
+    case "day_name"   => Success(DayNameFormatter)
+    case "day"        => Success(DayFormatter)
+    case "month_name" => Success(MonthNameFormatter)
+    case "month"      => Success(MonthFormatter)
     case _            => Failure(s"unknown formatter $formatter for type $varTypeName")
   }
 
@@ -251,7 +254,7 @@ case object DateType
     extends DateTypeTrait(
       "Date",
       DateConverter.convertToDate,
-      new SimpleDateFormatter
+      SimpleDateFormatter
     ) {
   def thisType: VariableType = DateType
 }
@@ -259,7 +262,7 @@ case object DateTimeType
     extends DateTypeTrait(
       "DateTime",
       DateConverter.convertToDateTime,
-      new SimpleDateTimeFormatter
+      SimpleDateTimeFormatter
     ) {
   def thisType: VariableType = DateTimeType
 }
@@ -416,13 +419,13 @@ class PatternFormat(pattern: String) extends Formatter {
     } yield formattedValue
 }
 
-class YearFormatter extends PatternFormat("yyyy")
-class DayFormatter extends PatternFormat("dd")
-class DayNameFormatter extends PatternFormat("EEEE")
-class MonthFormatter extends PatternFormat("M")
-class MonthNameFormatter extends PatternFormat("MMMM")
+object YearFormatter extends PatternFormat("yyyy")
+object DayFormatter extends PatternFormat("dd")
+object DayNameFormatter extends PatternFormat("EEEE")
+object MonthFormatter extends PatternFormat("M")
+object MonthNameFormatter extends PatternFormat("MMMM")
 
-class SimpleDateFormatter extends Formatter {
+object SimpleDateFormatter extends Formatter {
   override def format(
       expression: Expression,
       value: OpenlawValue,
@@ -455,7 +458,7 @@ class SimpleDateFormatter extends Formatter {
     List(FreeText(Text(s"[[$expression]]")))
 }
 
-class SimpleDateTimeFormatter extends Formatter {
+object SimpleDateTimeFormatter extends Formatter {
 
   override def stringFormat(
       expression: Expression,

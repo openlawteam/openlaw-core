@@ -202,7 +202,8 @@ final case class ExternalCall(
     every.map(getPeriod(_, executionResult)).sequence
 
   private def callToRerun(
-      executions: List[ExternalCallExecution]
+      executions: List[ExternalCallExecution],
+      executionResult: TemplateExecutionResult
   ): Option[Instant] =
     executions
       .find { execution =>
@@ -210,7 +211,7 @@ final case class ExternalCall(
           case FailedExecution =>
             execution.executionDate
               .isBefore(
-                Instant.now
+                executionResult.info.now
                   .minus(5, ChronoUnit.MINUTES)
               )
           case _ =>
@@ -267,7 +268,7 @@ final case class ExternalCall(
       executions <- pastExecutions
         .map(VariableType.convert[ExternalCallExecution])
         .sequence
-      rerunSchedule = callToRerun(executions)
+      rerunSchedule = callToRerun(executions, executionResult)
       nextCall <- getNextScheduledRun(executions, executionResult)
     } yield rerunSchedule.orElse(nextCall)
 }
