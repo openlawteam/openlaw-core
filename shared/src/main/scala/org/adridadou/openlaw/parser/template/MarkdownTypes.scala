@@ -50,6 +50,13 @@ final case class NoopConstant(varType: VariableType)
   ): Result[Option[OpenlawValue]] = Success(None)
 }
 
+final case class ValueConstant(value: OpenlawValue, constantType: VariableType)
+    extends ConstantExpression {
+  override def evaluate(
+      executionResult: TemplateExecutionResult
+  ): Result[Option[OpenlawValue]] = Success(Some(value))
+}
+
 final case class StringConstant(
     value: String
 ) extends ConstantExpression {
