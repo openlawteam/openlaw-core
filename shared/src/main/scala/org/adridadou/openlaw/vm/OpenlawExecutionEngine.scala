@@ -241,30 +241,9 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
         }
 
       case ExecutionReady =>
-        val startTime = System.currentTimeMillis()
-        val currentElement = executionResult.remainingElements.headOption
         // has to be in a matcher for tail call optimization
         executeInternal(executionResult, templates) match {
           case Success(result) =>
-            val time = System.currentTimeMillis() - startTime
-            if (time > 4) {
-              currentElement match {
-                case Some(CodeBlock(elems)) if time > 10 =>
-                  println(
-                    s"execution time for code block with ${elems.length} elements is ${time}"
-                  )
-                case Some(_: Section) if time > 1 =>
-                  println(
-                    s"execution time for ${currentElement} is ${time}"
-                  )
-                case Some(_) if time > 10 =>
-                  println(
-                    s"execution time for ${currentElement} is ${time}"
-                  )
-                case _ =>
-              }
-            }
-
             resumeExecution(result, templates, overriddenFormatter)
           case f => f
         }
@@ -422,15 +401,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
 
     case section: Section =>
       executionResult.sectionLevelStack append section.lvl
-      val startTime = System.currentTimeMillis()
-      val r = processSection(section, executionResult)
-      val time = System.currentTimeMillis() - startTime
-      if (time > 1) {
-        println(
-          s"***** section processing ${time}"
-        )
-      }
-      r
+      processSection(section, executionResult)
 
     case _ =>
       Success(executionResult)
@@ -439,8 +410,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
   private def processSection(
       section: Section,
       executionResult: OpenlawExecutionState
-  ): Result[OpenlawExecutionState] = {
-    val startTime = System.currentTimeMillis()
+  ): Result[OpenlawExecutionState] =
     section.definition
       .flatMap(_.parameters)
       .flatMap(_.parameterMap.toMap.get("numbering"))
@@ -534,7 +504,6 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
             }
         }
       }
-  }
 
   private def executeForEachBlock(
       executionResult: OpenlawExecutionState,

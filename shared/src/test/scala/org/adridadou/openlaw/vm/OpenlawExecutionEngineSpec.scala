@@ -3003,9 +3003,13 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
     val executionResult = engine.execute(template).getOrThrow()
     val executionTime = System.currentTimeMillis()
+    parser.forReview(executionResult.agreements.head)
+
+    val renderTime = System.currentTimeMillis()
 
     println(s"compilation time: ${compileTime - startTime}ms")
     println(s"execution time: ${executionTime - compileTime}ms")
+    println(s"render time: ${renderTime - executionTime}ms")
   }
 
   it should "be possible to re-define a formatter" in {

@@ -8,6 +8,7 @@ import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 import scala.annotation.tailrec
+import scala.collection.mutable
 
 final case class CompiledAgreement(
     header: TemplateHeader = TemplateHeader(Map.empty),
@@ -67,8 +68,12 @@ final case class CompiledAgreement(
           TemplateExecutionResult
       ) => Option[Formatter]
   ): Result[StructuredAgreement] =
-    getAgreementElements(Nil, block.elems, executionResult, overriddenFormatter)
-      .map { elements =>
+    getAgreementElements(
+      mutable.Buffer(),
+      block.elems,
+      executionResult,
+      overriddenFormatter
+    ).map { elements =>
         val paragraphs = cleanupParagraphs(generateParagraphs(elements))
         StructuredAgreement(
           executionResultId = executionResult.id,
@@ -142,14 +147,14 @@ final case class CompiledAgreement(
     }
 
   @tailrec private def getAgreementElements(
-      renderedElements: List[AgreementElement],
+      renderedElements: mutable.Buffer[AgreementElement],
       elements: List[TemplatePart],
       executionResult: OpenlawExecutionState,
       overriddenFormatter: (
           Option[FormatterDefinition],
           TemplateExecutionResult
       ) => Option[Formatter]
-  ): Result[List[AgreementElement]] =
+  ): Result[mutable.Buffer[AgreementElement]] =
     elements match {
       case Nil =>
         Success(renderedElements)
@@ -172,25 +177,25 @@ final case class CompiledAgreement(
     }
 
   private def getAgreementElementsFromElement(
-      renderedElements: List[AgreementElement],
+      renderedElements: mutable.Buffer[AgreementElement],
       element: TemplatePart,
       executionResult: OpenlawExecutionState,
       overriddenFormatter: (
           Option[FormatterDefinition],
           TemplateExecutionResult
       ) => Option[Formatter]
-  ): Result[List[AgreementElement]] =
+  ): Result[mutable.Buffer[AgreementElement]] =
     element match {
       case t: Table =>
         for {
           headerElements <- t.header
             .map(entry =>
               getAgreementElements(
-                Nil,
+                mutable.Buffer(),
                 entry,
                 executionResult,
                 overriddenFormatter
-              )
+              ).map(_.toList)
             )
             .sequence
           rowElements <- t.rows
@@ -198,38 +203,58 @@ final case class CompiledAgreement(
               seq
                 .map(entry =>
                   getAgreementElements(
-                    Nil,
+                    mutable.Buffer(),
                     entry,
                     executionResult,
                     overriddenFormatter
-                  )
+                  ).map(_.toList)
                 )
                 .sequence
             )
             .sequence
         } yield {
           if (headerElements.isEmpty) {
-            renderedElements.reverse match {
-              case FreeText(Text(str)) :: (previousTable: TableElement) :: _
-                  if str.trim.isEmpty =>
-                renderedElements.init.init :+ previousTable
-                  .copy(rows = previousTable.rows ++ rowElements)
-              case (previousTable: TableElement) :: _ =>
-                renderedElements.init :+ previousTable
-                  .copy(rows = previousTable.rows ++ rowElements)
+            val nbElements = renderedElements.length
+            val lastOption =
+              if (nbElements === 0) None
+              else Some(renderedElements(nbElements - 1))
+            val beforeLastOption =
+              if (nbElements < 2) None
+              else Some(renderedElements(nbElements - 2))
+            (lastOption, beforeLastOption) match {
+              case (
+                  Some(FreeText(Text(str))),
+                  Some(previousTable: TableElement)
+                  ) if str.trim.isEmpty =>
+                renderedElements.remove(renderedElements.length - 2, 2)
+                renderedElements.append(
+                  previousTable
+                    .copy(rows = previousTable.rows ++ rowElements)
+                )
+                renderedElements
+              case (Some(previousTable: TableElement), _) =>
+                renderedElements.remove(renderedElements.length - 1)
+                renderedElements.append(
+                  previousTable
+                    .copy(rows = previousTable.rows ++ rowElements)
+                )
+                renderedElements
               case _ =>
-                renderedElements :+ TableElement(
+                renderedElements append TableElement(
                   headerElements,
                   t.alignment,
                   rowElements
                 )
+
+                renderedElements
             }
           } else {
-            renderedElements :+ TableElement(
+            renderedElements append TableElement(
               headerElements,
               t.alignment,
               rowElements
             )
+            renderedElements
           }
         }
 
@@ -240,20 +265,42 @@ final case class CompiledAgreement(
           executionResult,
           overriddenFormatter
         )
-      case Text(str)    => Success(renderedElements :+ FreeText(Text(str)))
-      case Em           => Success(renderedElements :+ FreeText(Em))
-      case Strong       => Success(renderedElements :+ FreeText(Strong))
-      case Under        => Success(renderedElements :+ FreeText(Under))
-      case PageBreak    => Success(renderedElements :+ FreeText(PageBreak))
-      case SectionBreak => Success(renderedElements :+ FreeText(SectionBreak))
-      case Indent       => Success(renderedElements :+ FreeText(Indent))
-      case Centered     => Success(renderedElements :+ FreeText(Centered))
-      case RightAlign   => Success(renderedElements :+ FreeText(RightAlign))
+      case Text(str) =>
+        renderedElements append FreeText(Text(str))
+        Success(renderedElements)
+      case Em =>
+        renderedElements append FreeText(Em)
+        Success(renderedElements)
+      case Strong =>
+        renderedElements append FreeText(Strong)
+        Success(renderedElements)
+      case Under =>
+        renderedElements append FreeText(Under)
+        Success(renderedElements)
+      case PageBreak =>
+        renderedElements append FreeText(PageBreak)
+        Success(renderedElements)
+      case SectionBreak =>
+        renderedElements append FreeText(SectionBreak)
+        Success(renderedElements)
+      case Indent =>
+        renderedElements append FreeText(Indent)
+        Success(renderedElements)
+      case Centered =>
+        renderedElements append FreeText(Centered)
+        Success(renderedElements)
+      case RightAlign =>
+        renderedElements append FreeText(RightAlign)
+        Success(renderedElements)
       case RightThreeQuarters =>
-        Success(renderedElements :+ FreeText(RightThreeQuarters))
+        renderedElements append FreeText(RightThreeQuarters)
+        Success(renderedElements)
       case annotation: HeaderAnnotation =>
-        Success(renderedElements :+ annotation)
-      case annotation: NoteAnnotation => Success(renderedElements :+ annotation)
+        renderedElements append annotation
+        Success(renderedElements)
+      case annotation: NoteAnnotation =>
+        renderedElements append annotation
+        Success(renderedElements)
       case variableDefinition: VariableDefinition
           if variableDefinition.isAnonymous =>
         val nbAnonymous =
@@ -282,12 +329,14 @@ final case class CompiledAgreement(
                     executionResult
                   )
                 ).map { list =>
-                  renderedElements :+ VariableElement(
+                  renderedElements append VariableElement(
                     variableDefinition.name,
                     Some(variableType),
                     list,
                     dependencies
                   )
+
+                  renderedElements
                 }
             }
           case Success(ClauseType) =>
@@ -318,12 +367,14 @@ final case class CompiledAgreement(
                     executionResult
                   )
                 ).map { list =>
-                  renderedElements :+ VariableElement(
+                  renderedElements append VariableElement(
                     variableDefinition.name,
                     Some(variableType),
                     list,
                     dependencies
                   )
+
+                  renderedElements
                 }
             }
           case Failure(_, _) =>
@@ -467,8 +518,8 @@ final case class CompiledAgreement(
             for {
               overrideSymbolValue <- overrideSymbol
               overrideFormatValue <- overrideFormat
-            } yield renderedElements.:+(
-              SectionElement(
+            } yield {
+              renderedElements append SectionElement(
                 value.numbering,
                 lvl,
                 number,
@@ -476,7 +527,9 @@ final case class CompiledAgreement(
                 overrideSymbolValue,
                 overrideFormatValue
               )
-            )
+
+              renderedElements
+            }
 
           case None =>
             val name = executionResult.sectionNameMapping(uuid)
@@ -485,14 +538,14 @@ final case class CompiledAgreement(
               .flatMap(_.evaluate(executionResult).sequence)
               .sequence
 
-            result.flatMap { r =>
-              r match {
-                case Some(v) =>
-                  for {
-                    overrideSymbolValue <- overrideSymbol
-                    overrideFormatValue <- overrideFormat
-                    info <- VariableType.convert[SectionInfo](v)
-                  } yield renderedElements.:+(
+            result.flatMap {
+              case Some(v) =>
+                for {
+                  overrideSymbolValue <- overrideSymbol
+                  overrideFormatValue <- overrideFormat
+                  info <- VariableType.convert[SectionInfo](v)
+                } yield {
+                  renderedElements.append(
                     SectionElement(
                       info.numbering,
                       lvl,
@@ -503,11 +556,13 @@ final case class CompiledAgreement(
                     )
                   )
 
-                case None =>
-                  Failure(
-                    "Section referenced before it has been rendered. The executor can't guess the section number before rendering it yet."
-                  )
-              }
+                  renderedElements
+                }
+
+              case None =>
+                Failure(
+                  "Section referenced before it has been rendered. The executor can't guess the section number before rendering it yet."
+                )
             }
           case Some(v) =>
             Failure(
@@ -528,9 +583,11 @@ final case class CompiledAgreement(
             executionResult,
             overriddenFormatter(variableFormatterDefinition, executionResult)
           ).map { variable =>
-            renderedElements.:+(
+            renderedElements.append(
               VariableElement(name, definition, variable, seq)
             )
+
+            renderedElements
           }
         }
       case ExpressionElement(expr, formatter) =>

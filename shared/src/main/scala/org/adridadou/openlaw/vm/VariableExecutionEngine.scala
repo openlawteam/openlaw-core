@@ -236,7 +236,6 @@ trait VariableExecutionEngine {
       alias: VariableAliasing,
       executed: Boolean
   ): Result[OpenlawExecutionState] = {
-    val startTime = System.currentTimeMillis()
     executionResult.getVariable(alias.name) match {
       case Some(variable) if variable.nameOnly =>
         Failure(s"The alias '${alias.name}' was used before being defined.")
@@ -254,7 +253,6 @@ trait VariableExecutionEngine {
       alias: VariableAliasing,
       executed: Boolean
   ): Result[OpenlawExecutionState] = {
-    val startTime = System.currentTimeMillis()
     executionResult.getAlias(alias.name) match {
       case Some(definedAlias: VariableAliasing) =>
         redefineAlias(executionResult, alias, definedAlias, executed)
@@ -270,7 +268,6 @@ trait VariableExecutionEngine {
       executionResult: OpenlawExecutionState,
       variable: VariableDefinition
   ): Result[Boolean] = {
-    val startTime = System.currentTimeMillis()
     variable.varType(executionResult) match {
       case ChoiceType =>
         variable.defaultValue.map(param =>
@@ -287,19 +284,13 @@ trait VariableExecutionEngine {
             )
         }
       case AbstractStructureType =>
-        val time1 = System.currentTimeMillis() - startTime
         variable.constructT[Structure](executionResult).flatMap {
           case Some(structure) =>
-            val time2 = System.currentTimeMillis() - startTime
             executionResult
               .registerNewType(
                 AbstractStructureType.generateType(variable.name, structure)
               )
-              .map(_ => {
-                val time3 = System.currentTimeMillis() - startTime
-                println(s"structure creation:$time1 $time2 $time3")
-                true
-              })
+              .map(_ => true)
           case None =>
             Failure(
               s"the new type ${variable.name.name} could not be executed properly"
@@ -386,7 +377,6 @@ trait VariableExecutionEngine {
       alias: VariableAliasing,
       executed: Boolean
   ): Result[OpenlawExecutionState] = {
-    val startTime = System.currentTimeMillis()
     for {
       variables <- alias.variables(executionResult)
       missingVariables = variables.filter(variable =>

@@ -35,7 +35,6 @@ case object AbstractStructureType
       executionResult: TemplateExecutionResult
   ): Result[Option[Structure]] = param match {
     case Parameters(values) =>
-      val startTime = System.currentTimeMillis()
       val someTest = values
         .foldLeft(Success(Map[VariableName, VariableDefinition]()))({
           case (Success(m), (key, value)) =>
