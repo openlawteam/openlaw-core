@@ -166,7 +166,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
     finishedEmbeddedExecutions =
       createConcurrentMutableBuffer(executionResult.finishedEmbeddedExecutions),
     variableTypesInternal =
-      createConcurrentMutableBuffer(executionResult.variableTypesInternal),
+      createConcurrentMutableMap(executionResult.variableTypesInternal),
     sectionLevelStack =
       createConcurrentMutableBuffer(executionResult.sectionLevelStack),
     sectionNameMapping =
@@ -192,7 +192,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
           Option[FormatterDefinition],
           TemplateExecutionResult
       ) => Option[Formatter] = (_, _) => None
-  ): Result[OpenlawExecutionState] = {
+  ): Result[OpenlawExecutionState] =
     executionResult.state match {
       case ExecutionFinished =>
         executionResult.parentExecution match {
@@ -241,16 +241,31 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
         }
 
       case ExecutionReady =>
+        val startTime = System.currentTimeMillis()
+        val currentElement = executionResult.remainingElements.headOption
         // has to be in a matcher for tail call optimization
         executeInternal(executionResult, templates) match {
           case Success(result) =>
+            val time = System.currentTimeMillis() - startTime
+            if (time > 10) {
+              currentElement match {
+                case Some(CodeBlock(elems)) =>
+                  println(
+                    s"execution time for code block with ${elems.length} elements is ${time}"
+                  )
+                case _ =>
+                  println(
+                    s"execution time for ${currentElement} is ${time}"
+                  )
+              }
+            }
+
             resumeExecution(result, templates, overriddenFormatter)
           case f => f
         }
       case ExecutionFailed(Failure(ex, message)) =>
         Failure(ex, message)
     }
-  }
 
   private def finishExecution(
       executionResult: OpenlawExecutionState,
@@ -388,9 +403,15 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
 
     case CodeBlock(elems) =>
       val initialValue: Result[OpenlawExecutionState] = Success(executionResult)
-      elems.foldLeft(initialValue)((exec, elem) =>
-        exec.flatMap(processCodeElement(_, templates, elem))
-      )
+      elems.foldLeft(initialValue)((exec, elem) => {
+        val startTime = System.currentTimeMillis()
+        val r = exec.flatMap(processCodeElement(_, templates, elem))
+        val time = System.currentTimeMillis() - startTime
+        if (time > 2) {
+          println(s"**** code block time for element ${elem}: ${time}")
+        }
+        r
+      })
 
     case section: VariableSection =>
       val initialValue: Result[OpenlawExecutionState] = Success(executionResult)

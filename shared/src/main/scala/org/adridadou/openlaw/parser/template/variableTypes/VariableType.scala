@@ -313,8 +313,8 @@ abstract class VariableType(val name: String) {
 
   def getTypeClass: Class[_ <: OpenlawValue]
 
-  def checkTypeName(nameToCheck: String): Boolean =
-    this.name.equalsIgnoreCase(nameToCheck)
+  def typeNames: List[String] =
+    List(this.name)
 
   def validateKeys(
       variableName: VariableName,
@@ -518,7 +518,7 @@ abstract class VariableType(val name: String) {
 
 object VariableType {
 
-  def allTypes(): List[VariableType] =
+  val allTypes: List[VariableType] =
     List(
       AbstractCollectionType,
       AbstractFunctionType,
@@ -552,8 +552,12 @@ object VariableType {
       YesNoType
     )
 
+  val allTypesMap: Map[String, VariableType] = allTypes
+    .flatMap(varType => varType.typeNames.map(name => name -> varType))
+    .toMap
+
   def getByName(name: String): Option[VariableType] =
-    allTypes().find(_.name === name)
+    allTypesMap.get(name)
 
   implicit val eqForVariableType: Eq[VariableType] =
     (x: VariableType, y: VariableType) => x == y
@@ -624,7 +628,7 @@ object VariableType {
     c.downField("name")
       .as[String]
       .flatMap(name =>
-        VariableType.allTypes().find(_.name === name) match {
+        VariableType.allTypesMap.get(name) match {
           case Some(varType) => Right(varType)
           case None          => createCustomType(c, name)
         }

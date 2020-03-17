@@ -37,8 +37,6 @@ import cats.data.NonEmptyList
 import cats.data.Validated.{Invalid, Valid}
 import org.adridadou.openlaw.parser.template.formatters.Formatter
 
-import scala.collection.JavaConverters._
-
 trait TemplateExecutionResult {
 
   private val expressionParser = new ExpressionParserService
@@ -51,7 +49,7 @@ trait TemplateExecutionResult {
   def mapping: Map[VariableName, Expression]
   def aliases: List[VariableAliasing]
   def sectionNameMappingInverse: Map[VariableName, String]
-  def variableTypes: List[VariableType]
+  def variableTypes: Map[String, VariableType]
   def variableSections: Map[String, List[VariableName]]
   def parameters: TemplateParameters
   def executionType: ExecutionType
@@ -446,7 +444,7 @@ trait TemplateExecutionResult {
   def findVariableTypeInternalCurrent(
       variableTypeDefinition: VariableTypeDefinition
   ): Option[VariableType] =
-    variableTypes.find(_.checkTypeName(variableTypeDefinition.name))
+    variableTypes.get(variableTypeDefinition.name)
 
   def findVariableTypeInternalParent(
       variableTypeDefinition: VariableTypeDefinition
@@ -684,7 +682,7 @@ final case class SerializableTemplateExecutionResult(
     mapping: Map[VariableName, Expression],
     aliases: List[VariableAliasing],
     sectionNameMappingInverse: Map[VariableName, String],
-    variableTypes: List[VariableType],
+    variableTypes: Map[String, VariableType],
     variableSections: Map[String, List[VariableName]],
     parameters: TemplateParameters,
     executionType: ExecutionType,
@@ -723,7 +721,7 @@ final case class SerializableTemplateExecutionResult(
     variableRedefinition = VariableRedefinition(),
     templateDefinition = this.templateDefinition,
     mapping = this.mapping,
-    variableTypesInternal = createConcurrentMutableBuffer(this.variableTypes),
+    variableTypesInternal = createConcurrentMutableMap(this.variableTypes),
     externalCallStructures = this.externalCallStructures
   )
 
@@ -796,8 +794,8 @@ final case class OpenlawExecutionState(
     variableRedefinition: VariableRedefinition,
     templateDefinition: Option[TemplateDefinition] = None,
     mapping: Map[VariableName, Expression] = Map.empty,
-    variableTypesInternal: mutable.Buffer[VariableType] =
-      createConcurrentMutableBuffer(VariableType.allTypes),
+    variableTypesInternal: mutable.Map[String, VariableType] =
+      createConcurrentMutableMap(VariableType.allTypesMap),
     sectionLevelStack: mutable.Buffer[Int] = createConcurrentMutableBuffer,
     sectionNameMapping: mutable.Map[String, VariableName] =
       createConcurrentMutableMap,
@@ -812,7 +810,7 @@ final case class OpenlawExecutionState(
 
   def variables: List[VariableDefinition] = variablesInternal.toList
   def aliases: List[VariableAliasing] = aliasesInternal.toList
-  def variableTypes: List[VariableType] = variableTypesInternal.toList
+  def variableTypes: Map[String, VariableType] = variableTypesInternal.toMap
   def processedSections: List[(Section, Int)] = processedSectionsInternal.toList
   def executedVariables: List[VariableName] = executedVariablesInternal.toList
   def agreements: List[StructuredAgreement] = agreementsInternal.toList
@@ -1069,7 +1067,9 @@ final case class OpenlawExecutionState(
   ): Result[OpenlawExecutionState] = {
     findVariableType(VariableTypeDefinition(variableType.name)) match {
       case None =>
-        variableTypesInternal += variableType
+        variableTypesInternal ++= variableType.typeNames
+          .map(name => name -> variableType)
+          .toMap
         Success(this)
       case Some(_) =>
         Failure(

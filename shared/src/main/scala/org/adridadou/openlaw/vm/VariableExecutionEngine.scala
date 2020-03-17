@@ -12,9 +12,14 @@ trait VariableExecutionEngine {
       variable: VariableDefinition,
       executed: Boolean
   ): Result[OpenlawExecutionState] = {
+    val startTime = System.currentTimeMillis()
     registerNewTypeIfNeeded(executionResult, variable).flatMap {
       case true =>
         addNewVariable(executionResult, variable)
+        val time = System.currentTimeMillis() - startTime
+        if (time > 1) {
+          println(s"******* this took some time !!! ${variable.name} ${time}")
+        }
         Success(executionResult)
       case false =>
         validateType(executionResult, variable).flatMap { _ =>
@@ -258,6 +263,7 @@ trait VariableExecutionEngine {
       executionResult: OpenlawExecutionState,
       variable: VariableDefinition
   ): Result[Boolean] = {
+    val startTime = System.currentTimeMillis()
     variable.varType(executionResult) match {
       case ChoiceType =>
         variable.defaultValue.map(param =>
@@ -274,13 +280,19 @@ trait VariableExecutionEngine {
             )
         }
       case AbstractStructureType =>
+        val time1 = System.currentTimeMillis() - startTime
         variable.constructT[Structure](executionResult).flatMap {
           case Some(structure) =>
+            val time2 = System.currentTimeMillis() - startTime
             executionResult
               .registerNewType(
                 AbstractStructureType.generateType(variable.name, structure)
               )
-              .map(_ => true)
+              .map(_ => {
+                val time3 = System.currentTimeMillis() - startTime
+                println(s"structure creation:$time1 $time2 $time3")
+                true
+              })
           case None =>
             Failure(
               s"the new type ${variable.name.name} could not be executed properly"

@@ -2778,6 +2778,236 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     result.buildStructureValueFromVariables.getOrThrow()
   }
 
+  it should "check slow execution" in {
+    val startTime = System.currentTimeMillis()
+    val template = compile(
+      """
+        |<%
+        |[[Effective Date: Date]]
+        |[[@Maturity Date = Effective Date + "2 years"]]
+        |[[@Closing Date = Effective Date + "6 months"]]
+        |[[Lender Info: Structure(
+        |  First Name: Text;
+        |  Last Name: Text;
+        |  Investment Amount: Number;
+        |  Lender Address: Address)]]
+        |[[Lenders: Collection<Lender Info>]]
+        |
+        |
+        |==Company Information==
+        |[[Company Name]]
+        |[[Company Address: Address]]
+        |[[State of Incorporation]]
+        |[[CEO First Name]]
+        |[[CEO Last Name]]
+        |[[Number of Issued Shares: Number]]
+        |
+        |==Terms==
+        |[[Effective Date: Date]]
+        |[[Valuation Cap:Number]]
+        |[[Maturity Conversion Cap:Number]]
+        |[[Amount of Raise:Number]]
+        |
+        |==Lender Info==
+        |[[Lenders]]
+        |
+        |==Other==
+        |[[State of Governing Law]]
+        |
+        |%>
+        |
+        |\centered **NOTE PURCHASE AGREEMENT**
+        |
+        |[[Effective Date]] [[Company Name]] [[State of Incorporation]]
+        |
+        |^(Definition (style:decimal)) **__Definitions__**.
+        |
+        |^^(_(symbol: 'Decimal')) 
+        |
+        |^^ "__Conversion Shares__" 
+        |
+        |^^ "__Corporate Transaction__"
+        |
+        |^^ "__Equity Securities__"
+        |
+        |^^ "__Initial Public Offering__" 
+        |
+        |^^ "__Maturity Date__" [[Maturity Date]]. 
+        |
+        |^^ "__Next Equity Financing__" 
+        |
+        |^^ "__Notes__" 
+        |
+        |^^ "__Requisite Noteholders__" 
+        |
+        |^^ "__Securities Act__"
+        |
+        |^ **__Terms of the Notes__**.
+        |
+        |^^ **__Issuance of Notes__**.  [[Right to Convert]]
+        |
+        |^^(Right to Convert) **__Right to Convert Notes__**.
+        |
+        |^^^(_(symbol: 'LowerLetter')) 
+        |
+        |^^^ [[Number of Issued Shares]] $[[Maturity Conversion Cap]].
+        |
+        |^^^ [[Number of Issued Shares]] $[[Maturity Conversion Cap]].
+        |
+        |^^^ __No Fractional Shares__. 
+        |
+        |^^^ __Mechanics of Conversion__
+        |
+        |^ **__Closing Mechanics__**.
+        |
+        |^^ **__Closing__**. 
+        |
+        |^^ **__Subsequent Closings__**. [[Closing Date]] [[Amount of Raise]] [[Entire Agreement]] 
+        |
+        |^ **__Representations and Warranties of the Company__**.
+        |
+        |^^ **__Organization, Good Standing and Qualification__**.
+        |
+        |^^ **__Authorization__**. 
+        |
+        |^^ **__Compliance with Other Instruments__**. 
+        |
+        |^^ **__Valid Issuance of Stock__**. 
+        |
+        |^ **__Representations, Warranties and Additional Agreements of the Lenders__**.
+        |
+        |^^ **__Representations and Warranties of the Lenders__**
+        |
+        |^^^ __Authorization__. 
+        |
+        |^^^ __Purchase Entirely for Own Account__. 
+        |
+        |^^^ __Disclosure of Information__. 
+        |
+        |^^^ __Investment Experience__. 
+        |
+        |^^^ __Accredited Investor__. 
+        |
+        |^^^ __Restricted Securities__. 
+        |
+        |^^(Further Limitations and Disposition) **__Further Limitations on Disposition__**. [[Further Limitations and Disposition]], [[Market Standoff Agreement]]
+        |
+        |^^^ 
+        |
+        |^^^ 
+        |
+        |^^ **__Legends__**. 
+        |
+        |^^ **__Bad Actor Representations and Covenants__**. 
+        |
+        |^^ **__Exculpation Among Lenders__**. 
+        |
+        |^ **__Defaults and Remedies__**.
+        |
+        |^^ **__Events of Default__**. 
+        |
+        |^^^ 
+        |
+        |^^^ 
+        |
+        |^^^ 
+        |
+        |^^^ 
+        |
+        |^^ **__Remedies__**. 
+        |
+        |^ **__Miscellaneous__**.
+        |
+        |^^ **__Successors and Assigns__**. 
+        |
+        |^^ **__Governing Law__**. [[State of Governing Law]] [[State of Governing Law]].
+        |
+        |^^ **__Counterparts; Delivery__**. 
+        |
+        |^^ **__Titles and Subtitles__**. 
+        |
+        |^^(Notices) **__Notices__**. [[Notices]]
+        |
+        |If to the Company:
+        |
+        |\indent [[Company Name]]
+        |\indent [[Company Address]]
+        |\indent Attention: Chief Executive Officer
+        |
+        |
+        |^^ **__Finder’s Fee__**. 
+        |
+        |^^ **__Expenses__**. 
+        |
+        |^^(Entire Agreement) **__Entire Agreement; Amendments and Waivers__**. 
+        |
+        |^^ **__Effect of Amendment or Waiver__**. 
+        |
+        |^^ **__Severability__**. 
+        |
+        |^^(Market Standoff Agreement) **__Market Stand-Off Agreement__**. 
+        |
+        |[[Market Standoff Agreement]]):
+        |
+        |^^ **__Stock Purchase Agreement__**. 
+        |
+        |^^ **__Exculpation Among Lenders__**. 
+        |
+        |^^ **__Further Assurance__**. 
+        |
+        |^^ **__Waiver of Jury Trial__**. 
+        |
+        |^^ **__Survival__**. 
+        |
+        |^^ **__Waiver of Conflicts__**. 
+        |
+        |\centered [*signature pages follow*]
+        |
+        |\sectionbreak
+        |
+        |\right-three-quarters [[Company Name | Uppercase]]
+        |
+        |\right-three-quarters By: ______________________
+        |\right-three-quarters Name: [[CEO First Name]] [[CEO Last Name]]
+        |\right-three-quarters Title: Chief Executive Officer
+        |
+        |\pagebreak
+        |
+        |{{#for each Lender: Lenders =>
+        |\indentIN WITNESS WHEREOF, the parties have executed this Agreement as of the date first above written.
+        |
+        |Dated as of __[[Effective Date]]__
+        |
+        |\right-three-quarters **LENDER**
+        |
+        |\right-three-quarters _________________________________________
+        |\right-three-quarters [[Lender.First Name]] [[Lender.Last Name]]
+        |\right-three-quarters [[Lender.Lender Address]]
+        |
+        |\pagebreak
+        |
+        |}}
+        |
+        |\centered **__SCHEDULE OF LENDERS__**
+        |
+        || Lender | Closing / Subsequent Closing Date | Principal Balance of Promissory Note |
+        || --------- | --------- | --------- |
+        |{{#for each Lender: Lenders =>
+        || [[Lender.First Name]] [[Lender.Last Name]] | [[Effective Date]] / [[Closing Date]] | $[[Lender.Investment Amount]] |
+        |}}
+        |
+        |""".stripMargin
+    )
+
+    val compileTime = System.currentTimeMillis()
+
+    val executionResult = engine.execute(template).getOrThrow()
+    val executionTime = System.currentTimeMillis()
+
+    println(s"compilation time: ${compileTime - startTime}ms")
+    println(s"execution time: ${executionTime - compileTime}ms")
+  }
+
   it should "be possible to re-define a formatter" in {
     val template =
       compile("""[[some value:Identity | signature]]""".stripMargin)

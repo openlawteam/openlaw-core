@@ -69,9 +69,6 @@ case object ChoiceType
       case _             => Failure(s"expected Choices but found: ${value.getClass}")
     }
 
-  override def checkTypeName(nameToCheck: String): Boolean =
-    Seq("Choice").exists(_.equalsIgnoreCase(nameToCheck))
-
   override def getTypeClass: Class[Choices] = classOf[Choices]
 
   def thisType: VariableType = ChoiceType

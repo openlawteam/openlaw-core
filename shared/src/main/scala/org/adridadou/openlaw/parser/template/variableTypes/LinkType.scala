@@ -33,9 +33,6 @@ case object LinkType
 
   override def getTypeClass: Class[LinkInfo] = classOf[LinkInfo]
 
-  override def checkTypeName(nameToCheck: String): Boolean =
-    List("Link").exists(_.equalsIgnoreCase(nameToCheck))
-
   override def construct(
       constructorParams: Parameter,
       executionResult: TemplateExecutionResult

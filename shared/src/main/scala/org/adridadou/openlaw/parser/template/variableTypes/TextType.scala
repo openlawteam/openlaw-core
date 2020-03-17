@@ -100,8 +100,8 @@ case object TextType extends VariableType("Text") {
   override def internalFormat(value: OpenlawValue): Result[String] =
     VariableType.convert[OpenlawString](value)
 
-  override def checkTypeName(nameToCheck: String): Boolean =
-    Seq("Text", "String").exists(_.equalsIgnoreCase(nameToCheck))
+  override def typeNames: List[String] =
+    List("Text", "String")
 
   override def getFormatter(
       formatter: FormatterDefinition,

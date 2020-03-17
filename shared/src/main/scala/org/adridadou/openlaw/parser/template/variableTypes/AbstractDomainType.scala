@@ -102,9 +102,6 @@ case object AbstractDomainType
   override def getTypeClass: Class[_ <: DomainInformation] =
     classOf[DomainInformation]
 
-  override def checkTypeName(nameToCheck: String): Boolean =
-    Seq("DomainType").exists(_.equalsIgnoreCase(nameToCheck))
-
   def thisType: VariableType = AbstractDomainType
 
   override def generateType(
