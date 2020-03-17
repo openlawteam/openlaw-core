@@ -74,16 +74,16 @@ final case class CompiledAgreement(
       executionResult,
       overriddenFormatter
     ).map { elements =>
-        val paragraphs = cleanupParagraphs(generateParagraphs(elements))
-        StructuredAgreement(
-          executionResultId = executionResult.id,
-          header = header,
-          templateDefinition = executionResult.templateDefinition,
-          path = path,
-          mainTemplate = mainTemplate,
-          paragraphs = paragraphs
-        )
-      }
+      val paragraphs = cleanupParagraphs(generateParagraphs(elements))
+      StructuredAgreement(
+        executionResultId = executionResult.id,
+        header = header,
+        templateDefinition = executionResult.templateDefinition,
+        path = path,
+        mainTemplate = mainTemplate,
+        paragraphs = paragraphs
+      )
+    }
 
   private def cleanupParagraphs(paragraphs: List[Paragraph]): List[Paragraph] =
     paragraphs
