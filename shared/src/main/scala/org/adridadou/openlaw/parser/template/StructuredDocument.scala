@@ -49,6 +49,7 @@ trait TemplateExecutionResult {
   def mapping: Map[VariableName, Expression]
   def aliases: List[VariableAliasing]
   def sectionNameMappingInverse: Map[VariableName, String]
+  def containSectionName(variableName: VariableName): Boolean
   def variableTypes: Map[String, VariableType]
   def variableSections: Map[String, List[VariableName]]
   def parameters: TemplateParameters
@@ -115,7 +116,7 @@ trait TemplateExecutionResult {
     getVariable(variable.name)
 
   def getVariable(name: VariableName): Option[VariableDefinition] =
-    if (this.sectionNameMappingInverse.contains(name)) {
+    if (this.containSectionName(name)) {
       this.variables.find(definition =>
         definition.name === name && definition.varType(this) === SectionType
       )
@@ -690,6 +691,10 @@ final case class SerializableTemplateExecutionResult(
     externalCallStructures: Map[ServiceName, IntegratedServiceDefinition]
 ) extends TemplateExecutionResult {
 
+  override def containSectionName(
+      variableName: VariableName
+  ): Boolean = sectionNameMappingInverse.contains(variableName)
+
   override def toExecutionState: OpenlawExecutionState = OpenlawExecutionState(
     id = this.id,
     parameters = this.parameters,
@@ -825,6 +830,10 @@ final case class OpenlawExecutionState(
 
   override def sectionNameMappingInverse: Map[VariableName, String] =
     sectionNameMappingInverseInternal.toMap
+
+  override def containSectionName(
+      variableName: VariableName
+  ): Boolean = sectionNameMappingInverseInternal.contains(variableName)
 
   @tailrec
   def addLastSectionByLevel(lvl: Int, sectionValue: String): Unit = {

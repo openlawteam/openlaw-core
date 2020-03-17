@@ -177,11 +177,8 @@ package object openlaw {
     createConcurrentMutableSet(Nil)
 
   // Creates a thread-safe mutable set containing the optional provided entries.
-  def createConcurrentMutableSet[T](values: Iterable[T]): mutable.Set[T] = {
-    val newSet = java.util.concurrent.ConcurrentHashMap.newKeySet[T]().asScala
-    newSet ++= values
-    newSet
-  }
+  def createConcurrentMutableSet[T](values: Iterable[T]): mutable.Set[T] =
+    (new mutable.HashSet[T] with mutable.SynchronizedSet[T]) ++ values
 
   def generateFullSectionValue(
       section: Section,

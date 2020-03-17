@@ -3,63 +3,68 @@ package org.adridadou.openlaw.vm
 import cats.implicits._
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes._
-import org.adridadou.openlaw.result.{Failure, Result, Success}
+import org.adridadou.openlaw.result.{Failure, Result, Success, attempt}
 
 trait VariableExecutionEngine {
+
+  private def processNewType(
+      executionResult: OpenlawExecutionState,
+      variable: VariableDefinition
+  ): Result[OpenlawExecutionState] = {
+    addNewVariable(executionResult, variable)
+    Success(executionResult)
+  }
+
+  private def processNewVariableInternal(
+      executionResult: OpenlawExecutionState,
+      variable: VariableDefinition,
+      executed: Boolean
+  ): Result[OpenlawExecutionState] = {
+    for {
+      _ <- validateType(executionResult, variable)
+      currentVariable = if (variable.isAnonymous) {
+        variable.copy(name = executionResult.createAnonymousVariable())
+      } else {
+        variable
+      }
+      _ <- attempt(addNewVariable(executionResult, currentVariable))
+      dependencies <- currentVariable.defaultValue
+        .map(_.variables(executionResult))
+        .getOrElse(Success(Nil))
+      missingVariables = dependencies.filter(v =>
+        executionResult.getVariable(v).isEmpty
+      )
+      result <- if (currentVariable.varType(executionResult) === EthereumEventFilterType) {
+        handleMissingVariables(
+          missingVariables.filter(_.name =!= "this"),
+          executionResult,
+          currentVariable,
+          executed
+        )
+      } else {
+        handleMissingVariables(
+          missingVariables,
+          executionResult,
+          currentVariable,
+          executed
+        )
+      }
+    } yield result
+  }
 
   protected def processNewVariable(
       executionResult: OpenlawExecutionState,
       variable: VariableDefinition,
       executed: Boolean
-  ): Result[OpenlawExecutionState] = {
-    val startTime = System.currentTimeMillis()
-    registerNewTypeIfNeeded(executionResult, variable).flatMap {
-      case true =>
-        addNewVariable(executionResult, variable)
-        val time = System.currentTimeMillis() - startTime
-        if (time > 1) {
-          println(s"******* this took some time !!! ${variable.name} ${time}")
-        }
-        Success(executionResult)
-      case false =>
-        validateType(executionResult, variable).flatMap { _ =>
-          val currentVariable = if (variable.isAnonymous) {
-            variable.copy(name = executionResult.createAnonymousVariable())
-          } else {
-            variable
-          }
-
-          addNewVariable(executionResult, currentVariable)
-          currentVariable.defaultValue
-            .map(_.variables(executionResult))
-            .sequence
-            .map { option =>
-              option
-                .getOrElse(Nil)
-                .filter(newVariable =>
-                  executionResult.getVariable(newVariable).isEmpty
-                )
-            }
-            .flatMap { missingVariables =>
-              if (currentVariable.varType(executionResult) === EthereumEventFilterType) {
-                handleMissingVariables(
-                  missingVariables.filter(_.name =!= "this"),
-                  executionResult,
-                  currentVariable,
-                  executed
-                )
-              } else {
-                handleMissingVariables(
-                  missingVariables,
-                  executionResult,
-                  currentVariable,
-                  executed
-                )
-              }
-            }
-        }
-    }
-  }
+  ): Result[OpenlawExecutionState] =
+    for {
+      hasCreatedNewType <- registerNewTypeIfNeeded(executionResult, variable)
+      result <- if (hasCreatedNewType) {
+        processNewType(executionResult, variable)
+      } else {
+        processNewVariableInternal(executionResult, variable, executed)
+      }
+    } yield result
 
   private def handleMissingVariables(
       missingVariables: List[VariableName],
@@ -231,6 +236,7 @@ trait VariableExecutionEngine {
       alias: VariableAliasing,
       executed: Boolean
   ): Result[OpenlawExecutionState] = {
+    val startTime = System.currentTimeMillis()
     executionResult.getVariable(alias.name) match {
       case Some(variable) if variable.nameOnly =>
         Failure(s"The alias '${alias.name}' was used before being defined.")
@@ -248,6 +254,7 @@ trait VariableExecutionEngine {
       alias: VariableAliasing,
       executed: Boolean
   ): Result[OpenlawExecutionState] = {
+    val startTime = System.currentTimeMillis()
     executionResult.getAlias(alias.name) match {
       case Some(definedAlias: VariableAliasing) =>
         redefineAlias(executionResult, alias, definedAlias, executed)
@@ -378,27 +385,29 @@ trait VariableExecutionEngine {
       executionResult: OpenlawExecutionState,
       alias: VariableAliasing,
       executed: Boolean
-  ): Result[OpenlawExecutionState] =
-    alias
-      .variables(executionResult)
-      .flatMap { variables =>
-        variables
-          .filter(variable => executionResult.getVariable(variable).isEmpty)
-          .filter(variable => executionResult.getAlias(variable).isEmpty) match {
-          case Nil =>
-            alias.validate(executionResult).flatMap { _ =>
-              executionResult.aliasesInternal.prepend(alias)
-              alias.expr.variables(executionResult).flatMap { variables =>
-                if (executed) {
-                  executionResult.executedVariablesInternal appendAll variables
-                }
-                alias.expr.validate(executionResult).map(_ => executionResult)
-              }
+  ): Result[OpenlawExecutionState] = {
+    val startTime = System.currentTimeMillis()
+    for {
+      variables <- alias.variables(executionResult)
+      missingVariables = variables.filter(variable =>
+        executionResult.getVariable(variable).isEmpty
+      )
+      result <- if (missingVariables === Nil) {
+        alias.validate(executionResult).flatMap { _ =>
+          executionResult.aliasesInternal.prepend(alias)
+          alias.expr.variables(executionResult).flatMap { variables =>
+            if (executed) {
+              executionResult.executedVariablesInternal appendAll variables
             }
-          case variables =>
-            Failure(
-              s"alias expression uses undefined variables ${variables.map(_.name).mkString(",")}"
-            )
+            alias.expr.validate(executionResult).map(_ => executionResult)
+          }
         }
+      } else {
+        Failure(
+          s"alias expression uses undefined variables ${missingVariables.map(_.name).mkString(",")}"
+        )
       }
+    } yield result
+  }
+
 }

@@ -48,9 +48,6 @@ case object AbstractStructureType
 
       someTest
         .map(fields => {
-          println(
-            s"******** fields ${values.length} construction time ${System.currentTimeMillis() - startTime}"
-          )
           val types = fields.map({
             case (key, definition) => key -> definition.varType(executionResult)
           })
@@ -59,7 +56,7 @@ case object AbstractStructureType
             Structure(
               types = types,
               typeDefinition = fields,
-              names = values.map({ case (key, _) => VariableName(key) })
+              names = fields.keys.toList
             )
           )
         })

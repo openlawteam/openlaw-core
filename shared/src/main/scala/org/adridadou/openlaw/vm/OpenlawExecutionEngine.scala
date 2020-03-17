@@ -247,16 +247,21 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
         executeInternal(executionResult, templates) match {
           case Success(result) =>
             val time = System.currentTimeMillis() - startTime
-            if (time > 10) {
+            if (time > 4) {
               currentElement match {
-                case Some(CodeBlock(elems)) =>
+                case Some(CodeBlock(elems)) if time > 10 =>
                   println(
                     s"execution time for code block with ${elems.length} elements is ${time}"
                   )
-                case _ =>
+                case Some(_: Section) if time > 1 =>
                   println(
                     s"execution time for ${currentElement} is ${time}"
                   )
+                case Some(_) if time > 10 =>
+                  println(
+                    s"execution time for ${currentElement} is ${time}"
+                  )
+                case _ =>
               }
             }
 
@@ -403,15 +408,9 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
 
     case CodeBlock(elems) =>
       val initialValue: Result[OpenlawExecutionState] = Success(executionResult)
-      elems.foldLeft(initialValue)((exec, elem) => {
-        val startTime = System.currentTimeMillis()
-        val r = exec.flatMap(processCodeElement(_, templates, elem))
-        val time = System.currentTimeMillis() - startTime
-        if (time > 2) {
-          println(s"**** code block time for element ${elem}: ${time}")
-        }
-        r
-      })
+      elems.foldLeft(initialValue)((exec, elem) =>
+        exec.flatMap(processCodeElement(_, templates, elem))
+      )
 
     case section: VariableSection =>
       val initialValue: Result[OpenlawExecutionState] = Success(executionResult)
@@ -423,7 +422,15 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
 
     case section: Section =>
       executionResult.sectionLevelStack append section.lvl
-      processSection(section, executionResult)
+      val startTime = System.currentTimeMillis()
+      val r = processSection(section, executionResult)
+      val time = System.currentTimeMillis() - startTime
+      if (time > 1) {
+        println(
+          s"***** section processing ${time}"
+        )
+      }
+      r
 
     case _ =>
       Success(executionResult)
@@ -432,7 +439,8 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
   private def processSection(
       section: Section,
       executionResult: OpenlawExecutionState
-  ): Result[OpenlawExecutionState] =
+  ): Result[OpenlawExecutionState] = {
+    val startTime = System.currentTimeMillis()
     section.definition
       .flatMap(_.parameters)
       .flatMap(_.parameterMap.toMap.get("numbering"))
@@ -466,67 +474,67 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
             for {
               overrideSymbol <- section.overrideSymbol(executionResult)
               overrideFormat <- section.overrideFormat(executionResult)
-            } yield {
-              for {
-                sectionValue <- SectionHelper.generateListNumber(
-                  section,
-                  numbering,
-                  overrideSymbol,
-                  overrideFormat,
-                  executionResult
-                )
-                referenceValue <- SectionHelper.generateReferenceValue(
-                  section,
-                  section.lvl,
-                  numbering,
-                  overrideSymbol,
-                  executionResult
-                )
-              } yield {
-                val params = List(
-                  "reference value" -> OneValueParameter(
-                    StringConstant(
-                      generateFullSectionValue(
-                        section,
-                        referenceValue,
-                        executionResult
-                      )
-                    )
-                  ),
-                  "numbering" -> OneValueParameter(StringConstant(sectionValue))
-                )
-                val name = section.definition
-                  .map(_.name)
-                  .filter(_ =!= "_") //_ means anonymous
-                  .map(VariableName(_))
-                  .getOrElse(executionResult.createAnonymousVariable())
 
-                val variable = VariableDefinition(
-                  name = name,
-                  variableTypeDefinition =
-                    Some(VariableTypeDefinition("Section")),
-                  defaultValue = Some(Parameters(params))
-                )
-                executionResult.variablesInternal.append(variable)
-                executionResult.executedVariablesInternal.append(name)
-                executionResult.sectionNameMapping put (section.uuid, name)
-                executionResult.sectionNameMappingInverseInternal put (name, section.uuid)
-                executionResult.addLastSectionByLevel(
-                  section.lvl,
-                  referenceValue
-                )
-                executionResult.addSectionLevelStack(newSectionValues)
-                executionResult.addProcessedSection(
-                  section,
-                  SectionHelper.calculateNumberInList(section.lvl, numbering)
-                )
-
+              sectionValue <- SectionHelper.generateListNumber(
+                section,
+                numbering,
+                overrideSymbol,
+                overrideFormat,
                 executionResult
-              }
+              )
+
+              referenceValue <- SectionHelper.generateReferenceValue(
+                section,
+                section.lvl,
+                numbering,
+                overrideSymbol,
+                executionResult
+              )
+            } yield {
+              val params = List(
+                "reference value" -> OneValueParameter(
+                  StringConstant(
+                    generateFullSectionValue(
+                      section,
+                      referenceValue,
+                      executionResult
+                    )
+                  )
+                ),
+                "numbering" -> OneValueParameter(StringConstant(sectionValue))
+              )
+
+              val name = section.definition
+                .map(_.name)
+                .filter(_ =!= "_") //_ means anonymous
+                .map(VariableName(_))
+                .getOrElse(executionResult.createAnonymousVariable())
+
+              val variable = VariableDefinition(
+                name = name,
+                variableTypeDefinition = Some(VariableTypeDefinition("Section")),
+                defaultValue = Some(Parameters(params))
+              )
+
+              executionResult.variablesInternal.append(variable)
+              executionResult.executedVariablesInternal.append(name)
+              executionResult.sectionNameMapping put (section.uuid, name)
+              executionResult.sectionNameMappingInverseInternal put (name, section.uuid)
+              executionResult.addLastSectionByLevel(
+                section.lvl,
+                referenceValue
+              )
+              executionResult.addSectionLevelStack(newSectionValues)
+              executionResult.addProcessedSection(
+                section,
+                SectionHelper.calculateNumberInList(section.lvl, numbering)
+              )
+
+              executionResult
             }
         }
       }
-      .flatten
+  }
 
   private def executeForEachBlock(
       executionResult: OpenlawExecutionState,

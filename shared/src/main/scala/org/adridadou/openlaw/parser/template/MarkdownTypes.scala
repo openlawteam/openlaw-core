@@ -220,8 +220,8 @@ final case class Section(
       executionResult: TemplateExecutionResult
   ): Result[Option[SectionSymbol]] =
     (for {
-      definition <- definition
-      parameters <- definition.parameters
+      sectionDefinition <- definition
+      parameters <- sectionDefinition.parameters
       parameter <- parameters.parameterMap.toMap.get("symbol")
       expr <- getSingleExpression(parameter)
     } yield {
