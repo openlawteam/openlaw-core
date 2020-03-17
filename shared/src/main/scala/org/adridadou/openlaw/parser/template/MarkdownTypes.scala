@@ -189,13 +189,14 @@ final case class Section(
       executionResult: TemplateExecutionResult
   ): Result[Option[SectionSymbol]] =
     localOverrideSymbol(executionResult).flatMap {
-      case symbol @ Some(_) => Success(symbol)
+      case Some(symbol) =>
+        Success(Some(symbol))
       case None =>
         executionResult.allProcessedSections
           .map({ case (section, _) => section })
-          .reverse
           .filter(s => s.lvl === lvl)
           .map(s => s.localOverrideSymbol(executionResult))
+          .reverse
           .sequence
           .map(_.collectFirst { case Some(symbol) => symbol })
     }
@@ -220,17 +221,17 @@ final case class Section(
       executionResult: TemplateExecutionResult
   ): Result[Option[SectionSymbol]] =
     (for {
-      definition <- definition
-      parameters <- definition.parameters
+      sectionDefinition <- definition
+      parameters <- sectionDefinition.parameters
       parameter <- parameters.parameterMap.toMap.get("symbol")
       expr <- getSingleExpression(parameter)
     } yield {
-      expr
-        .evaluate(executionResult)
-        .flatMap(_.map(VariableType.convert[OpenlawString]).sequence)
-        .map(_.flatMap(SectionSymbol.withNameOption))
-    }).sequence
-      .map(_.flatten)
+      for {
+        valueOpt <- expr
+          .evaluateT[OpenlawString](executionResult)
+
+      } yield valueOpt.flatMap(SectionSymbol.withNameOption)
+    }).sequence.map(_.flatten)
 
   private def localOverrideFormat(
       executionResult: TemplateExecutionResult

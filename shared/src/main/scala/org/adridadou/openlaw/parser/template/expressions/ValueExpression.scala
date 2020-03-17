@@ -45,12 +45,6 @@ final case class ValueExpression(
         } else {
           leftType
             .validateOperation(this, executionResult)
-            .flatMap { _ =>
-              for {
-                _ <- left.missingInput(executionResult)
-                _ <- right.missingInput(executionResult)
-              } yield ()
-            }
         }
       }
     } yield result

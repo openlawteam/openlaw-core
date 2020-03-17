@@ -4,6 +4,7 @@ import org.adridadou.openlaw._
 import org.adridadou.openlaw.parser.template.{
   Divide,
   FormatterDefinition,
+  Plus,
   TemplateExecutionResult,
   ValueOperation
 }
@@ -44,7 +45,7 @@ case object TextType extends VariableType("Text") {
       left: Expression,
       right: Expression,
       executionResult: TemplateExecutionResult
-  ): Result[Option[TemplatePath]] = {
+  ): Result[Option[TemplatePath]] =
     for {
       leftValue <- left.evaluate(executionResult)
       rightValue <- right.evaluate(executionResult)
@@ -85,7 +86,6 @@ case object TextType extends VariableType("Text") {
           )
       }
     } yield result
-  }
 
   override def operationWith(
       rightType: VariableType,
@@ -100,8 +100,8 @@ case object TextType extends VariableType("Text") {
   override def internalFormat(value: OpenlawValue): Result[String] =
     VariableType.convert[OpenlawString](value)
 
-  override def checkTypeName(nameToCheck: String): Boolean =
-    Seq("Text", "String").exists(_.equalsIgnoreCase(nameToCheck))
+  override def typeNames: List[String] =
+    List("Text", "String")
 
   override def getFormatter(
       formatter: FormatterDefinition,
@@ -118,8 +118,9 @@ case object TextType extends VariableType("Text") {
   override def isCompatibleType(
       otherType: VariableType,
       operation: ValueOperation
-  ): Boolean = otherType match {
-    case TextType => true
-    case _        => otherType.isCompatibleType(this, operation)
+  ): Boolean = (otherType, operation) match {
+    case (TextType, _) => true
+    case (_, Plus)     => true
+    case (_, _)        => otherType.isCompatibleType(this, operation)
   }
 }

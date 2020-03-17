@@ -12,8 +12,8 @@ case object YesNoType extends VariableType("YesNo") {
   override def internalFormat(value: OpenlawValue): Result[String] =
     Success(value.toString)
 
-  override def checkTypeName(nameToCheck: String): Boolean =
-    Seq("YesNo", "Boolean", "Bool").exists(_.equalsIgnoreCase(nameToCheck))
+  override def typeNames: List[String] =
+    List("YesNo", "Boolean", "Bool")
 
   override def getTypeClass: Class[OpenlawBoolean] = classOf[OpenlawBoolean]
 

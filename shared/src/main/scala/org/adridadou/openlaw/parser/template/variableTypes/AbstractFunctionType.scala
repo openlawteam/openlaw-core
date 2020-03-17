@@ -36,9 +36,6 @@ object AbstractFunctionType
 
   override def getTypeClass: Class[_ <: OLFunction] = classOf[OLFunction]
 
-  override def checkTypeName(nameToCheck: String): Boolean =
-    Seq("Function").exists(_.equalsIgnoreCase(nameToCheck))
-
   def thisType: VariableType = AbstractStructureType
 
   override def createParameterInstance(

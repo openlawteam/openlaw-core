@@ -1,9 +1,6 @@
 package org.adridadou.openlaw.parser
 
-import cats.implicits._
 import cats.Eq
-import org.adridadou.openlaw.result.{Result, Success}
-import org.adridadou.openlaw.result.Implicits.RichOption
 
 package object template {
 

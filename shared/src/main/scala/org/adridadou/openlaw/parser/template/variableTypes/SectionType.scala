@@ -41,9 +41,6 @@ case object SectionType
 
   override def getTypeClass: Class[SectionInfo] = classOf[SectionInfo]
 
-  override def checkTypeName(nameToCheck: String): Boolean =
-    List("Section").exists(_.equalsIgnoreCase(nameToCheck))
-
   override def construct(
       constructorParams: Parameter,
       executionResult: TemplateExecutionResult

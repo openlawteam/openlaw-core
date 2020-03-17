@@ -37,8 +37,6 @@ import cats.data.NonEmptyList
 import cats.data.Validated.{Invalid, Valid}
 import org.adridadou.openlaw.parser.template.formatters.Formatter
 
-import scala.collection.JavaConverters._
-
 trait TemplateExecutionResult {
 
   private val expressionParser = new ExpressionParserService
@@ -51,7 +49,7 @@ trait TemplateExecutionResult {
   def mapping: Map[VariableName, Expression]
   def aliases: List[VariableAliasing]
   def sectionNameMappingInverse: Map[VariableName, String]
-  def variableTypes: List[VariableType]
+  def containSectionName(variableName: VariableName): Boolean
   def variableSections: Map[String, List[VariableName]]
   def parameters: TemplateParameters
   def executionType: ExecutionType
@@ -116,17 +114,21 @@ trait TemplateExecutionResult {
   def getVariable(variable: VariableDefinition): Option[VariableDefinition] =
     getVariable(variable.name)
 
+  def findVariable(name: VariableName): Option[VariableDefinition]
+  def findVariable(
+      name: VariableName,
+      varType: VariableType
+  ): Option[VariableDefinition]
+
   def getVariable(name: VariableName): Option[VariableDefinition] =
-    if (this.sectionNameMappingInverse.contains(name)) {
-      this.variables.find(definition =>
-        definition.name === name && definition.varType(this) === SectionType
-      )
+    if (this.containSectionName(name)) {
+      this.findVariable(name, SectionType)
     } else {
       (mapping.get(name) match {
         case Some(_) =>
           None
         case None =>
-          variables.find(_.name === name)
+          this.findVariable(name)
       }) match {
         case Some(variable) =>
           Some(variable)
@@ -350,7 +352,7 @@ trait TemplateExecutionResult {
 
   def getTemplateDefinitionForVariable(
       name: VariableName
-  ): Option[TemplateDefinition] = variables.find(_.name === name) match {
+  ): Option[TemplateDefinition] = findVariable(name) match {
     case Some(_) =>
       templateDefinition
     case None =>
@@ -442,11 +444,9 @@ trait TemplateExecutionResult {
     findVariableTypeInternalCurrent(variableTypeDefinition) orElse
       findVariableTypeInternalParent(variableTypeDefinition) orElse
       findVariableTypeInternalEmbedded(variableTypeDefinition)
-
   def findVariableTypeInternalCurrent(
       variableTypeDefinition: VariableTypeDefinition
-  ): Option[VariableType] =
-    variableTypes.find(_.checkTypeName(variableTypeDefinition.name))
+  ): Option[VariableType]
 
   def findVariableTypeInternalParent(
       variableTypeDefinition: VariableTypeDefinition
@@ -684,13 +684,39 @@ final case class SerializableTemplateExecutionResult(
     mapping: Map[VariableName, Expression],
     aliases: List[VariableAliasing],
     sectionNameMappingInverse: Map[VariableName, String],
-    variableTypes: List[VariableType],
+    variableTypes: Map[String, VariableType],
     variableSections: Map[String, List[VariableName]],
     parameters: TemplateParameters,
     executionType: ExecutionType,
     processedSections: List[(Section, Int)],
     externalCallStructures: Map[ServiceName, IntegratedServiceDefinition]
 ) extends TemplateExecutionResult {
+
+  override def findVariable(
+      name: VariableName
+  ): Option[
+    VariableDefinition
+  ] = variables.find(_.name === name)
+
+  override def findVariable(
+      name: VariableName,
+      varType: VariableType
+  ): Option[
+    VariableDefinition
+  ] =
+    variables.find(v =>
+      v.name === name && v.variableTypeDefinition.exists(
+        _.name === varType.name
+      )
+    )
+
+  override def findVariableTypeInternalCurrent(
+      variableTypeDefinition: VariableTypeDefinition
+  ): Option[VariableType] = variableTypes.get(variableTypeDefinition.name)
+
+  override def containSectionName(
+      variableName: VariableName
+  ): Boolean = sectionNameMappingInverse.contains(variableName)
 
   override def toExecutionState: OpenlawExecutionState = OpenlawExecutionState(
     id = this.id,
@@ -723,7 +749,7 @@ final case class SerializableTemplateExecutionResult(
     variableRedefinition = VariableRedefinition(),
     templateDefinition = this.templateDefinition,
     mapping = this.mapping,
-    variableTypesInternal = createConcurrentMutableBuffer(this.variableTypes),
+    variableTypesInternal = createConcurrentMutableMap(this.variableTypes),
     externalCallStructures = this.externalCallStructures
   )
 
@@ -796,8 +822,8 @@ final case class OpenlawExecutionState(
     variableRedefinition: VariableRedefinition,
     templateDefinition: Option[TemplateDefinition] = None,
     mapping: Map[VariableName, Expression] = Map.empty,
-    variableTypesInternal: mutable.Buffer[VariableType] =
-      createConcurrentMutableBuffer(VariableType.allTypes),
+    variableTypesInternal: mutable.Map[String, VariableType] =
+      createConcurrentMutableMap(VariableType.allTypesMap),
     sectionLevelStack: mutable.Buffer[Int] = createConcurrentMutableBuffer,
     sectionNameMapping: mutable.Map[String, VariableName] =
       createConcurrentMutableMap,
@@ -810,13 +836,36 @@ final case class OpenlawExecutionState(
       Map.empty
 ) extends TemplateExecutionResult {
 
+  override def findVariable(
+      name: VariableName
+  ): Option[
+    VariableDefinition
+  ] = variablesInternal.find(_.name === name)
+
+  override def findVariable(
+      name: VariableName,
+      varType: VariableType
+  ): Option[
+    VariableDefinition
+  ] =
+    variablesInternal.find(v =>
+      v.name === name && v.variableTypeDefinition.exists(
+        _.name === varType.name
+      )
+    )
+
   def variables: List[VariableDefinition] = variablesInternal.toList
   def aliases: List[VariableAliasing] = aliasesInternal.toList
-  def variableTypes: List[VariableType] = variableTypesInternal.toList
   def processedSections: List[(Section, Int)] = processedSectionsInternal.toList
   def executedVariables: List[VariableName] = executedVariablesInternal.toList
   def agreements: List[StructuredAgreement] = agreementsInternal.toList
   def variableSectionList: List[String] = variableSectionListInternal.toList
+
+  override def findVariableTypeInternalCurrent(
+      variableTypeDefinition: VariableTypeDefinition
+  ): Option[
+    VariableType
+  ] = variableTypesInternal.get(variableTypeDefinition.name)
 
   override def toExecutionState: OpenlawExecutionState = this
 
@@ -827,6 +876,10 @@ final case class OpenlawExecutionState(
 
   override def sectionNameMappingInverse: Map[VariableName, String] =
     sectionNameMappingInverseInternal.toMap
+
+  override def containSectionName(
+      variableName: VariableName
+  ): Boolean = sectionNameMappingInverseInternal.contains(variableName)
 
   @tailrec
   def addLastSectionByLevel(lvl: Int, sectionValue: String): Unit = {
@@ -1030,7 +1083,7 @@ final case class OpenlawExecutionState(
       mapping = mapping,
       aliases = aliases,
       sectionNameMappingInverse = sectionNameMappingInverse,
-      variableTypes = variableTypes,
+      variableTypes = variableTypesInternal.toMap,
       variableSections = variableSectionsInternal
         .map({ case (key, value) => key -> value.toList })
         .toMap,
@@ -1069,7 +1122,9 @@ final case class OpenlawExecutionState(
   ): Result[OpenlawExecutionState] = {
     findVariableType(VariableTypeDefinition(variableType.name)) match {
       case None =>
-        variableTypesInternal += variableType
+        variableTypesInternal ++= variableType.typeNames
+          .map(name => name -> variableType)
+          .toMap
         Success(this)
       case Some(_) =>
         Failure(

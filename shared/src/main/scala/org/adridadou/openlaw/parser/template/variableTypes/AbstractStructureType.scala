@@ -35,21 +35,27 @@ case object AbstractStructureType
       executionResult: TemplateExecutionResult
   ): Result[Option[Structure]] = param match {
     case Parameters(values) =>
-      values
-        .map({
-          case (key, value) =>
-            getField(key, value, executionResult).map(VariableName(key) -> _)
+      val someTest = values
+        .foldLeft(Success(Map[VariableName, VariableDefinition]()))({
+          case (Success(m), (key, value)) =>
+            getField(key, value, executionResult).map(variableDefinition =>
+              m + (VariableName(key) -> variableDefinition)
+            )
+          case (other, (_, _)) =>
+            other
         })
-        .sequence
+
+      someTest
         .map(fields => {
           val types = fields.map({
             case (key, definition) => key -> definition.varType(executionResult)
           })
+
           Some(
             Structure(
-              types = types.toMap,
-              typeDefinition = fields.toMap,
-              names = values.map({ case (key, _) => VariableName(key) })
+              types = types,
+              typeDefinition = fields,
+              names = fields.keys.toList
             )
           )
         })
@@ -70,9 +76,6 @@ case object AbstractStructureType
     Failure("no internal format for structured type definition")
 
   override def getTypeClass: Class[_ <: Structure] = classOf[Structure]
-
-  override def checkTypeName(nameToCheck: String): Boolean =
-    Seq("Structure").exists(_.equalsIgnoreCase(nameToCheck))
 
   def thisType: VariableType = AbstractStructureType
 

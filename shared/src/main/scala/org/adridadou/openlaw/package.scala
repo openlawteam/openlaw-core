@@ -10,6 +10,7 @@ import org.adridadou.openlaw.parser.template.{
 
 import scala.collection.mutable
 import scala.language.implicitConversions
+import scala.collection.JavaConverters._
 
 package object openlaw {
 
@@ -151,17 +152,25 @@ package object openlaw {
   // Creates a thread-safe mutable map containing the provided entries.
   def createConcurrentMutableMap[K, V](
       values: collection.Map[K, V]
-  ): mutable.Map[K, V] =
-    (new mutable.LinkedHashMap[K, V]
-      with mutable.SynchronizedMap[K, V]) ++ values
+  ): mutable.Map[K, V] = {
+    val newMap = new java.util.concurrent.ConcurrentHashMap[K, V]
+    newMap.putAll(values.asJava)
+    newMap.asScala
+  }
 
   // Creates a thread-safe mutable buffer.
   def createConcurrentMutableBuffer[T]: mutable.Buffer[T] =
     createConcurrentMutableBuffer(Nil)
 
   // Creates a thread-safe mutable buffer containing the provided entries.
-  def createConcurrentMutableBuffer[T](values: Iterable[T]): mutable.Buffer[T] =
-    (new mutable.ArrayBuffer[T] with mutable.SynchronizedBuffer[T]) ++ values
+  def createConcurrentMutableBuffer[T](
+      values: Iterable[T]
+  ): mutable.Buffer[T] = {
+    val newBuffer: mutable.Buffer[T] =
+      new java.util.concurrent.CopyOnWriteArrayList[T].asScala
+    newBuffer ++= values
+    newBuffer
+  }
 
   // Creates a thread-safe mutable set containing the optional provided entries.
   def createConcurrentMutableSet[T]: mutable.Set[T] =
