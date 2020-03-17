@@ -114,17 +114,21 @@ trait TemplateExecutionResult {
   def getVariable(variable: VariableDefinition): Option[VariableDefinition] =
     getVariable(variable.name)
 
+  def findVariable(name: VariableName): Option[VariableDefinition]
+  def findVariable(
+      name: VariableName,
+      varType: VariableType
+  ): Option[VariableDefinition]
+
   def getVariable(name: VariableName): Option[VariableDefinition] =
     if (this.containSectionName(name)) {
-      this.variables.find(definition =>
-        definition.name === name && definition.varType(this) === SectionType
-      )
+      this.findVariable(name, SectionType)
     } else {
       (mapping.get(name) match {
         case Some(_) =>
           None
         case None =>
-          variables.find(_.name === name)
+          this.findVariable(name)
       }) match {
         case Some(variable) =>
           Some(variable)
@@ -348,7 +352,7 @@ trait TemplateExecutionResult {
 
   def getTemplateDefinitionForVariable(
       name: VariableName
-  ): Option[TemplateDefinition] = variables.find(_.name === name) match {
+  ): Option[TemplateDefinition] = findVariable(name) match {
     case Some(_) =>
       templateDefinition
     case None =>
@@ -688,6 +692,24 @@ final case class SerializableTemplateExecutionResult(
     externalCallStructures: Map[ServiceName, IntegratedServiceDefinition]
 ) extends TemplateExecutionResult {
 
+  override def findVariable(
+      name: VariableName
+  ): Option[
+    VariableDefinition
+  ] = variables.find(_.name === name)
+
+  override def findVariable(
+      name: VariableName,
+      varType: VariableType
+  ): Option[
+    VariableDefinition
+  ] =
+    variables.find(v =>
+      v.name === name && v.variableTypeDefinition.exists(
+        _.name === varType.name
+      )
+    )
+
   override def findVariableTypeInternalCurrent(
       variableTypeDefinition: VariableTypeDefinition
   ): Option[VariableType] = variableTypes.get(variableTypeDefinition.name)
@@ -813,6 +835,24 @@ final case class OpenlawExecutionState(
     externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] =
       Map.empty
 ) extends TemplateExecutionResult {
+
+  override def findVariable(
+      name: VariableName
+  ): Option[
+    VariableDefinition
+  ] = variablesInternal.find(_.name === name)
+
+  override def findVariable(
+      name: VariableName,
+      varType: VariableType
+  ): Option[
+    VariableDefinition
+  ] =
+    variablesInternal.find(v =>
+      v.name === name && v.variableTypeDefinition.exists(
+        _.name === varType.name
+      )
+    )
 
   def variables: List[VariableDefinition] = variablesInternal.toList
   def aliases: List[VariableAliasing] = aliasesInternal.toList

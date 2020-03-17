@@ -71,7 +71,7 @@ trait VariableExecutionEngine {
       executionResult: OpenlawExecutionState,
       variable: VariableDefinition,
       executed: Boolean
-  ): Result[OpenlawExecutionState] = {
+  ): Result[OpenlawExecutionState] =
     missingVariables match {
       case Nil =>
         variable.verifyConstructor(executionResult).flatMap { _ =>
@@ -90,7 +90,6 @@ trait VariableExecutionEngine {
           .map(v => "\"" + v.name + "\"")
           .mkString(",")} are used in the constructor but have not been defined")
     }
-  }
 
   protected def processDefinedVariable(
       executionResult: OpenlawExecutionState,
