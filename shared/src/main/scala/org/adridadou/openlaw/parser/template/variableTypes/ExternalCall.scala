@@ -94,7 +94,68 @@ final case class IntegratedServiceDefinition(
   def definedOutput: DefinedStructureType =
     DefinedStructureType(output, "Output")
 }
-
+sealed trait StorageOperation {
+  val id: String
+}
+object StorageOperation {
+  def apply(id: String): StorageOperation = id match {
+    case StorageWriteOp.id => StorageWriteOp
+    case StorageReadOp.id  => StorageReadOp
+  }
+}
+case object StorageWriteOp extends StorageOperation {
+  val id: String = "write"
+}
+case object StorageReadOp extends StorageOperation {
+  val id: String = "read"
+}
+final case class StorageInput(
+    accessToken: String,
+    operation: StorageOperation,
+    filePath: String,
+    fileBase64Content: Option[String]
+)
+object StorageInput {
+  implicit val signatureInputEnc: Encoder[StorageInput] =
+    Encoder.instance[StorageInput] { input =>
+      Json.obj(
+        "accessToken" -> Json.fromString(input.accessToken),
+        "operation" -> Json.fromString(input.operation.id),
+        "filePath" -> Json.fromString(input.filePath),
+        "fileBase64Content" -> Json.fromString(
+          input.fileBase64Content.getOrElse[String]("")
+        )
+      )
+    }
+  implicit val signatureInputDec: Decoder[StorageInput] =
+    Decoder.instance[StorageInput] { c: HCursor =>
+      for {
+        accessToken <- c.downField("accessToken").as[String]
+        operation <- c
+          .downField("operation")
+          .as[String]
+          .map(StorageOperation(_))
+        filePath <- c.downField("filePath").as[String]
+        fileBase64Content <- c.downField("fileBase64Content").as[Option[String]]
+      } yield StorageInput(
+        accessToken,
+        operation,
+        filePath,
+        fileBase64Content
+      )
+    }
+  implicit val storageInputEq: Eq[StorageInput] = Eq.fromUniversalEquals
+}
+final case class StorageOutput(
+    filePath: String,
+    fileName: String,
+    fileBase64Content: Option[String]
+)
+object StorageOutput {
+  implicit val storageOutputEnc: Encoder[StorageOutput] = deriveEncoder
+  implicit val storageOutputDec: Decoder[StorageOutput] = deriveDecoder
+  implicit val storageOutputEq: Eq[StorageOutput] = Eq.fromUniversalEquals
+}
 final case class SignatureInput(
     signerEmail: Email,
     contractContentBase64: String,
