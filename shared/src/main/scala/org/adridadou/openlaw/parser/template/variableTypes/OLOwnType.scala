@@ -1,6 +1,6 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
-import java.time.LocalDateTime
+import java.time.Instant
 
 import cats.implicits._
 import org.adridadou.openlaw.parser.template.{
@@ -97,7 +97,7 @@ case object OLOwnType extends VariableType("OLInfo") with NoShowInForm {
         id = None,
         profileAddress = None,
         creationDate = None,
-        now = LocalDateTime.now()
+        now = Instant.now()
       ),
       key
     ) match {
@@ -113,7 +113,7 @@ object OLInformation {
 
 final case class OLInformation(
     id: Option[ContractId] = None,
-    creationDate: Option[LocalDateTime] = None,
+    creationDate: Option[Instant] = None,
     profileAddress: Option[EthereumAddress] = None,
-    now: LocalDateTime = LocalDateTime.now()
+    now: Instant = Instant.now()
 ) extends OpenlawNativeValue

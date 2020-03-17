@@ -1,7 +1,5 @@
 package org.adridadou.openlaw.parser.template.printers
 
-import java.time.Clock
-
 import org.adridadou.openlaw.result.Implicits.failureCause2Exception
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes._
@@ -16,8 +14,7 @@ class XHtmlAgreementPrinterSpec
     with Matchers
     with EitherValues {
 
-  private val clock = Clock.systemUTC
-  private val service = new OpenlawTemplateLanguageParserService(clock)
+  private val service = new OpenlawTemplateLanguageParserService()
   private val engine = new OpenlawExecutionEngine
 
   private def structureAgreement(

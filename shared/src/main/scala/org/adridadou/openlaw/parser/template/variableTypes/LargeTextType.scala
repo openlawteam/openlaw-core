@@ -1,5 +1,6 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
+import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.{OpenlawString, OpenlawValue}
 import org.adridadou.openlaw.parser.template.{
   Divide,
@@ -21,22 +22,17 @@ case object LargeTextType extends VariableType("LargeText") {
   ): Result[OpenlawString] = Success(value)
 
   override def plus(
-      optLeft: Option[OpenlawValue],
-      optRight: Option[OpenlawValue],
+      left: Expression,
+      right: Expression,
       executionResult: TemplateExecutionResult
-  ): Result[Option[OpenlawValue]] =
-    combineConverted[OpenlawString, OpenlawValue](optLeft, optRight) {
-      case (left, right) => Success(left + right)
-    }
+  ): Result[Option[OpenlawValue]] = TextType.plus(left, right, executionResult)
 
   override def divide(
-      optLeft: Option[OpenlawValue],
-      optRight: Option[OpenlawValue],
+      left: Expression,
+      right: Expression,
       executionResult: TemplateExecutionResult
   ): Result[Option[OpenlawValue]] =
-    combineConverted[OpenlawString, OpenlawValue](optLeft, optRight) {
-      case (left, right) => Success(TemplatePath(List(left, right)))
-    }
+    TextType.divide(left, right, executionResult)
 
   override def operationWith(
       rightType: VariableType,

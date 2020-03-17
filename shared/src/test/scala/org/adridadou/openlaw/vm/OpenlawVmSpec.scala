@@ -1,6 +1,6 @@
 package org.adridadou.openlaw.vm
 
-import java.time.{Clock, LocalDateTime}
+import java.time.{Instant, ZonedDateTime}
 
 import org.adridadou.openlaw.{OpenlawMap, OpenlawString, oracles}
 import org.adridadou.openlaw.oracles._
@@ -27,18 +27,17 @@ import org.scalatest.EitherValues._
 
 class OpenlawVmSpec extends FlatSpec with Matchers {
   val parser: OpenlawTemplateLanguageParserService =
-    new OpenlawTemplateLanguageParserService(Clock.systemUTC())
+    new OpenlawTemplateLanguageParserService()
   val exprParser = new ExpressionParserService()
   val vmProvider: OpenlawVmProvider =
     new OpenlawVmProvider(TestCryptoService, parser)
-  val clock: Clock = Clock.systemUTC()
   val serverAccount: TestAccount = TestAccount.newRandom
 
   "Openlaw Virtual Machine" should "be instantiated by giving a template, parameters and paragraph overrides" in {
     val definition = ContractDefinition(
       creatorId = UserId("dummyUser"),
       mainTemplate = TemplateId(),
-      templates = Map(),
+      templates = Map.empty,
       parameters = TemplateParameters()
     )
     val vm = Option(
@@ -60,7 +59,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     val definition = ContractDefinition(
       creatorId = UserId("dummyUser"),
       mainTemplate = templateId,
-      templates = Map(),
+      templates = Map.empty,
       parameters = TemplateParameters(Map(VariableName("Hello") -> "World"))
     )
 
@@ -91,7 +90,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     val definition1 = ContractDefinition(
       creatorId = UserId.SYSTEM_ID,
       mainTemplate = templateId,
-      templates = Map(),
+      templates = Map.empty,
       parameters = TemplateParameters(
         Map(
           VariableName("Signatory") -> IdentityType
@@ -104,7 +103,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     val definition2 = ContractDefinition(
       creatorId = UserId.SYSTEM_ID,
       mainTemplate = templateId,
-      templates = Map(),
+      templates = Map.empty,
       parameters = TemplateParameters(
         Map(
           VariableName("Signatory") -> IdentityType
@@ -166,7 +165,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     val definition = ContractDefinition(
       creatorId = UserId.SYSTEM_ID,
       mainTemplate = templateId,
-      templates = Map(),
+      templates = Map.empty,
       parameters = TemplateParameters(
         Map(
           VariableName("Signatory") -> ExternalSignatureType
@@ -270,7 +269,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     val definition = ContractDefinition(
       creatorId = UserId("hello@world.com"),
       mainTemplate = templateId,
-      templates = Map(),
+      templates = Map.empty,
       parameters = TemplateParameters(
         "identity" -> IdentityType.internalFormat(identity).right.value,
         "identity2" -> IdentityType.internalFormat(identity2).right.value
@@ -305,8 +304,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
 
     vm.executionState shouldBe ContractRunning
 
-    val startDate = LocalDateTime
-      .now(clock)
+    val startDate = ZonedDateTime.now
       .withYear(2018)
       .withMonth(12)
       .withDayOfMonth(12)
@@ -314,6 +312,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
       .withMinute(0)
       .withSecond(0)
       .withNano(0)
+      .toInstant
 
     vm.allNextActions.right.value.size shouldBe 1
 
@@ -333,9 +332,9 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     vm.getAllExecutedVariables(EthereumCallType).size shouldBe 1
     vm.newExecution(action.identifier.right.value, execution)
 
-    vm.nextActionSchedule.right.value shouldBe Some(
-      LocalDateTime
-        .now(clock)
+    vm.nextActionSchedule.getOrThrow() shouldBe Some(
+      ZonedDateTime
+        .now()
         .withYear(2018)
         .withMonth(12)
         .withDayOfMonth(12)
@@ -343,6 +342,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
         .withMinute(1)
         .withSecond(12)
         .withNano(0)
+        .toInstant
     )
 
     vm.allNextActions.right.value.size shouldBe 2
@@ -351,8 +351,8 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     vm.newExecution(
       action.identifier.right.value,
       EthereumSmartContractExecution(
-        LocalDateTime.now(),
-        LocalDateTime.now(),
+        Instant.now(),
+        Instant.now(),
         FailedExecution,
         EthereumHash.empty
       )
@@ -364,24 +364,24 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
   it should "be possible to register stopped contract, distinguish failed stops, and resume a stopped contract" in {
     val template = "this is a contract [[Signatory:Identity]]"
     val identity1: Identity =
-      Identity.withEmail(Email("hello@world.com").right.value)
+      Identity.withEmail(Email("hello@world.com").getOrThrow())
     val identity2: Identity =
-      Identity.withEmail(Email("wrong@gmail.com").right.value)
+      Identity.withEmail(Email("wrong@gmail.com").getOrThrow())
     val templateId = TemplateId(TestCryptoService.sha256(template))
     val definition1 = ContractDefinition(
       creatorId = UserId.SYSTEM_ID,
       mainTemplate = templateId,
-      templates = Map(),
+      templates = Map.empty,
       parameters = TemplateParameters(
-        "Signatory" -> IdentityType.internalFormat(identity1).right.value
+        "Signatory" -> IdentityType.internalFormat(identity1).getOrThrow()
       )
     )
     val definition2 = ContractDefinition(
       creatorId = UserId.SYSTEM_ID,
       mainTemplate = templateId,
-      templates = Map(),
+      templates = Map.empty,
       parameters = TemplateParameters(
-        "Signatory" -> IdentityType.internalFormat(identity2).right.value
+        "Signatory" -> IdentityType.internalFormat(identity2).getOrThrow()
       )
     )
     val vm1 = vmProvider.create(
@@ -475,7 +475,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     val definition = ContractDefinition(
       creatorId = UserId("hello@world.com"),
       mainTemplate = templateId,
-      templates = Map(),
+      templates = Map.empty,
       parameters = TemplateParameters()
     )
 
@@ -512,7 +512,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
       EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0").right.value,
       "OpenlawSignatureEvent",
       values,
-      LocalDateTime.now
+      Instant.now
     )
 
     val ethereumEventFilterOracle =
@@ -542,7 +542,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     val definition = ContractDefinition(
       creatorId = UserId("hello@world.com"),
       mainTemplate = templateId,
-      templates = Map(),
+      templates = Map.empty,
       parameters = TemplateParameters()
     )
     val vm = vmProvider.create(
@@ -578,7 +578,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
       EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0").right.value,
       "OpenlawSignatureEvent",
       values,
-      LocalDateTime.now
+      Instant.now
     )
 
     val ethereumEventFilterOracle =
@@ -647,7 +647,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     val definition = ContractDefinition(
       creatorId = UserId("hello@world.com"),
       mainTemplate = templateId,
-      templates = Map(),
+      templates = Map.empty,
       parameters = TemplateParameters()
     )
     val vm = vmProvider.create(
@@ -718,7 +718,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     val definition = ContractDefinition(
       creatorId = UserId("hello@world.com"),
       mainTemplate = templateId,
-      templates = Map(),
+      templates = Map.empty,
       parameters = TemplateParameters()
     )
 
@@ -753,7 +753,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
       EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0").right.value,
       "OpenlawSignatureEvent",
       values,
-      LocalDateTime.now
+      Instant.now
     )
 
     val ethereumEventFilterOracle =
@@ -787,7 +787,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     val definition = ContractDefinition(
       creatorId = UserId("hello@world.com"),
       mainTemplate = templateId,
-      templates = Map(),
+      templates = Map.empty,
       parameters = TemplateParameters(
         "identity" -> IdentityType.internalFormat(identity).getOrThrow(),
         "param1" -> TextType.internalFormat("test value 1").getOrThrow(),
@@ -838,7 +838,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     val definition = ContractDefinition(
       creatorId = UserId("hello@world.com"),
       mainTemplate = templateId,
-      templates = Map(),
+      templates = Map.empty,
       parameters = TemplateParameters(
         "identity" -> IdentityType.internalFormat(identity).getOrThrow(),
         "param1" -> TextType.internalFormat("test value 1").getOrThrow(),
@@ -891,7 +891,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
       caller,
       identifier,
       requestIdentifier,
-      LocalDateTime.now
+      Instant.now
     )
     vm(pendingExternalCallEvent)
 
@@ -911,7 +911,7 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
       caller,
       identifier,
       requestIdentifier,
-      LocalDateTime.now,
+      Instant.now,
       output,
       serviceName,
       eventSignature
@@ -921,8 +921,8 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     vm.getAllExecutedVariables(ExternalCallType).size shouldBe 1
 
     val execution = variableTypes.SuccessfulExternalCallExecution(
-      LocalDateTime.now,
-      LocalDateTime.now,
+      Instant.now,
+      Instant.now,
       output,
       requestIdentifier
     )
@@ -942,13 +942,12 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
   def signForStopping(
       identity: Identity,
       contractId: ContractId
-  ): EthereumSignature = {
+  ): EthereumSignature =
     signByEmail(
       identity.email,
       contractId.stopContract(TestCryptoService),
       serverAccount
     )
-  }
 
   def signForResuming(
       identity: Identity,

@@ -1,6 +1,6 @@
 package org.adridadou
 
-import java.time.LocalDateTime
+import java.time.Instant
 
 import org.adridadou.openlaw.parser.template.{
   AgreementElement,
@@ -36,8 +36,8 @@ package object openlaw {
       Some(value.underlying)
   }
 
-  object OpenlawDateTime {
-    def unapply(value: OpenlawDateTime): Option[LocalDateTime] =
+  object OpenlawInstant {
+    def unapply(value: OpenlawInstant): Option[Instant] =
       Some(value.underlying)
   }
 
@@ -99,12 +99,12 @@ package object openlaw {
     override def hashCode: Int = underlying.hashCode
   }
 
-  implicit class OpenlawDateTime(override val underlying: LocalDateTime)
-      extends Comparable[OpenlawDateTime]
+  implicit class OpenlawInstant(override val underlying: Instant)
+      extends Comparable[OpenlawInstant]
       with OpenlawValue {
-    override type T = LocalDateTime
+    override type T = Instant
     override def toString: String = underlying.toString
-    override def compareTo(t: OpenlawDateTime): Int =
+    override def compareTo(t: OpenlawInstant): Int =
       underlying.compareTo(t.underlying)
     override def equals(o: Any): Boolean = o match {
       case value: OpenlawValue => underlying.equals(value.underlying)

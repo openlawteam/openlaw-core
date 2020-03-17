@@ -148,6 +148,20 @@ object AddressFormatter extends Formatter {
       )
   }
 
+  override def stringFormat(
+      expression: Expression,
+      value: OpenlawValue,
+      executionResult: TemplateExecutionResult
+  ): Result[String] =
+    value match {
+      case address: Address =>
+        Success(address.formattedAddress)
+      case _ =>
+        Failure(
+          s"incompatible type. Expecting address, got ${value.getClass.getSimpleName}"
+        )
+    }
+
   override def missingValueFormat(
       expression: Expression
   ): List[AgreementElement] =

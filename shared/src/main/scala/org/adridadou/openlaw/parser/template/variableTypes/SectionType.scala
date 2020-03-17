@@ -87,4 +87,16 @@ class SectionFormatter extends Formatter {
       expression: Expression
   ): List[AgreementElement] =
     List(FreeText(Text(s"[[$expression]]")))
+  override def stringFormat(
+      expression: Expression,
+      value: OpenlawValue,
+      executionResult: TemplateExecutionResult
+  ): Result[String] =
+    VariableType.convert[SectionInfo](value) map {
+      case SectionInfo(_, _, referenceValue) =>
+        referenceValue
+    }
+  override def missingValueString(
+      expression: Expression
+  ): String = ???
 }

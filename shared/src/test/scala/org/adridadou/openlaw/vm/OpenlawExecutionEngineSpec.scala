@@ -1,6 +1,7 @@
 package org.adridadou.openlaw.vm
 
-import java.time.{Clock, LocalDateTime}
+import java.time.{Clock, Instant, ZonedDateTime}
+import java.time.temporal.ChronoUnit
 
 import org.adridadou.openlaw.result.Implicits.failureCause2Exception
 import org.adridadou.openlaw.parser.template._
@@ -18,9 +19,7 @@ import org.adridadou.openlaw.{OpenlawMap, _}
 
 class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
-  val parser = new OpenlawTemplateLanguageParserService(
-    Clock.systemDefaultZone()
-  )
+  val parser = new OpenlawTemplateLanguageParserService()
   val engine = new OpenlawExecutionEngine()
 
   "Openlaw engine" should "run a simple template" in {
@@ -40,7 +39,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     engine.execute(compiledTemplate, parameters) match {
       case Success(result) =>
         result.state shouldBe ExecutionFinished
-        result.variables.map(_.name.name) shouldBe Seq(
+        result.variables.map(_.name.name) shouldBe List(
           "My Variable",
           "Other one"
         )
@@ -65,7 +64,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     engine.execute(compiledTemplate, parameters) match {
       case Success(result) =>
         result.state shouldBe ExecutionFinished
-        result.variables.map(_.name.name) shouldBe Seq(
+        result.variables.map(_.name.name) shouldBe List(
           "My Variable",
           "Other one"
         )
@@ -127,7 +126,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
           TemplateSourceIdentifier(TemplateTitle("Another Template")),
           executionType = TemplateExecution
         )
-        result.variables.map(_.name.name) shouldBe Seq(
+        result.variables.map(_.name.name) shouldBe List(
           "My Variable",
           "@@anonymous_1@@",
           "@@anonymous_2@@",
@@ -148,7 +147,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
             newResult
               .subExecutions(VariableName("@@anonymous_3@@"))
               .getVariables
-              .map(_.name.name) shouldBe Seq("My Variable 2")
+              .map(_.name.name) shouldBe List("My Variable 2")
             newResult.agreements.size shouldBe 1
 
             parser.forReview(newResult.agreements.head) shouldBe """<p class="no-section">it is just another template hello</p>"""
@@ -201,14 +200,14 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
           case Success(newResult) =>
             newResult.state shouldBe ExecutionFinished
             newResult.subExecutions.size shouldBe 1
-            newResult.variables.map(_.name) should contain allElementsOf Seq(
+            newResult.variables.map(_.name) should contain allElementsOf List(
               VariableName("My Variable"),
               VariableName("Other one"),
               VariableName("State of Governing Law"),
               VariableName("County of Venue"),
               VariableName("State of Venue")
             )
-            newResult.executedVariables should contain allElementsOf Seq(
+            newResult.executedVariables should contain allElementsOf List(
               VariableName("My Variable"),
               VariableName("Other one"),
               VariableName("State of Governing Law"),
@@ -1835,7 +1834,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
   it should "allow specifying an external call" in {
 
     val text =
-      """
+      """[[info:OLInfo]]
         |[[param1:Text]]
         |[[param2:Text]]
         |[[externalCall:ExternalCall(
@@ -1843,8 +1842,8 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         |parameters:
         | param1 -> param1,
         | param2 -> param2;
-        |startDate: '2018-12-12 00:00:00';
-        |endDate: '2048-12-12 00:00:00';
+        |startDate: info.now;
+        |endDate: info.now + "100 days";
         |repeatEvery: '1 hour 30 minute')]]
         |[[externalCall]]
       """.stripMargin
@@ -1866,11 +1865,12 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     engine.execute(
       template,
       TemplateParameters("param1" -> "test1", "param2" -> "test2"),
-      Map(),
+      Map.empty,
       externalCallStructures
     ) match {
-      case Right(executionResult) =>
+      case Success(executionResult) =>
         executionResult.getExecutedVariables.map(_.name).toSet shouldBe Set(
+          "info",
           "param1",
           "param2",
           "externalCall"
@@ -1892,12 +1892,19 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         externalCallValue
           .getStartDate(executionResult)
           .getOrThrow() shouldBe Some(
-          LocalDateTime.parse("2018-12-12T00:00:00")
+          executionResult.info.now
         )
+
         externalCallValue
           .getEndDate(executionResult)
           .getOrThrow() shouldBe Some(
-          LocalDateTime.parse("2048-12-12T00:00:00")
+          ZonedDateTime
+            .ofInstant(
+              executionResult.info.now,
+              Clock.systemDefaultZone().getZone
+            )
+            .plus(100, ChronoUnit.DAYS)
+            .toInstant
         )
         externalCallValue.getEvery(executionResult).getOrThrow() shouldBe Some(
           PeriodType.cast("1 hour 30 minute").getOrThrow()
@@ -2124,30 +2131,21 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
     val template = compile(text)
 
-    val fromDate = LocalDateTime
+    val fromDate = Instant.now()
+    val toDate = Instant
       .now()
-      .withYear(2019)
-      .withDayOfYear(56)
-      .withHour(0)
-      .withMinute(0)
-      .withSecond(0)
-      .withNano(0)
-    val toDate = LocalDateTime
-      .now()
-      .withYear(2019)
-      .withDayOfYear(65)
-      .withHour(2)
-      .withMinute(45)
-      .withSecond(0)
-      .withNano(0)
+      .plus(9, ChronoUnit.DAYS)
+      .plus(2, ChronoUnit.HOURS)
+      .plus(45, ChronoUnit.MINUTES)
+
     val Success(result) = engine.execute(
       template,
       TemplateParameters(
         "from" -> DateTimeType
-          .internalFormat(OpenlawDateTime(fromDate))
+          .internalFormat(OpenlawInstant(fromDate))
           .getOrThrow(),
         "to" -> DateTimeType
-          .internalFormat(OpenlawDateTime(toDate))
+          .internalFormat(OpenlawInstant(toDate))
           .getOrThrow()
       )
     )
@@ -2162,10 +2160,10 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       template,
       TemplateParameters(
         "from" -> DateTimeType
-          .internalFormat(OpenlawDateTime(toDate))
+          .internalFormat(OpenlawInstant(toDate))
           .getOrThrow(),
         "to" -> DateTimeType
-          .internalFormat(OpenlawDateTime(fromDate))
+          .internalFormat(OpenlawInstant(fromDate))
           .getOrThrow()
       )
     )
@@ -2725,6 +2723,8 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         |[[text + number]] [[text  + address]] [[text + date]]
         |[[number + text]] [[address  + text]] [[date + text]]""".stripMargin)
 
+    val now = Instant.now()
+
     val result = engine
       .execute(
         template,
@@ -2732,16 +2732,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
           "text" -> "hello world",
           "number" -> "1234",
           "date" -> DateType
-            .internalFormat(
-              LocalDateTime
-                .now()
-                .withYear(2020)
-                .withMonth(1)
-                .withDayOfMonth(1)
-                .withHour(10)
-                .withMinute(0)
-                .withSecond(0)
-            )
+            .internalFormat(now)
             .getOrThrow(),
           "address" -> EthAddressType
             .internalFormat(
@@ -2755,7 +2746,15 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
     val text = parser.forReview(result.agreements.head)
 
-    text shouldBe "<p class=\"no-section\"><br />hello world1234 hello worldcfc2206eabfdc5f3d9e7fa54f855a8c15d196c05 hello world2020-01-01T10:00<br />1234hello world 0xcfc2206eabfdc5f3d9e7fa54f855a8c15d196c05hello world 2020-01-01T10:00hello world</p>"
+    val nowFormatted: String = SimpleDateFormatter
+      .stringFormat(
+        StringConstant(""),
+        OpenlawInstant(now),
+        result
+      )
+      .getOrThrow()
+
+    text shouldBe s"""<p class="no-section"><br />hello world1,234 hello worldcfc2206eabfdc5f3d9e7fa54f855a8c15d196c05 hello world${nowFormatted}<br />1234hello world 0xcfc2206eabfdc5f3d9e7fa54f855a8c15d196c05hello world ${nowFormatted}</p>"""
   }
 
   it should "be possible to define a structure within a structure" in {
@@ -2805,6 +2804,15 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         case _ =>
           Failure("it should be an identity, nothing else!")
       }
+
+      override def stringFormat(
+          expression: Expression,
+          value: OpenlawValue,
+          executionResult: TemplateExecutionResult
+      ): Result[
+        String
+      ] = Success("")
+
       override def missingValueFormat(
           expression: Expression
       ): List[

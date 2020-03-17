@@ -1,7 +1,5 @@
 package org.adridadou.openlaw.parser.template
 
-import java.time.Clock
-
 import org.adridadou.openlaw.parser.template.printers.{
   AgreementPrinter,
   XHtmlAgreementPrinter
@@ -27,7 +25,7 @@ import org.adridadou.openlaw.result.Implicits.{
 /**
   * Created by davidroon on 05.06.17.
   */
-class OpenlawTemplateLanguageParserService(val internalClock: Clock) {
+class OpenlawTemplateLanguageParserService {
 
   def parseExpression(str: String): Result[Expression] =
     new ExpressionParser(str).root.run() match {
@@ -36,10 +34,9 @@ class OpenlawTemplateLanguageParserService(val internalClock: Clock) {
     }
 
   def compileTemplate(
-      source: String,
-      clock: Clock = internalClock
+      source: String
   ): Result[CompiledTemplate] = {
-    val compiler = createTemplateCompiler(source, clock)
+    val compiler = createTemplateCompiler(source)
 
     attempt(compiler.rootRule.run().toResult).flatten match {
       case Failure(parseError: ParseError, _) =>
@@ -337,13 +334,12 @@ class OpenlawTemplateLanguageParserService(val internalClock: Clock) {
   }
 
   private def createTemplateCompiler(
-      markdown: String,
-      clock: Clock
+      markdown: String
   ): OpenlawTemplateLanguageParser =
-    new OpenlawTemplateLanguageParser(markdown, clock)
+    new OpenlawTemplateLanguageParser(markdown)
 }
 
 final case class VariableRedefinition(
-    typeMap: Map[String, VariableTypeDefinition] = Map(),
-    descriptions: Map[String, String] = Map()
+    typeMap: Map[String, VariableTypeDefinition] = Map.empty,
+    descriptions: Map[String, String] = Map.empty
 )

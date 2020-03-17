@@ -1,12 +1,12 @@
 package org.adridadou.openlaw.parser
 
-import java.time.{Clock, LocalDateTime, ZoneOffset}
+import java.time.ZonedDateTime
 import java.util.concurrent.atomic.AtomicInteger
 
 import org.adridadou.openlaw.{
-  createConcurrentMutableBuffer,
   OpenlawMap,
-  OpenlawString
+  OpenlawString,
+  createConcurrentMutableBuffer
 }
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes._
@@ -27,8 +27,7 @@ import org.scalatest.OptionValues._
   */
 class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
 
-  private val clock = Clock.systemUTC
-  private val service = new OpenlawTemplateLanguageParserService(clock)
+  private val service = new OpenlawTemplateLanguageParserService()
   private val engine = new OpenlawExecutionEngine
 
   private val emptyExecutionResult = OpenlawExecutionState(
@@ -40,8 +39,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
     anonymousVariableCounter = new AtomicInteger(0),
     executionType = TemplateExecution,
     variableRedefinition = VariableRedefinition(),
-    remainingElements = createConcurrentMutableBuffer,
-    clock = clock
+    remainingElements = createConcurrentMutableBuffer
   )
 
   private def structureAgreement(
@@ -952,7 +950,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
             }
           case None => fail("contractor variable not found")
         }
-      case Left(ex) => fail(ex)
+      case Failure(ex, message) => fail(message, ex)
     }
   }
 
@@ -969,9 +967,8 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
             text shouldBe "2017-06-24 13:45:00"
           case something => fail("default value is not correct:" + something)
         }
-      case Left(ex) =>
-        ex.e.printStackTrace()
-        fail(ex)
+      case Failure(ex, message) =>
+        fail(message, ex)
     }
   }
 
@@ -1181,14 +1178,16 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
         text,
         Map(
           "Var 1" -> "1 day",
-          "Var 2" -> (LocalDateTime.now
+          "Var 2" -> (ZonedDateTime.now
             .withYear(2018)
             .withMonth(1)
             .withDayOfMonth(1)
             .withHour(10)
             .withMinute(10)
             .withSecond(0)
-            .toEpochSecond(ZoneOffset.UTC) * 1000).toString
+            .toInstant
+            .toEpochMilli
+            .toString)
         )
       ),
       """<p class="no-section">January 2, 2018 10:10:00</p>"""
@@ -1205,14 +1204,16 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
         text,
         Map(
           "Var 1" -> "1 day",
-          "Var 2" -> (LocalDateTime.now
+          "Var 2" -> (ZonedDateTime.now
             .withYear(2018)
             .withMonth(1)
             .withDayOfMonth(1)
             .withHour(10)
             .withMinute(10)
             .withSecond(0)
-            .toEpochSecond(ZoneOffset.UTC) * 1000).toString
+            .toInstant
+            .toEpochMilli)
+            .toString
         )
       ),
       """<p class="no-section">January 2, 2018 10:10:00</p>"""

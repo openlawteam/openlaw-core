@@ -1,6 +1,6 @@
 package org.adridadou.openlaw.parser.template.variableTypes
 
-import java.time.{Clock, LocalDateTime, ZoneId, ZoneOffset}
+import java.time.Instant
 
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.{
@@ -37,7 +37,7 @@ trait ActionValue {
   def nextActionSchedule(
       executionResult: TemplateExecutionResult,
       pastExecutions: List[OpenlawExecution]
-  ): Result[Option[LocalDateTime]]
+  ): Result[Option[Instant]]
   def identifier(
       executionResult: TemplateExecutionResult
   ): Result[ActionIdentifier]
@@ -120,8 +120,8 @@ trait OpenlawExecutionInit extends OpenlawNativeValue {
 }
 
 trait OpenlawExecution extends OpenlawNativeValue {
-  def scheduledDate: LocalDateTime
-  def executionDate: LocalDateTime
+  def scheduledDate: Instant
+  def executionDate: Instant
   def executionStatus: OpenlawExecutionStatus
   def key: Any
   def typeIdentifier: String
@@ -138,8 +138,8 @@ object EthereumSmartContractExecution {
 }
 
 final case class EthereumSmartContractExecution(
-    scheduledDate: LocalDateTime,
-    executionDate: LocalDateTime,
+    scheduledDate: Instant,
+    executionDate: Instant,
     executionStatus: OpenlawExecutionStatus = PendingExecution,
     tx: EthereumHash
 ) extends OpenlawExecution {
@@ -178,8 +178,8 @@ object SuccessfulExternalCallExecution {
 }
 
 final case class SuccessfulExternalCallExecution(
-    scheduledDate: LocalDateTime,
-    executionDate: LocalDateTime,
+    scheduledDate: Instant,
+    executionDate: Instant,
     result: String,
     requestIdentifier: RequestIdentifier
 ) extends ExternalCallExecution {
@@ -200,8 +200,8 @@ object PendingExternalCallExecution {
 }
 
 final case class PendingExternalCallExecution(
-    scheduledDate: LocalDateTime,
-    executionDate: LocalDateTime,
+    scheduledDate: Instant,
+    executionDate: Instant,
     requestIdentifier: RequestIdentifier
 ) extends ExternalCallExecution {
   def message: String =
@@ -219,8 +219,8 @@ object FailedExternalCallExecution {
 }
 
 final case class FailedExternalCallExecution(
-    scheduledDate: LocalDateTime,
-    executionDate: LocalDateTime,
+    scheduledDate: Instant,
+    executionDate: Instant,
     errorMessage: String,
     requestIdentifier: RequestIdentifier
 ) extends ExternalCallExecution {
@@ -388,16 +388,16 @@ abstract class VariableType(val name: String) {
   }
 
   def plus(
-      optLeft: Option[OpenlawValue],
-      optRight: Option[OpenlawValue],
+      left: Expression,
+      right: Expression,
       executionResult: TemplateExecutionResult
   ): Result[Option[OpenlawValue]] =
     Failure(
       new UnsupportedOperationException(s"$name type does not support addition")
     )
   def minus(
-      optLeft: Option[OpenlawValue],
-      optRight: Option[OpenlawValue],
+      left: Expression,
+      right: Expression,
       executionResult: TemplateExecutionResult
   ): Result[Option[OpenlawValue]] =
     Failure(
@@ -406,8 +406,8 @@ abstract class VariableType(val name: String) {
       )
     )
   def multiply(
-      optLeft: Option[OpenlawValue],
-      optRight: Option[OpenlawValue],
+      left: Expression,
+      right: Expression,
       executionResult: TemplateExecutionResult
   ): Result[Option[OpenlawValue]] =
     Failure(
@@ -416,8 +416,8 @@ abstract class VariableType(val name: String) {
       )
     )
   def divide(
-      optLeft: Option[OpenlawValue],
-      optRight: Option[OpenlawValue],
+      left: Expression,
+      right: Expression,
       executionResult: TemplateExecutionResult
   ): Result[Option[OpenlawValue]] =
     Failure(
@@ -571,7 +571,7 @@ object VariableType {
   def getDate(
       v: Expression,
       executionResult: TemplateExecutionResult
-  ): Result[OpenlawDateTime] =
+  ): Result[OpenlawInstant] =
     get(v, executionResult, DateTimeType.cast)
   def getMetadata(
       v: Expression,
@@ -666,26 +666,20 @@ object VariableType {
 }
 
 object LocalDateTimeHelper {
-  implicit val dateDecoder: Decoder[LocalDateTime] = (c: HCursor) => {
+  implicit val instantDecoder: Decoder[Instant] = (c: HCursor) => {
     for {
       epoch <- c.as[Long]
-    } yield LocalDateTime.ofEpochSecond(epoch, 0, ZoneOffset.UTC)
+    } yield Instant.ofEpochSecond(epoch)
   }
-  implicit val dateEncoder: Encoder[Clock] = (a: Clock) =>
-    Json.fromString(a.getZone.getId)
 
-  implicit val clockDecoder: Decoder[Clock] = (c: HCursor) => {
-    for {
-      zoneId <- c.as[String]
-    } yield Clock.system(ZoneId.of(zoneId))
-  }
-  implicit val clockEncoder: Encoder[LocalDateTime] = (a: LocalDateTime) =>
-    Json.fromLong(a.toEpochSecond(ZoneOffset.UTC))
-  implicit val eqForLocalDateTime: Eq[LocalDateTime] = Eq.fromUniversalEquals
+  implicit val instantEncoder: Encoder[Instant] = (a: Instant) =>
+    Json.fromLong(a.getEpochSecond)
 
-  implicit val dateKeyEncoder: KeyEncoder[LocalDateTime] =
-    (key: LocalDateTime) => key.toEpochSecond(ZoneOffset.UTC).toString
+  implicit val eqForInstant: Eq[Instant] = Eq.fromUniversalEquals
 
-  implicit val dateKeyDecoder: KeyDecoder[LocalDateTime] = (key: String) =>
-    Try(LocalDateTime.ofEpochSecond(key.toLong, 0, ZoneOffset.UTC)).toOption
+  implicit val instantKeyEncoder: KeyEncoder[Instant] =
+    (key: Instant) => key.getEpochSecond.toString
+
+  implicit val instantKeyDecoder: KeyDecoder[Instant] = (key: String) =>
+    Try(Instant.ofEpochSecond(key.toLong)).toOption
 }

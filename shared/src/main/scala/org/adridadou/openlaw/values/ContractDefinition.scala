@@ -1,6 +1,6 @@
 package org.adridadou.openlaw.values
 
-import java.time.LocalDateTime
+import java.time.Instant
 
 import org.adridadou.openlaw.oracles.{CryptoService, UserId}
 import org.adridadou.openlaw.parser.template.variableTypes.{
@@ -14,7 +14,7 @@ final case class ContractDefinition(
     mainTemplate: TemplateId,
     templates: Map[TemplateSourceIdentifier, TemplateId] = Map.empty,
     parameters: TemplateParameters,
-    creationDate: LocalDateTime = LocalDateTime.now,
+    creationDate: Instant = Instant.now(),
     // If the contract is instead formed by a PDF file rather than an openlaw template, we include the hash of the PDF
     // file
     pdfHash: Option[EthereumHash] = None

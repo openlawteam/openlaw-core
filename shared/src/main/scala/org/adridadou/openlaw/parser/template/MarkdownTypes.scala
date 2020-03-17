@@ -137,7 +137,7 @@ final case class ForEachBlock(
 ) extends TemplatePart {
   def toCompiledTemplate(
       executionResult: TemplateExecutionResult
-  ): Result[(CompiledTemplate, VariableType)] = {
+  ): Result[(CompiledTemplate, VariableType)] =
     expression.expressionType(executionResult).flatMap {
       case listType: CollectionType =>
         val newVariable = VariableDefinition(
@@ -150,8 +150,7 @@ final case class ForEachBlock(
           CompiledDeal(
             TemplateHeader(),
             Block(List(specialCodeBlock) ++ block.elems),
-            VariableRedefinition(),
-            executionResult.clock
+            VariableRedefinition()
           ),
           listType.typeParameter
         )
@@ -160,7 +159,6 @@ final case class ForEachBlock(
           s"for each expression should be a collection but is ${otherType.getClass.getSimpleName}"
         )
     }
-  }
 }
 
 final case class ConditionalBlockSet(blocks: List[ConditionalBlock])

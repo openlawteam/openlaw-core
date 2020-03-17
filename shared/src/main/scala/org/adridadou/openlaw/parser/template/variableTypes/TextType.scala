@@ -12,7 +12,7 @@ import org.adridadou.openlaw.parser.template.formatters.{
   UppercaseFormatter
 }
 import org.adridadou.openlaw.result.{Result, Success}
-import cats.implicits._
+import org.adridadou.openlaw.parser.template.expressions.Expression
 
 case object TextType extends VariableType("Text") {
   override def cast(
@@ -21,34 +21,70 @@ case object TextType extends VariableType("Text") {
   ): Result[OpenlawString] = Success(value)
 
   override def plus(
-      optLeft: Option[OpenlawValue],
-      optRight: Option[OpenlawValue],
+      left: Expression,
+      right: Expression,
       executionResult: TemplateExecutionResult
   ): Result[Option[OpenlawString]] =
-    (for {
-      left <- optLeft
-      right <- optRight
-    } yield Success(OpenlawString(left.toString + right.toString))).sequence
+    for {
+      leftValue <- left.evaluate(executionResult)
+      rightValue <- right.evaluate(executionResult)
+      leftType <- left.expressionType(executionResult)
+      rightType <- right.expressionType(executionResult)
+      leftString <- leftValue
+        .map(leftType.defaultFormatter.stringFormat(left, _, executionResult))
+        .getOrElse(Success(leftType.defaultFormatter.missingValueString(left)))
+      rightString <- rightValue
+        .map(rightType.defaultFormatter.stringFormat(right, _, executionResult))
+        .getOrElse(
+          Success(rightType.defaultFormatter.missingValueString(right))
+        )
+    } yield Some(OpenlawString(leftString + rightString))
 
   override def divide(
-      optLeft: Option[OpenlawValue],
-      optRight: Option[OpenlawValue],
+      left: Expression,
+      right: Expression,
       executionResult: TemplateExecutionResult
   ): Result[Option[TemplatePath]] = {
-    optRight match {
-      case Some(_: TemplatePath) =>
-        combineConverted[OpenlawString, TemplatePath, TemplatePath](
-          optLeft,
-          optRight
-        ) {
-          case (left, right) => Success(TemplatePath(left :: right.path))
-        }
-      case _ =>
-        combineConverted[OpenlawString, TemplatePath](optLeft, optRight) {
-          case (left, right) => Success(TemplatePath(List(left, right)))
-        }
-    }
-
+    for {
+      leftValue <- left.evaluate(executionResult)
+      rightValue <- right.evaluate(executionResult)
+      leftType <- left.expressionType(executionResult)
+      rightType <- right.expressionType(executionResult)
+      leftPath <- leftValue match {
+        case Some(path: TemplatePath) =>
+          Success(path)
+        case Some(str: OpenlawString) =>
+          Success(TemplatePath(List(str.underlying)))
+        case Some(otherValue) =>
+          leftType.defaultFormatter
+            .stringFormat(left, otherValue, executionResult)
+            .map(str => TemplatePath(List(str)))
+        case None =>
+          Success(
+            TemplatePath(
+              List(leftType.defaultFormatter.missingValueString(left))
+            )
+          )
+      }
+      result <- rightValue match {
+        case Some(path: TemplatePath) =>
+          Success(Some(TemplatePath(leftPath.path ++ path.path)))
+        case Some(other) =>
+          rightType.defaultFormatter
+            .stringFormat(right, other, executionResult)
+            .map(str => Some(TemplatePath(leftPath.path ++ List(str))))
+        case None =>
+          Success(
+            Some(
+              TemplatePath(
+                leftPath.path ++ List(
+                  rightType.defaultFormatter.missingValueString(right)
+                )
+              )
+            )
+          )
+      }
+    } yield result
   }
 
   override def operationWith(

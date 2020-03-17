@@ -1,7 +1,5 @@
 package org.adridadou.openlaw.parser.template
 
-import java.time.Clock
-
 import org.adridadou.openlaw.parser.template.variableTypes.{
   LargeTextType,
   TemplateType,
@@ -17,8 +15,7 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
   * Created by davidroon on 05.06.16.
   */
 class OpenlawTemplateLanguageParser(
-    val input: ParserInput,
-    internalClock: Clock
+    val input: ParserInput
 ) extends Parser
     with BlockRules {
 
@@ -72,9 +69,9 @@ class OpenlawTemplateLanguageParser(
       block: Block
   ): CompiledTemplate =
     if (isDeal(block)) {
-      CompiledDeal(header = header, block = block, clock = internalClock)
+      CompiledDeal(header = header, block = block)
     } else {
-      CompiledAgreement(header = header, block = block, clock = internalClock)
+      CompiledAgreement(header = header, block = block)
     }
 
   private def isDeal(block: Block): Boolean =
