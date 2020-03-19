@@ -637,10 +637,10 @@ object VariableType {
       cursor: HCursor,
       name: String
   ): Decoder.Result[VariableType] =
-    DefinedStructureType.definedStructureTypeDec(cursor) orElse DefinedChoiceType
-      .definedChoiceTypeDec(cursor) orElse Left(
-      DecodingFailure(s"unknown type $name. or error while decoding", Nil)
-    )
+    DefinedDomainType.definedDomainTypeDec(cursor) orElse
+      DefinedStructureType.definedStructureTypeDec(cursor) orElse
+      DefinedChoiceType.definedChoiceTypeDec(cursor) orElse
+      Left(DecodingFailure(s"unknown type $name. or error while decoding", Nil))
 
 }
 
