@@ -625,48 +625,23 @@ object VariableType {
     a.serialize
 
   implicit val variableTypeDec: Decoder[VariableType] = (c: HCursor) =>
-    c.downField("name")
-      .as[String]
-      .flatMap(name =>
-        VariableType.allTypesMap.get(name) match {
-          case Some(varType) => Right(varType)
-          case None          => createCustomType(c, name)
-        }
-      )
+    for {
+      name <- c.downField("name").as[String]
+      result <- VariableType.allTypesMap.get(name) match {
+        case Some(varType) => Right(varType)
+        case None          => createCustomType(c, name)
+      }
+    } yield result
 
   private def createCustomType(
       cursor: HCursor,
       name: String
-  ): Decoder.Result[VariableType] = {
-    DefinedStructureType.definedStructureTypeDec(cursor) match {
-      case Right(value) => Right(value)
-      case Left(_) =>
-        DefinedChoiceType.definedChoiceTypeDec(cursor) match {
-          case Right(value) => Right(value)
-          case Left(_) =>
-            Left(
-              DecodingFailure(
-                s"unknown type $name. or error while decoding",
-                Nil
-              )
-            )
-        }
-    }
-    DefinedDomainType.definedDomainTypeDec(cursor) match {
-      case Right(value) => Right(value)
-      case Left(_) =>
-        DefinedChoiceType.definedChoiceTypeDec(cursor) match {
-          case Right(value) => Right(value)
-          case Left(_) =>
-            Left(
-              DecodingFailure(
-                s"unknown type $name. or error while decoding",
-                Nil
-              )
-            )
-        }
-    }
-  }
+  ): Decoder.Result[VariableType] =
+    DefinedDomainType.definedDomainTypeDec(cursor) orElse
+      DefinedStructureType.definedStructureTypeDec(cursor) orElse
+      DefinedChoiceType.definedChoiceTypeDec(cursor) orElse
+      Left(DecodingFailure(s"unknown type $name. or error while decoding", Nil))
+
 }
 
 object LocalDateTimeHelper {

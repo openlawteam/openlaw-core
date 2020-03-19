@@ -119,12 +119,11 @@ object DefinedStructureType {
 final case class DefinedStructureType(structure: Structure, typeName: String)
     extends VariableType(name = typeName) {
 
-  override def serialize: Json = {
+  override def serialize: Json =
     Json.obj(
       "name" -> Json.fromString(typeName),
       "structure" -> structure.asJson
     )
-  }
 
   override def defaultFormatter: Formatter = new NoopFormatter
 
