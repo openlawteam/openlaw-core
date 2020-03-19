@@ -16,6 +16,8 @@ import org.scalatest.EitherValues._
 import org.scalatest.OptionValues._
 import play.api.libs.json.Json
 import org.adridadou.openlaw.{OpenlawMap, _}
+import io.circe.syntax._
+import io.circe.parser._
 
 class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
@@ -3006,6 +3008,16 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     parser.forReview(executionResult.agreements.head)
 
     val renderTime = System.currentTimeMillis()
+
+    val json = executionResult.toSerializable.asJson.noSpaces
+
+    decode[SerializableTemplateExecutionResult](json) match {
+      case Right(ser) =>
+        println("***** all good")
+      case Left(err) =>
+        err.printStackTrace()
+        fail(err.getMessage)
+    }
 
     println(s"compilation time: ${compileTime - startTime}ms")
     println(s"execution time: ${executionTime - compileTime}ms")

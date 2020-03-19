@@ -591,15 +591,15 @@ trait TemplateExecutionResult {
     validateGlobalValidation combine validateDomainTypeVariables combine validateDomainTypeExpressions
 
   def getExecutedVariables: List[VariableName] = {
-    val variableNames = getAllVariableNames
+    val variableNames = getAllVariableNames.toSet
     getAllExecutedVariables
-      .filter({ case (_, variable) => variableNames.contains(variable) })
+      .filter({ case (_, name) => variableNames.contains(name) })
       .map({ case (_, name) => name })
       .distinct
   }
 
   def getAllExecutionResults: List[TemplateExecutionResult] =
-    subExecutions.values.flatMap(_.getAllExecutionResults).toList ++ List(this)
+    this :: subExecutions.values.flatMap(_.getAllExecutionResults).toList
 
   def toExecutionState: OpenlawExecutionState
 
@@ -958,83 +958,74 @@ final case class OpenlawExecutionState(
           }
       })
 
-    val identities = variables
-      .filter({
-        case (result, variable) =>
-          variable.varType(result) match {
-            case IdentityType          => true
-            case ExternalSignatureType => true
-            case collectionType: CollectionType
-                if IdentityType.identityTypes
-                  .contains(collectionType.typeParameter) =>
-              true
-            case structureType: DefinedStructureType
-                if structureType.structure.typeDefinition.values.exists(s =>
-                  IdentityType.identityTypes.contains(s.varType(this))
-                ) =>
-              true
-            case domainType: DefinedDomainType
-                if domainType.domain.typeDefinition === IdentityType =>
-              true
-            case _ => false
-          }
-      })
-      .map({ case (_, variable) => variable })
+    val identities = variables.filter({
+      case (result, variable) =>
+        variable.varType(result) match {
+          case IdentityType          => true
+          case ExternalSignatureType => true
+          case collectionType: CollectionType
+              if IdentityType.identityTypes
+                .contains(collectionType.typeParameter) =>
+            true
+          case structureType: DefinedStructureType
+              if structureType.structure.typeDefinition.values.exists(s =>
+                IdentityType.identityTypes.contains(s.varType(this))
+              ) =>
+            true
+          case domainType: DefinedDomainType
+              if IdentityType.identityTypes
+                .contains(domainType.domain.typeDefinition) =>
+            true
+          case _ =>
+            false
+        }
+    })
 
-    val missingIdentitiesResult = {
-      variables.map {
-        case (result, variable) =>
-          variable.varType(result) match {
-            case IdentityType =>
-              Success(resultFromMissingInput(variable.missingInput(result)))
-            case ExternalSignatureType =>
-              Success(resultFromMissingInput(variable.missingInput(result)))
+    val missingIdentitiesResult = identities.map {
+      case (result, variable) =>
+        variable.varType(result) match {
+          case IdentityType =>
+            Success(resultFromMissingInput(variable.missingInput(result)))
+          case ExternalSignatureType =>
+            Success(resultFromMissingInput(variable.missingInput(result)))
 
-            case collectionType: CollectionType
-                if IdentityType.identityTypes.contains(
-                  collectionType.typeParameter
-                ) =>
-              result.getVariableValue[CollectionValue](variable.name).map {
-                case Some(value) if value.size =!= value.values.size =>
-                  (List(variable.name), Nil)
-                case Some(_) =>
+          case _: CollectionType =>
+            result.getVariableValue[CollectionValue](variable.name).map {
+              case Some(value) if value.size =!= value.values.size =>
+                (List(variable.name), Nil)
+              case Some(_) =>
+                (Nil, Nil)
+              case None =>
+                (List(variable.name), Nil)
+            }
+
+          case structureType: DefinedStructureType =>
+            result
+              .getVariableValue[OpenlawMap[VariableName, OpenlawValue]](
+                variable.name
+              )
+              .map { values =>
+                val identityProperties =
+                  structureType.structure.typeDefinition
+                    .filter({
+                      case (_, propertyType) =>
+                        IdentityType.identityTypes
+                          .contains(propertyType.varType(this))
+                    })
+                    .map({ case (propertyName, _) => propertyName })
+
+                if (identityProperties.forall(
+                      values.getOrElse(Map.empty).contains
+                    )) {
                   (Nil, Nil)
-                case None =>
+                } else {
                   (List(variable.name), Nil)
-              }
-
-            case structureType: DefinedStructureType
-                if structureType.structure.typeDefinition.values.exists(s =>
-                  IdentityType.identityTypes.contains(s.varType(this))
-                ) =>
-              result
-                .getVariableValue[OpenlawMap[VariableName, OpenlawValue]](
-                  variable.name
-                )
-                .map { values =>
-                  val identityProperties =
-                    structureType.structure.typeDefinition
-                      .filter({
-                        case (_, propertyType) =>
-                          IdentityType.identityTypes
-                            .contains(propertyType.varType(this))
-                      })
-                      .map({ case (propertyName, _) => propertyName })
-                      .toSeq
-
-                  if (identityProperties.forall(
-                        values.getOrElse(Map.empty).contains
-                      )) {
-                    (Nil, Nil)
-                  } else {
-                    (List(variable.name), Nil)
-                  }
                 }
-            case _ =>
-              Success((Nil, Nil))
-          }
-      }.sequence
-    }
+              }
+          case _ =>
+            Success((Nil, Nil))
+        }
+    }.sequence
 
     missingIdentitiesResult.map { missingIdentitiesValue =>
       val identitiesErrors = missingIdentitiesValue.flatMap({
@@ -1052,7 +1043,7 @@ final case class OpenlawExecutionState(
         validate.leftMap(nel => nel.map(_.message).toList).swap.getOrElse(Nil)
 
       ValidationResult(
-        identities = identities,
+        identities = identities.map({ case (_, variable) => variable }),
         missingInputs = missingInputs,
         missingIdentities = missingIdentities,
         validationExpressionErrors = validationErrors ++ additionalErrors ++ identitiesErrors
