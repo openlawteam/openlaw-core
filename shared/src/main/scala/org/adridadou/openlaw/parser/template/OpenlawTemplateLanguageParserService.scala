@@ -256,10 +256,10 @@ class OpenlawTemplateLanguageParserService {
 
   private def hasContent(paragraph: Paragraph): Boolean =
     paragraph.elements.exists({
-      case _: FreeText        => true
-      case _: VariableElement => true
-      case _: SectionElement  => true
-      case _                  => false
+      case FreeText(Text(t)) if !t.trim.isEmpty => true
+      case _: VariableElement                   => true
+      case _: SectionElement                    => true
+      case _                                    => false
     })
 
   private def renderElement[T](
