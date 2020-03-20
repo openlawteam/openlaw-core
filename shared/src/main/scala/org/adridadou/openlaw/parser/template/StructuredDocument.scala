@@ -654,6 +654,127 @@ trait TemplateExecutionResult {
           r
         }
     }
+
+  def validateExecution: Result[ValidationResult] = {
+    val variables = getAllExecutedVariables
+      .flatMap({
+        case (result, name) =>
+          result.getVariable(name).map(variable => (result, variable))
+      })
+      .filter({
+        case (result, variable) =>
+          variable.varType(result) match {
+            case _: NoShowInForm => false
+            case _               => true
+          }
+      })
+
+    val identities = variables.filter({
+      case (result, variable) =>
+        variable.varType(result) match {
+          case IdentityType          => true
+          case ExternalSignatureType => true
+          case collectionType: CollectionType
+              if IdentityType.identityTypes
+                .contains(collectionType.typeParameter) =>
+            true
+          case structureType: DefinedStructureType
+              if structureType.structure.typeDefinition.values.exists(s =>
+                IdentityType.identityTypes.contains(s.varType(this))
+              ) =>
+            true
+          case domainType: DefinedDomainType
+              if IdentityType.identityTypes
+                .contains(domainType.domain.typeDefinition) =>
+            true
+          case _ =>
+            false
+        }
+    })
+
+    val missingIdentitiesResult = identities.map {
+      case (result, variable) =>
+        variable.varType(result) match {
+          case IdentityType =>
+            Success(resultFromMissingInput(variable.missingInput(result)))
+          case ExternalSignatureType =>
+            Success(resultFromMissingInput(variable.missingInput(result)))
+
+          case _: CollectionType =>
+            result.getVariableValue[CollectionValue](variable.name).map {
+              case Some(value) if value.size =!= value.values.size =>
+                (List(variable.name), Nil)
+              case Some(_) =>
+                (Nil, Nil)
+              case None =>
+                (List(variable.name), Nil)
+            }
+
+          case structureType: DefinedStructureType =>
+            result
+              .getVariableValue[OpenlawMap[VariableName, OpenlawValue]](
+                variable.name
+              )
+              .map { values =>
+                val identityProperties =
+                  structureType.structure.typeDefinition
+                    .filter({
+                      case (_, propertyType) =>
+                        IdentityType.identityTypes
+                          .contains(propertyType.varType(this))
+                    })
+                    .map({ case (propertyName, _) => propertyName })
+
+                if (identityProperties.forall(
+                      values.getOrElse(Map.empty).contains
+                    )) {
+                  (Nil, Nil)
+                } else {
+                  (List(variable.name), Nil)
+                }
+              }
+          case _ =>
+            Success((Nil, Nil))
+        }
+    }.sequence
+
+    missingIdentitiesResult.map { missingIdentitiesValue =>
+      val identitiesErrors = missingIdentitiesValue.flatMap({
+        case (_, errors) => errors
+      })
+
+      val missingIdentities = missingIdentitiesValue.flatMap({
+        case (values, _) => values
+      })
+
+      val (missingInputs, additionalErrors) =
+        resultFromMissingInput(allMissingInput)
+
+      val validationErrors =
+        validate.leftMap(nel => nel.map(_.message).toList).swap.getOrElse(Nil)
+
+      ValidationResult(
+        identities = identities.map({ case (_, variable) => variable }),
+        missingInputs = missingInputs,
+        missingIdentities = missingIdentities,
+        validationExpressionErrors = validationErrors ++ additionalErrors ++ identitiesErrors
+      )
+    }
+  }
+
+  def allMissingInput: Result[List[VariableName]] = {
+    val missingInputs = getAllExecutedVariables
+      .map({ case (result, variable) => variable.missingInput(result) })
+
+    missingInputs.sequence.map(_.flatten.distinct)
+  }
+
+  def resultFromMissingInput(
+      seq: Result[List[VariableName]]
+  ): (List[VariableName], List[String]) = seq match {
+    case Success(inputs)     => (inputs, Nil)
+    case Failure(_, message) => (Nil, List(message))
+  }
 }
 
 object SerializableTemplateExecutionResult {
@@ -944,113 +1065,6 @@ final case class OpenlawExecutionState(
 
   def executionLevel: Int = executionLevel(parentExecution, 0)
 
-  def validateExecution: Result[ValidationResult] = {
-    val variables = getAllExecutedVariables
-      .flatMap({
-        case (result, name) =>
-          result.getVariable(name).map(variable => (result, variable))
-      })
-      .filter({
-        case (result, variable) =>
-          variable.varType(result) match {
-            case _: NoShowInForm => false
-            case _               => true
-          }
-      })
-
-    val identities = variables.filter({
-      case (result, variable) =>
-        variable.varType(result) match {
-          case IdentityType          => true
-          case ExternalSignatureType => true
-          case collectionType: CollectionType
-              if IdentityType.identityTypes
-                .contains(collectionType.typeParameter) =>
-            true
-          case structureType: DefinedStructureType
-              if structureType.structure.typeDefinition.values.exists(s =>
-                IdentityType.identityTypes.contains(s.varType(this))
-              ) =>
-            true
-          case domainType: DefinedDomainType
-              if IdentityType.identityTypes
-                .contains(domainType.domain.typeDefinition) =>
-            true
-          case _ =>
-            false
-        }
-    })
-
-    val missingIdentitiesResult = identities.map {
-      case (result, variable) =>
-        variable.varType(result) match {
-          case IdentityType =>
-            Success(resultFromMissingInput(variable.missingInput(result)))
-          case ExternalSignatureType =>
-            Success(resultFromMissingInput(variable.missingInput(result)))
-
-          case _: CollectionType =>
-            result.getVariableValue[CollectionValue](variable.name).map {
-              case Some(value) if value.size =!= value.values.size =>
-                (List(variable.name), Nil)
-              case Some(_) =>
-                (Nil, Nil)
-              case None =>
-                (List(variable.name), Nil)
-            }
-
-          case structureType: DefinedStructureType =>
-            result
-              .getVariableValue[OpenlawMap[VariableName, OpenlawValue]](
-                variable.name
-              )
-              .map { values =>
-                val identityProperties =
-                  structureType.structure.typeDefinition
-                    .filter({
-                      case (_, propertyType) =>
-                        IdentityType.identityTypes
-                          .contains(propertyType.varType(this))
-                    })
-                    .map({ case (propertyName, _) => propertyName })
-
-                if (identityProperties.forall(
-                      values.getOrElse(Map.empty).contains
-                    )) {
-                  (Nil, Nil)
-                } else {
-                  (List(variable.name), Nil)
-                }
-              }
-          case _ =>
-            Success((Nil, Nil))
-        }
-    }.sequence
-
-    missingIdentitiesResult.map { missingIdentitiesValue =>
-      val identitiesErrors = missingIdentitiesValue.flatMap({
-        case (_, errors) => errors
-      })
-
-      val missingIdentities = missingIdentitiesValue.flatMap({
-        case (values, _) => values
-      })
-
-      val (missingInputs, additionalErrors) =
-        resultFromMissingInput(allMissingInput)
-
-      val validationErrors =
-        validate.leftMap(nel => nel.map(_.message).toList).swap.getOrElse(Nil)
-
-      ValidationResult(
-        identities = identities.map({ case (_, variable) => variable }),
-        missingInputs = missingInputs,
-        missingIdentities = missingIdentities,
-        validationExpressionErrors = validationErrors ++ additionalErrors ++ identitiesErrors
-      )
-    }
-  }
-
   def toSerializable: SerializableTemplateExecutionResult = {
     val templateExecutions =
       getSubExecutions.map(e => e.id -> e.toSerializable).toMap
@@ -1088,25 +1102,11 @@ final case class OpenlawExecutionState(
   private def getSubExecutions: List[OpenlawExecutionState] =
     subExecutionsInternal.values.toList
 
-  private def resultFromMissingInput(
-      seq: Result[List[VariableName]]
-  ): (List[VariableName], List[String]) = seq match {
-    case Success(inputs)     => (inputs, Nil)
-    case Failure(_, message) => (Nil, List(message))
-  }
-
   private def executionLevel(
       parent: Option[TemplateExecutionResult],
       acc: Int
   ): Int =
     parent.map(p => executionLevel(p.parentExecution, acc + 1)).getOrElse(acc)
-
-  def allMissingInput: Result[List[VariableName]] = {
-    val missingInputs = getAllExecutedVariables
-      .map({ case (result, variable) => variable.missingInput(result) })
-
-    missingInputs.sequence.map(_.flatten.distinct)
-  }
 
   def registerNewType(
       variableType: VariableType

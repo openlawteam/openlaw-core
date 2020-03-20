@@ -2136,7 +2136,6 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     val fromDate = Instant.now()
     val toDate = Instant
       .now()
-      .plus(9, ChronoUnit.DAYS)
       .plus(2, ChronoUnit.HOURS)
       .plus(45, ChronoUnit.MINUTES)
 
@@ -2154,7 +2153,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
     val period = VariableName("period").evaluateT[Period](result).getOrThrow()
     period shouldBe Some(
-      variableTypes.Period(weeks = 1, days = 2, hours = 2, minutes = 45)
+      variableTypes.Period(hours = 2, minutes = 45)
     )
 
     // flip date order - should not matter
