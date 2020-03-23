@@ -60,6 +60,7 @@ trait TemplateExecutionResult {
   def executions: Map[ActionIdentifier, Executions]
   def info: OLInformation
   def externalCallStructures: Map[ServiceName, IntegratedServiceDefinition]
+  def toSerializable: SerializableTemplateExecutionResult
 
   def evaluate[T](
       variableName: VariableName
@@ -770,8 +771,8 @@ trait TemplateExecutionResult {
   }
 
   def resultFromMissingInput(
-      seq: Result[List[VariableName]]
-  ): (List[VariableName], List[String]) = seq match {
+      lst: Result[List[VariableName]]
+  ): (List[VariableName], List[String]) = lst match {
     case Success(inputs)     => (inputs, Nil)
     case Failure(_, message) => (Nil, List(message))
   }
@@ -813,6 +814,7 @@ final case class SerializableTemplateExecutionResult(
     externalCallStructures: Map[ServiceName, IntegratedServiceDefinition]
 ) extends TemplateExecutionResult {
 
+  override def toSerializable: SerializableTemplateExecutionResult = this
   override def findVariable(
       name: VariableName
   ): Option[
@@ -1066,18 +1068,22 @@ final case class OpenlawExecutionState(
   def executionLevel: Int = executionLevel(parentExecution, 0)
 
   def toSerializable: SerializableTemplateExecutionResult = {
+
     val templateExecutions =
-      getSubExecutions.map(e => e.id -> e.toSerializable).toMap
+      getSubExecutions
+        .map(e => e.id -> e.toSerializable)
+        .toMap
+
     val subExecutionIds = subExecutions.map({
       case (name, execution) => name -> execution.id
     })
 
-    SerializableTemplateExecutionResult(
+    val current = SerializableTemplateExecutionResult(
       id = id,
       info = info,
       templateDefinition = templateDefinition,
       subExecutionIds = subExecutionIds,
-      templateExecutions = templateExecutions,
+      templateExecutions = Map.empty,
       executions = executions,
       agreements = agreements,
       variableSectionList = variableSectionList,
@@ -1097,6 +1103,13 @@ final case class OpenlawExecutionState(
       processedSections = processedSections,
       externalCallStructures = externalCallStructures
     )
+
+    val allTemplateExecutions = templateExecutions + (id -> current)
+
+    current.copy(templateExecutions = allTemplateExecutions.map({
+      case (id, executionResult) =>
+        id -> executionResult.copy(templateExecutions = allTemplateExecutions)
+    }))
   }
 
   private def getSubExecutions: List[OpenlawExecutionState] =

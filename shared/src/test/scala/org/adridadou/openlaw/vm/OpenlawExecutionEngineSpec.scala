@@ -142,7 +142,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
             TemplateSourceIdentifier(TemplateTitle("another Template")) -> otherCompiledTemplate
           )
         ) match {
-          case Right(newResult) =>
+          case Success(newResult) =>
             newResult.state shouldBe ExecutionFinished
             newResult.parentExecution.isDefined shouldBe false
             newResult.subExecutions.size shouldBe 1
@@ -152,9 +152,17 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
               .map(_.name.name) shouldBe List("My Variable 2")
             newResult.agreements.size shouldBe 1
 
+            val jsonResult = newResult.toSerializable.asJson.noSpaces
+
+            val validation =
+              decode[SerializableTemplateExecutionResult](jsonResult).right.value.validateExecution
+                .getOrThrow()
+
+            println(" *********" + validation.missingInputs)
+
             parser.forReview(newResult.agreements.head) shouldBe """<p class="no-section">it is just another template hello</p>"""
-          case Left(ex) =>
-            fail(ex)
+          case Failure(ex, message) =>
+            fail(message, ex)
         }
 
       case Left(ex) =>
@@ -3012,7 +3020,6 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
     decode[SerializableTemplateExecutionResult](json) match {
       case Right(ser) =>
-        println("***** all good")
       case Left(err) =>
         err.printStackTrace()
         fail(err.getMessage)
