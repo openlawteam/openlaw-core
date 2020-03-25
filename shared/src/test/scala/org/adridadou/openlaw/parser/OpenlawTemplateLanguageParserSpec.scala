@@ -1586,7 +1586,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
     )
   }
 
-  it should "not highlist identity variables" in {
+  it should "not highlight identity variables" in {
     val text =
       """
         |[[Id: Identity]]
@@ -2419,13 +2419,14 @@ here""".stripMargin
 
     executeTemplate(text) match {
       case Success(executionResult) =>
-        val Success(validationResult) = executionResult.validateExecution
-        validationResult.missingIdentities shouldBe Seq(
+        val Success(validationResult) =
+          executionResult.toSerializable.validateExecution
+        validationResult.missingIdentities shouldBe List(
           VariableName("Signatory")
         )
-        validationResult.missingInputs shouldBe Seq(VariableName("Signatory"))
-        executionResult.allMissingInput shouldBe Right(
-          Seq(VariableName("Signatory"))
+        validationResult.missingInputs shouldBe List(VariableName("Signatory"))
+        executionResult.toSerializable.allMissingInput shouldBe Success(
+          List(VariableName("Signatory"))
         )
       case Failure(ex, message) =>
         fail(message, ex)

@@ -15,7 +15,7 @@ class ExpressionParserService() {
       case scala.util.Failure(parseError: ParseError) =>
         Failure(
           compiler
-            .formatError(parseError, new ErrorFormatter(showTraces = true))
+            .formatError(parseError)
         )
       case scala.util.Failure(ex)     => Failure(ex.getMessage)
       case scala.util.Success(result) => Success(result)
