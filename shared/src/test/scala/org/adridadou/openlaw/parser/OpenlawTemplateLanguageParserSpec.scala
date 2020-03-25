@@ -399,6 +399,21 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
     resultShouldBe(result, text2)
   }
 
+  it should "break the page with a pagebreak tag" in {
+    val text =
+      """some text
+        |
+        |\pagebreak
+        |
+        |more text""".stripMargin
+
+    val text2 =
+      """<div class="openlaw-paragraph paragraph-1"><p class="no-section">some text</p></div><div class="openlaw-paragraph paragraph-2"><p class="no-section"><hr class="pagebreak" /></p></div><div class="openlaw-paragraph paragraph-3"><p class="no-section"><br />more text</p></div>"""
+
+    val result = forPreview(text)
+    resultShouldBe(result, text2)
+  }
+
   it should "close li elements properly" in {
     val text =
       """[[Id:Identity]]
