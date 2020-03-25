@@ -158,8 +158,6 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
               decode[SerializableTemplateExecutionResult](jsonResult).right.value.validateExecution
                 .getOrThrow()
 
-            println(" *********" + validation.missingInputs)
-
             parser.forReview(newResult.agreements.head) shouldBe """<p class="no-section">it is just another template hello</p>"""
           case Failure(ex, message) =>
             fail(message, ex)
