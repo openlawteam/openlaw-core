@@ -780,9 +780,56 @@ trait TemplateExecutionResult {
 
 object SerializableTemplateExecutionResult {
   implicit val serializableTemplateExecutionResultEnc
-      : Encoder[SerializableTemplateExecutionResult] = deriveEncoder
+      : Encoder[SerializableTemplateExecutionResult] =
+    (a: SerializableTemplateExecutionResult) =>
+      Json.obj(
+        "templateExecutions" -> a.templateExecutions
+          .map({
+            case (id, executionResult) =>
+              id.id -> encodeNoDependencies(executionResult)
+          })
+          .asJson,
+        "executionResult" -> encodeNoDependencies(a)
+      )
+
+  private val derivedEncoder =
+    deriveEncoder[SerializableTemplateExecutionResult]
+  private val derivedDecoder =
+    deriveDecoder[SerializableTemplateExecutionResult]
+
+  private def encodeNoDependencies(
+      executionResult: SerializableTemplateExecutionResult
+  ): Json =
+    derivedEncoder(executionResult.copy(templateExecutions = Map.empty))
+
   implicit val serializableTemplateExecutionResultDec
-      : Decoder[SerializableTemplateExecutionResult] = deriveDecoder
+      : Decoder[SerializableTemplateExecutionResult] = (c: HCursor) =>
+    for {
+      mainExecutionResultJson <- c.downField("executionResult").as[Json]
+      mainExecutionResult <- derivedDecoder(mainExecutionResultJson.hcursor)
+      templateExecutionsJson <- c
+        .downField("templateExecutions")
+        .as[Map[TemplateExecutionResultId, Json]]
+      templateExecutions <- templateExecutionsJson
+        .map({ case (id, json) => derivedDecoder(json.hcursor).map(id -> _) })
+        .toList
+        .sequence
+    } yield {
+      val templateExecutionsMap = templateExecutions.toMap
+
+      val allTemplateExecutions = templateExecutionsMap + (mainExecutionResult.id -> mainExecutionResult)
+
+      val allTemplateExecutions2 = allTemplateExecutions.map({
+        case (id, e) => id -> e.copy(templateExecutions = allTemplateExecutions)
+      })
+
+      mainExecutionResult.copy(templateExecutions = allTemplateExecutions.map({
+        case (id, executionResult) =>
+          id -> executionResult.copy(templateExecutions = allTemplateExecutions2
+          )
+      }))
+    }
+
   implicit val serializableTemplateExecutionResultEq
       : Eq[SerializableTemplateExecutionResult] = Eq.fromUniversalEquals
 }
@@ -1067,30 +1114,25 @@ final case class OpenlawExecutionState(
 
   def executionLevel: Int = executionLevel(parentExecution, 0)
 
-  def toSerializable: SerializableTemplateExecutionResult = {
-
-    val templateExecutions =
-      getSubExecutions
-        .map(e => e.id -> e.toSerializable)
-        .toMap
+  def toSerializableInternal: SerializableTemplateExecutionResult = {
 
     val subExecutionIds = subExecutions.map({
       case (name, execution) => name -> execution.id
     })
 
-    val current = SerializableTemplateExecutionResult(
+    SerializableTemplateExecutionResult(
       id = id,
       info = info,
       templateDefinition = templateDefinition,
       subExecutionIds = subExecutionIds,
-      templateExecutions = Map.empty,
+      templateExecutions = Map.empty, //will be set later
       executions = executions,
       agreements = agreements,
       variableSectionList = variableSectionList,
       parentExecutionId = parentExecution.map(_.id),
       signatureProofs = signatureProofs,
       variables = variables,
-      executedVariables = executedVariables,
+      executedVariables = executedVariablesInternal.distinct.toList,
       mapping = mapping,
       aliases = aliases,
       sectionNameMappingInverse = sectionNameMappingInverse,
@@ -1103,17 +1145,30 @@ final case class OpenlawExecutionState(
       processedSections = processedSections,
       externalCallStructures = externalCallStructures
     )
+  }
 
+  def toSerializable: SerializableTemplateExecutionResult = {
+
+    val templateExecutions =
+      getSubExecutions
+        .map(e => e.id -> e.toSerializableInternal)
+        .toMap
+
+    val current = toSerializableInternal
     val allTemplateExecutions = templateExecutions + (id -> current)
+
+    val allTemplateExecutions2 = allTemplateExecutions.map({
+      case (id, e) => id -> e.copy(templateExecutions = allTemplateExecutions)
+    })
 
     current.copy(templateExecutions = allTemplateExecutions.map({
       case (id, executionResult) =>
-        id -> executionResult.copy(templateExecutions = allTemplateExecutions)
+        id -> executionResult.copy(templateExecutions = allTemplateExecutions2)
     }))
   }
 
   private def getSubExecutions: List[OpenlawExecutionState] =
-    subExecutionsInternal.values.toList
+    subExecutionsInternal.values.flatMap(e => e :: e.getSubExecutions).toList
 
   private def executionLevel(
       parent: Option[TemplateExecutionResult],
@@ -1317,7 +1372,7 @@ final case class OpenlawExecutionState(
 
   def buildStructure(
       typeDefinition: Map[VariableName, VariableDefinition]
-  ): Structure = {
+  ): Structure =
     Structure(
       typeDefinition = typeDefinition,
       names = typeDefinition.keys.toList,
@@ -1325,7 +1380,6 @@ final case class OpenlawExecutionState(
         case (name, variable) => name -> variable.varType(this)
       })
     )
-  }
 }
 
 final case class StructuredAgreementId(id: String)
