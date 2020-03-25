@@ -21,7 +21,7 @@ trait MarkdownRules extends GlobalRules {
   }
 
   def pageBreak: Rule1[Seq[TextElement]] = rule {
-    capture(pagebreak) ~ "\n" ~> ((_: String) => Seq(PageBreak))
+    capture(pagebreak) ~> ((_: String) => Seq(PageBreak))
   }
 
   def sectionBreak: Rule1[Seq[TextElement]] = rule {
