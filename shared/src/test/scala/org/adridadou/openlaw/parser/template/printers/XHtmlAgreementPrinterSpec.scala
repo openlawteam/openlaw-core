@@ -95,7 +95,7 @@ class XHtmlAgreementPrinterSpec
     val html = XHtmlAgreementPrinter(false)
       .printParagraphs(agreement.right.value.paragraphs)
       .print
-    html shouldBe """<p class="no-section align-right"> <strong>[[Company Name]]</strong></p>"""
+    html shouldBe """<p class="no-section align-right"><strong>[[Company Name]]</strong></p>"""
   }
 
   it should "handle right aligned underlined section" in {
@@ -104,7 +104,7 @@ class XHtmlAgreementPrinterSpec
     val html = XHtmlAgreementPrinter(false)
       .printParagraphs(agreement.right.value.paragraphs)
       .print
-    html shouldBe """<p class="no-section align-right"> <u>[[Company Name]]</u></p>"""
+    html shouldBe """<p class="no-section align-right"><u>[[Company Name]]</u></p>"""
   }
 
   it should "handle right 3/4 aligned section" in {
@@ -113,7 +113,7 @@ class XHtmlAgreementPrinterSpec
     val html = XHtmlAgreementPrinter(false)
       .printParagraphs(agreement.right.value.paragraphs)
       .print
-    html shouldBe """<p class="no-section align-right-three-quarters"> <strong>[[Company Name]]</strong></p>"""
+    html shouldBe """<p class="no-section align-right-three-quarters"><strong>[[Company Name]]</strong></p>"""
   }
 
   it should "handle agreements with multiple centered sections" in {
@@ -133,7 +133,7 @@ class XHtmlAgreementPrinterSpec
     val html = XHtmlAgreementPrinter(false)
       .printParagraphs(agreement.right.value.paragraphs)
       .print
-    html shouldBe """<p class="no-section align-center"> <strong>BYLAWS</strong><br /> <strong>OF</strong><br /> <strong>[[Company Name]]</strong><br /> (A DELAWARE CORPORATION)<br /></p><ul class="list-lvl-1"><li><p>1.  <strong>Offices</strong></p><ul class="list-lvl-2"><li><p>(a)  <strong>Registered Office</strong>.  The registered office of the corporation in the State of Delaware shall be [[Registered Agent Address]], and the name of the registered agent of the corporation in the State of Delaware at such address is [[Registered Agent Name]].<br /></p></li></ul></li></ul>"""
+    html shouldBe """<p class="no-section align-center"><strong>BYLAWS</strong><br /><strong>OF</strong><br /><strong>[[Company Name]]</strong><br />(A DELAWARE CORPORATION)<br /></p><ul class="list-lvl-1"><li><p>1.  <strong>Offices</strong></p><ul class="list-lvl-2"><li><p>(a)  <strong>Registered Office</strong>.  The registered office of the corporation in the State of Delaware shall be [[Registered Agent Address]], and the name of the registered agent of the corporation in the State of Delaware at such address is [[Registered Agent Name]].<br /></p></li></ul></li></ul>"""
 
   }
 

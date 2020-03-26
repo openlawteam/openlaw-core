@@ -2298,8 +2298,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
   it should "handle missing values in a structure" in {
     val template =
-      compile("""
-                 |\centered **Test Agreement - structure**
+      compile("""\centered **Test Agreement - structure**
  |
  |# Structure definition
  |[[Contestant Emergency Contact: Structure(
@@ -2330,7 +2329,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       case Success(result) =>
         result.state shouldBe ExecutionFinished
         val text = parser.forReview(result.agreements.head)
-        text shouldBe "<p class=\"no-section\"><br /> <strong>Test Agreement - structure</strong></p><p class=\"no-section\"># Structure definition<br /></p><p class=\"no-section\"># Structure type var<br /></p><p class=\"no-section\"><strong>Emergency Contact</strong><br />Name: test<br />Age: [[Medical Contact]]<br />DOB: [[Medical Contact]]<br />Address: [[Medical Contact]]</p><p class=\"no-section\"><br />              </p>"
+        text shouldBe "<p class=\"no-section align-center\"><strong>Test Agreement - structure</strong></p><p class=\"no-section\"># Structure definition<br /></p><p class=\"no-section\"># Structure type var<br /></p><p class=\"no-section\"><strong>Emergency Contact</strong><br />Name: test<br />Age: [[Medical Contact]]<br />DOB: [[Medical Contact]]<br />Address: [[Medical Contact]]</p><p class=\"no-section\"><br />              </p>"
       case Failure(_, message) =>
         fail(message)
     }

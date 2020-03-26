@@ -393,7 +393,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
       """.stripMargin
 
     val text2 =
-      """<div class="openlaw-paragraph paragraph-1"><p class="no-section">a small title</p></div><ul class="list-lvl-1"><li><div class="openlaw-paragraph paragraph-2"><p>1. I should have a ul tag.<br /></p></div></li><li><div class="openlaw-paragraph paragraph-3"><p>2. So should I.<br /></p></div></li><li><div class="openlaw-paragraph paragraph-4"><p>3. And I also.<br /></p></div></li></ul><div class="openlaw-paragraph paragraph-5"><p class="no-section"><hr class="section-break" /></p></div><div class="openlaw-paragraph paragraph-6"><p class="no-section"><br />But I should not!<br /><br />    </p></div>"""
+      """<div class="openlaw-paragraph paragraph-1"><p class="no-section">a small title</p></div><ul class="list-lvl-1"><li><div class="openlaw-paragraph paragraph-2"><p>1. I should have a ul tag.<br /></p></div></li><li><div class="openlaw-paragraph paragraph-3"><p>2. So should I.<br /></p></div></li><li><div class="openlaw-paragraph paragraph-4"><p>3. And I also.<br /></p></div></li></ul><div class="openlaw-paragraph paragraph-5"><p class="no-section"><hr class="section-break" /></p></div><div class="openlaw-paragraph paragraph-6"><p class="no-section">But I should not!<br /><br />    </p></div>"""
 
     val result = forPreview(text)
     resultShouldBe(result, text2)
@@ -408,7 +408,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
         |more text""".stripMargin
 
     val text2 =
-      """<div class="openlaw-paragraph paragraph-1"><p class="no-section">some text</p></div><div class="openlaw-paragraph paragraph-2"><p class="no-section"><hr class="pagebreak" /></p></div><div class="openlaw-paragraph paragraph-3"><p class="no-section"><br />more text</p></div>"""
+      """<div class="openlaw-paragraph paragraph-1"><p class="no-section">some text</p></div><div class="openlaw-paragraph paragraph-2"><p class="no-section"><hr class="pagebreak" /></p></div><div class="openlaw-paragraph paragraph-3"><p class="no-section">more text</p></div>"""
 
     val result = forPreview(text)
     resultShouldBe(result, text2)
@@ -1346,11 +1346,34 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
   it should "be able to break pages" in {
     val text =
       """first paragraph of text
-      |\pagebreak
-      |second paragraph of text""".stripMargin
+        |\pagebreak
+        |
+        |second paragraph of text""".stripMargin
     resultShouldBe(
       forReview(text),
       """<p class="no-section">first paragraph of text<br /></p><p class="no-section"><hr class="pagebreak" /></p><p class="no-section">second paragraph of text</p>"""
+    )
+  }
+
+  it should "drop extraneous newlines in pagebreak tag" in {
+    val text =
+      """first paragraph of text
+        |\pagebreak
+        |second paragraph of text""".stripMargin
+    resultShouldBe(
+      forReview(text),
+      """<p class="no-section">first paragraph of text<br /></p><p class="no-section"><hr class="pagebreak" /></p><p class="no-section">second paragraph of text</p>"""
+    )
+  }
+
+  it should "drop extraneous newlines in sectionbreak tag" in {
+    val text =
+      """first paragraph of text
+      |\sectionbreak
+      |second paragraph of text""".stripMargin
+    resultShouldBe(
+      forReview(text),
+      """<p class="no-section">first paragraph of text<br /></p><p class="no-section"><hr class="section-break" /></p><p class="no-section">second paragraph of text</p>"""
     )
   }
 
