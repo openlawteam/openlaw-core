@@ -167,29 +167,39 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   }
 
   def centeredLine: Rule1[TemplateText] = rule {
-    capture(centered) ~> ((_: String) => TemplateText(List(Centered)))
+    capture(centered) ~ optional(ws) ~> (
+        (_: String) => TemplateText(List(Centered))
+    )
   }
 
   def rightLine: Rule1[TemplateText] = rule {
-    capture(right) ~> ((_: String) => TemplateText(List(RightAlign)))
+    capture(right) ~ optional(ws) ~> (
+        (_: String) => TemplateText(List(RightAlign))
+    )
   }
 
   def rightThreeQuartersLine: Rule1[TemplateText] = rule {
-    capture(rightThreeQuarters) ~> (
+    capture(rightThreeQuarters) ~ optional(ws) ~> (
         (_: String) => TemplateText(List(RightThreeQuarters))
     )
   }
 
   def pageBreak: Rule1[TemplateText] = rule {
-    capture(pagebreak) ~ "\n" ~> ((_: String) => TemplateText(List(PageBreak)))
+    capture(pagebreak) ~ optional(ws) ~> (
+        (_: String) => TemplateText(List(PageBreak))
+    )
   }
 
   def sectionBreak: Rule1[TemplateText] = rule {
-    capture(sectionbreak) ~> ((_: String) => TemplateText(List(SectionBreak)))
+    capture(sectionbreak) ~ optional(ws) ~> (
+        (_: String) => TemplateText(List(SectionBreak))
+    )
   }
 
   def indentLine: Rule1[TemplateText] = rule {
-    capture(indent) ~> ((_: String) => TemplateText(List(Indent)))
+    capture(indent) ~ optional(ws) ~> (
+        (_: String) => TemplateText(List(Indent))
+    )
   }
 
   def textPart: Rule1[TemplateText] = rule {

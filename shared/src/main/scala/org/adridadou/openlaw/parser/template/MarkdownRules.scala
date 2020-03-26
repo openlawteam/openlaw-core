@@ -9,27 +9,29 @@ trait MarkdownRules extends GlobalRules {
   }
 
   def centeredLine: Rule1[Seq[TextElement]] = rule {
-    capture(centered) ~> ((_: String) => Seq(Centered))
+    capture(centered) ~ optional(ws) ~> ((_: String) => Seq(Centered))
   }
 
   def rightLine: Rule1[Seq[TextElement]] = rule {
-    capture(right) ~> ((_: String) => Seq(RightAlign))
+    capture(right) ~ optional(ws) ~> ((_: String) => Seq(RightAlign))
   }
 
   def rightThreeQuartersLine: Rule1[Seq[TextElement]] = rule {
-    capture(rightThreeQuarters) ~> ((_: String) => Seq(RightThreeQuarters))
+    capture(rightThreeQuarters) ~ optional(ws) ~> (
+        (_: String) => Seq(RightThreeQuarters)
+    )
   }
 
   def pageBreak: Rule1[Seq[TextElement]] = rule {
-    capture(pagebreak) ~> ((_: String) => Seq(PageBreak))
+    capture(pagebreak) ~ optional(ws) ~> ((_: String) => Seq(PageBreak))
   }
 
   def sectionBreak: Rule1[Seq[TextElement]] = rule {
-    capture(sectionbreak) ~> ((_: String) => Seq(SectionBreak))
+    capture(sectionbreak) ~ optional(ws) ~> ((_: String) => Seq(SectionBreak))
   }
 
   def indentLine: Rule1[Seq[TextElement]] = rule {
-    capture(indent) ~> ((_: String) => Seq(Indent))
+    capture(indent) ~ optional(ws) ~> ((_: String) => Seq(Indent))
   }
 
   def twoStar: Rule0 = rule(strong ~ !twoStar)

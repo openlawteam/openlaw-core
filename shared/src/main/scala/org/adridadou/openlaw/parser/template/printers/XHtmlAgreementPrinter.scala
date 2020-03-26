@@ -334,10 +334,6 @@ final case class XHtmlAgreementPrinter(
             })
 
           case FreeText(t: Text) =>
-            // This might be necessary for some cases, but has not been enabled yet
-            // Consume any following text elements which are only newlines
-            //val remaining = xs.dropWhile(_ === FreeText(Text("\n")))
-
             // Generate text output
             val innerFrag = text(t.str)
 
