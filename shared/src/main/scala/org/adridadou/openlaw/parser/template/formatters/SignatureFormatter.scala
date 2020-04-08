@@ -27,7 +27,7 @@ class SignatureFormatter extends Formatter {
             )
           )
         })
-        .getOrElse(Success(Nil))
+        .getOrElse(Success(missingValueFormat(expression)))
     case other =>
       Failure(
         "invalid type " + other.getClass.getSimpleName + ". expecting Identity"
@@ -38,21 +38,26 @@ class SignatureFormatter extends Formatter {
       expression: Expression,
       value: OpenlawValue,
       executionResult: TemplateExecutionResult
-  ): Result[String] =
+  ): Result[String] = {
     value match {
       case identity: Identity =>
         executionResult
           .getSignatureProof(identity)
           .map(proof => Success(s"/s/ ${proof.fullName}"))
-          .getOrElse(Success(missingValueString(expression)))
+          .getOrElse(Success(missingSignatureText(expression)))
       case other =>
         Failure(
           "invalid type " + other.getClass.getSimpleName + ". expecting Identity"
         )
     }
+  }
+
+  private def missingSignatureText(expression: Expression): String = {
+    s"{{signature of $expression}}"
+  }
 
   override def missingValueFormat(
       expression: Expression
   ): List[AgreementElement] =
-    List(FreeText(Text(s"{{signature of $expression}}")))
+    List(FreeText(Text(missingSignatureText(expression))))
 }
