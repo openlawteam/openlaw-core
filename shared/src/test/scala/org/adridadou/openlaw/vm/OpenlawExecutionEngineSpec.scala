@@ -3105,7 +3105,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
       )
       .getOrThrow()
 
-    parser.forReview(initialResult.agreements.head) shouldBe "<p class=\"no-section\"></p>"
+    parser.forReview(initialResult.agreements.head) shouldBe "<p class=\"no-section\">{{signature of some value}}</p>"
 
     parser.forReview(result.agreements.head) shouldBe "<p class=\"no-section\">{{signature of some value }}</p>"
   }
