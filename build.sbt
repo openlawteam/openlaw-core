@@ -18,7 +18,7 @@ always upgrade in a controlled fashion.
 If you wish to update either Scala or SBT, please open an issue and and tag
 @openlawteam/infra.
  */
-lazy val scalaV = "2.12.10"
+lazy val scalaV = "2.12.11"
 
 lazy val scalaJavaTimeV = "2.0.0-RC3"
 lazy val catsV = "1.6.1"

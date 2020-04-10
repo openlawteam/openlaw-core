@@ -1,5 +1,5 @@
-# scala-builder:0.10.0-node blesses scala 2.12.10, sbt 1.2.8
-FROM openlaw/scala-builder:0.10.0-node
+# scala-builder:0.10.0-node blesses scala 2.12.11, sbt 1.2.8
+FROM openlaw/scala-builder:0.11.0-node
 
 # install plugins
 COPY project ./project
