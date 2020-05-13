@@ -2,17 +2,6 @@ on: push
 name: Linters on push
 
 jobs:
-  # we have some bash scripts used in CI, lint them with shellcheck for safety
-  lint-shell:
-    name: Run shellcheck
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v1
-      - name: Shellcheck Lint
-        uses: azohra/shell-linter@v0.1.0
-        with:
-          path: "scripts,ci"
-
   lint-scala:
     name: Run scalafmt
     runs-on: ubuntu-latest
