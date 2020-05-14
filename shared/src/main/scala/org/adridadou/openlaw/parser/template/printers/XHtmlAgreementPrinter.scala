@@ -378,7 +378,7 @@ final case class XHtmlAgreementPrinter(
 
           case FreeText(SectionBreak) =>
             tailRecurse(xs, conditionalBlockDepth, inSection, { elems =>
-              continue(hr(`class` := "section-break") +: elems)
+              continue(hr(`class` := "pagebreak section-break") +: elems)
             })
 
           // Ignore unexpected alignment, should only be at beginning of paragraph

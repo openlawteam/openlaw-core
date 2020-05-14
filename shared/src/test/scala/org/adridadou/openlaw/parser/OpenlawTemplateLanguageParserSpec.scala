@@ -393,7 +393,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
       """.stripMargin
 
     val text2 =
-      """<div class="openlaw-paragraph paragraph-1"><p class="no-section">a small title</p></div><ul class="list-lvl-1"><li><div class="openlaw-paragraph paragraph-2"><p>1. I should have a ul tag.<br /></p></div></li><li><div class="openlaw-paragraph paragraph-3"><p>2. So should I.<br /></p></div></li><li><div class="openlaw-paragraph paragraph-4"><p>3. And I also.<br /></p></div></li></ul><div class="openlaw-paragraph paragraph-5"><p class="no-section"><hr class="section-break" /></p></div><div class="openlaw-paragraph paragraph-6"><p class="no-section">But I should not!<br /><br />    </p></div>"""
+      """<div class="openlaw-paragraph paragraph-1"><p class="no-section">a small title</p></div><ul class="list-lvl-1"><li><div class="openlaw-paragraph paragraph-2"><p>1. I should have a ul tag.<br /></p></div></li><li><div class="openlaw-paragraph paragraph-3"><p>2. So should I.<br /></p></div></li><li><div class="openlaw-paragraph paragraph-4"><p>3. And I also.<br /></p></div></li></ul><div class="openlaw-paragraph paragraph-5"><p class="no-section"><hr class="pagebreak section-break" /></p></div><div class="openlaw-paragraph paragraph-6"><p class="no-section">But I should not!<br /><br />    </p></div>"""
 
     val result = forPreview(text)
     resultShouldBe(result, text2)
@@ -1373,7 +1373,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
       |second paragraph of text""".stripMargin
     resultShouldBe(
       forReview(text),
-      """<p class="no-section">first paragraph of text<br /></p><p class="no-section"><hr class="section-break" /></p><p class="no-section">second paragraph of text</p>"""
+      """<p class="no-section">first paragraph of text<br /></p><p class="no-section"><hr class="pagebreak section-break" /></p><p class="no-section">second paragraph of text</p>"""
     )
   }
 
