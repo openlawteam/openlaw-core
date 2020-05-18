@@ -28,8 +28,8 @@ object IntegratedServiceDefinition {
   val parser = new OpenlawTemplateLanguageParserService()
   val engine = new OpenlawExecutionEngine()
   private val signatureDefinitionStr =
-    "[[Input:Structure(signerEmail: Text; contractContentBase64: Text; contractTitle: Text)]] " +
-      "[[Output:Structure(signerEmail: Text; signature: Text; recordLink: Text)]]"
+    "[[Input:Structure(signerEmail: Text; contractContentBase64: Text; contractTitle: Text; signaturePlaceholderText: Text)]] " +
+      "[[Output:Structure(signerEmail: Text; signature: Text; recordLink: Text; pdfContentsBase64: Text)]]"
 
   private val storageDefinitionStr =
     "[[Input:Structure(accessToken: Text; operation: Text; filePath: Text; fileBase64Content: Text)]] " +
@@ -162,8 +162,7 @@ final case class SignatureInput(
     contractTitle: String,
 
     // The text that the signature service should match to determine where on the document the user should sign.
-    // If empty the middle of the first page will be used.
-    signaturePlaceholderText: Option[String] = None
+    signaturePlaceholderText: String
 )
 
 object SignatureInput {
