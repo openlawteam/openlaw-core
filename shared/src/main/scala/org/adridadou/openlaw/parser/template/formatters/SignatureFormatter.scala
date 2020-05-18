@@ -16,23 +16,15 @@ import org.adridadou.openlaw.result.{Failure, Result, Success}
 class SignatureFormatter extends Formatter {
 
   private def formatExternalSignature(
-      expression: Expression,
-      externalSignature: ExternalSignature
+      expression: Expression
   ): Result[List[AgreementElement]] = {
-    externalSignature.identity match {
-      case None           => Success(missingValueFormat(expression))
-      case Some(identity) => Success(Nil)
-    }
+    Success(missingValueFormat(expression))
   }
 
   private def formatExternalSignatureString(
-      expression: Expression,
-      externalSignature: ExternalSignature
+      expression: Expression
   ): Result[String] = {
-    externalSignature.identity match {
-      case None           => Success(missingSignatureText(expression))
-      case Some(identity) => Success("")
-    }
+    Success(missingSignatureText(expression))
   }
 
   override def format(
@@ -41,7 +33,7 @@ class SignatureFormatter extends Formatter {
       executionResult: TemplateExecutionResult
   ): Result[List[AgreementElement]] = value match {
     case externalSignature: ExternalSignature =>
-      formatExternalSignature(expression, externalSignature)
+      formatExternalSignature(expression)
     case identity: Identity =>
       executionResult
         .getSignatureProof(identity)
@@ -74,7 +66,7 @@ class SignatureFormatter extends Formatter {
           .map(proof => Success(s"/s/ ${proof.fullName}"))
           .getOrElse(Success(missingSignatureText(expression)))
       case externalSignature: ExternalSignature =>
-        formatExternalSignatureString(expression, externalSignature)
+        formatExternalSignatureString(expression)
       case other =>
         Failure(
           "invalid type " + other.getClass.getSimpleName + ". expecting Identity"
