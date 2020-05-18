@@ -159,8 +159,13 @@ object StorageOutput {
 final case class SignatureInput(
     signerEmail: Email,
     contractContentBase64: String,
-    contractTitle: String
+    contractTitle: String,
+
+    // The text that the signature service should match to determine where on the document the user should sign.
+    // If empty the middle of the first page will be used.
+    signaturePlaceholderText: Option[String] = None
 )
+
 object SignatureInput {
   implicit val signatureInputEnc: Encoder[SignatureInput] = deriveEncoder
   implicit val signatureInputDec: Decoder[SignatureInput] = deriveDecoder
@@ -170,7 +175,8 @@ object SignatureInput {
 final case class SignatureOutput(
     signerEmail: Email,
     signature: EthereumSignature,
-    recordLink: String
+    recordLink: String,
+    pdfContentsBase64: String
 )
 object SignatureOutput {
   implicit val signatureOutputEnc: Encoder[SignatureOutput] =
@@ -178,7 +184,8 @@ object SignatureOutput {
       Json.obj(
         "signerEmail" -> Json.fromString(output.signerEmail.email),
         "signature" -> Json.fromString(output.signature.toString),
-        "recordLink" -> Json.fromString(output.recordLink)
+        "recordLink" -> Json.fromString(output.recordLink),
+        "pdfContentsBase64" -> Json.fromString(output.pdfContentsBase64)
       )
     }
   implicit val signatureOutputDec: Decoder[SignatureOutput] =
@@ -187,10 +194,12 @@ object SignatureOutput {
         signerEmail <- c.downField("signerEmail").as[Email]
         signature <- c.downField("signature").as[String]
         recordLink <- c.downField("recordLink").as[String]
+        pdfContentsBase64 <- c.downField("pdfContentsBase64").as[String]
       } yield SignatureOutput(
         signerEmail,
         EthereumSignature(signature).getOrThrow(),
-        recordLink
+        recordLink,
+        pdfContentsBase64
       )
     }
   implicit val signatureOutputEq: Eq[SignatureOutput] = Eq.fromUniversalEquals
