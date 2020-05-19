@@ -160,7 +160,6 @@ final case class SignatureInput(
     signerEmail: Email,
     contractContentBase64: String,
     contractTitle: String,
-
     // The text that the signature service should match to determine where on the document the user should sign.
     signaturePlaceholderText: String
 )

@@ -4,7 +4,10 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import cats.implicits._
 import org.adridadou.openlaw.parser.template._
-import org.adridadou.openlaw.parser.template.variableTypes.{ExternalSignature, IdentityType}
+import org.adridadou.openlaw.parser.template.variableTypes.{
+  ExternalSignature,
+  IdentityType
+}
 import scalatags.Text.all._
 import slogging._
 
@@ -332,7 +335,9 @@ final case class XHtmlAgreementPrinter(
             // Generate text output
             val innerFrag = text(str)
 
-            val spanFrag: List[Frag] = List(span(`style` := "color: white;")(innerFrag))
+            val spanFrag: List[Frag] = List(
+              span(`style` := "color: white;")(innerFrag)
+            )
 
             tailRecurse(xs, conditionalBlockDepth, inSection, { elems =>
               continue(spanFrag ++ elems)

@@ -22,7 +22,7 @@ final case class OpenlawSignatureOracle(
       data: EthereumData,
       signatureEvent: SignatureEvent
   ): Result[Boolean] = signatureEvent match {
-    case _ : ExternalSignatureEvent => Success(true)
+    case _: ExternalSignatureEvent => Success(true)
 
     case event: SignatureEvent =>
       val signedData = EthereumData(crypto.sha256(event.email.email))

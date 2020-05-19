@@ -5,7 +5,10 @@ import io.circe.parser._
 import io.circe.syntax._
 import io.circe.generic.semiauto._
 import org.adridadou.openlaw.parser.template._
-import org.adridadou.openlaw.parser.template.formatters.{Formatter, SignatureFormatter}
+import org.adridadou.openlaw.parser.template.formatters.{
+  Formatter,
+  SignatureFormatter
+}
 import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success}
 import org.adridadou.openlaw.result.Implicits._
 import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawString, OpenlawValue}
