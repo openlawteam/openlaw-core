@@ -1502,6 +1502,9 @@ final case class ImageElement(url: String) extends AgreementElement {
 final case class FreeText(elem: TextElement) extends AgreementElement {
   override def serialize: Json = this.asJson
 }
+final case class SignaturePlaceholder(text: String) extends AgreementElement {
+  override def serialize: Json = this.asJson
+}
 final case class Link(label: String, url: String) extends AgreementElement {
   override def serialize: Json = this.asJson
 }

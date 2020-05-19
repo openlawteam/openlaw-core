@@ -19,6 +19,7 @@ trait AgreementPrinter[T] {
   def title(title: TemplateTitle): AgreementPrinter[T]
   def link(link: Link): AgreementPrinter[T]
   def text(txt: TextElement): AgreementPrinter[T]
+  def signaturePlaceholder(text: String): AgreementPrinter[T]
   def conditionalStart(): AgreementPrinter[T] =
     newState(state.copy(conditionalDepth = state.conditionalDepth + 1))
   def conditionalStartWithElse(): AgreementPrinter[T] =

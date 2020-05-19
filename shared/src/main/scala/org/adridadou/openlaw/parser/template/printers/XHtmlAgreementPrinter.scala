@@ -4,7 +4,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import cats.implicits._
 import org.adridadou.openlaw.parser.template._
-import org.adridadou.openlaw.parser.template.variableTypes.IdentityType
+import org.adridadou.openlaw.parser.template.variableTypes.{ExternalSignature, IdentityType}
 import scalatags.Text.all._
 import slogging._
 
@@ -326,6 +326,20 @@ final case class XHtmlAgreementPrinter(
           case Link(label, url) =>
             tailRecurse(xs, conditionalBlockDepth, inSection, { elems =>
               continue(a(href := url)(label) +: elems)
+            })
+
+          case SignaturePlaceholder(str) =>
+            // Generate text output
+            val innerFrag = text(str)
+
+            val spanFrag: List[Frag] = if (conditionalBlockDepth > 0) {
+              List(span(`class` := "white-text")(innerFrag))
+            } else {
+              innerFrag
+            }
+
+            tailRecurse(xs, conditionalBlockDepth, inSection, { elems =>
+              continue(spanFrag ++ elems)
             })
 
           case PlainText(str) =>

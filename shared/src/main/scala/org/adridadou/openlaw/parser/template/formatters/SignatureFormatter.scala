@@ -18,7 +18,7 @@ class SignatureFormatter extends Formatter {
   private def formatExternalSignature(
       expression: Expression
   ): Result[List[AgreementElement]] = {
-    Success(missingValueFormat(expression))
+    Success(List(SignaturePlaceholder(missingSignatureText(expression))))
   }
 
   private def formatExternalSignatureString(
@@ -33,6 +33,8 @@ class SignatureFormatter extends Formatter {
       executionResult: TemplateExecutionResult
   ): Result[List[AgreementElement]] = value match {
     case externalSignature: ExternalSignature =>
+      // External signatures are just placeholder text until the external service replaces them with the signature
+      // applied by the user
       formatExternalSignature(expression)
     case identity: Identity =>
       executionResult
