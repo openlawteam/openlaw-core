@@ -332,7 +332,7 @@ final case class XHtmlAgreementPrinter(
             // Generate text output
             val innerFrag = text(str)
 
-            val spanFrag: List[Frag] = List(span(`class` := "white-text")(innerFrag))
+            val spanFrag: List[Frag] = List(span(`style` := "color: white;")(innerFrag))
 
             tailRecurse(xs, conditionalBlockDepth, inSection, { elems =>
               continue(spanFrag ++ elems)
