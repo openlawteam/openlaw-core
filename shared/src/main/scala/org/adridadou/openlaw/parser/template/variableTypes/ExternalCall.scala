@@ -41,10 +41,15 @@ object IntegratedServiceDefinition {
     IntegratedServiceDefinition(storageDefinitionStr).getOrThrow()
 
   def apply(definition: String): result.Result[IntegratedServiceDefinition] = {
-    for {
+    val result = for {
       i <- getStructure(definition, "Input")
       o <- getStructure(definition, "Output")
     } yield new IntegratedServiceDefinition(i, o)
+
+    println("printing result")
+    println(result)
+
+    result
   }
 
   private def getStructure(
