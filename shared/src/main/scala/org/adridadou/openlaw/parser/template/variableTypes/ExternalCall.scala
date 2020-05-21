@@ -162,7 +162,11 @@ final case class SignatureInput(
     contractTitle: String,
     // The text that the signature service should match to determine where on the document the user should sign.
     signaturePlaceholderText: String,
-    accessToken: String
+    accessToken: String,
+    // When the token will expire as a unix timestamp
+    tokenExpiry: Long,
+    // The token to refresh the access token
+    refreshToken: String
 )
 
 object SignatureInput {
