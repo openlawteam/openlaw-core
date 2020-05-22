@@ -222,7 +222,7 @@ final case class DefinedStructureType(structure: Structure, typeName: String)
             values
               .get(fieldName.name)
               .map(value =>
-                fieldType.cast(value, executionResult).map(fieldName -> _)
+                fieldType.cast(value.toString, executionResult).map(fieldName -> _)
               )
         }
         .toList
