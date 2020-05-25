@@ -2501,6 +2501,20 @@ here""".stripMargin
       .getOrThrow() shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="align-center no-section"><br />         Test simple template <br />      </p></div>""".stripMargin
   }
 
+  it should "take the first text formatting token that it finds" in {
+    val text =
+      """
+        <%
+        |
+        |[[test:Text]]
+        |
+        |%> /centered Test simple template /Indent 
+      """.stripMargin
+
+    forPreview(text)
+      .getOrThrow() shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="align-center no-section"><br />         Test simple template <br />      </p></div>""".stripMargin
+  }
+
   it should "find the missing input field 'identity' for external signature type" in {
     val text =
       """
