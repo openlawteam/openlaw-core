@@ -149,23 +149,30 @@ final case class XHtmlAgreementPrinter(
             val paragraphCount = paragraphCounter.incrementAndGet()
 
             // See if this paragraph is centered
-            val (align, remaining) = paragraphElements match {
-              case FreeText(Centered) :: xs   => (List("align-center"), xs)
-              case FreeText(Indent) :: xs     => (List("indent"), xs)
-              case FreeText(RightAlign) :: xs => (List("align-right"), xs)
-              case FreeText(RightThreeQuarters) :: xs =>
-                (List("align-right-three-quarters"), xs)
-              case seq => (Nil, seq)
+            val (alignList, other) = paragraphElements.partition {
+              case FreeText(f: TextFormatting) => true
+              case _                           => false
+            }
+
+            val align = alignList match {
+              case FreeText(Centered) :: _   => "align-center"
+              case FreeText(Indent) :: _     => "indent"
+              case FreeText(RightAlign) :: _ => "align-right"
+              case FreeText(RightThreeQuarters) :: _ =>
+                "align-right-three-quarters"
+              case _ => ""
             }
 
             // Setup classes to be added to this paragraph element
-            val classes = (if (!inSection) List("no-section") else Nil) ++ align
+            val nonAlignClasses = (if (!inSection) List("no-section") else Nil)
+            val classes =
+              if (align.isEmpty) nonAlignClasses else align :: nonAlignClasses
             val paragraph = if (classes.isEmpty) {
-              recurse(remaining, conditionalBlockDepth, inSection, { elems =>
+              recurse(other, conditionalBlockDepth, inSection, { elems =>
                 List(p(elems))
               })
             } else {
-              recurse(remaining, conditionalBlockDepth, inSection, { elems =>
+              recurse(other, conditionalBlockDepth, inSection, { elems =>
                 List(p(`class` := classes.mkString(" "))(elems))
               })
             }

@@ -322,9 +322,14 @@ final case class Text(str: String) extends TextElement("Text")
 case object Em extends TextElement("Em")
 case object Strong extends TextElement("Strong")
 case object Under extends TextElement("Under")
+sealed trait TextFormatting
 case object SectionBreak extends TextElement("SectionBreak")
-case object Centered extends TextElement("Centered")
-case object RightAlign extends TextElement("RightAlign")
-case object RightThreeQuarters extends TextElement("RightThreeQuarters")
-case object ParagraphSeparator extends TextElement("ParagraphSeparator")
-case object Indent extends TextElement("Indent")
+case object Centered extends TextElement("Centered") with TextFormatting
+case object RightAlign extends TextElement("RightAlign") with TextFormatting
+case object RightThreeQuarters
+    extends TextElement("RightThreeQuarters")
+    with TextFormatting
+case object ParagraphSeparator
+    extends TextElement("ParagraphSeparator")
+    with TextFormatting
+case object Indent extends TextElement("Indent") with TextFormatting

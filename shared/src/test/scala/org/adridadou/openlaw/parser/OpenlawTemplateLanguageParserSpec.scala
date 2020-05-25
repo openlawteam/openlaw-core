@@ -1386,7 +1386,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
       |third paragraph of text""".stripMargin
     resultShouldBe(
       forReview(text),
-      """<p class="no-section">first paragraph of text</p><p class="no-section indent">second paragraph of text</p><p class="no-section">third paragraph of text</p>"""
+      """<p class="no-section">first paragraph of text</p><p class="indent no-section">second paragraph of text</p><p class="no-section">third paragraph of text</p>"""
     )
   }
 
@@ -1399,7 +1399,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
       |third paragraph of text""".stripMargin
     resultShouldBe(
       forReview(text),
-      """<p class="no-section">first paragraph of text</p><p class="no-section align-center">second paragraph of text</p><p class="no-section">third paragraph of text</p>"""
+      """<p class="no-section">first paragraph of text</p><p class="align-center no-section">second paragraph of text</p><p class="no-section">third paragraph of text</p>"""
     )
   }
 
@@ -1412,7 +1412,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
       |third paragraph of text""".stripMargin
     resultShouldBe(
       forReview(text),
-      """<p class="no-section">first paragraph of text</p><p class="no-section align-right">second paragraph of text</p><p class="no-section">third paragraph of text</p>"""
+      """<p class="no-section">first paragraph of text</p><p class="align-right no-section">second paragraph of text</p><p class="no-section">third paragraph of text</p>"""
     )
   }
 
@@ -1425,7 +1425,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
       |third paragraph of text""".stripMargin
     resultShouldBe(
       forReview(text),
-      """<p class="no-section">first paragraph of text</p><p class="no-section align-right-three-quarters">second paragraph of text</p><p class="no-section">third paragraph of text</p>"""
+      """<p class="no-section">first paragraph of text</p><p class="align-right-three-quarters no-section">second paragraph of text</p><p class="no-section">third paragraph of text</p>"""
     )
   }
 
@@ -2473,6 +2473,34 @@ here""".stripMargin
     }
   }
 
+  it should "be possible to use text formatting token right after a code block" in {
+    val text =
+      """
+        <%
+        |
+        |[[test:Text]]
+        |
+        |%> /centered  Test simple template
+      """.stripMargin
+
+    forPreview(text)
+      .getOrThrow() shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="align-center no-section"><br />         Test simple template<br />      </p></div>""".stripMargin
+  }
+
+  it should "be possible to use text formatting token at the end of the line too" in {
+    val text =
+      """
+        <%
+        |
+        |[[test:Text]]
+        |
+        |%> Test simple template /centered
+      """.stripMargin
+
+    forPreview(text)
+      .getOrThrow() shouldBe """<div class="openlaw-paragraph paragraph-1"><p class="align-center no-section"><br />         Test simple template <br />      </p></div>""".stripMargin
+  }
+
   it should "find the missing input field 'identity' for external signature type" in {
     val text =
       """
@@ -2551,9 +2579,9 @@ here""".stripMargin
         ServiceName("Dropbox") -> IntegratedServiceDefinition.storageDefinition
       )
     ) match {
-      case Right(executionResult) =>
+      case Success(_) =>
         fail("Variable should not be created when arguments are missing")
-      case Failure(ex, message) =>
+      case Failure(_, message) =>
         message shouldBe "parameter ExternalStorage not found. available parameters: serviceName"
     }
 
@@ -2574,9 +2602,9 @@ here""".stripMargin
         ServiceName("Dropbox") -> IntegratedServiceDefinition.storageDefinition
       )
     ) match {
-      case Right(executionResult) =>
+      case Success(_) =>
         fail("Variable should not be created when arguments are missing")
-      case Failure(ex, message) =>
+      case Failure(_, message) =>
         message shouldBe "parameter ExternalStorage not found. available parameters: serviceName,txt"
     }
   }
