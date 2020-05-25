@@ -16,11 +16,7 @@ import org.adridadou.openlaw.result.{
   attempt,
   handleFatalErrors
 }
-import org.adridadou.openlaw.result.Implicits.{
-  RichResult,
-  RichResultNel,
-  RichTry
-}
+import org.adridadou.openlaw.result.Implicits.RichTry
 
 /**
   * Created by davidroon on 05.06.17.
@@ -184,15 +180,6 @@ class OpenlawTemplateLanguageParserService {
       .printParagraphs(List(paragraph))
       .print
 
-  def forReviewParagraph(str: String): Result[String] =
-    MarkdownParser
-      .parseMarkdown(str)
-      .map(result =>
-        XHtmlAgreementPrinter(preview = false)
-          .printFragments(result.map(FreeText))
-          .print
-      )
-
   def render[T](
       structuredAgreement: StructuredAgreement,
       agreementPrinter: AgreementPrinter[T]
@@ -207,22 +194,6 @@ class OpenlawTemplateLanguageParserService {
             )
           )
       }
-
-  def handleOverriddenParagraph[T](
-      p: AgreementPrinter[T],
-      str: String
-  ): Result[AgreementPrinter[T]] =
-    MarkdownParser
-      .parseMarkdown(str)
-      .addMessageToFailure("error while parsing the markdown")
-      .toResult
-      .flatMap(_.foldLeft(Success(p)) {
-        case (result, elem) =>
-          result.flatMap(printer =>
-            renderElement(FreeText(elem), Paragraph(), printer)
-          )
-      })
-      .map(_.newState(p.state))
 
   private def renderParagraph[T](
       paragraph: Paragraph,

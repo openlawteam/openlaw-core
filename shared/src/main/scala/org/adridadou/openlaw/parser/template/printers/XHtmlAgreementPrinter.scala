@@ -371,11 +371,6 @@ final case class XHtmlAgreementPrinter(
                 continue(frag +: elems)
             })
 
-          case FreeText(PageBreak) =>
-            tailRecurse(xs, conditionalBlockDepth, inSection, { elems =>
-              continue(hr(`class` := "pagebreak") +: elems)
-            })
-
           case FreeText(SectionBreak) =>
             tailRecurse(xs, conditionalBlockDepth, inSection, { elems =>
               continue(hr(`class` := "pagebreak section-break") +: elems)

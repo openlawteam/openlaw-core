@@ -109,7 +109,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
     result match {
       case Right(actual) if actual === expected =>
       case Right(actual) =>
-        throw new RuntimeException(s"$actual should be $expected")
+        throw new RuntimeException(s"$actual should be \n $expected")
       case Failure(e, message) => throw new RuntimeException(message, e)
     }
 
@@ -408,7 +408,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
         |more text""".stripMargin
 
     val text2 =
-      """<div class="openlaw-paragraph paragraph-1"><p class="no-section">some text</p></div><div class="openlaw-paragraph paragraph-2"><p class="no-section"><hr class="pagebreak" /></p></div><div class="openlaw-paragraph paragraph-3"><p class="no-section">more text</p></div>"""
+      """<div class="openlaw-paragraph paragraph-1"><p class="no-section">some text</p></div><div class="openlaw-paragraph paragraph-2"><p class="no-section"><hr class="pagebreak section-break" /></p></div><div class="openlaw-paragraph paragraph-3"><p class="no-section">more text</p></div>"""
 
     val result = forPreview(text)
     resultShouldBe(result, text2)
@@ -1193,7 +1193,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
         text,
         Map(
           "Var 1" -> "1 day",
-          "Var 2" -> (ZonedDateTime.now
+          "Var 2" -> ZonedDateTime.now
             .withYear(2018)
             .withMonth(1)
             .withDayOfMonth(1)
@@ -1202,7 +1202,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
             .withSecond(0)
             .toInstant
             .toEpochMilli
-            .toString)
+            .toString
         )
       ),
       """<p class="no-section">January 2, 2018 10:10:00</p>"""
@@ -1219,7 +1219,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
         text,
         Map(
           "Var 1" -> "1 day",
-          "Var 2" -> (ZonedDateTime.now
+          "Var 2" -> ZonedDateTime.now
             .withYear(2018)
             .withMonth(1)
             .withDayOfMonth(1)
@@ -1227,7 +1227,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
             .withMinute(10)
             .withSecond(0)
             .toInstant
-            .toEpochMilli)
+            .toEpochMilli
             .toString
         )
       ),
@@ -1351,7 +1351,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
         |second paragraph of text""".stripMargin
     resultShouldBe(
       forReview(text),
-      """<p class="no-section">first paragraph of text<br /></p><p class="no-section"><hr class="pagebreak" /></p><p class="no-section">second paragraph of text</p>"""
+      """<p class="no-section">first paragraph of text<br /></p><p class="no-section"><hr class="pagebreak section-break" /></p><p class="no-section">second paragraph of text</p>"""
     )
   }
 
@@ -1362,7 +1362,7 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
         |second paragraph of text""".stripMargin
     resultShouldBe(
       forReview(text),
-      """<p class="no-section">first paragraph of text<br /></p><p class="no-section"><hr class="pagebreak" /></p><p class="no-section">second paragraph of text</p>"""
+      """<p class="no-section">first paragraph of text<br /></p><p class="no-section"><hr class="pagebreak section-break" /></p><p class="no-section">second paragraph of text</p>"""
     )
   }
 

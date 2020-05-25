@@ -1,5 +1,7 @@
 package org.adridadou.openlaw.oracles
 
+import java.time.Instant
+
 import org.adridadou.openlaw.parser.template.VariableName
 import org.adridadou.openlaw.parser.template.variableTypes.{
   EthereumData,
@@ -15,6 +17,7 @@ import cats.implicits._
 
 trait SignedActionEvent extends OpenlawVmEvent {
   def signature: EthereumSignature
+  def signatureDate: Instant
 }
 
 trait SignedActionOracle[R <: SignedActionEvent] extends OpenlawOracle[R] {
@@ -39,7 +42,8 @@ trait SignedActionOracle[R <: SignedActionEvent] extends OpenlawOracle[R] {
                 vm.contractId,
                 identity.email,
                 "",
-                event.signature
+                event.signature,
+                event.signatureDate
               )
             )
             .map { x =>
@@ -73,7 +77,8 @@ trait SignedActionOracle[R <: SignedActionEvent] extends OpenlawOracle[R] {
                 identity.email,
                 "",
                 serviceName,
-                event.signature
+                event.signature,
+                event.signatureDate
               )
             )
             .map { x =>

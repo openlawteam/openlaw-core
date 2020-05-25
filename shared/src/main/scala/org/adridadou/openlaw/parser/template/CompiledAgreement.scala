@@ -140,7 +140,6 @@ final case class CompiledAgreement(
               )
           }
         newParagraphs :+ Text(text.substring(lastValue, text.length))
-      case PageBreak => List(ParagraphSeparator, PageBreak, ParagraphSeparator)
       case SectionBreak =>
         List(ParagraphSeparator, SectionBreak, ParagraphSeparator)
       case other => List(other)
@@ -276,9 +275,6 @@ final case class CompiledAgreement(
         Success(renderedElements)
       case Under =>
         renderedElements append FreeText(Under)
-        Success(renderedElements)
-      case PageBreak =>
-        renderedElements append FreeText(PageBreak)
         Success(renderedElements)
       case SectionBreak =>
         renderedElements append FreeText(SectionBreak)
