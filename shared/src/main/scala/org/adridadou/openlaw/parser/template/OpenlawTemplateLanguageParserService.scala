@@ -170,16 +170,6 @@ class OpenlawTemplateLanguageParserService {
       .printParagraphs(structuredAgreement.paragraphs)
       .print
 
-  def forReview(paragraph: Paragraph): String =
-    XHtmlAgreementPrinter(preview = false)
-      .printParagraphs(List(paragraph))
-      .print
-
-  def forReviewEdit(paragraph: Paragraph): String =
-    XHtmlAgreementPrinter(preview = false)
-      .printParagraphs(List(paragraph))
-      .print
-
   def render[T](
       structuredAgreement: StructuredAgreement,
       agreementPrinter: AgreementPrinter[T]
@@ -198,7 +188,7 @@ class OpenlawTemplateLanguageParserService {
   private def renderParagraph[T](
       paragraph: Paragraph,
       agreementPrinter: AgreementPrinter[T]
-  ): Result[AgreementPrinter[T]] = {
+  ): Result[AgreementPrinter[T]] =
     if (hasContent(paragraph)) {
       val p = agreementPrinter
         .paragraphStart()
@@ -223,7 +213,6 @@ class OpenlawTemplateLanguageParserService {
             )
         }
     }
-  }
 
   private def hasContent(paragraph: Paragraph): Boolean =
     paragraph.elements.exists({
