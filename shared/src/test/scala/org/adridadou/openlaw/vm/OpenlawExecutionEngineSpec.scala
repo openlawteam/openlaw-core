@@ -2763,8 +2763,6 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     text shouldBe s"""<p class="no-section"><br />hello world1,234 hello worldcfc2206eabfdc5f3d9e7fa54f855a8c15d196c05 hello world${nowFormatted}<br />1234hello world 0xcfc2206eabfdc5f3d9e7fa54f855a8c15d196c05hello world ${nowFormatted}</p>"""
   }
 
-  it should "not eat carriage returns" in {}
-
   it should "be possible to define a structure within a structure" in {
     val template =
       compile("""
