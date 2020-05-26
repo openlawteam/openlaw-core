@@ -259,6 +259,10 @@ class OpenlawTemplateLanguageParserService {
         )
       case txt: FreeText =>
         Success(agreementPrinter.text(txt.elem))
+
+      case placeholder: SignaturePlaceholder =>
+        Success(agreementPrinter.signaturePlaceholder(placeholder.text))
+
       case image: ImageElement =>
         Success(agreementPrinter.image(image))
       case link: Link =>

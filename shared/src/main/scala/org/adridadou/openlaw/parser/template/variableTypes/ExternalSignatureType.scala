@@ -7,7 +7,7 @@ import io.circe.generic.semiauto._
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.formatters.{
   Formatter,
-  NoopFormatter
+  SignatureFormatter
 }
 import org.adridadou.openlaw.result.{Failure, FailureException, Result, Success}
 import org.adridadou.openlaw.result.Implicits._
@@ -37,7 +37,7 @@ case object ExternalSignatureType extends VariableType("ExternalSignature") {
         )
     }
 
-  override def defaultFormatter: Formatter = new NoopFormatter
+  override def defaultFormatter: Formatter = new SignatureFormatter
 
   override def construct(
       constructorParams: Parameter,

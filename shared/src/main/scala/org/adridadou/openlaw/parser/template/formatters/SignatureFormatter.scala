@@ -3,18 +3,39 @@ package org.adridadou.openlaw.parser.template.formatters
 import org.adridadou.openlaw.OpenlawValue
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
-import org.adridadou.openlaw.parser.template.variableTypes.Identity
+import org.adridadou.openlaw.parser.template.variableTypes.{
+  ExternalSignature,
+  ExternalSignatureType,
+  Identity
+}
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 /**
   * Created by davidroon on 12.06.17.
   */
 class SignatureFormatter extends Formatter {
+
+  private def formatExternalSignature(
+      expression: Expression
+  ): Result[List[AgreementElement]] = {
+    Success(List(SignaturePlaceholder(missingSignatureText(expression))))
+  }
+
+  private def formatExternalSignatureString(
+      expression: Expression
+  ): Result[String] = {
+    Success(missingSignatureText(expression))
+  }
+
   override def format(
       expression: Expression,
       value: OpenlawValue,
       executionResult: TemplateExecutionResult
   ): Result[List[AgreementElement]] = value match {
+    case externalSignature: ExternalSignature =>
+      // External signatures are just placeholder text until the external service replaces them with the signature
+      // applied by the user
+      formatExternalSignature(expression)
     case identity: Identity =>
       executionResult
         .getSignatureProof(identity)
@@ -28,6 +49,7 @@ class SignatureFormatter extends Formatter {
           )
         })
         .getOrElse(Success(missingValueFormat(expression)))
+
     case other =>
       Failure(
         "invalid type " + other.getClass.getSimpleName + ". expecting Identity"
@@ -45,6 +67,8 @@ class SignatureFormatter extends Formatter {
           .getSignatureProof(identity)
           .map(proof => Success(s"/s/ ${proof.fullName}"))
           .getOrElse(Success(missingSignatureText(expression)))
+      case externalSignature: ExternalSignature =>
+        formatExternalSignatureString(expression)
       case other =>
         Failure(
           "invalid type " + other.getClass.getSimpleName + ". expecting Identity"

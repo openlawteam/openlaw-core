@@ -28,8 +28,8 @@ object IntegratedServiceDefinition {
   val parser = new OpenlawTemplateLanguageParserService()
   val engine = new OpenlawExecutionEngine()
   private val signatureDefinitionStr =
-    "[[Input:Structure(signerEmail: Text; contractContentBase64: Text; contractTitle: Text)]] " +
-      "[[Output:Structure(signerEmail: Text; signature: Text; recordLink: Text)]]"
+    "[[Input:Structure(signerEmail: Text; contractContentBase64: Text; contractTitle: Text; signaturePlaceholderText: Text; accessToken: Text; tokenExpiry: Number; refreshToken: Text)]] " +
+      "[[Output:Structure(signerEmail: Text; signature: Text; recordLink: Text; pdfContentsBase64: Text)]]"
 
   private val storageDefinitionStr =
     "[[Input:Structure(accessToken: Text; operation: Text; filePath: Text; fileBase64Content: Text)]] " +
@@ -41,10 +41,12 @@ object IntegratedServiceDefinition {
     IntegratedServiceDefinition(storageDefinitionStr).getOrThrow()
 
   def apply(definition: String): result.Result[IntegratedServiceDefinition] = {
-    for {
+    val result = for {
       i <- getStructure(definition, "Input")
       o <- getStructure(definition, "Output")
     } yield new IntegratedServiceDefinition(i, o)
+
+    result
   }
 
   private def getStructure(
@@ -159,18 +161,27 @@ object StorageOutput {
 final case class SignatureInput(
     signerEmail: Email,
     contractContentBase64: String,
-    contractTitle: String
+    contractTitle: String,
+    // The text that the signature service should match to determine where on the document the user should sign.
+    signaturePlaceholderText: String,
+    accessToken: String,
+    // When the token will expire as a unix timestamp
+    tokenExpiry: Long,
+    // The token to refresh the access token
+    refreshToken: String
 )
+
 object SignatureInput {
-  implicit val signatureInputEnc: Encoder[SignatureInput] = deriveEncoder
   implicit val signatureInputDec: Decoder[SignatureInput] = deriveDecoder
-  implicit val signatureInputEq: Eq[SignatureInput] = Eq.fromUniversalEquals
+
+  implicit val signatureInputEnc: Encoder[SignatureInput] = deriveEncoder
 }
 
 final case class SignatureOutput(
     signerEmail: Email,
     signature: EthereumSignature,
-    recordLink: String
+    recordLink: String,
+    pdfContentsBase64: String
 )
 object SignatureOutput {
   implicit val signatureOutputEnc: Encoder[SignatureOutput] =
@@ -178,7 +189,8 @@ object SignatureOutput {
       Json.obj(
         "signerEmail" -> Json.fromString(output.signerEmail.email),
         "signature" -> Json.fromString(output.signature.toString),
-        "recordLink" -> Json.fromString(output.recordLink)
+        "recordLink" -> Json.fromString(output.recordLink),
+        "pdfContentsBase64" -> Json.fromString(output.pdfContentsBase64)
       )
     }
   implicit val signatureOutputDec: Decoder[SignatureOutput] =
@@ -187,10 +199,12 @@ object SignatureOutput {
         signerEmail <- c.downField("signerEmail").as[Email]
         signature <- c.downField("signature").as[String]
         recordLink <- c.downField("recordLink").as[String]
+        pdfContentsBase64 <- c.downField("pdfContentsBase64").as[String]
       } yield SignatureOutput(
         signerEmail,
         EthereumSignature(signature).getOrThrow(),
-        recordLink
+        recordLink,
+        pdfContentsBase64
       )
     }
   implicit val signatureOutputEq: Eq[SignatureOutput] = Eq.fromUniversalEquals

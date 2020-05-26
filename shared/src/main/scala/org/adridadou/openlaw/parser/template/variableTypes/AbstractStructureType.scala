@@ -3,6 +3,7 @@ package org.adridadou.openlaw.parser.template.variableTypes
 import cats.implicits._
 import io.circe.{Decoder, Encoder, HCursor, Json}
 import cats.kernel.Eq
+import io.circe.Json.JString
 import org.adridadou.openlaw.parser.template._
 import io.circe.parser._
 import io.circe.syntax._
@@ -215,19 +216,32 @@ final case class DefinedStructureType(structure: Structure, typeName: String)
       executionResult: TemplateExecutionResult
   ): Result[OpenlawMap[VariableName, OpenlawValue]] =
     for {
-      values <- decode[Map[String, String]](value).leftMap(FailureException(_))
+      values <- decode[Map[String, Json]](value).leftMap(FailureException(_))
       list <- structure.typeDefinition
         .flatMap {
           case (fieldName, fieldType) =>
             values
               .get(fieldName.name)
               .map(value =>
-                fieldType.cast(value, executionResult).map(fieldName -> _)
+                fieldType
+                  .cast(jsonToString(value), executionResult)
+                  .map(fieldName -> _)
               )
         }
         .toList
         .sequence
     } yield OpenlawMap(list.toMap)
+
+  private def jsonToString(json: Json): String = {
+    json.fold[String](
+      "null",
+      bool => bool.toString,
+      number => number.toString,
+      string => string,
+      array => array.asJson.noSpaces,
+      jsonObject => jsonObject.asJson.noSpaces
+    )
+  }
 
   override def internalFormat(value: OpenlawValue): Result[String] =
     VariableType
