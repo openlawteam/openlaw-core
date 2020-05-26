@@ -22,7 +22,29 @@ final case class OpenlawSignatureOracle(
       data: EthereumData,
       signatureEvent: SignatureEvent
   ): Result[Boolean] = signatureEvent match {
-    case _: ExternalSignatureEvent => Success(true)
+    case event: ExternalSignatureEvent =>
+      event.getServiceName match {
+        case None => Failure(s"No registered with name ${event.getServiceName}")
+        case Some(serviceName) => {
+          val externalAccount = externalSignatureAccounts.get(serviceName) match {
+            case Some(account) => Success(account)
+            case None          => Failure(s"unknown service ${serviceName.serviceName}")
+          }
+
+          val signedData = EthereumData(crypto.sha256(event.email.email))
+            .merge(EthereumData(crypto.sha256(data.data)))
+
+          externalAccount.flatMap { signatureServiceAccount =>
+            EthereumAddress(
+              crypto
+                .validateECSignature(signedData.data, event.signature.signature)
+            ).map(derivedAddress => {
+              signatureServiceAccount.withLeading0x === derivedAddress.withLeading0x
+            })
+          }
+
+        }
+      }
 
     case event: SignatureEvent =>
       val signedData = EthereumData(crypto.sha256(event.email.email))
