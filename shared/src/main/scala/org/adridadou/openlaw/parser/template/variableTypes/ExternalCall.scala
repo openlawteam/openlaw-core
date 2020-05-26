@@ -46,9 +46,6 @@ object IntegratedServiceDefinition {
       o <- getStructure(definition, "Output")
     } yield new IntegratedServiceDefinition(i, o)
 
-    println("printing result")
-    println(result)
-
     result
   }
 
