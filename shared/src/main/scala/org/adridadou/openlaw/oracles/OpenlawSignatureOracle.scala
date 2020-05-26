@@ -28,10 +28,12 @@ final case class OpenlawSignatureOracle(
       event.getServiceName match {
         case None => Failure(s"No registered with name ${event.getServiceName}")
         case Some(serviceName) => {
-          val externalAccount = externalSignatureAccounts.get(serviceName) match {
-            case Some(account) => Success(account)
-            case None          => Failure(s"unknown service ${serviceName.serviceName}")
-          }
+          val externalAccount =
+            externalSignatureAccounts.get(serviceName) match {
+              case Some(account) => Success(account)
+              case None =>
+                Failure(s"unknown service ${serviceName.serviceName}")
+            }
 
           val signedData = EthereumData(crypto.sha256(event.email.email))
             .merge(EthereumData(crypto.sha256(data.data)))
