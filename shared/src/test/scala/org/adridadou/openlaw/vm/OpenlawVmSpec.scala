@@ -133,7 +133,8 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
       definition1.id(TestCryptoService),
       identity1.email,
       "",
-      signature1
+      signature1,
+      Instant.now
     )
 
     val result2 = sign(identity1, vm2.contractId)
@@ -145,7 +146,8 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
         definition2.id(TestCryptoService),
         identity1.email,
         "",
-        signature2
+        signature2,
+        Instant.now
       )
     )
     vm1.signature(identity1.email) shouldBe Some(signatureEvent)
@@ -212,14 +214,16 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
       identity.email,
       "",
       serviceName,
-      badSignature
+      badSignature,
+      Instant.now
     )
     val signatureEvent = oracles.ExternalSignatureEvent(
       contractId,
       identity.email,
       "",
       serviceName,
-      signature
+      signature,
+      Instant.now
     )
 
     vm(badSignatureEvent)
@@ -290,7 +294,13 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     vm.executionState shouldBe ContractCreated
     val signature = EthereumSignature(sign(identity, contractId).signature)
     val signatureEvent =
-      oracles.OpenlawSignatureEvent(contractId, email, "", signature)
+      oracles.OpenlawSignatureEvent(
+        contractId,
+        email,
+        "",
+        signature,
+        Instant.now
+      )
 
     vm(signatureEvent)
 
@@ -298,7 +308,13 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
 
     val signature2 = EthereumSignature(sign(identity2, contractId).signature)
     val signatureEvent2 =
-      oracles.OpenlawSignatureEvent(contractId, email2, "", signature2)
+      oracles.OpenlawSignatureEvent(
+        contractId,
+        email2,
+        "",
+        signature2,
+        Instant.now
+      )
 
     vm(signatureEvent2)
 
@@ -417,7 +433,8 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
       definition1.id(TestCryptoService),
       identity1.email,
       "",
-      signatureFromNoStopping1
+      signatureFromNoStopping1,
+      Instant.now
     )
     vm1(signatureEvent)
     vm1.executionState shouldBe ContractRunning
@@ -428,7 +445,8 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
       definition2.id(TestCryptoService),
       identity2.email,
       "",
-      signatureFromNoStopping2
+      signatureFromNoStopping2,
+      Instant.now
     )
     vm2(signatureEvent2)
     vm2.executionState shouldBe ContractRunning
@@ -439,13 +457,13 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     val result2 = signForStopping(identity2, contractId2)
     val signatureFromStopping2 = EthereumSignature(result2.signature)
 
-    vm2(StopExecutionEvent(signatureFromStopping1))
+    vm2(StopExecutionEvent(signatureFromStopping1, Instant.now))
     vm2.executionState shouldBe ContractRunning
-    vm2(StopExecutionEvent(signatureFromStopping2))
+    vm2(StopExecutionEvent(signatureFromStopping2, Instant.now))
     vm2.executionState shouldBe ContractStopped
     vm1.executionState shouldBe ContractRunning
 
-    vm1(StopExecutionEvent(signatureFromStopping1))
+    vm1(StopExecutionEvent(signatureFromStopping1, Instant.now))
     vm1.executionState shouldBe ContractStopped
     vm1.signature(identity1.email) shouldBe Some(signatureEvent)
     vm1.signature(identity2.email) shouldBe None
@@ -453,9 +471,9 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     val result3 = signForResuming(identity2, contractId2)
     val signatureForResuming2 = EthereumSignature(result3.signature)
 
-    vm2(ResumeExecutionEvent(signatureForResuming2))
+    vm2(ResumeExecutionEvent(signatureForResuming2, Instant.now))
     vm2.executionState shouldBe ContractResumed
-    vm1(ResumeExecutionEvent(signatureForResuming2))
+    vm1(ResumeExecutionEvent(signatureForResuming2, Instant.now))
     vm1.executionState shouldBe ContractStopped
 
   }
@@ -879,7 +897,13 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
 
     val signature = EthereumSignature(sign(identity, contractId).signature)
     val signatureEvent =
-      oracles.OpenlawSignatureEvent(contractId, email, "", signature)
+      oracles.OpenlawSignatureEvent(
+        contractId,
+        email,
+        "",
+        signature,
+        Instant.now
+      )
     vm(signatureEvent)
 
     val identifier = ActionIdentifier(

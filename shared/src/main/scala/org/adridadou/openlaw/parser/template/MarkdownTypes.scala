@@ -147,7 +147,7 @@ final case class ForEachBlock(
         val specialCodeBlock = CodeBlock(List(newVariable))
 
         Success(
-          CompiledDeal(
+          CompiledAgreement(
             TemplateHeader(),
             Block(List(specialCodeBlock) ++ block.elems),
             VariableRedefinition()
@@ -278,16 +278,15 @@ object TextElement {
     }
   }
 
-  implicit val textElementDec: Decoder[TextElement] = (c: HCursor) => {
+  implicit val textElementDec: Decoder[TextElement] = (c: HCursor) =>
     c.downField("name")
       .as[String]
       .flatMap(decodeElement(_, c))
-  }
 
   private def decodeElement(
       name: String,
       c: HCursor
-  ): Decoder.Result[TextElement] = {
+  ): Decoder.Result[TextElement] =
     name match {
       case _ if "Text" === name =>
         c.downField("value").as[Text]
@@ -300,7 +299,7 @@ object TextElement {
       case _ if "Under" === name =>
         Right(Under)
       case _ if "PageBreak" === name =>
-        Right(PageBreak)
+        Right(SectionBreak)
       case _ if "SectionBreak" === name =>
         Right(SectionBreak)
       case _ if "Centered" === name =>
@@ -316,7 +315,6 @@ object TextElement {
       case _ =>
         Left(DecodingFailure(s"unknown text element type $name", Nil))
     }
-  }
 }
 
 abstract class TextElement(val elementTypeName: String) extends TemplatePart
@@ -324,10 +322,14 @@ final case class Text(str: String) extends TextElement("Text")
 case object Em extends TextElement("Em")
 case object Strong extends TextElement("Strong")
 case object Under extends TextElement("Under")
-case object PageBreak extends TextElement("PageBreak")
+sealed trait TextFormatting
 case object SectionBreak extends TextElement("SectionBreak")
-case object Centered extends TextElement("Centered")
-case object RightAlign extends TextElement("RightAlign")
-case object RightThreeQuarters extends TextElement("RightThreeQuarters")
-case object ParagraphSeparator extends TextElement("ParagraphSeparator")
-case object Indent extends TextElement("Indent")
+case object Centered extends TextElement("Centered") with TextFormatting
+case object RightAlign extends TextElement("RightAlign") with TextFormatting
+case object RightThreeQuarters
+    extends TextElement("RightThreeQuarters")
+    with TextFormatting
+case object ParagraphSeparator
+    extends TextElement("ParagraphSeparator")
+    with TextFormatting
+case object Indent extends TextElement("Indent") with TextFormatting

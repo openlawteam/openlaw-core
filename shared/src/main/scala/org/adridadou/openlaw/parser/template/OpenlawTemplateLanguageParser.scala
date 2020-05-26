@@ -67,19 +67,7 @@ class OpenlawTemplateLanguageParser(
   private def getTemplate(
       header: TemplateHeader,
       block: Block
-  ): CompiledTemplate =
-    if (isDeal(block)) {
-      CompiledDeal(header = header, block = block)
-    } else {
-      CompiledAgreement(header = header, block = block)
-    }
-
-  private def isDeal(block: Block): Boolean =
-    getVariables(block).values.exists(
-      _.variableTypeDefinition === Some(
-        VariableTypeDefinition(TemplateType.name)
-      )
-    )
+  ): CompiledTemplate = CompiledAgreement(header = header, block = block)
 
   private def getVariables(block: Block): Map[String, VariableDefinition] =
     block

@@ -33,12 +33,20 @@ trait GlobalRules extends Parser {
   val under = "__"
   val colons = "::"
 
-  val indent = "\\indent"
-  val pagebreak = "\\pagebreak"
-  val sectionbreak = "\\sectionbreak"
-  val centered = "\\centered"
-  val right = "\\right"
-  val rightThreeQuarters = "\\right-three-quarters"
+  val tokenPrefix1 = "\\"
+  val tokenPrefix2 = "/"
+
+  def tokenRule(token: String) = rule {
+    (tokenPrefix1 | tokenPrefix2) ~ ignoreCase(token)
+  }
+
+  def pagebreak = tokenRule("pagebreak")
+  def sectionbreak = tokenRule("sectionbreak")
+  def centered = tokenRule("centered")
+  def right = tokenRule("right")
+  def rightThreeQuarters = tokenRule("right-three-quarters")
+  def indent = tokenRule("indent")
+  def newAgreement = tokenRule("newAgreement")
 
   def ws: Rule0 = rule { zeroOrMore(" " | "\n" | "\t" | "\r") }
   def wsNoReturn: Rule0 = rule { zeroOrMore(" " | "\t" | "\r") }

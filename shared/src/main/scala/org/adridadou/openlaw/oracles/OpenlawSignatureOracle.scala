@@ -1,5 +1,6 @@
 package org.adridadou.openlaw.oracles
 
+import java.time.Instant
 import java.util.UUID
 
 import org.adridadou.openlaw.parser.template.variableTypes._
@@ -11,6 +12,7 @@ import io.circe.syntax._
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 import org.adridadou.openlaw.values.ContractId
 import org.adridadou.openlaw.vm.OpenlawVmEvent
+import LocalDateTimeHelper._
 
 final case class OpenlawSignatureOracle(
     crypto: CryptoService,
@@ -78,6 +80,7 @@ trait SignatureEvent extends OpenlawVmEvent {
   def email: Email
   def fullName: String
   def signature: EthereumSignature
+  def signatureDate: Instant
 }
 
 object ExternalSignatureEvent {
@@ -92,14 +95,15 @@ final case class ExternalSignatureEvent(
     email: Email,
     fullName: String,
     serviceName: ServiceName,
-    signature: EthereumSignature
+    signature: EthereumSignature,
+    signatureDate: Instant
 ) extends SignatureEvent {
   override def getServiceName: Option[ServiceName] = Some(serviceName)
   override def typeIdentifier: String = className[ExternalSignatureEvent]
   override def serialize: String = this.asJson.noSpaces
 
   override def proof: SignatureProof =
-    SignatureProof(contractId, fullName, signature)
+    SignatureProof(contractId, fullName, signature, signatureDate)
 }
 
 object OpenlawSignatureEvent {
@@ -113,7 +117,8 @@ final case class OpenlawSignatureEvent(
     contractId: ContractId,
     email: Email,
     fullName: String,
-    signature: EthereumSignature
+    signature: EthereumSignature,
+    signatureDate: Instant
 ) extends SignatureEvent {
 
   override def getServiceName: Option[ServiceName] = None
@@ -125,7 +130,8 @@ final case class OpenlawSignatureEvent(
     SignatureProof(
       contractId = contractId,
       fullName = fullName,
-      signature = signature
+      signature = signature,
+      signatureDate = signatureDate
     )
 }
 

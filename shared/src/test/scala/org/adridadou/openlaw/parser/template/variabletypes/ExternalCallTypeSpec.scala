@@ -296,7 +296,13 @@ class ExternalCallTypeSpec extends FlatSpec with Matchers {
 
     val signature = EthereumSignature(sign(identity, contractId).signature)
     val signatureEvent =
-      oracles.OpenlawSignatureEvent(contractId, email, "", signature)
+      oracles.OpenlawSignatureEvent(
+        contractId,
+        email,
+        "",
+        signature,
+        Instant.now
+      )
     vm(signatureEvent)
 
     val identifier = ActionIdentifier("Sum Service#numberA->2#numberB->2")

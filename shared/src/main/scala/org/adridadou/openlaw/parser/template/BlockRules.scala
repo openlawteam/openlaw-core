@@ -14,44 +14,74 @@ import scala.annotation.tailrec
   */
 trait BlockRules extends Parser with ExpressionRules with GlobalRules {
 
+  def centeredLine: Rule1[List[TextElement]] = rule {
+    centered ~ wsNoReturn ~> (() => List(Centered))
+  }
+
+  def rightLine: Rule1[List[TextElement]] = rule {
+    right ~ wsNoReturn ~> (() => List(RightAlign))
+  }
+
+  def rightThreeQuartersLine: Rule1[List[TextElement]] = rule {
+    rightThreeQuarters ~ wsNoReturn ~> (() => List(RightThreeQuarters))
+  }
+
+  def pageBreak: Rule1[List[TextElement]] = rule {
+    pagebreak ~ ws ~> (() => List(SectionBreak))
+  }
+
+  def sectionBreak: Rule1[List[TextElement]] = rule {
+    sectionbreak ~ ws ~> (() => List(SectionBreak))
+  }
+
+  def indentLine: Rule1[List[TextElement]] = rule {
+    indent ~ wsNoReturn ~> (() => List(Indent))
+  }
+
+  def markdownFormattingToken = rule {
+    (centeredLine | rightThreeQuartersLine | rightLine | pageBreak | sectionBreak | indentLine) ~> (
+        elems => TemplateText(elems)
+    )
+  }
+
   def blockRule: Rule1[Block] = rule {
     zeroOrMore(
-      centeredLine | rightThreeQuartersLine | rightLine | pageBreak | sectionBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | expressionKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | headerAnnotationPart | noteAnnotationPart | textPart
+      markdownFormattingToken | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | expressionKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | headerAnnotationPart | noteAnnotationPart | textPart
     ) ~> ((s: Seq[TemplatePart]) => Block(s.toList))
   }
 
   def blockInConditionalRule: Rule1[Block] = rule {
     zeroOrMore(
-      centeredLine | rightThreeQuartersLine | rightLine | pageBreak | sectionBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | expressionKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | headerAnnotationPart | noteAnnotationPart | textPartNoColons
+      markdownFormattingToken | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | expressionKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | headerAnnotationPart | noteAnnotationPart | textPartNoColons
     ) ~> ((s: Seq[TemplatePart]) => Block(s.toList))
   }
   def blockInConditionalElseRule: Rule1[Block] = rule {
     zeroOrMore(
-      centeredLine | rightThreeQuartersLine | rightLine | pageBreak | sectionBreak | indentLine | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | expressionKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | headerAnnotationPart | noteAnnotationPart | textPartNoColons
+      markdownFormattingToken | variableSectionKey | sectionKey | varAliasKey | varKey | varMemberKey | expressionKey | foreachBlockKey | conditionalBlockSetKey | conditionalBlockKey | codeBlockKey | headerAnnotationPart | noteAnnotationPart | textPartNoColons
     ) ~> ((s: Seq[TemplatePart]) => Block(s.toList))
   }
 
   def blockNoStrong: Rule1[Block] = rule {
     zeroOrMore(
-      centeredLine | rightThreeQuartersLine | rightLine | indentLine | varAliasKey | varKey | varMemberKey | headerAnnotationPart | noteAnnotationPart | textPartNoStrong
+      markdownFormattingToken | varAliasKey | varKey | varMemberKey | headerAnnotationPart | noteAnnotationPart | textPartNoStrong
     ) ~> ((s: Seq[TemplatePart]) => Block(s.toList))
   }
 
   def blockNoEm: Rule1[Block] = rule {
     zeroOrMore(
-      centeredLine | rightThreeQuartersLine | rightLine | indentLine | varAliasKey | varKey | varMemberKey | headerAnnotationPart | noteAnnotationPart | textPartNoEm
+      markdownFormattingToken | varAliasKey | varKey | varMemberKey | headerAnnotationPart | noteAnnotationPart | textPartNoEm
     ) ~> ((s: Seq[TemplatePart]) => Block(s.toList))
   }
 
   def blockNoUnder: Rule1[Block] = rule {
     zeroOrMore(
-      centeredLine | rightThreeQuartersLine | rightLine | indentLine | varAliasKey | varKey | varMemberKey | headerAnnotationPart | noteAnnotationPart | textPartNoUnder
+      markdownFormattingToken | varAliasKey | varKey | varMemberKey | headerAnnotationPart | noteAnnotationPart | textPartNoUnder
     ) ~> ((s: Seq[TemplatePart]) => Block(s.toList))
   }
 
   def blockNoStrongNoEmNoUnder: Rule1[Block] = rule {
     zeroOrMore(
-      centeredLine | rightThreeQuartersLine | rightLine | indentLine | varAliasKey | varKey | varMemberKey | headerAnnotationPart | noteAnnotationPart | textPartNoStrongNoEmNoUnder
+      markdownFormattingToken | varAliasKey | varKey | varMemberKey | headerAnnotationPart | noteAnnotationPart | textPartNoStrongNoEmNoUnder
     ) ~> ((s: Seq[TemplatePart]) => Block(s.toList))
   }
 
@@ -163,42 +193,6 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
             name: String,
             variables: Seq[VariableDefinition]
         ) => VariableSection(name, variables.toList)
-    )
-  }
-
-  def centeredLine: Rule1[TemplateText] = rule {
-    capture(centered) ~ optional(ws) ~> (
-        (_: String) => TemplateText(List(Centered))
-    )
-  }
-
-  def rightLine: Rule1[TemplateText] = rule {
-    capture(right) ~ optional(ws) ~> (
-        (_: String) => TemplateText(List(RightAlign))
-    )
-  }
-
-  def rightThreeQuartersLine: Rule1[TemplateText] = rule {
-    capture(rightThreeQuarters) ~ optional(ws) ~> (
-        (_: String) => TemplateText(List(RightThreeQuarters))
-    )
-  }
-
-  def pageBreak: Rule1[TemplateText] = rule {
-    capture(pagebreak) ~ optional(ws) ~> (
-        (_: String) => TemplateText(List(PageBreak))
-    )
-  }
-
-  def sectionBreak: Rule1[TemplateText] = rule {
-    capture(sectionbreak) ~ optional(ws) ~> (
-        (_: String) => TemplateText(List(SectionBreak))
-    )
-  }
-
-  def indentLine: Rule1[TemplateText] = rule {
-    capture(indent) ~ optional(ws) ~> (
-        (_: String) => TemplateText(List(Indent))
     )
   }
 

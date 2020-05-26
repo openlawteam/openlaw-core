@@ -6,11 +6,6 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import cats.implicits._
 import org.adridadou.openlaw.parser.template.variableTypes.EthereumAddress
 
-sealed abstract class TemplateKind(val name: String)
-case object Unknown extends TemplateKind("unknown")
-case object Agreement extends TemplateKind("agreement")
-case object Deal extends TemplateKind("deal")
-
 final case class TemplateId(id: String = "") extends Comparable[TemplateId] {
   override def toString: String = id
 

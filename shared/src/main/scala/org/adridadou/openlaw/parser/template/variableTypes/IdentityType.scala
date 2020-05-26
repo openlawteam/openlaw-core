@@ -17,6 +17,7 @@ import org.adridadou.openlaw.parser.template.formatters.{
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.result.{Failure, Result, Success}
+import LocalDateTimeHelper._
 
 case object IdentityType extends VariableType(name = "Identity") {
 
@@ -76,7 +77,9 @@ case object IdentityType extends VariableType(name = "Identity") {
       case VariableMemberKey(Left(VariableName(head))) :: Nil =>
         VariableType
           .convert[Identity](value)
-          .flatMap(id => accessProperty(Some(id), head).map(Some(_)))
+          .flatMap(id =>
+            accessProperty(Some(id), executionResult, head).map(Some(_))
+          )
       case _ :: _ =>
         Failure(
           s"Identity has only one level of properties. invalid property access ${keys.mkString(".")}"
@@ -91,27 +94,33 @@ case object IdentityType extends VariableType(name = "Identity") {
   ): Result[Unit] = keys match {
     case Nil => Success.unit
     case VariableMemberKey(Left(VariableName(head))) :: tail if tail.isEmpty =>
-      checkProperty(head)
+      checkProperty(head, executionResult)
     case _ :: _ => Failure(s"invalid property ${keys.mkString(".")}")
   }
 
-  private def checkProperty(key: String): Result[Unit] =
-    accessProperty(None, key) match {
-      case Left(ex) => Failure(ex)
-      case Right(_) => Success.unit
-    }
+  private def checkProperty(
+      key: String,
+      executionResult: TemplateExecutionResult
+  ): Result[Unit] =
+    accessProperty(None, executionResult, key).map(_ => ())
 
   private def accessProperty(
       identity: Option[Identity],
+      executionResult: TemplateExecutionResult,
       property: String
-  ): Result[String] = {
+  ): Result[OpenlawValue] = {
     property.toLowerCase() match {
       case "email" => Success(getOrNa(identity.map(_.email.email)))
-      case _       => Failure(s"property '$property' not found for type Identity")
+      case "signature date" =>
+        Success(getOrNa(for {
+          id <- identity
+          signatureProof <- executionResult.signatureProofs.get(id.email)
+        } yield signatureProof.signatureDate))
+      case _ => Failure(s"property '$property' not found for type Identity")
     }
   }
 
-  private def getOrNa(optStr: Option[String]): String =
+  private def getOrNa(optStr: Option[OpenlawValue]): OpenlawValue =
     optStr.getOrElse("[n/a]")
 }
 

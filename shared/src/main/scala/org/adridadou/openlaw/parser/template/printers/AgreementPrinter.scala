@@ -70,10 +70,6 @@ trait AgreementPrinter[T] {
     case _: SectionElement => true
     case _                 => false
   }
-
-  def isCentered(paragraph: Paragraph): Boolean =
-    paragraph.elements.headOption.contains(FreeText(Centered))
-
 }
 
 final case class PrinterState(

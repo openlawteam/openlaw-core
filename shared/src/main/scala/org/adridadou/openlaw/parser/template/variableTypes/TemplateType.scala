@@ -18,7 +18,7 @@ import org.adridadou.openlaw.values._
 
 final case class TemplateDefinition(
     name: TemplateSourceIdentifier,
-    mapping: Map[VariableName, Expression] = Map(),
+    mapping: Map[VariableName, Expression] = Map.empty,
     path: Option[TemplatePath] = None
 ) extends OpenlawNativeValue
 
@@ -85,14 +85,6 @@ object TemplatePath {
 
 case object TemplateType extends VariableType("Template") with NoShowInForm {
   private val availableParameters = Seq("parameters", "name", "path")
-  implicit val eqForTemplateCategoryType: Eq[TemplateKind] =
-    Eq.fromUniversalEquals[TemplateKind]
-
-  def apply(name: String): TemplateKind = name match {
-    case Agreement.name => Agreement
-    case Deal.name      => Deal
-    case _              => Unknown
-  }
 
   private def prepareTemplateName(
       mappingParameter: Parameters,
@@ -112,7 +104,9 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
           templateName.expr
             .evaluate(executionResult)
             .flatMap(_.map(VariableType.convert[OpenlawString]).sequence)
-            .map(_.map(title => TemplateSourceIdentifier(TemplateTitle(title))))
+            .map(
+              _.map(title => TemplateSourceIdentifier(TemplateTitle(title)))
+            )
         case _ =>
           Failure("parameter 'name' accepts only single value")
       }
@@ -159,7 +153,7 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
         case _ =>
           Failure("parameter 'parameters' should be a list of mapping values")
       })
-      .getOrElse(Success(Map()))
+      .getOrElse(Success(Map.empty))
 
   def prepareTemplateSource(
       mappingParameter: Parameters,
@@ -223,7 +217,7 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
       head.key match {
         case Left(variableName) =>
           executionResult.subExecutions
-            .get(variableName)
+            .get(name)
             .flatMap { subExecution =>
               subExecution
                 .getExpression(variableName)
@@ -245,7 +239,7 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
             }
             .getOrElse(
               Failure(
-                s"properties '${tail.mkString(".")}' could not be resolved in sub template '$head'"
+                s"properties '${keys.mkString(".")}' could not be resolved in sub template '$name'"
               )
             )
         case _ => Failure("template property are never a function")
@@ -258,28 +252,37 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
       executionResult: TemplateExecutionResult
   ): Result[VariableType] =
     keys match {
-      case Nil => Success(TemplateType)
+      case Nil => Success(ClauseType)
       case head :: tail =>
-        head.key match {
-          case Left(variableName) =>
-            executionResult.subExecutions.get(variableName).flatMap {
-              subExecution =>
-                subExecution
-                  .getExpression(variableName)
-                  .map(subExpr =>
-                    subExpr
-                      .expressionType(subExecution)
-                      .flatMap(_.keysType(tail, subExpr, executionResult))
+        for {
+          variableName <- expr match {
+            case v: VariableName => Success(v)
+            case other =>
+              Failure(
+                "property access only works with variable names (no expressions)"
+              )
+          }
+          result <- head.key match {
+            case Left(firstVariable) =>
+              executionResult.subExecutions.get(variableName).flatMap {
+                subExecution =>
+                  subExecution
+                    .getExpression(firstVariable)
+                    .map(subExpr =>
+                      subExpr
+                        .expressionType(subExecution)
+                        .flatMap(_.keysType(tail, subExpr, subExecution))
+                    )
+              } match {
+                case Some(varType) => varType
+                case None =>
+                  Failure(
+                    s"property '${keys.mkString(".")}' could not be resolved in sub template '$expr'"
                   )
-            } match {
-              case Some(varType) => varType
-              case None =>
-                Failure(
-                  s"property '${tail.mkString(".")}' could not be resolved in sub template '$head'"
-                )
-            }
-          case _ => Failure("template property are never a function")
-        }
+              }
+            case _ => Failure("template property are never a function")
+          }
+        } yield result
     }
 
   override def validateKeys(
@@ -289,7 +292,7 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
       executionResult: TemplateExecutionResult
   ): Result[Unit] = keys match {
     case Nil =>
-      Success(())
+      Success.unit
     case head :: tail =>
       head.key match {
         case Left(variableName) =>
@@ -303,7 +306,7 @@ case object TemplateType extends VariableType("Template") with NoShowInForm {
               )
           } match {
             case Some(_) =>
-              Success(())
+              Success.unit
             case None =>
               Failure(
                 s"property '${keys.mkString(".")}' could not be resolved in sub template '${name.name}'"
