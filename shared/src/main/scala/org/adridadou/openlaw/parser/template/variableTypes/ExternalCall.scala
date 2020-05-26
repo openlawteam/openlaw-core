@@ -175,46 +175,9 @@ final case class SignatureInput(
 )
 
 object SignatureInput {
-  // Note: The token expiry is marshalled to the AbstractStructureType parser expects the output JSON to be representable
-  // as a Map[String, String]. There may be a better way to do this
-  implicit val signatureInputDec: Decoder[SignatureInput] = {
-    Decoder.instance[SignatureInput] {
-      c: HCursor => {
+  implicit val signatureInputDec: Decoder[SignatureInput] = deriveDecoder
 
-        for {
-          signerEmail <- c.downField("signerEmail").as[Email]
-          contractContentBase64 <- c.downField("contractContentBase64").as[String]
-          contractTitle <- c.downField("contractTitle").as[String]
-          signaturePlaceholderText <- c.downField("signaturePlaceholderText").as[String]
-          accessToken <- c.downField("accessToken").as[String]
-          tokenExpiry <- c.downField("tokenExpiry").as[String].flatMap(tokenExpiryToLong)
-          refreshToken <- c.downField("refreshToken").as[String]
-        } yield {
-          SignatureInput(signerEmail, contractContentBase64, contractTitle, signaturePlaceholderText, accessToken, tokenExpiry, refreshToken)
-        }
-      }
-    }
-  }
-
-  implicit val signatureInputEnc: Encoder[SignatureInput] = { output =>
-    Json.obj(
-      "signerEmail" -> Json.fromString(output.signerEmail.email),
-      "contractContentBase64" -> Json.fromString(output.contractContentBase64),
-      "contractTitle" -> Json.fromString(output.contractTitle),
-      "signaturePlaceholderText" -> Json.fromString(output.signaturePlaceholderText),
-      "accessToken" -> Json.fromString(output.accessToken),
-      "tokenExpiry" -> Json.fromString(output.tokenExpiry.toString),
-      "refreshToken" -> Json.fromString(output.refreshToken)
-    )
-  }
-
-  private def tokenExpiryToLong(tokenExpiry: String): Either[DecodingFailure, Long] = {
-    try {
-      Right(tokenExpiry.toLong)
-    } catch {
-      case err: Throwable => Left(DecodingFailure(s"tokenExpiry value ${tokenExpiry} not convertable to a long", List()))
-    }
-  }
+  implicit val signatureInputEnc: Encoder[SignatureInput] = deriveEncoder
 }
 
 final case class SignatureOutput(
