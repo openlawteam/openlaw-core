@@ -147,7 +147,7 @@ final case class ForEachBlock(
         val specialCodeBlock = CodeBlock(List(newVariable))
 
         Success(
-          CompiledDeal(
+          CompiledAgreement(
             TemplateHeader(),
             Block(List(specialCodeBlock) ++ block.elems),
             VariableRedefinition()

@@ -27,15 +27,6 @@ final case class CompiledAgreement(
             descriptions = this.redefinition.descriptions ++ agreement.redefinition.descriptions
           )
         )
-      case deal: CompiledDeal =>
-        deal.copy(
-          header = TemplateHeader(this.header.values ++ deal.header.values),
-          block = Block(this.block.elems ++ deal.block.elems),
-          redefinition = VariableRedefinition(
-            typeMap = this.redefinition.typeMap ++ deal.redefinition.typeMap,
-            descriptions = this.redefinition.descriptions ++ deal.redefinition.descriptions
-          )
-        )
     }
 
   private val endOfParagraph = "(.)*[ |\t\r]*\n[ |\t\r]*\n[ |\t\r\n]*".r
@@ -458,7 +449,7 @@ final case class CompiledAgreement(
             )
             .sequence
         } yield {
-          val collection = list.getOrElse(Seq())
+          val collection = list.getOrElse(Seq.empty)
           collection.foldLeft(Success(renderedElements))((subElements, _) => {
             val subExecution =
               executionResult.finishedEmbeddedExecutions.remove(0)

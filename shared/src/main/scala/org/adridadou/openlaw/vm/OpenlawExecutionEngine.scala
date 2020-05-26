@@ -198,7 +198,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
         executionResult.parentExecution match {
           case Some(_) =>
             // has to be in a matcher for tail call optimization
-            finishExecution(executionResult, templates, overriddenFormatter) match {
+            finishExecution(executionResult, overriddenFormatter) match {
               case Success(result) =>
                 resumeExecution(result, templates, overriddenFormatter)
               case f => f
@@ -253,7 +253,6 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
 
   private def finishExecution(
       executionResult: OpenlawExecutionState,
-      templates: Map[TemplateSourceIdentifier, CompiledTemplate],
       overriddenFormatter: (
           Option[FormatterDefinition],
           TemplateExecutionResult
@@ -537,7 +536,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
                 executionResult.variablesInternal append VariableDefinition(
                   name = anonymousVariable,
                   variableTypeDefinition =
-                    Some(VariableTypeDefinition(TemplateType.name)),
+                    Some(VariableTypeDefinition(ClauseType.name)),
                   defaultValue = Some(
                     OneValueParameter(StringConstant(anonymousVariable.name))
                   )
