@@ -27,8 +27,7 @@ trait BinaryExpression extends Expression {
     (for {
       leftType <- left.expressionType(executionResult)
       rightType <- right.expressionType(executionResult)
-    } yield {
-
+    } yield
       if (!leftType.isCompatibleType(rightType, Compare)) {
         Failure(
           "left and right expression need to be of the same type to be computed." + leftType.name + " & " + rightType.name + " in " + left.toString + " & " + right.toString
@@ -43,8 +42,7 @@ trait BinaryExpression extends Expression {
           case Right(_) =>
             Success(())
         }
-      }
-    }).flatten
+      }).flatten
   }
 
   override def variables(
