@@ -27,15 +27,6 @@ final case class CompiledAgreement(
             descriptions = this.redefinition.descriptions ++ agreement.redefinition.descriptions
           )
         )
-      case deal: CompiledDeal =>
-        deal.copy(
-          header = TemplateHeader(this.header.values ++ deal.header.values),
-          block = Block(this.block.elems ++ deal.block.elems),
-          redefinition = VariableRedefinition(
-            typeMap = this.redefinition.typeMap ++ deal.redefinition.typeMap,
-            descriptions = this.redefinition.descriptions ++ deal.redefinition.descriptions
-          )
-        )
     }
 
   private val endOfParagraph = "(.)*[ |\t\r]*\n[ |\t\r]*\n[ |\t\r\n]*".r
@@ -140,7 +131,6 @@ final case class CompiledAgreement(
               )
           }
         newParagraphs :+ Text(text.substring(lastValue, text.length))
-      case PageBreak => List(ParagraphSeparator, PageBreak, ParagraphSeparator)
       case SectionBreak =>
         List(ParagraphSeparator, SectionBreak, ParagraphSeparator)
       case other => List(other)
@@ -276,9 +266,6 @@ final case class CompiledAgreement(
         Success(renderedElements)
       case Under =>
         renderedElements append FreeText(Under)
-        Success(renderedElements)
-      case PageBreak =>
-        renderedElements append FreeText(PageBreak)
         Success(renderedElements)
       case SectionBreak =>
         renderedElements append FreeText(SectionBreak)
@@ -462,7 +449,7 @@ final case class CompiledAgreement(
             )
             .sequence
         } yield {
-          val collection = list.getOrElse(Seq())
+          val collection = list.getOrElse(Seq.empty)
           collection.foldLeft(Success(renderedElements))((subElements, _) => {
             val subExecution =
               executionResult.finishedEmbeddedExecutions.remove(0)

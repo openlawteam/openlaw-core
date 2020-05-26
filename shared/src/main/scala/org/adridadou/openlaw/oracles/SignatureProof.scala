@@ -1,5 +1,7 @@
 package org.adridadou.openlaw.oracles
 
+import java.time.Instant
+
 import org.adridadou.openlaw.parser.template.Link
 import org.adridadou.openlaw.parser.template.variableTypes._
 import io.circe._
@@ -7,6 +9,7 @@ import io.circe.generic.semiauto._
 import io.circe.syntax._
 import io.circe.parser._
 import org.adridadou.openlaw.values.ContractId
+import LocalDateTimeHelper._
 
 object SignatureProof {
   implicit val openlawSignatureProofEnc: Encoder[SignatureProof] = deriveEncoder
@@ -18,7 +21,8 @@ object SignatureProof {
 final case class SignatureProof(
     contractId: ContractId,
     fullName: String,
-    signature: EthereumSignature
+    signature: EthereumSignature,
+    signatureDate: Instant
 ) {
   def serialize: Json = this.asJson
 

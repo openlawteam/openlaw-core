@@ -12,12 +12,12 @@ import org.adridadou.openlaw.values.{TemplateParameters, TemplateTitle}
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.{
-  createConcurrentMutableBuffer,
-  createConcurrentMutableMap,
-  createConcurrentMutableSet,
   OpenlawMap,
   OpenlawNativeValue,
-  OpenlawValue
+  OpenlawValue,
+  createConcurrentMutableBuffer,
+  createConcurrentMutableMap,
+  createConcurrentMutableSet
 }
 import org.adridadou.openlaw.oracles.SignatureProof
 import org.adridadou.openlaw.result.{

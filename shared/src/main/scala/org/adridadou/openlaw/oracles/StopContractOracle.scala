@@ -1,11 +1,14 @@
 package org.adridadou.openlaw.oracles
 
+import java.time.Instant
+
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.vm._
 import io.circe.{Decoder, Encoder}
 import io.circe.syntax._
 import io.circe.generic.semiauto._
 import org.adridadou.openlaw.result.Result
+import LocalDateTimeHelper._
 
 final case class StopContractOracle(crypto: CryptoService)
     extends SignedActionOracle[StopExecutionEvent] {
@@ -43,8 +46,10 @@ object StopExecutionEvent {
     deriveDecoder
 }
 
-final case class StopExecutionEvent(signature: EthereumSignature)
-    extends SignedActionEvent {
+final case class StopExecutionEvent(
+    signature: EthereumSignature,
+    signatureDate: Instant
+) extends SignedActionEvent {
   override def typeIdentifier: String = className[StopExecutionEvent]
   override def serialize: String = this.asJson.noSpaces
 }

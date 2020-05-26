@@ -326,7 +326,7 @@ abstract class VariableType(val name: String) {
       .map(_ =>
         Failure(s"The variable $variableName of type $name has no properties")
       )
-      .getOrElse(Success(()))
+      .getOrElse(Success.unit)
 
   def keysType(
       keys: List[VariableMemberKey],
@@ -545,7 +545,6 @@ object VariableType {
       SectionType,
       SmartContractMetadataType,
       AbstractStructureType,
-      TemplateType,
       TextType,
       ValidationType,
       RegexType,

@@ -156,13 +156,6 @@ trait VariableExecutionEngine {
     executionResult
       .getVariable(variable.name)
       .map(_.varType(executionResult)) match {
-      case Some(TemplateType) =>
-        executionResult.executedVariablesInternal append variable.name
-        startSubExecution(
-          variable,
-          executionResult,
-          executionType = TemplateExecution
-        )
       case Some(ClauseType) =>
         startSubExecution(
           variable,
