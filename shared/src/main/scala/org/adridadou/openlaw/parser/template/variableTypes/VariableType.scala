@@ -545,7 +545,7 @@ object VariableType {
       SectionType,
       SmartContractMetadataType,
       AbstractStructureType,
-      TemplateType,
+      //TemplateType,
       TextType,
       ValidationType,
       RegexType,
