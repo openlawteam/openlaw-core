@@ -28,8 +28,11 @@ object IntegratedServiceDefinition {
   val parser = new OpenlawTemplateLanguageParserService()
   val engine = new OpenlawExecutionEngine()
   private val signatureDefinitionStr =
-    "[[Input:Structure(signerEmail: Text; contractContentBase64: Text; contractTitle: Text; signaturePlaceholderText: Text; accessToken: Text; tokenExpiry: Number; refreshToken: Text)]] " +
-      "[[Output:Structure(signerEmail: Text; signature: Text; recordLink: Text; pdfContentsBase64: Text)]]"
+    """
+      |[[Signature:Structure(signerEmail: Text; contractContentBase64: Text; contractTitle: Text; signaturePlaceholderText: Text; accessToken: Text; tokenExpiry: Number; refreshToken: Text)]]
+      |[[Input:Structure(signatures: Collection)]]
+      |[[Output:Structure(signerEmail: Text; signature: Text; recordLink: Text; pdfContentsBase64: Text)]]
+    """.stripMargin
 
   private val storageDefinitionStr =
     "[[Input:Structure(accessToken: Text; operation: Text; filePath: Text; fileBase64Content: Text)]] " +
