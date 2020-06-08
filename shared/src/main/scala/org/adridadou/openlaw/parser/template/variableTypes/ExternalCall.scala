@@ -29,8 +29,7 @@ object IntegratedServiceDefinition {
   val engine = new OpenlawExecutionEngine()
   private val signatureDefinitionStr =
     """
-      |[[Signature:Structure(signerEmail: Text; contractContentBase64: Text; contractTitle: Text; signaturePlaceholderText: Text; accessToken: Text; tokenExpiry: Number; refreshToken: Text)]]
-      |[[Input:Structure(signatures: Collection)]]
+      |[[Input:Structure(signerEmails: Structure; contractContentBase64: Text; contractTitle: Text; accessToken: Text; tokenExpiry: Number; refreshToken: Text)]]
       |[[Output:Structure(signerEmail: Text; signature: Text; recordLink: Text; pdfContentsBase64: Text)]]
     """.stripMargin
 
@@ -161,12 +160,18 @@ object StorageOutput {
   implicit val storageOutputDec: Decoder[StorageOutput] = deriveDecoder
   implicit val storageOutputEq: Eq[StorageOutput] = Eq.fromUniversalEquals
 }
+
+final case class Signatory(signaturePlaceholderText: String, email: Email)
+
+object Signatory {
+  implicit val enc: Encoder[Signatory] = deriveEncoder
+  implicit val dev: Decoder[Signatory] = deriveDecoder
+}
+
 final case class SignatureInput(
-    signerEmail: Email,
+    signerEmails: List[Signatory],
     contractContentBase64: String,
     contractTitle: String,
-    // The text that the signature service should match to determine where on the document the user should sign.
-    signaturePlaceholderText: String,
     accessToken: String,
     // When the token will expire as a unix timestamp
     tokenExpiry: Long,
