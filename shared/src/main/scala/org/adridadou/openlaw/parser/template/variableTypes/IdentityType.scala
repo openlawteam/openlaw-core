@@ -174,6 +174,8 @@ object Email {
 
 object SignatureAction {
   implicit val signatureActionEq: Eq[SignatureAction] = Eq.fromUniversalEquals
+
+  val bulkRequestIdentifier = "bulkRequestIdentifier"
 }
 
 final case class SignatureAction(
@@ -183,12 +185,24 @@ final case class SignatureAction(
   override def nextActionSchedule(
       executionResult: TemplateExecutionResult,
       pastExecutions: List[OpenlawExecution]
-  ): Result[Option[Instant]] =
-    if (executionResult.hasSigned(email)) {
-      Success(None)
-    } else {
-      Success(Some(executionResult.info.now))
+  ): Result[Option[Instant]] = {
+
+    services match {
+      case List(ServiceName.openlawServiceName) => if (executionResult.hasSigned(email)) {
+        Success(None)
+      } else {
+        Success(Some(executionResult.info.now))
+      }
+      case _ =>
+        pastExecutions.find({
+          case externalCall: PendingExternalCallExecution => externalCall.requestIdentifier.identifier == SignatureAction.bulkRequestIdentifier
+          case _ => false
+        }) match {
+          case None => Success(None)
+          case Some(_) => Success(Some(executionResult.info.now))
+        }
     }
+  }
 
   override def identifier(
       executionResult: TemplateExecutionResult
