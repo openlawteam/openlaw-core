@@ -6,11 +6,11 @@ import io.circe._
 import io.circe.generic.auto._
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.syntax._
-import org.adridadou.openlaw.OpenlawNativeValue
+import org.adridadou.openlaw.{OpenlawNativeValue, OpenlawValue}
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.parboiled2.Rule1
 import org.adridadou.openlaw.parser.template.expressions._
-import org.adridadou.openlaw.result.Result
+import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 import scala.reflect.ClassTag
 
@@ -29,7 +29,7 @@ trait ExpressionRules extends JsonRules {
   }
 
   def ExpressionRule: Rule1[Expression] = rule {
-    BooleanTerm | Term | SubTerm | Factor
+    variableType2 | BooleanTerm | Term | SubTerm | Factor
   }
 
   def BooleanTerm: Rule1[Expression] = rule {
@@ -239,6 +239,15 @@ trait ExpressionRules extends JsonRules {
             varType: VariableTypeDefinition,
             params: Option[Parameter]
         ) => (varType, params)
+    )
+  }
+
+  def variableType2: Rule1[VariableTypeDefinition] = rule {
+    capture(oneOrMore(keyChar)) ~ "<" ~ variableType ~ ">" ~> (
+        (
+            s: String,
+            typeParameter: VariableTypeDefinition
+        ) => VariableTypeDefinition(s.trim, Some(typeParameter))
     )
   }
 
@@ -508,6 +517,32 @@ object VariableTypeDefinition {
 final case class VariableTypeDefinition(
     name: String,
     typeParameter: Option[VariableTypeDefinition] = None
-)
+) extends Expression {
+  override def missingInput(
+      executionResult: TemplateExecutionResult
+  ): Result[List[
+    VariableName
+  ]] =
+    typeParameter.map(_.missingInput(executionResult)).getOrElse(Success(Nil))
+
+  override def validate(
+      executionResult: TemplateExecutionResult
+  ): Result[Unit] =
+    typeParameter.map(_.validate(executionResult)).getOrElse(Success.unit)
+
+  override def expressionType(
+      executionResult: TemplateExecutionResult
+  ): Result[VariableType] =
+    Success(VariableTypeType)
+
+  override def evaluate(
+      executionResult: TemplateExecutionResult
+  ): Result[Option[OpenlawValue]] =
+    Failure("you cannot evaluate a type definition")
+
+  override def variables(
+      executionResult: TemplateExecutionResult
+  ): Result[List[VariableName]] = Success(Nil)
+}
 
 final case class PartialOperation(op: String, expr: Expression)
