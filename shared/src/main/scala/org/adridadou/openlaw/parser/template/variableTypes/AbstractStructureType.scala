@@ -99,7 +99,7 @@ case object AbstractStructureType
         )
       )
     case OneValueParameter(definition: VariableDefinition) =>
-      Success(definition.copy(name = VariableName(name)))
+      Success(definition.copy(name = VariableName(name), variableTypeDefinition = definition.variableTypeDefinition))
     case _ =>
       Failure("error in the constructor for Structured Type")
   }

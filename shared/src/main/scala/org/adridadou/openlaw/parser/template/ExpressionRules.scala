@@ -450,6 +450,7 @@ sealed trait Parameter extends OpenlawNativeValue {
       executionResult: TemplateExecutionResult
   ): Result[List[VariableName]]
 }
+
 final case class OneValueParameter(expr: Expression) extends Parameter {
   override def variables(
       executionResult: TemplateExecutionResult

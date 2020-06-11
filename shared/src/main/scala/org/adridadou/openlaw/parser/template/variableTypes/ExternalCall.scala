@@ -29,7 +29,8 @@ object IntegratedServiceDefinition {
   val engine = new OpenlawExecutionEngine()
   private val signatureDefinitionStr =
     """
-      |[[Input:Structure(signerEmails: Structure; contractContentBase64: Text; contractTitle: Text; accessToken: Text; tokenExpiry: Number; refreshToken: Text)]]
+      |[[Signee:Structure(signaturePlaceholderText: Text; email: Text)]]
+      |[[Input:Structure(contractContentBase64: Text; contractTitle: Text; accessToken: Text; tokenExpiry: Number; refreshToken: Text; signerEmails: Collection<Signee> )]]
       |[[Output:Structure(signerEmail: Text; signature: Text; recordLink: Text; pdfContentsBase64: Text)]]
     """.stripMargin
 
@@ -161,7 +162,7 @@ object StorageOutput {
   implicit val storageOutputEq: Eq[StorageOutput] = Eq.fromUniversalEquals
 }
 
-final case class Signatory(signaturePlaceholderText: String, email: Email)
+final case class Signatory(signaturePlaceholderText: String, email: String)
 
 object Signatory {
   implicit val enc: Encoder[Signatory] = deriveEncoder
