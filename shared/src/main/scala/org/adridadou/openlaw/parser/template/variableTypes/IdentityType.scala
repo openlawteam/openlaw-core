@@ -198,8 +198,8 @@ final case class SignatureAction(
           case externalCall: PendingExternalCallExecution => externalCall.requestIdentifier.identifier == SignatureAction.bulkRequestIdentifier
           case _ => false
         }) match {
-          case None => Success(None)
-          case Some(_) => Success(Some(executionResult.info.now))
+          case None => Success(Some(executionResult.info.now))
+          case Some(_) => Success(None)
         }
     }
   }
