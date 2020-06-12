@@ -72,7 +72,7 @@ trait VariableExecutionEngine {
       variable: VariableDefinition,
       executed: Boolean
   ): Result[OpenlawExecutionState] =
-    missingVariables match {
+    missingVariables.filterNot(_.isAnonymous) match {
       case Nil =>
         variable.verifyConstructor(executionResult).flatMap { _ =>
           if (executed) {
@@ -371,9 +371,9 @@ trait VariableExecutionEngine {
   ): Result[OpenlawExecutionState] = {
     for {
       variables <- alias.variables(executionResult)
-      missingVariables = variables.filter(variable =>
-        executionResult.getVariable(variable).isEmpty
-      )
+      missingVariables = variables
+        .filterNot(_.isAnonymous)
+        .filter(variable => executionResult.getVariable(variable).isEmpty)
       result <- if (missingVariables === Nil) {
         alias.validate(executionResult).flatMap { _ =>
           executionResult.aliasesInternal.prepend(alias)

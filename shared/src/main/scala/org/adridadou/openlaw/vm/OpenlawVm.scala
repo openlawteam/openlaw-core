@@ -563,12 +563,16 @@ final case class OpenlawVm(
   ): Result[OpenlawVm] = {
     vm.allNextActions.flatMap { nextActions =>
       vm.executionState match {
-        case ContractCreated if nextActions.isEmpty =>
+        case ContractCreated if nextActions.isEmpty && everyoneHasSigned(vm) =>
           vm(UpdateExecutionStateCommand(ContractRunning, event))
         case _ =>
           Success(vm)
       }
     }
+  }
+
+  private def everyoneHasSigned(vm: OpenlawVm) = {
+    vm.allSignatures.size == vm.allIdentities.map(_.size).getOrElse(0)
   }
 
   private def executeEvent(event: OpenlawVmEvent): Result[OpenlawVm] =

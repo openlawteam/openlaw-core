@@ -23,13 +23,16 @@ import org.adridadou.openlaw.result.{Failure, Result, Success}
 import org.adridadou.openlaw.result.Implicits._
 import org.adridadou.openlaw.values.ContractId
 import org.adridadou.openlaw.vm.OpenlawExecutionEngine
+import scala.collection.JavaConverters._
 
 object IntegratedServiceDefinition {
   val parser = new OpenlawTemplateLanguageParserService()
   val engine = new OpenlawExecutionEngine()
   private val signatureDefinitionStr =
-    "[[Input:Structure(signerEmail: Text; contractContentBase64: Text; contractTitle: Text; signaturePlaceholderText: Text; accessToken: Text; tokenExpiry: Number; refreshToken: Text)]] " +
-      "[[Output:Structure(signerEmail: Text; signature: Text; recordLink: Text; pdfContentsBase64: Text)]]"
+    """
+      |[[Input:Structure(contractContentBase64: Text; contractTitle: Text; accessToken: Text; tokenExpiry: Number; refreshToken: Text; signerEmailsJson: Text)]]
+      |[[Output:Structure(signerEmailsJson: Text; signaturesJson: Text; recordLink: Text; pdfContentsBase64: Text)]]
+    """.stripMargin
 
   private val storageDefinitionStr =
     "[[Input:Structure(accessToken: Text; operation: Text; filePath: Text; fileBase64Content: Text)]] " +
@@ -158,12 +161,19 @@ object StorageOutput {
   implicit val storageOutputDec: Decoder[StorageOutput] = deriveDecoder
   implicit val storageOutputEq: Eq[StorageOutput] = Eq.fromUniversalEquals
 }
+
+final case class Signatory(signaturePlaceholderText: String, email: String)
+
+object Signatory {
+  implicit val enc: Encoder[Signatory] = deriveEncoder
+  implicit val dev: Decoder[Signatory] = deriveDecoder
+}
+
 final case class SignatureInput(
-    signerEmail: Email,
+    // Json representation of List[Signatory]
+    signerEmailsJson: String,
     contractContentBase64: String,
     contractTitle: String,
-    // The text that the signature service should match to determine where on the document the user should sign.
-    signaturePlaceholderText: String,
     accessToken: String,
     // When the token will expire as a unix timestamp
     tokenExpiry: Long,
@@ -178,35 +188,17 @@ object SignatureInput {
 }
 
 final case class SignatureOutput(
-    signerEmail: Email,
-    signature: EthereumSignature,
+    // Json representation of List[Email]
+    signerEmailsJson: String,
+    // Json representation of List[EthereumSignature]
+    signaturesJson: String,
     recordLink: String,
     pdfContentsBase64: String
 )
 object SignatureOutput {
-  implicit val signatureOutputEnc: Encoder[SignatureOutput] =
-    Encoder.instance[SignatureOutput] { output =>
-      Json.obj(
-        "signerEmail" -> Json.fromString(output.signerEmail.email),
-        "signature" -> Json.fromString(output.signature.toString),
-        "recordLink" -> Json.fromString(output.recordLink),
-        "pdfContentsBase64" -> Json.fromString(output.pdfContentsBase64)
-      )
-    }
-  implicit val signatureOutputDec: Decoder[SignatureOutput] =
-    Decoder.instance[SignatureOutput] { c: HCursor =>
-      for {
-        signerEmail <- c.downField("signerEmail").as[Email]
-        signature <- c.downField("signature").as[String]
-        recordLink <- c.downField("recordLink").as[String]
-        pdfContentsBase64 <- c.downField("pdfContentsBase64").as[String]
-      } yield SignatureOutput(
-        signerEmail,
-        EthereumSignature(signature).getOrThrow(),
-        recordLink,
-        pdfContentsBase64
-      )
-    }
+  implicit val signatureOutputEnc: Encoder[SignatureOutput] = deriveEncoder
+  implicit val signatureOutputDec: Decoder[SignatureOutput] = deriveDecoder
+
   implicit val signatureOutputEq: Eq[SignatureOutput] = Eq.fromUniversalEquals
 
   def prepareDataToSign(
