@@ -115,10 +115,12 @@ final case class NumberConstant(
   override def toString: String = value.toString()
 }
 
+final case class TableBlock(elems: List[TemplatePart])
+
 final case class Table(
-    header: List[List[TemplatePart]],
+    header: List[TableBlock],
     alignment: List[(Alignment, Border)],
-    rows: List[List[List[TemplatePart]]]
+    rows: List[List[TableBlock]]
 ) extends TemplatePart
 
 trait ConditionalExpression {
@@ -149,7 +151,7 @@ final case class ForEachBlock(
         Success(
           CompiledAgreement(
             TemplateHeader(),
-            Block(List(specialCodeBlock) ++ block.elems),
+            Block(specialCodeBlock :: block.elems),
             VariableRedefinition()
           ),
           listType.typeParameter
