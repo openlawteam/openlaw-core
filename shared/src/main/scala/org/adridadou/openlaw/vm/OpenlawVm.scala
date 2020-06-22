@@ -527,9 +527,10 @@ final case class OpenlawVm(
           case e: OpenlawVmInitEvent =>
             executeEvent(e)
           case _ =>
-            Failure(
-              "the virtual machine is in creation state. The only events allowed are signature events"
+            logger.warn(
+              "the virtual machine is in creation state. The only events allowed are signature events."
             )
+            Success(this)
         }
       case _ => executeEvent(event)
     }
