@@ -195,7 +195,7 @@ final case class SignatureAction(
       }
       case _ =>
         pastExecutions.find({
-          case externalCall: PendingExternalCallExecution => externalCall.requestIdentifier.identifier == SignatureAction.bulkRequestIdentifier
+          case externalCall: PendingExternalCallExecution => externalCall.requestIdentifier.identifier.startsWith(SignatureAction.bulkRequestIdentifier)
           case _ => false
         }) match {
           case None if executionResult.hasSigned(email) => Success(None)
