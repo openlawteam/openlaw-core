@@ -188,14 +188,17 @@ final case class SignatureAction(
   ): Result[Option[Instant]] = {
 
     services match {
-      case List(ServiceName.openlawServiceName) => if (executionResult.hasSigned(email)) {
-        Success(None)
-      } else {
-        Success(Some(executionResult.info.now))
-      }
+      case List(ServiceName.openlawServiceName) =>
+        if (executionResult.hasSigned(email)) {
+          Success(None)
+        } else {
+          Success(Some(executionResult.info.now))
+        }
       case _ =>
         pastExecutions.find({
-          case externalCall: PendingExternalCallExecution => externalCall.requestIdentifier.identifier.startsWith(SignatureAction.bulkRequestIdentifier)
+          case externalCall: PendingExternalCallExecution =>
+            externalCall.requestIdentifier.identifier
+              .startsWith(SignatureAction.bulkRequestIdentifier)
           case _ => false
         }) match {
           case None if executionResult.hasSigned(email) => Success(None)

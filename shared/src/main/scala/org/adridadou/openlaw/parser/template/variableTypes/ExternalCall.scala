@@ -162,7 +162,11 @@ object StorageOutput {
   implicit val storageOutputEq: Eq[StorageOutput] = Eq.fromUniversalEquals
 }
 
-final case class Signatory(signaturePlaceholderText: String, email: String, name: String)
+final case class Signatory(
+    signaturePlaceholderText: String,
+    email: String,
+    name: String
+)
 
 object Signatory {
   implicit val enc: Encoder[Signatory] = deriveEncoder

@@ -8,7 +8,12 @@ import io.circe.{Decoder, Encoder, HCursor, Json}
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.expressions.Expression
 import org.adridadou.openlaw.parser.template.variableTypes._
-import org.adridadou.openlaw.values.{ContractDefinition, ContractId, TemplateId, TemplateParameters}
+import org.adridadou.openlaw.values.{
+  ContractDefinition,
+  ContractId,
+  TemplateId,
+  TemplateParameters
+}
 import org.adridadou.openlaw.oracles._
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 import slogging.LazyLogging
@@ -54,10 +59,9 @@ final case class OpenlawVmState(
     externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] =
       Map.empty,
     overriddenFormatter: (
-      Option[FormatterDefinition],
+        Option[FormatterDefinition],
         TemplateExecutionResult
-      ) => Option[Formatter] = (_, _) => None
-
+    ) => Option[Formatter] = (_, _) => None
 ) extends LazyLogging {
 
   def updateTemplate(
@@ -222,9 +226,9 @@ final case class OpenlawVm(
     externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] =
       Map(),
     overriddenFormatter: (
-      Option[FormatterDefinition],
+        Option[FormatterDefinition],
         TemplateExecutionResult
-      ) => Option[Formatter] = (_, _) => None
+    ) => Option[Formatter] = (_, _) => None
 ) extends LazyLogging {
   private val templateOracle = TemplateLoadOracle(crypto)
   val contractId: ContractId = contractDefinition.id(crypto)

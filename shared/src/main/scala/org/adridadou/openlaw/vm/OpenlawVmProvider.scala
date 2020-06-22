@@ -1,9 +1,21 @@
 package org.adridadou.openlaw.vm
 
-import org.adridadou.openlaw.oracles.{CryptoService, OpenlawOracle, OpenlawSignatureOracle}
+import org.adridadou.openlaw.oracles.{
+  CryptoService,
+  OpenlawOracle,
+  OpenlawSignatureOracle
+}
 import org.adridadou.openlaw.parser.template.formatters.Formatter
-import org.adridadou.openlaw.parser.template.{FormatterDefinition, OpenlawTemplateLanguageParserService, TemplateExecutionResult}
-import org.adridadou.openlaw.parser.template.variableTypes.{EthereumAddress, IntegratedServiceDefinition, ServiceName}
+import org.adridadou.openlaw.parser.template.{
+  FormatterDefinition,
+  OpenlawTemplateLanguageParserService,
+  TemplateExecutionResult
+}
+import org.adridadou.openlaw.parser.template.variableTypes.{
+  EthereumAddress,
+  IntegratedServiceDefinition,
+  ServiceName
+}
 import org.adridadou.openlaw.values.ContractDefinition
 
 class OpenlawVmProvider(
@@ -19,9 +31,9 @@ class OpenlawVmProvider(
       externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] =
         Map(),
       overriddenFormatter: (
-        Option[FormatterDefinition],
+          Option[FormatterDefinition],
           TemplateExecutionResult
-        ) => Option[Formatter] = (_, _) => None
+      ) => Option[Formatter] = (_, _) => None
   ): OpenlawVm =
     OpenlawVm(
       contractDefinition,
