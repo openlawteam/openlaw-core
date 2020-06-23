@@ -273,8 +273,7 @@ trait ParameterTypeProvider {
   ): VariableType with ParameterType
 }
 
-abstract class VariableType(val name: String) {
-
+abstract class VariableType(val name: String) extends OpenlawNativeValue {
   def serialize: Json = Json.obj("name" -> io.circe.Json.fromString(name))
 
   def validateOperation(
@@ -514,6 +513,18 @@ abstract class VariableType(val name: String) {
       case None        => Failure(s"mandatory parameter $name could not be found")
     }
   }
+}
+
+object VariableTypeType extends VariableType("VariableType") {
+  override def getTypeClass: Class[_ <: OpenlawValue] = classOf[VariableType]
+  override def cast(
+      value: String,
+      executionResult: TemplateExecutionResult
+  ): Result[OpenlawValue] = Failure("you cannot cast a variable type!")
+  override def internalFormat(value: OpenlawValue): Result[String] =
+    VariableType.convert[VariableType](value).map(varType => varType.name)
+
+  override def thisType: VariableType = VariableTypeType
 }
 
 object VariableType {

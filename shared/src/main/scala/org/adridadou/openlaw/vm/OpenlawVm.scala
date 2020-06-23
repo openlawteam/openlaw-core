@@ -22,6 +22,7 @@ import scala.reflect.ClassTag
 import io.circe.generic.semiauto._
 import LocalDateTimeHelper._
 import org.adridadou.openlaw._
+import org.adridadou.openlaw.parser.template.formatters.Formatter
 
 final case class Signature(userId: UserId, signature: OpenlawSignatureEvent)
 
@@ -56,7 +57,11 @@ final case class OpenlawVmState(
     executionState: ContractExecutionState,
     crypto: CryptoService,
     externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] =
-      Map.empty
+      Map.empty,
+    overriddenFormatter: (
+        Option[FormatterDefinition],
+        TemplateExecutionResult
+    ) => Option[Formatter] = (_, _) => None
 ) extends LazyLogging {
 
   def updateTemplate(
@@ -196,7 +201,7 @@ final case class OpenlawVmState(
           Some(definition.id(crypto)),
           Some(definition.creationDate),
           profileAddress,
-          (_, _) => None
+          overriddenFormatter
         )
       ) match {
       case None =>
@@ -219,7 +224,11 @@ final case class OpenlawVm(
     identityOracle: OpenlawSignatureOracle,
     oracles: List[OpenlawOracle[_]],
     externalCallStructures: Map[ServiceName, IntegratedServiceDefinition] =
-      Map()
+      Map(),
+    overriddenFormatter: (
+        Option[FormatterDefinition],
+        TemplateExecutionResult
+    ) => Option[Formatter] = (_, _) => None
 ) extends LazyLogging {
   private val templateOracle = TemplateLoadOracle(crypto)
   val contractId: ContractId = contractDefinition.id(crypto)
@@ -234,7 +243,8 @@ final case class OpenlawVm(
     optExecutionResult = None,
     executionState = ContractCreated,
     crypto = crypto,
-    externalCallStructures = externalCallStructures
+    externalCallStructures = externalCallStructures,
+    overriddenFormatter = overriddenFormatter
   )
 
   def isSignatureValid(
@@ -558,12 +568,16 @@ final case class OpenlawVm(
   ): Result[OpenlawVm] = {
     vm.allNextActions.flatMap { nextActions =>
       vm.executionState match {
-        case ContractCreated if nextActions.isEmpty =>
+        case ContractCreated if nextActions.isEmpty && everyoneHasSigned(vm) =>
           vm(UpdateExecutionStateCommand(ContractRunning, event))
         case _ =>
           Success(vm)
       }
     }
+  }
+
+  private def everyoneHasSigned(vm: OpenlawVm) = {
+    vm.allSignatures.size == vm.allIdentities.map(_.size).getOrElse(0)
   }
 
   private def executeEvent(event: OpenlawVmEvent): Result[OpenlawVm] =

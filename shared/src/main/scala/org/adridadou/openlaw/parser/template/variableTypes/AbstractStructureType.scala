@@ -3,7 +3,6 @@ package org.adridadou.openlaw.parser.template.variableTypes
 import cats.implicits._
 import io.circe.{Decoder, Encoder, HCursor, Json}
 import cats.kernel.Eq
-import io.circe.Json.JString
 import org.adridadou.openlaw.parser.template._
 import io.circe.parser._
 import io.circe.syntax._
@@ -39,7 +38,7 @@ case object AbstractStructureType
       val someTest = values
         .foldLeft(Success(Map[VariableName, VariableDefinition]()))({
           case (Success(m), (key, value)) =>
-            getField(key, value, executionResult).map(variableDefinition =>
+            getField(key, value).map(variableDefinition =>
               m + (VariableName(key) -> variableDefinition)
             )
           case (other, (_, _)) =>
@@ -88,8 +87,7 @@ case object AbstractStructureType
 
   private def getField(
       name: String,
-      value: Parameter,
-      executionResult: TemplateExecutionResult
+      value: Parameter
   ): Result[VariableDefinition] = value match {
     case OneValueParameter(VariableName(typeName)) =>
       Success(
@@ -99,7 +97,19 @@ case object AbstractStructureType
         )
       )
     case OneValueParameter(definition: VariableDefinition) =>
-      Success(definition.copy(name = VariableName(name)))
+      Success(
+        definition.copy(
+          name = VariableName(name),
+          variableTypeDefinition = definition.variableTypeDefinition
+        )
+      )
+    case OneValueParameter(varType: VariableTypeDefinition) =>
+      Success(
+        VariableDefinition(
+          name = VariableName(name),
+          variableTypeDefinition = Some(varType)
+        )
+      )
     case _ =>
       Failure("error in the constructor for Structured Type")
   }
