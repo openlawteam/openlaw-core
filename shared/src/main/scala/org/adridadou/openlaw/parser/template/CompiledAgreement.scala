@@ -182,7 +182,7 @@ final case class CompiledAgreement(
             .map(entry =>
               getAgreementElements(
                 mutable.Buffer(),
-                entry,
+                entry.elems,
                 executionResult,
                 overriddenFormatter
               ).map(_.toList)
@@ -194,7 +194,7 @@ final case class CompiledAgreement(
                 .map(entry =>
                   getAgreementElements(
                     mutable.Buffer(),
-                    entry,
+                    entry.elems,
                     executionResult,
                     overriddenFormatter
                   ).map(_.toList)

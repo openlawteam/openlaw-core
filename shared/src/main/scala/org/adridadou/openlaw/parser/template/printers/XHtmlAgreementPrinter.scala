@@ -4,10 +4,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import cats.implicits._
 import org.adridadou.openlaw.parser.template._
-import org.adridadou.openlaw.parser.template.variableTypes.{
-  ExternalSignature,
-  IdentityType
-}
+import org.adridadou.openlaw.parser.template.variableTypes.{IdentityType}
 import scalatags.Text.all._
 import slogging._
 
