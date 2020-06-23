@@ -197,23 +197,23 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   }
 
   def textPart: Rule1[TemplateText] = rule {
-    textElement ~> ((s: Seq[TemplatePart]) => TemplateText(s.toList))
+    textElement ~> ((s: List[TemplatePart]) => TemplateText(s))
   }
 
   def textPartNoColons: Rule1[TemplateText] = rule {
-    textElementNoColons ~> ((s: Seq[TemplatePart]) => TemplateText(s.toList))
+    textElementNoColons ~> ((s: List[TemplatePart]) => TemplateText(s))
   }
 
   def textPartNoStrong: Rule1[TemplateText] = rule {
-    textElementNoStrong ~> ((s: Seq[TemplatePart]) => TemplateText(s.toList))
+    textElementNoStrong ~> ((s: List[TemplatePart]) => TemplateText(s))
   }
 
   def textPartNoEm: Rule1[TemplateText] = rule {
-    textElementNoEm ~> ((s: Seq[TemplatePart]) => TemplateText(s.toList))
+    textElementNoEm ~> ((s: List[TemplatePart]) => TemplateText(s))
   }
 
   def textPartNoUnder: Rule1[TemplateText] = rule {
-    textElementNoUnder ~> ((s: Seq[TemplatePart]) => TemplateText(s.toList))
+    textElementNoUnder ~> ((s: List[TemplatePart]) => TemplateText(s))
   }
 
   def textPartNoStrongNoEmNoUnder: Rule1[TemplateText] = rule {
@@ -224,7 +224,7 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
     tableKey | strongWord | emWord | underWord | text | pipeText | starText | underLineText
   }
 
-  def textElementNoStrong: Rule1[Seq[TemplatePart]] = rule {
+  def textElementNoStrong: Rule1[List[TemplatePart]] = rule {
     innerEmWord | innerUnderWord | textNoReturn | pipeText | underLineText
   }
 
@@ -232,11 +232,11 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
     tableKey | strongWord | emWord | underWord | textNoColons | pipeText | starText | underLineText
   }
 
-  def textElementNoEm: Rule1[Seq[TemplatePart]] = rule {
+  def textElementNoEm: Rule1[List[TemplatePart]] = rule {
     innerStrongWord | innerUnderWord | textNoReturn | pipeText | underLineText
   }
 
-  def textElementNoUnder: Rule1[Seq[TemplatePart]] = rule {
+  def textElementNoUnder: Rule1[List[TemplatePart]] = rule {
     innerStrongWord | innerEmWord | textNoReturn | pipeText | starText
   }
 
@@ -323,17 +323,36 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
     capture(pipe) ~> ((s: String) => List(Text(TextCleaning.dots(s))))
   }
 
+  def tableBlockEm: Rule1[TableBlock] = rule {
+    oneStar ~ tableColumnEntryBlock ~ oneStar ~> (
+        (block: TableBlock) => TableBlock((Em :: block.elems) ++ List(Em))
+    )
+  }
+
+  def tableBlockStrong: Rule1[TableBlock] = rule {
+    twoStar ~ tableColumnEntryBlock ~ twoStar ~> (
+        (block: TableBlock) =>
+          TableBlock((Strong :: block.elems) ++ List(Strong))
+      )
+  }
+
+  def tableBlockUnder: Rule1[TableBlock] = rule {
+    underLines ~ tableColumnEntryBlock ~ underLines ~> (
+        (block: TableBlock) => TableBlock((Under :: block.elems) ++ List(Under))
+    )
+  }
+
   def tableText: Rule1[TemplatePart] = rule {
     capture(normalCharNoReturn) ~> ((s: String) => Text(s))
   }
 
   // the table parsing construct below may return empty whitespace at the end of the cell, this trims it and accumulates text nodes
   @tailrec final def accumulateTextAndTrim(
-      seq: Seq[TemplatePart],
-      accu: Seq[TemplatePart] = Seq()
-  ): Seq[TemplatePart] = seq match {
-    case Seq() => accu
-    case seq @ Seq(head, tail @ _*) =>
+      seq: List[TemplatePart],
+      accu: List[TemplatePart] = Nil
+  ): List[TemplatePart] = seq match {
+    case Nil => accu
+    case head :: tail =>
       val texts = seq
         .takeWhile({
           case _: Text => true
@@ -354,10 +373,17 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   }
 
   def whitespace: Rule0 = rule { zeroOrMore(anyOf(tabOrSpace)) }
-  def tableColumnEntryBlock: Rule1[Seq[TemplatePart]] = rule {
+
+  def tableColumnEntryBlock: Rule1[TableBlock] = rule {
     oneOrMore(
-      varAliasKey | varKey | varMemberKey | conditionalBlockSetKey | conditionalBlockKey | foreachBlockKey | tableText
-    ) ~> ((seq: Seq[TemplatePart]) => accumulateTextAndTrim(seq))
+      (varAliasKey | varKey | varMemberKey | conditionalBlockSetKey | conditionalBlockKey | foreachBlockKey | tableText) ~> (
+          (part: TemplatePart) => TableBlock(List(part))
+      ) |
+        tableBlockStrong | tableBlockEm | tableBlockUnder
+    ) ~> (
+        (seq: Seq[TableBlock]) =>
+          TableBlock(accumulateTextAndTrim(seq.flatMap(_.elems).toList))
+      )
   }
 
   def tableKey: Rule1[List[Table]] = rule {
@@ -377,9 +403,9 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
       tableRow ~ EndOfBlock
     ) ~> (
         (
-            headers: List[List[TemplatePart]],
+            headers: List[TableBlock],
             alignment: Seq[(Alignment, Border)],
-            rows: Seq[List[List[TemplatePart]]]
+            rows: Seq[List[TableBlock]]
         ) =>
           Table(
             headers,
@@ -395,12 +421,12 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
     ) ~> (
         (
             styling: Option[Seq[(Alignment, Border)]],
-            rows: Seq[Seq[Seq[TemplatePart]]]
+            rows: Seq[List[TableBlock]]
         ) =>
           Table(
             Nil,
             styling.map(_.toList).getOrElse(Nil),
-            rows.map(_.map(_.toList).toList).toList
+            rows.toList
           )
       )
   }
@@ -408,7 +434,7 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
   def tableWithoutRow: Rule1[Table] = rule {
     tableRow ~ nl ~ whitespace ~ tableHeaderBreak ~ whitespace ~ EndOfBlock ~> (
         (
-            headers: List[List[TemplatePart]],
+            headers: List[TableBlock],
             alignment: Seq[(Alignment, Border)]
         ) => Table(headers, alignment.toList, Nil)
     )
@@ -419,19 +445,19 @@ trait BlockRules extends Parser with ExpressionRules with GlobalRules {
       .separatedBy(pipe) ~ whitespace ~ pipe ~ whitespace
   }
 
-  def tableColumnEntry: Rule1[Seq[TemplatePart]] = rule {
+  def tableColumnEntry: Rule1[TableBlock] = rule {
     whitespace ~ tableColumnEntryBlock ~ whitespace
   }
 
-  def tableRow: Rule1[List[List[TemplatePart]]] = rule {
+  def tableRow: Rule1[List[TableBlock]] = rule {
     whitespace ~ pipe ~ (tableColumnEntry ~ pipe ~ oneOrMore(tableColumnEntry)
       .separatedBy(pipe) ~ pipe ~ whitespace ~> (
         (
-            row: Seq[TemplatePart],
-            remaining: Seq[Seq[TemplatePart]]
+            row: TableBlock,
+            remaining: Seq[TableBlock]
         ) => row +: remaining
     )) ~ optional(pipe) ~ whitespace ~> (
-        (elems: Seq[Seq[TemplatePart]]) => elems.map(_.toList).toList
+        (elems: Seq[TableBlock]) => elems.toList
     )
   }
 

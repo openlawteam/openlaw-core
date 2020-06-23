@@ -28,40 +28,60 @@ class BlockRulesSpec
     TestParser(" ").TableColumnEntry.run() shouldBe a[Failure[_]]
     TestParser("|").TableColumnEntry.run() shouldBe a[Failure[_]]
     TestParser("| ").TableColumnEntry.run() shouldBe a[Failure[_]]
-    TestParser("col1").TableColumnEntry.run().success.value shouldBe List(
+    TestParser("col1").TableColumnEntry.run().success.value.elems shouldBe List(
       Text("col1")
     )
-    TestParser(" col1").TableColumnEntry.run().success.value shouldBe List(
+    TestParser(" col1").TableColumnEntry
+      .run()
+      .success
+      .value
+      .elems shouldBe List(
       Text("col1")
     )
-    TestParser("col1 ").TableColumnEntry.run().success.value shouldBe List(
+    TestParser("col1 ").TableColumnEntry
+      .run()
+      .success
+      .value
+      .elems shouldBe List(
       Text("col1")
     )
-    TestParser(" col1 ").TableColumnEntry.run().success.value shouldBe List(
+    TestParser(" col1 ").TableColumnEntry
+      .run()
+      .success
+      .value
+      .elems shouldBe List(
       Text("col1")
     )
     TestParser("col1 with spaces").TableColumnEntry
       .run()
       .success
-      .value shouldBe List(Text("col1 with spaces"))
+      .value
+      .elems shouldBe List(Text("col1 with spaces"))
   }
 
   it should "parse a table column entry with a variable" in {
-    TestParser("[[var1]]").TableColumnEntry.run().success.value shouldBe Vector(
+    TestParser("[[var1]]").TableColumnEntry
+      .run()
+      .success
+      .value
+      .elems shouldBe Vector(
       VariableDefinition("var1")
     )
     TestParser("[[var1]] ").TableColumnEntry
       .run()
       .success
-      .value shouldBe Vector(VariableDefinition("var1"))
+      .value
+      .elems shouldBe Vector(VariableDefinition("var1"))
     TestParser(" [[var1]] ").TableColumnEntry
       .run()
       .success
-      .value shouldBe Vector(VariableDefinition("var1"))
+      .value
+      .elems shouldBe Vector(VariableDefinition("var1"))
     TestParser(" [[var1]]").TableColumnEntry
       .run()
       .success
-      .value shouldBe Vector(VariableDefinition("var1"))
+      .value
+      .elems shouldBe Vector(VariableDefinition("var1"))
   }
 
   private def conditionalBlock(text: String): Try[ConditionalBlock] =
@@ -69,6 +89,7 @@ class BlockRulesSpec
       .run()
       .success
       .value
+      .elems
       .head match {
       case c: ConditionalBlock => Success(c)
       case _                   => Failure(new RuntimeException("wrong type"))
@@ -117,33 +138,33 @@ class BlockRulesSpec
     TestParser("|col1|col2|col3|").TableRow
       .run()
       .success
-      .value should contain allOf (List(Text("col1")), List(Text("col2")), List(
-      Text("col3")
-    ))
+      .value should contain allOf (TableBlock(List(Text("col1"))), TableBlock(
+      List(Text("col2"))
+    ), TableBlock(List(Text("col3"))))
     TestParser("| col1 | col2 | col3|").TableRow
       .run()
       .success
-      .value should contain allOf (List(Text("col1")), List(Text("col2")), List(
-      Text("col3")
-    ))
+      .value should contain allOf (TableBlock(List(Text("col1"))), TableBlock(
+      List(Text("col2"))
+    ), TableBlock(List(Text("col3"))))
     TestParser("| col1 | col2 | col3 |").TableRow
       .run()
       .success
-      .value should contain allOf (List(Text("col1")), List(Text("col2")), List(
-      Text("col3")
-    ))
+      .value should contain allOf (TableBlock(List(Text("col1"))), TableBlock(
+      List(Text("col2"))
+    ), TableBlock(List(Text("col3"))))
     TestParser("| col1 | col2 | col3 |").TableRow
       .run()
       .success
-      .value should contain allOf (List(Text("col1")), List(Text("col2")), List(
-      Text("col3")
-    ))
+      .value should contain allOf (TableBlock(List(Text("col1"))), TableBlock(
+      List(Text("col2"))
+    ), TableBlock(List(Text("col3"))))
     TestParser("| col1 | col2 | col3|").TableRow
       .run()
       .success
-      .value should contain allOf (List(Text("col1")), List(Text("col2")), List(
-      Text("col3")
-    ))
+      .value should contain allOf (TableBlock(List(Text("col1"))), TableBlock(
+      List(Text("col2"))
+    ), TableBlock(List(Text("col3"))))
   }
 
   it should "parse a header break string" in {
@@ -185,7 +206,11 @@ class BlockRulesSpec
 
     val expected = List(
       Table(
-        List(List(Text("head1")), List(Text("head2")), List(Text("head3"))),
+        List(
+          TableBlock(List(Text("head1"))),
+          TableBlock(List(Text("head2"))),
+          TableBlock(List(Text("head3")))
+        ),
         List(
           LeftAlignment -> ShowBorder,
           RightAlignment -> HideBorder,
@@ -193,14 +218,14 @@ class BlockRulesSpec
         ),
         List(
           List(
-            List(Text("entry11")),
-            List(Text("entry12")),
-            List(Text("entry13"))
+            TableBlock(List(Text("entry11"))),
+            TableBlock(List(Text("entry12"))),
+            TableBlock(List(Text("entry13")))
           ),
           List(
-            List(Text("entry21")),
-            List(Text("entry22")),
-            List(Text("entry23"))
+            TableBlock(List(Text("entry21"))),
+            TableBlock(List(Text("entry22"))),
+            TableBlock(List(Text("entry23")))
           )
         )
       )
@@ -216,9 +241,9 @@ class BlockRulesSpec
     checkResult(TestParser(table), TestParser(table).Table.run()) shouldBe List(
       Table(
         List(
-          List(Text("Lender")),
-          List(Text("Closing / Subsequent Closing Date")),
-          List(Text("Principal Balance of Promissory Note"))
+          TableBlock(List(Text("Lender"))),
+          TableBlock(List(Text("Closing / Subsequent Closing Date"))),
+          TableBlock(List(Text("Principal Balance of Promissory Note")))
         ),
         List(
           LeftAlignment -> ShowBorder,
@@ -235,9 +260,9 @@ class BlockRulesSpec
           List(
             Table(
               List(
-                List(Text("Lender")),
-                List(Text("Closing / Subsequent Closing Date")),
-                List(Text("Principal Balance of Promissory Note"))
+                TableBlock(List(Text("Lender"))),
+                TableBlock(List(Text("Closing / Subsequent Closing Date"))),
+                TableBlock(List(Text("Principal Balance of Promissory Note")))
               ),
               List(
                 LeftAlignment -> ShowBorder,
@@ -250,6 +275,62 @@ class BlockRulesSpec
         )
       )
     )
+  }
+
+  it should "let you use formatting in the table content" in {
+    val table =
+      """|| --------- | ----------- |
+        || **Customer**: | Customer Name | 
+        || **Customer Contact Person**: | Customer Contact Person | 
+        || **Customer Phone Number**: | Customer Phone Number |
+        || **Customer Email Address**: | Customer Email Address |""".stripMargin
+
+    val b =
+      TemplateText(
+        List(
+          Table(
+            Nil,
+            List((LeftAlignment, ShowBorder), (LeftAlignment, ShowBorder)),
+            List(
+              List(
+                TableBlock(List(Strong, Text("Customer"), Strong, Text(":"))),
+                TableBlock(List(Text("Customer Name")))
+              ),
+              List(
+                TableBlock(
+                  List(
+                    Strong,
+                    Text("Customer Contact Person"),
+                    Strong,
+                    Text(":")
+                  )
+                ),
+                TableBlock(List(Text("Customer Contact Person")))
+              ),
+              List(
+                TableBlock(
+                  List(Strong, Text("Customer Phone Number"), Strong, Text(":"))
+                ),
+                TableBlock(List(Text("Customer Phone Number")))
+              ),
+              List(
+                TableBlock(
+                  List(
+                    Strong,
+                    Text("Customer Email Address"),
+                    Strong,
+                    Text(":")
+                  )
+                ),
+                TableBlock(List(Text("Customer Email Address")))
+              )
+            )
+          )
+        )
+      )
+
+    checkResult(TestParser(table), TestParser(table).BlockRule.run())
+      .elems(0) shouldBe b
   }
 
   it should "parse a table construct with loop" in {
@@ -265,16 +346,16 @@ class BlockRulesSpec
         List(
           Table(
             List(
-              List(Text("Lender")),
-              List(Text("Closing / Subsequent Closing Date")),
-              List(Text("Principal Balance of Promissory Note"))
+              TableBlock(List(Text("Lender"))),
+              TableBlock(List(Text("Closing / Subsequent Closing Date"))),
+              TableBlock(List(Text("Principal Balance of Promissory Note")))
             ),
             List(
               (LeftAlignment, ShowBorder),
               (LeftAlignment, ShowBorder),
               (LeftAlignment, ShowBorder)
             ),
-            List()
+            Nil
           )
         )
       )

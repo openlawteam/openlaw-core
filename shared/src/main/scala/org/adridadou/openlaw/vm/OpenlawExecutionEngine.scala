@@ -376,7 +376,7 @@ class OpenlawExecutionEngine extends VariableExecutionEngine {
 
     case Table(header, _, rows) =>
       val initialValue: Result[OpenlawExecutionState] = Success(executionResult)
-      (header.flatten ++ rows.flatten.flatten)
+      (header.flatMap(_.elems) ++ rows.flatten.flatMap(_.elems))
         .foldLeft(initialValue)((exec, elem) =>
           exec.flatMap(processExecutedElement(_, elem, templates))
         )
