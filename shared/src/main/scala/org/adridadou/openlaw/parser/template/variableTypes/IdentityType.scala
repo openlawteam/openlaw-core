@@ -198,8 +198,9 @@ final case class SignatureAction(
       case _ =>
         pastExecutions.find({
           case externalCall: PendingExternalCallExecution =>
-            externalCall.actionIdentifier.exists(_.identifier
-              .startsWith(SignatureAction.bulkRequestIdentifier)
+            externalCall.actionIdentifier.exists(
+              _.identifier
+                .startsWith(SignatureAction.bulkRequestIdentifier)
             )
           case _ => false
         }) match {

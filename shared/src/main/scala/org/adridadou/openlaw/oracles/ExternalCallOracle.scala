@@ -232,7 +232,8 @@ final case class PendingExternalCallEvent(
     executionDate: Instant
 ) extends ExternalCallEvent {
 
-  def isExternalSignature: Boolean = identifier.identifier.startsWith(SignatureAction.bulkRequestIdentifier)
+  def isExternalSignature: Boolean =
+    identifier.identifier.startsWith(SignatureAction.bulkRequestIdentifier)
 
   override def typeIdentifier: String = className[PendingExternalCallEvent]
 
