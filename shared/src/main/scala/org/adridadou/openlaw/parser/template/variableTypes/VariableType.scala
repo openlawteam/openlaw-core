@@ -202,7 +202,8 @@ object PendingExternalCallExecution {
 final case class PendingExternalCallExecution(
     scheduledDate: Instant,
     executionDate: Instant,
-    requestIdentifier: RequestIdentifier
+    requestIdentifier: RequestIdentifier,
+    actionIdentifier: Option[ActionIdentifier] = None
 ) extends ExternalCallExecution {
   def message: String =
     "the request has been submitted, waiting for the request to be executed"

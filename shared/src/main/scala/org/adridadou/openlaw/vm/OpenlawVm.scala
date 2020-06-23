@@ -530,10 +530,13 @@ final case class OpenlawVm(
             templateOracle.incoming(this, e)
           case e: OpenlawVmInitEvent =>
             executeEvent(e)
+          case e: PendingExternalCallEvent if e.isExternalSignature =>
+            executeEvent(e)
           case _ =>
             logger.warn(
               "the virtual machine is in creation state. The only events allowed are signature events."
             )
+
             Success(this)
         }
       case _ => executeEvent(event)
