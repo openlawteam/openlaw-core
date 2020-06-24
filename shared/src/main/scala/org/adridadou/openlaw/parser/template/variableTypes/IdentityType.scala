@@ -182,6 +182,7 @@ final case class SignatureAction(
     email: Email,
     services: List[ServiceName] = List(ServiceName.openlawServiceName)
 ) extends ActionValue {
+
   override def nextActionSchedule(
       executionResult: TemplateExecutionResult,
       pastExecutions: List[OpenlawExecution]
@@ -197,8 +198,10 @@ final case class SignatureAction(
       case _ =>
         pastExecutions.find({
           case externalCall: PendingExternalCallExecution =>
-            externalCall.requestIdentifier.identifier
-              .startsWith(SignatureAction.bulkRequestIdentifier)
+            externalCall.actionIdentifier.exists(
+              _.identifier
+                .startsWith(SignatureAction.bulkRequestIdentifier)
+            )
           case _ => false
         }) match {
           case None if executionResult.hasSigned(email) => Success(None)

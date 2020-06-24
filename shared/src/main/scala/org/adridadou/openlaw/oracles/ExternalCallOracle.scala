@@ -34,6 +34,13 @@ final case class ExternalCallOracle(
       handleFailedEvent(vm, failedEvent, failedEvent.scheduledDate)
     case successEvent: SuccessfulExternalCallEvent =>
       handleSuccessEvent(vm, successEvent)
+    case pending: PendingExternalCallEvent if pending.isExternalSignature =>
+      Success(
+        vm.newExecution(
+          event.identifier,
+          event.toExecution(event.executionDate)
+        )
+      )
     case _ =>
       handleEvent(vm, event)
   }
@@ -224,6 +231,10 @@ final case class PendingExternalCallEvent(
     requestIdentifier: RequestIdentifier,
     executionDate: Instant
 ) extends ExternalCallEvent {
+
+  def isExternalSignature: Boolean =
+    identifier.identifier.startsWith(SignatureAction.bulkRequestIdentifier)
+
   override def typeIdentifier: String = className[PendingExternalCallEvent]
 
   override def serialize: String = this.asJson.noSpaces
@@ -233,7 +244,8 @@ final case class PendingExternalCallEvent(
   ): ExternalCallExecution = PendingExternalCallExecution(
     scheduledDate = scheduledDate,
     executionDate = executionDate,
-    requestIdentifier = requestIdentifier
+    requestIdentifier = requestIdentifier,
+    actionIdentifier = Some(identifier)
   )
 }
 
