@@ -38,7 +38,8 @@ class SignatureFormatter extends Formatter {
       value: OpenlawValue,
       executionResult: TemplateExecutionResult
   ): Result[List[AgreementElement]] = value match {
-    case externalSignature: ExternalSignature if isHelloSign(externalSignature) => {
+    case externalSignature: ExternalSignature
+        if isHelloSign(externalSignature) => {
       hellosignFormatter.format(expression, value, executionResult)
     }
     case externalSignature: ExternalSignature =>
@@ -76,7 +77,8 @@ class SignatureFormatter extends Formatter {
           .getSignatureProof(identity)
           .map(proof => Success(s"/s/ ${proof.fullName}"))
           .getOrElse(Success(missingSignatureText(expression)))
-      case externalSignature: ExternalSignature if isHelloSign(externalSignature) =>
+      case externalSignature: ExternalSignature
+          if isHelloSign(externalSignature) =>
         hellosignFormatter.stringFormat(expression, value, executionResult)
       case externalSignature: ExternalSignature =>
         formatExternalSignatureString(expression)
