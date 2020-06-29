@@ -2,8 +2,15 @@ package org.adridadou.openlaw.parser.template.formatters
 
 import org.adridadou.openlaw
 import org.adridadou.openlaw.parser.template.expressions.Expression
-import org.adridadou.openlaw.parser.template.variableTypes.{ExternalSignature, Identity}
-import org.adridadou.openlaw.parser.template.{AgreementElement, SignaturePlaceholder, TemplateExecutionResult}
+import org.adridadou.openlaw.parser.template.variableTypes.{
+  ExternalSignature,
+  Identity
+}
+import org.adridadou.openlaw.parser.template.{
+  AgreementElement,
+  SignaturePlaceholder,
+  TemplateExecutionResult
+}
 import org.adridadou.openlaw.result.Implicits.RichOption
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 
