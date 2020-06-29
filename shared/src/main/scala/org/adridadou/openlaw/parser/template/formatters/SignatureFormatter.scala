@@ -15,6 +15,8 @@ import org.adridadou.openlaw.result.{Failure, Result, Success}
   */
 class SignatureFormatter extends Formatter {
 
+  val hellosignFormatter = new HelloSignSignatureFormatter()
+
   private def formatExternalSignature(
       expression: Expression
   ): Result[List[AgreementElement]] = {
@@ -27,11 +29,19 @@ class SignatureFormatter extends Formatter {
     Success(missingSignatureText(expression))
   }
 
+  def isHelloSign(externalSignature: ExternalSignature) = {
+    externalSignature.serviceName.serviceName.toLowerCase() == "hellosign"
+  }
+
   override def format(
       expression: Expression,
       value: OpenlawValue,
       executionResult: TemplateExecutionResult
   ): Result[List[AgreementElement]] = value match {
+    case externalSignature: ExternalSignature
+        if isHelloSign(externalSignature) => {
+      hellosignFormatter.format(expression, value, executionResult)
+    }
     case externalSignature: ExternalSignature =>
       // External signatures are just placeholder text until the external service replaces them with the signature
       // applied by the user
@@ -67,6 +77,9 @@ class SignatureFormatter extends Formatter {
           .getSignatureProof(identity)
           .map(proof => Success(s"/s/ ${proof.fullName}"))
           .getOrElse(Success(missingSignatureText(expression)))
+      case externalSignature: ExternalSignature
+          if isHelloSign(externalSignature) =>
+        hellosignFormatter.stringFormat(expression, value, executionResult)
       case externalSignature: ExternalSignature =>
         formatExternalSignatureString(expression)
       case other =>
