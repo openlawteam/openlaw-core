@@ -203,6 +203,11 @@ final case class DeferredResponse(
     expires: Option[Instant] = None
 )
 
+object DeferredResponse {
+  implicit val deferredResponseDec: Decoder[DeferredResponse] = deriveDecoder
+  implicit val deferredResponseEnc: Encoder[DeferredResponse] = deriveEncoder
+}
+
 final case class SignatureOutput(
     // Json representation of List[Email]
     signerEmailsJson: String,
