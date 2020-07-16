@@ -192,7 +192,7 @@ object SignatureInput {
 }
 
 /**
-  * A External Call response indicating that the response could tkae an extended amount time to
+  * A External Call response indicating that the response could take an extended amount time to
   * arrive (due to waiting on some action by a user, for example), and the ultimate completed response
   * will be given asynchronously.
   *
