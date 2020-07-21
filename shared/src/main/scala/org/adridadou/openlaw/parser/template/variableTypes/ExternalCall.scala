@@ -191,6 +191,23 @@ object SignatureInput {
   implicit val signatureInputEnc: Encoder[SignatureInput] = deriveEncoder
 }
 
+/**
+  * A External Call response indicating that the response could take an extended amount time to
+  * arrive (due to waiting on some action by a user, for example), and the ultimate completed response
+  * will be given asynchronously.
+  *
+  * @param expires when the request should be considered failed if no response comes before this time.
+  */
+final case class DeferredResponse(
+    // If a response isn't received by this time, the caller should consider the request to be expired
+    expires: Option[Instant] = None
+)
+
+object DeferredResponse {
+  implicit val deferredResponseDec: Decoder[DeferredResponse] = deriveDecoder
+  implicit val deferredResponseEnc: Encoder[DeferredResponse] = deriveEncoder
+}
+
 final case class SignatureOutput(
     // Json representation of List[Email]
     signerEmailsJson: String,
