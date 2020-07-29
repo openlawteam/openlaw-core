@@ -52,9 +52,7 @@ class SignatureFormatter extends Formatter {
         .map(proof => {
           Success(
             List(
-              FreeText(Text(s"/s/ ${proof.fullName}  (")),
-              proof.validationLink,
-              FreeText(Text(")"))
+              FreeText(Text(s"/s/ ${proof.fullName}"))
             )
           )
         })

@@ -25,10 +25,4 @@ final case class SignatureProof(
     signatureDate: Instant
 ) {
   def serialize: Json = this.asJson
-
-  def validationLink: Link =
-    Link(
-      "verify signature",
-      s"/web/default/signature/validate?contractId=${contractId.id}&signature=${signature.toString}"
-    )
 }
