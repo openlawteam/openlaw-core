@@ -96,7 +96,7 @@ final case class EthereumEventFilterOracle(
                           Some(OpenlawString(eventType)),
                           Some(OpenlawBoolean(true))
                           )
-                          if address === event.smartContractAddress.withLeading0x && eventType === event.eventType =>
+                          if address.toLowerCase === event.smartContractAddress.withLeading0x.toLowerCase && eventType === event.eventType =>
                         val execution = EthereumEventFilterExecution(
                           event.executionDate,
                           SuccessfulExecution,
