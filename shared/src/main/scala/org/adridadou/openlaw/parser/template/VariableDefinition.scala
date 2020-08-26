@@ -122,6 +122,27 @@ final case class VariableName(name: String) extends Expression {
       executionResult: TemplateExecutionResult
   ): Result[List[VariableName]] =
     executionResult.getExpression(this) match {
+      case Some(
+          VariableDefinition(
+            _,
+            Some(
+              VariableTypeDefinition(
+                EthereumEventFilterType.name,
+                typeParameter
+              )
+            ),
+            _,
+            _,
+            _,
+            defaultValue
+          )
+          ) =>
+        defaultValue
+          .map(_.variables(executionResult))
+          .sequence
+          .map(_.getOrElse(Nil))
+          .map(List(this) ++ _)
+          .map(_.filter(_.name =!= "this"))
       case Some(variable: VariableDefinition) =>
         variable.defaultValue
           .map(_.variables(executionResult))

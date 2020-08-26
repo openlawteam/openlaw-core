@@ -2353,6 +2353,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
     val Success(newCollection) =
       result.evaluate[CollectionValue]("new collection")
+
     newCollection.values shouldBe Map(
       0 -> "one world",
       1 -> "two world",
@@ -2942,6 +2943,34 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     println(s"compilation time: ${compileTime - startTime}ms")
     println(s"execution time: ${executionTime - compileTime}ms")
     println(s"render time: ${renderTime - executionTime}ms")
+  }
+
+  it should "work fine with event filters" in {
+    val template = compile(
+      """<%
+                             |[[info: OLInfo]]
+                             |%>
+                             |__*[[Signer Email: Identity | Signature]]*__
+                             |0x[[Signer EthAddress: EthAddress]]
+                             |\right *[[info.id]]*
+                             |[[Post:EthereumCall(
+                             |contract:"0xE735B7Ca5F4865A688Df3d3a49A462066f24ff2A";
+                             |interface:[{"anonymous":false,"inputs":[{"indexed":true,"internalType":"string","name":"ID","type":"string"}],"name":"Post","type":"event"},{"constant":true,"inputs":[],"name":"ID","outputs":[{"internalType":"string","name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"string","name":"_ID","type":"string"}],"name":"post","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"}];
+                             |network:"Rinkeby";
+                             |from:Signer EthAddress;
+                             |function:"post";
+                             |arguments:info.id)]]
+                             |[[Post Data]]
+                             |[[Post Event: EthereumEventFilter(
+                             |  contract address:"0xE735B7Ca5F4865A688Df3d3a49A462066f24ff2A";
+                             |  interface:[{"anonymous":false,"inputs":[{"indexed":true,"internalType":"string","name":"ID","type":"string"}],"name":"Post","type":"event"}];
+                             |  event type name: "Post";
+                             |  conditional filter: this.ID = Post Data)]]
+                             |This event value is: [[Post Event.event.ID]]""".stripMargin
+    )
+    val Success(result) = engine.execute(template)
+    val Success(validationResult) = result.validateExecution
+    validationResult.validationExpressionErrors shouldBe Nil
   }
 
   it should "be possible to re-define a formatter" in {
