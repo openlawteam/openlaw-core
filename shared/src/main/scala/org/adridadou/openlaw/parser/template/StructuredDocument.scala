@@ -1343,15 +1343,20 @@ final case class OpenlawExecutionState(
     }
   }
 
-  def buildStructureValueFromVariables
+  def buildStructureValueFromVariablesAndAliases
       : Result[OpenlawMap[VariableName, OpenlawValue]] =
     for {
-      values <- variablesThatAreNotTypeDefinition
+      variableValues <- variablesThatAreNotTypeDefinition
         .map(variable => variable.evaluate(this).map(variable.name -> _))
         .toList
         .sequence
+      aliasValues <- aliases
+        .map(alias => alias.evaluate(this).map(alias.name -> _))
+        .sequence
     } yield OpenlawMap(
-      values.flatMap({ case (name, optValue) => optValue.map(name -> _) }).toMap
+      (variableValues ++ aliasValues)
+        .flatMap({ case (name, optValue) => optValue.map(name -> _) })
+        .toMap
     )
 
   private def variablesThatAreNotTypeDefinition
@@ -1363,12 +1368,18 @@ final case class OpenlawExecutionState(
       case _                     => true
     })
 
-  def buildStructureFromVariables: Structure =
-    buildStructure(
-      variablesThatAreNotTypeDefinition
-        .map(variable => variable.name -> variable)
-        .toMap
-    )
+  def buildStructureFromVariablesAndAliases: Result[Structure] =
+    aliases
+      .map(alias => alias.toVariableDefinition(this).map(alias.name -> _))
+      .sequence
+      .map(aliasMap =>
+        buildStructure(
+          variablesThatAreNotTypeDefinition
+            .map(variable => variable.name -> variable)
+            .toMap
+            ++ aliasMap.toMap
+        )
+      )
 
   def buildStructure(
       typeDefinition: Map[VariableName, VariableDefinition]
