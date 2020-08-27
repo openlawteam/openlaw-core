@@ -15,6 +15,19 @@ object VariableAliasing {
 final case class VariableAliasing(name: VariableName, expr: Expression)
     extends Expression
     with TemplatePart {
+
+  def toVariableDefinition(
+      executionResult: TemplateExecutionResult
+  ): Result[VariableDefinition] =
+    this.expr
+      .expressionType(executionResult)
+      .map(aliasType =>
+        VariableDefinition(
+          name,
+          Some(VariableTypeDefinition(aliasType.name))
+        )
+      )
+
   def validate(executionResult: TemplateExecutionResult): Result[Unit] =
     if (name.isAnonymous) {
       Success.unit

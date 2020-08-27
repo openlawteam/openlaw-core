@@ -2269,7 +2269,9 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
   it should "extract all the variables and define a Structure out of it" in {
     val template =
-      compile("""[[text var:Text]]  [[num var:Number]]""".stripMargin)
+      compile(
+        """[[text var:Text]]  [[num var:Number]]  [[@num alias = num var + 5 ]]""".stripMargin
+      )
 
     engine.execute(
       template,
@@ -2277,16 +2279,19 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
     ) match {
       case Success(result) =>
         result.state shouldBe ExecutionFinished
-        val structure = result.buildStructureFromVariables
-        val structureType = AbstractStructureType.generateType(structure)
+        val Success(structure) = result.buildStructureFromVariablesAndAliases
+        val structureType =
+          AbstractStructureType.generateType(structure)
         structure.names shouldBe List(
           VariableName("text var"),
-          VariableName("num var")
+          VariableName("num var"),
+          VariableName("num alias")
         )
-        val Success(values) = result.buildStructureValueFromVariables
+        val Success(values) = result.buildStructureValueFromVariablesAndAliases
         values.underlying shouldBe Map[VariableName, OpenlawValue](
           VariableName("text var") -> OpenlawString("hello world"),
-          VariableName("num var") -> OpenlawBigDecimal(21213)
+          VariableName("num var") -> OpenlawBigDecimal(21213),
+          VariableName("num alias") -> OpenlawBigDecimal(21218)
         )
         val Success(newDefinedResult) = OpenlawExecutionState.empty
           .withVariable(VariableName("parameters"), values, structureType)
@@ -2699,7 +2704,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
     val result = engine.execute(template).getOrThrow()
 
-    result.buildStructureValueFromVariables.getOrThrow()
+    result.buildStructureValueFromVariablesAndAliases.getOrThrow()
   }
 
   it should "check slow execution" in {
