@@ -20,16 +20,16 @@ If you wish to update either Scala or SBT, please open an issue and and tag
  */
 lazy val scalaV = "2.12.11"
 
-lazy val scalaJavaTimeV = "2.0.0-RC3"
-lazy val catsV = "1.6.1"
-lazy val parboiledV = "2.1.8"
-lazy val circeV = "0.11.1"
-lazy val playJsonV = "2.7.4"
-lazy val scalaTagsV = "0.7.0"
-lazy val sLoggingV = "0.6.1"
-lazy val enumeratumV = "1.5.13"
-lazy val scalaCheckV = "1.14.0"
-lazy val scalaTestV = "3.2.0-SNAP10"
+lazy val scalaJavaTimeV = "2.0.0"
+lazy val catsV = "2.1.1"
+lazy val parboiledV = "2.2.0"
+lazy val circeV = "0.13.0"
+lazy val playJsonV = "2.9.0"
+lazy val scalaTagsV = "0.9.1"
+//lazy val sLoggingV = "0.6.1"
+lazy val enumeratumV = "1.6.1"
+lazy val scalaCheckV = "1.14.3"
+lazy val scalaTestV = "3.2.2"
 
 lazy val repositories = Seq(
   Resolver.jcenterRepo,
@@ -176,7 +176,6 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       "io.circe" %% "circe-core" % circeV,
       "io.circe" %% "circe-generic" % circeV,
       "io.circe" %% "circe-parser" % circeV,
-      "io.circe" %% "circe-java8" % circeV,
       //parser / interpreter library. Used for our markup language
       "org.parboiled" %% "parboiled" % parboiledV,
       //cats is used for FP constructs
@@ -185,7 +184,7 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       // scala.js compatible library to use time types
       "io.github.cquiroz" %% "scala-java-time" % scalaJavaTimeV,
       // logging library that is compatible with scala.js
-      "biz.enef" %% "slogging-slf4j" % sLoggingV,
+      //"biz.enef" %% "slogging-slf4j" % sLoggingV,
       // enumeratum provides type-safe enumerations with improvements over stdlib enumerations
       "com.beachape" %% "enumeratum" % enumeratumV,
       // scalatags is used for composition of XHTML documents in the document printers
@@ -203,7 +202,6 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       "io.circe" %%% "circe-core" % circeV,
       "io.circe" %%% "circe-generic" % circeV,
       "io.circe" %%% "circe-parser" % circeV,
-      "io.circe" %%% "circe-java8" % circeV,
       //parser / interpreter library. Used for our markup language
       "org.parboiled" %%% "parboiled" % parboiledV,
       //cats is used for FP constructs
@@ -212,9 +210,9 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       // scala.js compatible library to use time types
       "io.github.cquiroz" %%% "scala-java-time" % scalaJavaTimeV,
       // timezone handling is in a separate library because of its size and not everybody needs it. we do
-      "io.github.cquiroz" %%% "scala-java-time-tzdb" % "2.0.0-RC3_2019a",
+      "io.github.cquiroz" %%% "scala-java-time-tzdb" % "2.0.0",
       // logging library that is compatible with scala.js
-      "biz.enef" %%% "slogging" % sLoggingV,
+      //"biz.enef" %%% "slogging" % sLoggingV,
       // enumeratum provides type-safe enumerations with improvements over stdlib enumerations
       "com.beachape" %%% "enumeratum" % enumeratumV,
       // scalatags is used for composition of XHTML documents in the document printers

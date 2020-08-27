@@ -19,13 +19,17 @@ import org.adridadou.openlaw.result.Implicits.{
 import org.adridadou.openlaw.values.TemplateParameters
 import org.adridadou.openlaw.vm.OpenlawExecutionEngine
 import org.scalatest._
+import flatspec._
+import matchers._
 import org.scalatest.EitherValues._
 import org.scalatest.OptionValues._
 
 /**
   * Created by davidroon on 05.05.17.
   */
-class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
+class OpenlawTemplateLanguageParserSpec
+    extends AnyFlatSpec
+    with should.Matchers {
 
   private val service = new OpenlawTemplateLanguageParserService()
   private val engine = new OpenlawExecutionEngine

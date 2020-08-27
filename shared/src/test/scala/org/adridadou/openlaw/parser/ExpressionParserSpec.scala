@@ -8,11 +8,13 @@ import org.adridadou.openlaw.parser.template.expressions.{
 }
 import org.adridadou.openlaw.result.{Failure, Success}
 import org.scalatest._
+import flatspec._
+import matchers._
 
 /**
   * Created by davidroon on 05.05.17.
   */
-class ExpressionParserSpec extends FlatSpec with Matchers {
+class ExpressionParserSpec extends AnyFlatSpec with should.Matchers {
 
   private val service = new ExpressionParserService()
 

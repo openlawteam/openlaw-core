@@ -30,12 +30,13 @@ import org.adridadou.openlaw.vm.{
   TestAccount,
   TestCryptoService
 }
-import org.scalatest.check.Checkers
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest._
+import flatspec._
+import matchers._
 
 import scala.util.Random
 
-class ExternalCallOracleSpec extends FlatSpec with Matchers with Checkers {
+class ExternalCallOracleSpec extends AnyFlatSpec with should.Matchers {
   private val parser: OpenlawTemplateLanguageParserService =
     new OpenlawTemplateLanguageParserService()
   private val engine = new OpenlawExecutionEngine()

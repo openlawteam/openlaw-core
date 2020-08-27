@@ -6,7 +6,6 @@ import cats.implicits._
 import org.adridadou.openlaw.parser.template._
 import org.adridadou.openlaw.parser.template.variableTypes.{IdentityType}
 import scalatags.Text.all._
-import slogging._
 
 import scala.annotation.tailrec
 
@@ -27,7 +26,7 @@ object XHtmlAgreementPrinter {
 
 final case class XHtmlAgreementPrinter(
     preview: Boolean
-) extends LazyLogging {
+) {
 
   private def partitionAtItem[T](seq: List[T], t: T): (List[T], List[T]) =
     partitionAt(seq) { case item if item.equals(t) => true }
@@ -440,7 +439,6 @@ final case class XHtmlAgreementPrinter(
             })
 
           case x =>
-            logger.warn(s"unhandled element: $x")
             tailRecurse(xs, conditionalBlockDepth, inSection, continue)
         }
     }

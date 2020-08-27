@@ -4,17 +4,18 @@ import org.adridadou.openlaw.parser.template.variableTypes.EthereumAddress
 import org.scalacheck.Arbitrary._
 import org.scalacheck.Gen
 import org.scalacheck.Prop._
-import org.scalatest.check.Checkers
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest._
+import flatspec._
+import matchers._
 import org.scalatest.EitherValues._
 
 /**
   * Created by davidroon on 09.06.17.
   */
-class EthereumAddressSpec extends FlatSpec with Matchers with Checkers {
+class EthereumAddressSpec extends AnyFlatSpec with should.Matchers {
 
   "Ethereum address" should "convert from byte array to string and back" in {
-    check(forAll(Gen.listOfN(20, arbitrary[Byte]))(checkEncode))
+    forAll(Gen.listOfN(20, arbitrary[Byte]))(checkEncode)
   }
 
   def checkEncode(lst: List[Byte]): Boolean = {

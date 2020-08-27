@@ -2,12 +2,13 @@ package org.adridadou.openlaw
 
 import io.circe.Json
 import org.adridadou.openlaw.values.TemplateTitle
-import org.scalatest.check.Checkers
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest._
+import flatspec._
+import matchers._
 import io.circe.syntax._
 import io.circe.parser._
 
-class PackageSpec extends FlatSpec with Matchers with Checkers {
+class PackageSpec extends AnyFlatSpec with should.Matchers {
 
   "An OpenlawValue instance" should "be equal" in {
     OpenlawString("test") should be(OpenlawString("test"))

@@ -8,10 +8,12 @@ import org.adridadou.openlaw.vm.OpenlawExecutionEngine
 import org.adridadou.openlaw.parser.template.printers.XHtmlAgreementPrinter.FragsPrinter
 import org.adridadou.openlaw.result.{Failure, Result}
 import org.scalatest._
+import flatspec._
+import matchers._
 
 class XHtmlAgreementPrinterSpec
-    extends FlatSpec
-    with Matchers
+    extends AnyFlatSpec
+    with should.Matchers
     with EitherValues {
 
   private val service = new OpenlawTemplateLanguageParserService()

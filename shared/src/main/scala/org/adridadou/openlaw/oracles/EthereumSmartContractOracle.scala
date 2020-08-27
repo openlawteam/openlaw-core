@@ -7,7 +7,6 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import org.adridadou.openlaw.parser.template.{ActionIdentifier, ActionInfo}
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.vm.{OpenlawVm, OpenlawVmEvent}
-import slogging.LazyLogging
 import io.circe.syntax._
 import cats.implicits._
 import EthereumHash._
@@ -15,8 +14,7 @@ import LocalDateTimeHelper._
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 final case class EthereumSmartContractOracle()
-    extends OpenlawOracle[EthereumSmartContractCallEvent]
-    with LazyLogging {
+    extends OpenlawOracle[EthereumSmartContractCallEvent] {
 
   override def incoming(
       vm: OpenlawVm,
@@ -75,9 +73,6 @@ final case class EthereumSmartContractOracle()
                             )
                           )
                         case None =>
-                          logger.warn(
-                            s"the transaction ${event.hash.toString} has not been added yet"
-                          )
                           Success(vm)
                       }
                   }

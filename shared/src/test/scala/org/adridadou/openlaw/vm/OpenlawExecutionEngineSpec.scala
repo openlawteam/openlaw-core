@@ -11,7 +11,9 @@ import org.adridadou.openlaw.parser.template.variableTypes.{VariableType, _}
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 import org.adridadou.openlaw.result.Implicits.RichResult
 import org.adridadou.openlaw.values.{TemplateParameters, TemplateTitle}
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest._
+import flatspec._
+import matchers._
 import org.scalatest.EitherValues._
 import org.scalatest.OptionValues._
 import play.api.libs.json.Json
@@ -19,7 +21,7 @@ import org.adridadou.openlaw.{OpenlawMap, _}
 import io.circe.syntax._
 import io.circe.parser._
 
-class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
+class OpenlawExecutionEngineSpec extends AnyFlatSpec with should.Matchers {
 
   val parser = new OpenlawTemplateLanguageParserService()
   val engine = new OpenlawExecutionEngine()

@@ -2,12 +2,13 @@ package org.adridadou.openlaw
 
 import io.circe.Json
 import org.adridadou.openlaw.values.TemplateTitle
-import org.scalatest.check.Checkers
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest._
+import flatspec._
+import matchers._
 import io.circe.syntax._
 import io.circe.parser._
 
-class TemplateTitleSpec extends FlatSpec with Matchers with Checkers {
+class TemplateTitleSpec extends AnyFlatSpec with should.Matchers {
   val title = TemplateTitle("This is a Title")
   "Template title" should "serialize" in {
     title.asJson.noSpaces shouldBe "\"This is a Title\""

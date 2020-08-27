@@ -15,7 +15,6 @@ import org.adridadou.openlaw.parser.template.{
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.result.{Result, Success}
 import org.adridadou.openlaw.vm.{OpenlawVm, OpenlawVmEvent}
-import slogging.LazyLogging
 import VariableName._
 import LocalDateTimeHelper._
 import org.adridadou.openlaw.{OpenlawBoolean, OpenlawString}
@@ -44,8 +43,7 @@ final case class EthereumEventFilterExecution(
 final case class EthereumEventFilterOracle(
     parser: OpenlawTemplateLanguageParserService,
     crypto: CryptoService
-) extends OpenlawOracle[EthereumEventFilterEvent]
-    with LazyLogging {
+) extends OpenlawOracle[EthereumEventFilterEvent] {
 
   override def incoming(
       vm: OpenlawVm,

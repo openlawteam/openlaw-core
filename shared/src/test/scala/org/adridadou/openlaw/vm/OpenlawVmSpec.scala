@@ -21,11 +21,13 @@ import org.adridadou.openlaw.values.{
   TemplateId,
   TemplateParameters
 }
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest._
+import flatspec._
+import matchers._
 import org.scalatest.OptionValues._
 import org.scalatest.EitherValues._
 
-class OpenlawVmSpec extends FlatSpec with Matchers {
+class OpenlawVmSpec extends AnyFlatSpec with should.Matchers {
   val parser: OpenlawTemplateLanguageParserService =
     new OpenlawTemplateLanguageParserService()
   val exprParser = new ExpressionParserService()

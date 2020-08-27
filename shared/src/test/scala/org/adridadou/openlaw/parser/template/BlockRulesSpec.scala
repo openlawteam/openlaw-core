@@ -1,14 +1,16 @@
 package org.adridadou.openlaw.parser.template
 
 import org.adridadou.openlaw.parser.template.variableTypes.YesNoType
-import org.scalatest.{EitherValues, FlatSpec, Matchers, TryValues}
+import org.scalatest._
+import flatspec._
+import matchers._
 import org.parboiled2.{ErrorFormatter, ParseError, ParserInput}
 
 import scala.util.{Failure, Success, Try}
 
 class BlockRulesSpec
-    extends FlatSpec
-    with Matchers
+    extends AnyFlatSpec
+    with should.Matchers
     with TryValues
     with EitherValues {
 

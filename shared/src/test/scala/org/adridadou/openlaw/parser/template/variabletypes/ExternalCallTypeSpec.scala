@@ -3,7 +3,9 @@ package org.adridadou.openlaw.parser.template.variabletypes
 import java.time.Instant
 
 import org.adridadou.openlaw.parser.template.variableTypes._
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest._
+import flatspec._
+import matchers._
 import io.circe.parser._
 import io.circe.syntax._
 import org.adridadou.openlaw.{OpenlawBigDecimal, oracles}
@@ -41,7 +43,7 @@ import org.adridadou.openlaw.vm.{
 }
 import play.api.libs.json.Json
 
-class ExternalCallTypeSpec extends FlatSpec with Matchers {
+class ExternalCallTypeSpec extends AnyFlatSpec with should.Matchers {
 
   val parser: OpenlawTemplateLanguageParserService =
     new OpenlawTemplateLanguageParserService()

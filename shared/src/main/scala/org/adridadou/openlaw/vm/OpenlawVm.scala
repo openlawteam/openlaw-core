@@ -16,7 +16,6 @@ import org.adridadou.openlaw.values.{
 }
 import org.adridadou.openlaw.oracles._
 import org.adridadou.openlaw.result.{Failure, Result, Success}
-import slogging.LazyLogging
 
 import scala.reflect.ClassTag
 import io.circe.generic.semiauto._
@@ -62,7 +61,7 @@ final case class OpenlawVmState(
         Option[FormatterDefinition],
         TemplateExecutionResult
     ) => Option[Formatter] = (_, _) => None
-) extends LazyLogging {
+) {
 
   def updateTemplate(
       id: TemplateId,
@@ -140,7 +139,6 @@ final case class OpenlawVmState(
 
         case Failure(ex, message) =>
           ex.printStackTrace()
-          logger.warn(message, ex)
           this
       })
       .getOrElse(this)
@@ -210,7 +208,6 @@ final case class OpenlawVmState(
         Some(result)
       case Some(Failure(ex, message)) =>
         ex.printStackTrace()
-        logger.warn(message, ex)
         None
     }
   }
@@ -229,7 +226,7 @@ final case class OpenlawVm(
         Option[FormatterDefinition],
         TemplateExecutionResult
     ) => Option[Formatter] = (_, _) => None
-) extends LazyLogging {
+) {
   private val templateOracle = TemplateLoadOracle(crypto)
   val contractId: ContractId = contractDefinition.id(crypto)
 
@@ -489,9 +486,7 @@ final case class OpenlawVm(
         case Success(Some(v: T)) => Some(v)
         case Success(Some(_))    => None
         case Success(None)       => None
-        case Failure(err, msg) =>
-          logger.error(msg, err)
-          None
+        case Failure(err, msg)   => None
       })
   }
 
@@ -533,10 +528,6 @@ final case class OpenlawVm(
           case e: PendingExternalCallEvent if e.isExternalSignature =>
             executeEvent(e)
           case _ =>
-            logger.warn(
-              "the virtual machine is in creation state. The only events allowed are signature events."
-            )
-
             Success(this)
         }
       case _ => executeEvent(event)
@@ -546,7 +537,6 @@ final case class OpenlawVm(
     case Success(result) =>
       result
     case Failure(ex, message) =>
-      logger.warn(message, ex)
       this
   }
 

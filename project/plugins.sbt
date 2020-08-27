@@ -14,7 +14,7 @@ addSbtPlugin("org.wartremover" % "sbt-wartremover" % "2.4.2")
 addSbtPlugin("com.timushev.sbt" % "sbt-updates" % "0.3.4")
 
 /* ScalaJS related */
-addSbtPlugin("org.scala-js" % "sbt-scalajs" % "0.6.32")
+addSbtPlugin("org.scala-js" % "sbt-scalajs" % "1.1.1")
 addSbtPlugin("org.portable-scala" % "sbt-scalajs-crossproject" % "0.6.0")
 
 /* Release process */

@@ -5,7 +5,6 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import org.adridadou.openlaw.parser.template.{ActionIdentifier, VariableName}
 import org.adridadou.openlaw.parser.template.variableTypes._
 import org.adridadou.openlaw.vm.{OpenlawVm, OpenlawVmEvent, OpenlawVmInitEvent}
-import slogging.LazyLogging
 import io.circe.syntax._
 import cats.implicits._
 import LocalDateTimeHelper._
@@ -13,8 +12,7 @@ import cats.kernel.Eq
 import org.adridadou.openlaw.result.{Failure, Result, Success}
 
 final case class EthereumERC712Oracle(crypto: CryptoService)
-    extends OpenlawOracle[PreparedERC712SmartContractCallEvent]
-    with LazyLogging {
+    extends OpenlawOracle[PreparedERC712SmartContractCallEvent] {
 
   override def incoming(
       vm: OpenlawVm,

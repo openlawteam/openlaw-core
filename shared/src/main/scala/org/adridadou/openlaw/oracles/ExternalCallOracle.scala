@@ -17,14 +17,12 @@ import io.circe.generic.semiauto._
 import io.circe.syntax._
 import cats.implicits._
 import cats.kernel.Eq
-import slogging.LazyLogging
 import LocalDateTimeHelper._
 
 final case class ExternalCallOracle(
     crypto: CryptoService,
     externalSignatureAccounts: Map[ServiceName, EthereumAddress] = Map.empty
-) extends OpenlawOracle[ExternalCallEvent]
-    with LazyLogging {
+) extends OpenlawOracle[ExternalCallEvent] {
 
   override def incoming(
       vm: OpenlawVm,
@@ -106,10 +104,6 @@ final case class ExternalCallOracle(
                           )
                         )
                       case None =>
-                        logger.warn(
-                          s"the external call ${event.requestIdentifier} has not been scheduled yet"
-                        )
-
                         Success(vm)
                     }
                 }
