@@ -32,9 +32,14 @@ final case class ComparisonExpression(
             ) =>
           Success(one.compareTo(two))
         case _ =>
-          Failure(
-            s"can not compare ${leftValue.getClass} and ${rightValue.getClass}"
-          )
+          op match {
+            case Equals =>
+              Success(if (rightValue.equals(leftValue)) 0 else 1)
+            case _ =>
+              Failure(
+                s"can not compare ${leftValue.getClass} and ${rightValue.getClass}"
+              )
+          }
       }).sequence
         .map { option =>
           option.map { comparaisonResult =>
