@@ -64,7 +64,11 @@ final case class StringConstant(
   override val constantType: VariableType = {
     new PeriodTypeParser(value).root.run().toResult match {
       case Success(_) => PeriodType
-      case _          => TextType
+      case _ =>
+        EthereumAddress(value) match {
+          case Success(_) => EthAddressType
+          case _          => TextType
+        }
     }
   }
 
