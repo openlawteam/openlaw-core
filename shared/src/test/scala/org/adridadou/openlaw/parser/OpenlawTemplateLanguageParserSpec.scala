@@ -548,7 +548,9 @@ class OpenlawTemplateLanguageParserSpec extends FlatSpec with Matchers {
           .value
           .head
         call.address.evaluate(emptyExecutionResult) shouldBe Right(
-          Some(OpenlawString("0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAe"))
+          Some(
+            EthereumAddress("0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAe").getOrThrow
+          )
         )
         call.arguments.map(_.toString) shouldBe List("Var1", "Var2", "Var3")
         call.abi.evaluate(emptyExecutionResult) shouldBe Right(
@@ -2659,5 +2661,10 @@ here""".stripMargin
       case Failure(ex, message) =>
         fail(message, ex)
     }
+  }
+
+  it should "parse address string as address type" in {
+    val constant = StringConstant("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0")
+    constant.constantType shouldBe EthAddressType
   }
 }
