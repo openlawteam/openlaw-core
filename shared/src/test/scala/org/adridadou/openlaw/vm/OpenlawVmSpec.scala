@@ -483,11 +483,11 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
     val abi =
       """[{"constant":false,"inputs":[{"name":"value","type":"uint256"}],"name":"OpenlawSignatureEvent","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"success","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[],"name":"registerTokenLaunch","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"success","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"},{"name":"_spender","type":"address"}],"name":"allowance","outputs":[{"name":"remaining","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"inputs":[],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"name":"from","type":"address"},{"indexed":true,"name":"to","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Transfer","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"owner","type":"address"},{"indexed":true,"name":"spender","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Approval","type":"event"}]"""
     val template = s"""
-        |[[Signature: EthereumEventFilter(
-        |contract address: "0x531e0957391dabf46f8a9609d799ffd067bdbbc0";
-        |interface: $abi;
-        |event type name: "OpenlawSignatureEvent";
-        |conditional filter: this.value = 2939)]]""".stripMargin
+                      |[[Signature: EthereumEventFilter(
+                      |contract address: "0x531e0957391dabf46f8a9609d799ffd067bdbbc0";
+                      |interface: $abi;
+                      |event type name: "OpenlawSignatureEvent";
+                      |conditional filter: this.value = 2939)]]""".stripMargin
 
     val templateId = TemplateId(TestCryptoService.sha256(template))
     val definition = ContractDefinition(
@@ -528,6 +528,71 @@ class OpenlawVmSpec extends FlatSpec with Matchers {
       identifier,
       EthereumHash.empty,
       EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0").right.value,
+      "OpenlawSignatureEvent",
+      values,
+      Instant.now
+    )
+
+    val ethereumEventFilterOracle =
+      EthereumEventFilterOracle(parser, TestCryptoService)
+    ethereumEventFilterOracle.incoming(vm, event) match {
+      case Right(vm) =>
+        vm.allExecutions.keys should contain(identifier)
+      case Failure(ex, message) =>
+        fail(message, ex)
+    }
+  }
+  it should "be able to send events to an event listener filtered by address" in {
+
+    val address =
+      EthereumAddress("0x531E0957391dAbF46f8a9609d799fFD067bDbbC0").right.value
+
+    val abi =
+      """[{"constant":false,"inputs":[{"name":"value","type":"address"}],"name":"OpenlawSignatureEvent","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"success","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[],"name":"registerTokenLaunch","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"success","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"},{"name":"_spender","type":"address"}],"name":"allowance","outputs":[{"name":"remaining","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"inputs":[],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"name":"from","type":"address"},{"indexed":true,"name":"to","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Transfer","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"owner","type":"address"},{"indexed":true,"name":"spender","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Approval","type":"event"}]"""
+    val template = s"""
+        |[[Signature: EthereumEventFilter(
+        |contract address: "0x531e0957391dabf46f8a9609d799ffd067bdbbc0";
+        |interface: $abi;
+        |event type name: "OpenlawSignatureEvent";
+        |conditional filter: this.value = "${address.withLeading0x}")]]""".stripMargin
+
+    val templateId = TemplateId(TestCryptoService.sha256(template))
+    val definition = ContractDefinition(
+      creatorId = UserId("hello@world.com"),
+      mainTemplate = templateId,
+      templates = Map.empty,
+      parameters = TemplateParameters()
+    )
+
+    val vm = vmProvider.create(
+      definition,
+      None,
+      OpenlawSignatureOracle(TestCryptoService, serverAccount.address),
+      Nil
+    )
+    vm(LoadTemplate(template))
+
+    val values = Map(
+      VariableName("owner") -> EthAddressType
+        .internalFormat(address)
+        .right
+        .value,
+      VariableName("value") -> EthAddressType
+        .internalFormat(address)
+        .right
+        .value
+    )
+    val identifier = vm.executionResult
+      .map(_.allActions.right.value)
+      .getOrElse(Nil)
+      .head
+      .identifier
+      .right
+      .value
+    val event = EthereumEventFilterEvent(
+      identifier,
+      EthereumHash.empty,
+      address,
       "OpenlawSignatureEvent",
       values,
       Instant.now
