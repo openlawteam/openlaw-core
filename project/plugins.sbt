@@ -25,3 +25,6 @@ addSbtPlugin("com.github.gseitz" % "sbt-release" % "1.0.11")
 /* Code coverage */
 addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.5.1")
 addSbtPlugin("com.codacy" % "sbt-codacy-coverage" % "1.3.15")
+
+/* Github Packages */
+addSbtPlugin("com.codecommit" % "sbt-github-packages" % "0.5.3")

@@ -8,6 +8,21 @@ import sbt.{file, _}
 lazy val username = "openlaw"
 lazy val repo = "openlaw-core"
 
+githubOwner := "openlawteam"
+
+githubRepository := "openlaw-core"
+
+githubTokenSource := TokenSource
+  .Environment("GITHUB_TOKEN")
+
+credentials +=
+  Credentials(
+    "GitHub Packages",
+    "maven.pkg.github.com",
+    sys.env.getOrElse("USERNAME", "INVALID_USERNAME"),
+    sys.env.getOrElse("GITHUB_TOKEN", "INVALID_GITHUBTOKEN")
+  )
+
 licenses += ("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0"))
 
 /*
@@ -33,6 +48,7 @@ lazy val scalaTestV = "3.2.0-SNAP10"
 
 lazy val repositories = Seq(
   Resolver.jcenterRepo,
+  Resolver.githubPackages("openlawteam"),
   "central" at "https://repo1.maven.org/maven2/",
   "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases",
   "maven central" at "https://mvnrepository.com/repos/central",
@@ -90,7 +106,7 @@ lazy val publishSettings = Seq(
     )
   ),
   publishTo in ThisBuild := Some(
-    "Bintray" at "https://api.bintray.com/maven/openlawos/openlaw-core/openlaw-core/;publish=1"
+    "GitHub Packages OpenLaw Core" at "https://maven.pkg.github.com/openlawteam/openlaw-core"
   )
 )
 
@@ -257,3 +273,5 @@ val root = (project in file("."))
   .dependsOn(openlawCoreJvm, openlawCoreJs)
   .aggregate(openlawCoreJvm, openlawCoreJs)
   .enablePlugins(GitVersioning)
+
+publishMavenStyle := true
