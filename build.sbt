@@ -13,14 +13,14 @@ githubOwner := "openlawteam"
 githubRepository := "openlaw-core"
 
 githubTokenSource := TokenSource
-  .Environment("GITHUB_TOKEN")
+  .Environment("TOKEN")
 
 credentials +=
   Credentials(
     "GitHub Packages",
     "maven.pkg.github.com",
     sys.env.getOrElse("USERNAME", "INVALID_USERNAME"),
-    sys.env.getOrElse("GITHUB_TOKEN", "INVALID_GITHUBTOKEN")
+    sys.env.getOrElse("TOKEN", "INVALID_GITHUBTOKEN")
   )
 
 licenses += ("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0"))
@@ -73,11 +73,6 @@ lazy val publishSettings = Seq(
   publishArtifact in (Test, packageBin) := true,
   homepage := Some(url(s"https://github.com/$username/$repo")),
   licenses += ("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0")),
-  bintrayReleaseOnPublish in ThisBuild := true,
-  bintrayOrganization := Some("openlawos"),
-  bintrayRepository := "openlaw-core",
-  bintrayPackageLabels := Seq("openlaw-core"),
-  bintrayVcsUrl := Some(s"git@github.com:$username/$repo.git"),
   scmInfo := Some(
     ScmInfo(
       url(s"https://github.com/$username/$repo"),

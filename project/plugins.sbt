@@ -1,7 +1,6 @@
 logLevel := Level.Warn
 
 resolvers += "Typesafe Repository" at "https://repo.typesafe.com/typesafe/releases/"
-resolvers += "Bintray sbt-reactjs" at "https://dl.bintray.com/ddispaltro/sbt-plugins/"
 resolvers += Resolver.url(
   "sbt-plugins",
   url("https://dl.bintray.com/ssidorenko/sbt-plugins/")
