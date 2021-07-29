@@ -99,10 +99,10 @@ lazy val publishSettings = Seq(
       email = "felipe@openlaw.io",
       url = new URL(s"http://github.com/openlawbot")
     )
-  ),
-  publishTo in ThisBuild := Some(
-    "GitHub Packages OpenLaw Core" at "https://maven.pkg.github.com/openlawteam/openlaw-core"
   )
+)
+publishTo := Some(
+  "GitHub Packages OpenLaw Core" at "https://maven.pkg.github.com/openlawteam/openlaw-core"
 )
 
 lazy val releaseSettings = releaseProcess := Seq[ReleaseStep](
