@@ -25,6 +25,12 @@ credentials +=
 
 licenses += ("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0"))
 
+githubOwner := "openlawteam"
+githubRepository := "openlaw-core"
+githubTokenSource := TokenSource.GitConfig("github.token") || TokenSource
+  .Environment("GITHUB_TOKEN") || TokenSource
+  .Environment("TOKEN")
+
 /*
 The Scala and SBT versions must be matched to the version of scala-builder used
 as the base image of the container. We try to standardize across projects and
@@ -50,7 +56,6 @@ lazy val repositories = Seq(
   Resolver.jcenterRepo,
   Resolver.githubPackages("openlawteam"),
   "central" at "https://repo1.maven.org/maven2/",
-  "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases",
   "maven central" at "https://mvnrepository.com/repos/central",
   Resolver.mavenLocal
 )
@@ -69,54 +74,31 @@ lazy val commonSettings = Seq(
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8")
 )
 
-lazy val publishSettings = Seq(
-  publishArtifact in (Test, packageBin) := true,
-  homepage := Some(url(s"https://github.com/$username/$repo")),
-  licenses += ("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0")),
-  scmInfo := Some(
-    ScmInfo(
-      url(s"https://github.com/$username/$repo"),
-      s"git@github.com:$username/$repo.git"
-    )
-  ),
-  releaseCrossBuild := true,
-  developers := List(
-    Developer(
-      id = "adridadou",
-      name = "David Roon",
-      email = "david.roon@consensys.net",
-      url = new URL(s"http://github.com/adridadou")
-    ),
-    Developer(
-      id = "outkaj",
-      name = "Jacqueline Outka",
-      email = "jacqueline@outka.xyz",
-      url = new URL(s"http://github.com/outkaj")
-    ),
-    Developer(
-      id = "openlawbot",
-      name = "Pizza Dog Bot",
-      email = "felipe@openlaw.io",
-      url = new URL(s"http://github.com/openlawbot")
-    )
-  )
-)
-publishTo := Some(
-  "GitHub Packages OpenLaw Core" at "https://maven.pkg.github.com/openlawteam/openlaw-core"
-)
-
 lazy val releaseSettings = releaseProcess := Seq[ReleaseStep](
-  checkSnapshotDependencies, // : ReleaseStep
+  checkSnapshotDependencies // : ReleaseStep
   //inquireVersions,                        // : ReleaseStep
   //setReleaseVersion,                      // : ReleaseStep
   //commitReleaseVersion,                   // : ReleaseStep, performs the initial git checks
   //tagRelease,                             // : ReleaseStep
   //releaseStepCommandAndRemaining("publish"),
-  publishArtifacts // : ReleaseStep,
+  //publishArtifacts // : ReleaseStep,
   //setNextVersion,                         // : ReleaseStep
   //commitNextVersion,                      // : ReleaseStep
   //pushChanges                             // : ReleaseStep, also checks that an upstream branch is properly configured
 )
+
+publishArtifact in (Test, packageBin) := true
+releaseCrossBuild := true
+publishMavenStyle := true
+publishTo := Some(
+  "GitHub Packages OpenLaw Core" at "https://maven.pkg.github.com/openlawteam/openlaw-core"
+)
+
+publishConfiguration in ThisBuild := publishConfiguration.value.withOverwrite(
+  true
+)
+publishLocalConfiguration in ThisBuild := publishLocalConfiguration.value
+  .withOverwrite(true)
 
 val rules = Seq(
   Wart.AnyVal,
@@ -239,8 +221,13 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
   )
   .settings(parallelExecution in Test := false)
   .settings(commonSettings: _*)
-  .settings(publishSettings: _*)
+  .settings(
+    publishTo := Some(
+      "GitHub Packages OpenLaw Core" at "https://maven.pkg.github.com/openlawteam/openlaw-core"
+    )
+  )
   .settings(releaseSettings: _*)
+  .settings(publishMavenStyle := true)
   .enablePlugins(WartRemover)
 
 lazy val version = git.gitDescribedVersion
@@ -252,6 +239,10 @@ lazy val version = git.gitDescribedVersion
 addCommandAlias(
   "releaseCore",
   ";project openlawCore ;release release-version ${version} next-version ${version-SNAPSHOT} with-defaults"
+)
+addCommandAlias(
+  "publishCore",
+  ";project openlawCore ;publish"
 )
 addCommandAlias(
   "releaseCoreJS",
@@ -268,5 +259,3 @@ val root = (project in file("."))
   .dependsOn(openlawCoreJvm, openlawCoreJs)
   .aggregate(openlawCoreJvm, openlawCoreJs)
   .enablePlugins(GitVersioning)
-
-publishMavenStyle := true
