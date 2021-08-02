@@ -1,35 +1,16 @@
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
+import sbtrelease.ReleasePlugin.autoImport.releaseCrossBuild
 import ReleaseTransformations._
 import sbt.Keys.name
 
 import scala.language.postfixOps
 import sbt.{file, _}
+import sbtghpackages.GitHubPackagesPlugin.autoImport.githubRepository
 
 lazy val username = "openlaw"
 lazy val repo = "openlaw-core"
 
-githubOwner := "openlawteam"
-
-githubRepository := "openlaw-core"
-
-githubTokenSource := TokenSource
-  .Environment("TOKEN")
-
-credentials +=
-  Credentials(
-    "GitHub Packages",
-    "maven.pkg.github.com",
-    sys.env.getOrElse("USERNAME", "INVALID_USERNAME"),
-    sys.env.getOrElse("TOKEN", "INVALID_GITHUBTOKEN")
-  )
-
 licenses += ("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0"))
-
-githubOwner := "openlawteam"
-githubRepository := "openlaw-core"
-githubTokenSource := TokenSource.GitConfig("github.token") || TokenSource
-  .Environment("GITHUB_TOKEN") || TokenSource
-  .Environment("TOKEN")
 
 /*
 The Scala and SBT versions must be matched to the version of scala-builder used
@@ -53,13 +34,12 @@ lazy val scalaCheckV = "1.14.0"
 lazy val scalaTestV = "3.2.0-SNAP10"
 
 lazy val repositories = Seq(
+  "GitHub Packages" at "https://maven.pkg.github.com/openlawteam",
   Resolver.jcenterRepo,
-  Resolver.githubPackages("openlawteam"),
   "central" at "https://repo1.maven.org/maven2/",
   "maven central" at "https://mvnrepository.com/repos/central",
   Resolver.mavenLocal
 )
-
 lazy val commonSettings = Seq(
   organization := "org.openlaw",
   name := "openlaw-core",
@@ -86,19 +66,6 @@ lazy val releaseSettings = releaseProcess := Seq[ReleaseStep](
   //commitNextVersion,                      // : ReleaseStep
   //pushChanges                             // : ReleaseStep, also checks that an upstream branch is properly configured
 )
-
-publishArtifact in (Test, packageBin) := true
-releaseCrossBuild := true
-publishMavenStyle := true
-publishTo := Some(
-  "GitHub Packages OpenLaw Core" at "https://maven.pkg.github.com/openlawteam/openlaw-core"
-)
-
-publishConfiguration in ThisBuild := publishConfiguration.value.withOverwrite(
-  true
-)
-publishLocalConfiguration in ThisBuild := publishLocalConfiguration.value
-  .withOverwrite(true)
 
 val rules = Seq(
   Wart.AnyVal,
@@ -163,6 +130,7 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
   .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Pure) // the project does not have separate sources for JVM and JS
   .in(file("shared"))
+  .disablePlugins(plugins.IvyPlugin)
   .jvmSettings(
     libraryDependencies ++= Seq(
       //circe is used to serialize / deserialize json
@@ -188,7 +156,20 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       "org.scalatest" %% "scalatest" % scalaTestV % Test,
       //Play json is used in tests to make it easier to prepare json in the tests. It shouldn't be used in the library
       "com.typesafe.play" %% "play-json" % playJsonV % Test
-    )
+    ),
+    publishTo := Some(
+      "GitHub Packages OpenLaw Core" at "https://maven.pkg.github.com/openlawteam/openlaw-core"
+    ),
+    publishMavenStyle := true,
+    parallelExecution in Test := false,
+    releaseCrossBuild := true,
+    publishArtifact in (Test, packageBin) := false,
+    publishArtifact in (Test, packageDoc) := false,
+    githubOwner := "openlawteam",
+    githubRepository := "openlaw-core",
+    githubTokenSource := TokenSource.GitConfig("github.token") || TokenSource
+      .Environment("GITHUB_TOKEN") || TokenSource
+      .Environment("TOKEN")
   )
   .jsSettings(
     libraryDependencies ++= Seq(
@@ -219,15 +200,8 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       "com.typesafe.play" %%% "play-json" % playJsonV % Test
     )
   )
-  .settings(parallelExecution in Test := false)
   .settings(commonSettings: _*)
-  .settings(
-    publishTo := Some(
-      "GitHub Packages OpenLaw Core" at "https://maven.pkg.github.com/openlawteam/openlaw-core"
-    )
-  )
   .settings(releaseSettings: _*)
-  .settings(publishMavenStyle := true)
   .enablePlugins(WartRemover)
 
 lazy val version = git.gitDescribedVersion
@@ -254,8 +228,7 @@ lazy val openlawCoreJvm = openlawCore.jvm
 lazy val openlawCoreJs = openlawCore.js
 
 git.useGitDescribe := true
-
 val root = (project in file("."))
-  .dependsOn(openlawCoreJvm, openlawCoreJs)
-  .aggregate(openlawCoreJvm, openlawCoreJs)
+  .dependsOn(openlawCoreJvm)
+  .aggregate(openlawCoreJvm)
   .enablePlugins(GitVersioning)

@@ -1,7 +1,7 @@
 logLevel := Level.Warn
 
 resolvers += "Typesafe Repository" at "https://repo.typesafe.com/typesafe/releases/"
-resolvers += Resolver.sonatypeRepo("public")
+resolvers += "Github Repository" at "https://maven.pkg.github.com/openlawteam"
 
 addSbtPlugin("org.lyranthe.sbt" % "partial-unification" % "1.1.0")
 addSbtPlugin("org.wartremover" % "sbt-wartremover" % "2.4.2")
@@ -20,6 +20,3 @@ addSbtPlugin("com.codecommit" % "sbt-github-packages" % "0.5.3")
 /* Code coverage */
 addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.5.1")
 addSbtPlugin("com.codacy" % "sbt-codacy-coverage" % "1.3.15")
-
-/* Github Packages */
-addSbtPlugin("com.codecommit" % "sbt-github-packages" % "0.5.3")
