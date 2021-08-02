@@ -130,7 +130,6 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
   .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Pure) // the project does not have separate sources for JVM and JS
   .in(file("shared"))
-  .disablePlugins(plugins.IvyPlugin)
   .jvmSettings(
     libraryDependencies ++= Seq(
       //circe is used to serialize / deserialize json
