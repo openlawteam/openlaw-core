@@ -1,8 +1,5 @@
-import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
 import sbtrelease.ReleasePlugin.autoImport.releaseCrossBuild
-import ReleaseTransformations._
 import sbt.Keys.name
-
 import scala.language.postfixOps
 import sbt.{file, _}
 import sbtghpackages.GitHubPackagesPlugin.autoImport.githubRepository
@@ -11,6 +8,12 @@ lazy val username = "openlaw"
 lazy val repo = "openlaw-core"
 
 licenses += ("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0"))
+organization := "org.openlaw"
+name := "openlaw-core"
+githubOwner := "openlawteam"
+githubRepository := "openlaw-core"
+githubTokenSource := TokenSource
+  .Environment("GITHUB_TOKEN") || TokenSource.Environment("TOKEN")
 
 /*
 The Scala and SBT versions must be matched to the version of scala-builder used
@@ -33,41 +36,9 @@ lazy val enumeratumV = "1.5.13"
 lazy val scalaCheckV = "1.14.0"
 lazy val scalaTestV = "3.2.0-SNAP10"
 
-lazy val repositories = Seq(
-  "GitHub Packages" at "https://maven.pkg.github.com/openlawteam",
-  Resolver.jcenterRepo,
-  "central" at "https://repo1.maven.org/maven2/",
-  "maven central" at "https://mvnrepository.com/repos/central",
-  Resolver.mavenLocal
-)
-lazy val commonSettings = Seq(
-  organization := "org.openlaw",
-  name := "openlaw-core",
-  scalaVersion := scalaV,
-  wartremoverErrors ++= rules,
-  scalacOptions ++= Seq(
-    "-unchecked",
-    "-deprecation",
-    "-feature",
-    "-language:implicitConversions"
-  ),
-  javacOptions ++= Seq("-source", "1.8", "-target", "1.8")
-)
+scalaVersion := scalaV
 
-lazy val releaseSettings = releaseProcess := Seq[ReleaseStep](
-  checkSnapshotDependencies // : ReleaseStep
-  //inquireVersions,                        // : ReleaseStep
-  //setReleaseVersion,                      // : ReleaseStep
-  //commitReleaseVersion,                   // : ReleaseStep, performs the initial git checks
-  //tagRelease,                             // : ReleaseStep
-  //releaseStepCommandAndRemaining("publish"),
-  //publishArtifacts // : ReleaseStep,
-  //setNextVersion,                         // : ReleaseStep
-  //commitNextVersion,                      // : ReleaseStep
-  //pushChanges                             // : ReleaseStep, also checks that an upstream branch is properly configured
-)
-
-val rules = Seq(
+wartremoverErrors ++= Seq(
   Wart.AnyVal,
   Wart.ArrayEquals,
   Wart.AsInstanceOf,
@@ -82,6 +53,41 @@ val rules = Seq(
   Wart.LeakingSealed,
   Wart.OptionPartial
 )
+
+scalacOptions ++= Seq(
+  "-unchecked",
+  "-deprecation",
+  "-feature",
+  "-language:implicitConversions"
+)
+javacOptions ++= Seq("-source", "1.8", "-target", "1.8")
+
+lazy val repositories = Seq(
+  "GitHub Packages" at "https://maven.pkg.github.com/openlawteam",
+  Resolver.jcenterRepo,
+  "central" at "https://repo1.maven.org/maven2/",
+  "maven central" at "https://mvnrepository.com/repos/central",
+  Resolver.mavenLocal
+)
+
+publishTo := Some(
+  "GitHub Packages OpenLaw Core" at "https://maven.pkg.github.com/openlawteam/openlaw-core"
+)
+publishMavenStyle := true
+parallelExecution in Test := false
+releaseCrossBuild := true
+publishArtifact in (Test, packageBin) := false
+publishArtifact in (Test, packageDoc) := false
+githubOwner := "openlawteam"
+githubRepository := "openlaw-core"
+credentials += Credentials(
+  "GitHub Packages",
+  "maven.pkg.github.com",
+  sys.env.getOrElse("USERNAME", "INVALID_USERNAME"),
+  sys.env.getOrElse("TOKEN", "INVALID_TOKEN")
+)
+lazy val version = git.gitDescribedVersion
+git.useGitDescribe := true
 
 /*
       *** Library Dependencies. ***
@@ -126,84 +132,31 @@ val rules = Seq(
         when this file is modified.
  */
 
-lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
-  .withoutSuffixFor(JVMPlatform)
-  .crossType(CrossType.Pure) // the project does not have separate sources for JVM and JS
-  .in(file("shared"))
-  .jvmSettings(
-    libraryDependencies ++= Seq(
-      //circe is used to serialize / deserialize json
-      "io.circe" %% "circe-core" % circeV,
-      "io.circe" %% "circe-generic" % circeV,
-      "io.circe" %% "circe-parser" % circeV,
-      "io.circe" %% "circe-java8" % circeV,
-      //parser / interpreter library. Used for our markup language
-      "org.parboiled" %% "parboiled" % parboiledV,
-      //cats is used for FP constructs
-      "org.typelevel" %% "cats-core" % catsV,
-      "org.typelevel" %% "cats-free" % catsV,
-      // scala.js compatible library to use time types
-      "io.github.cquiroz" %% "scala-java-time" % scalaJavaTimeV,
-      // logging library that is compatible with scala.js
-      "biz.enef" %% "slogging-slf4j" % sLoggingV,
-      // enumeratum provides type-safe enumerations with improvements over stdlib enumerations
-      "com.beachape" %% "enumeratum" % enumeratumV,
-      // scalatags is used for composition of XHTML documents in the document printers
-      "com.lihaoyi" %% "scalatags" % scalaTagsV,
-      //Test
-      "org.scalacheck" %% "scalacheck" % scalaCheckV % Test,
-      "org.scalatest" %% "scalatest" % scalaTestV % Test,
-      //Play json is used in tests to make it easier to prepare json in the tests. It shouldn't be used in the library
-      "com.typesafe.play" %% "play-json" % playJsonV % Test
-    ),
-    publishTo := Some(
-      "GitHub Packages OpenLaw Core" at "https://maven.pkg.github.com/openlawteam/openlaw-core"
-    ),
-    publishMavenStyle := true,
-    parallelExecution in Test := false,
-    releaseCrossBuild := true,
-    publishArtifact in (Test, packageBin) := false,
-    publishArtifact in (Test, packageDoc) := false,
-    githubOwner := "openlawteam",
-    githubRepository := "openlaw-core",
-    githubTokenSource := TokenSource.GitConfig("github.token") || TokenSource
-      .Environment("GITHUB_TOKEN") || TokenSource
-      .Environment("TOKEN")
-  )
-  .jsSettings(
-    libraryDependencies ++= Seq(
-      //circe is used to serialize / deserialize json
-      "io.circe" %%% "circe-core" % circeV,
-      "io.circe" %%% "circe-generic" % circeV,
-      "io.circe" %%% "circe-parser" % circeV,
-      "io.circe" %%% "circe-java8" % circeV,
-      //parser / interpreter library. Used for our markup language
-      "org.parboiled" %%% "parboiled" % parboiledV,
-      //cats is used for FP constructs
-      "org.typelevel" %%% "cats-core" % catsV,
-      "org.typelevel" %%% "cats-free" % catsV,
-      // scala.js compatible library to use time types
-      "io.github.cquiroz" %%% "scala-java-time" % scalaJavaTimeV,
-      // timezone handling is in a separate library because of its size and not everybody needs it. we do
-      "io.github.cquiroz" %%% "scala-java-time-tzdb" % "2.0.0-RC3_2019a",
-      // logging library that is compatible with scala.js
-      "biz.enef" %%% "slogging" % sLoggingV,
-      // enumeratum provides type-safe enumerations with improvements over stdlib enumerations
-      "com.beachape" %%% "enumeratum" % enumeratumV,
-      // scalatags is used for composition of XHTML documents in the document printers
-      "com.lihaoyi" %%% "scalatags" % scalaTagsV,
-      //Test
-      "org.scalacheck" %%% "scalacheck" % scalaCheckV % Test,
-      "org.scalatest" %%% "scalatest" % scalaTestV % Test,
-      //Play json is used in tests to make it easier to prepare json in the tests. It shouldn't be used in the library
-      "com.typesafe.play" %%% "play-json" % playJsonV % Test
-    )
-  )
-  .settings(commonSettings: _*)
-  .settings(releaseSettings: _*)
-  .enablePlugins(WartRemover)
-
-lazy val version = git.gitDescribedVersion
+libraryDependencies ++= Seq(
+  //circe is used to serialize / deserialize json
+  "io.circe" %% "circe-core" % circeV,
+  "io.circe" %% "circe-generic" % circeV,
+  "io.circe" %% "circe-parser" % circeV,
+  "io.circe" %% "circe-java8" % circeV,
+  //parser / interpreter library. Used for our markup language
+  "org.parboiled" %% "parboiled" % parboiledV,
+  //cats is used for FP constructs
+  "org.typelevel" %% "cats-core" % catsV,
+  "org.typelevel" %% "cats-free" % catsV,
+  // scala.js compatible library to use time types
+  "io.github.cquiroz" %% "scala-java-time" % scalaJavaTimeV,
+  // logging library that is compatible with scala.js
+  "biz.enef" %% "slogging-slf4j" % sLoggingV,
+  // enumeratum provides type-safe enumerations with improvements over stdlib enumerations
+  "com.beachape" %% "enumeratum" % enumeratumV,
+  // scalatags is used for composition of XHTML documents in the document printers
+  "com.lihaoyi" %% "scalatags" % scalaTagsV,
+  //Test
+  "org.scalacheck" %% "scalacheck" % scalaCheckV % Test,
+  "org.scalatest" %% "scalatest" % scalaTestV % Test,
+  //Play json is used in tests to make it easier to prepare json in the tests. It shouldn't be used in the library
+  "com.typesafe.play" %% "play-json" % playJsonV % Test
+)
 
 // need commands for releasing both Scala & ScalaJS to avoid issue where release-with-defaults only releases Scala lib
 
@@ -217,17 +170,6 @@ addCommandAlias(
   "publishCore",
   ";project openlawCore ;publish"
 )
-addCommandAlias(
-  "releaseCoreJS",
-  ";project openlawCoreJS ;release release-version ${version} next-version ${version-SNAPSHOT} with-defaults"
-)
-addCommandAlias("releaseBoth", ";releaseCore ;releaseCoreJS")
 
-lazy val openlawCoreJvm = openlawCore.jvm
-lazy val openlawCoreJs = openlawCore.js
-
-git.useGitDescribe := true
-val root = (project in file("."))
-  .dependsOn(openlawCoreJvm)
-  .aggregate(openlawCoreJvm)
+val openlawCore = (project in file("."))
   .enablePlugins(GitVersioning)
