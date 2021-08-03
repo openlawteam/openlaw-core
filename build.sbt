@@ -41,7 +41,7 @@ lazy val repositories = Seq(
   Resolver.mavenLocal
 )
 
-publishTo in ThisBuild := Some(
+ThisBuild / publishTo := Some(
   "GitHub Packages OpenLaw Core" at "https://maven.pkg.github.com/openlawteam/openlaw-core"
 )
 
@@ -58,10 +58,10 @@ lazy val commonSettings = Seq(
   ),
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
   publishMavenStyle := true,
-  parallelExecution in Test := false,
+  Test / parallelExecution := false,
   releaseCrossBuild := true,
-  publishArtifact in (Test, packageBin) := false,
-  publishArtifact in (Test, packageDoc) := false,
+  Test / packageBin / publishArtifact := false,
+  Test / packageDoc / publishArtifact := false,
   githubOwner := "openlawteam",
   githubRepository := "openlaw-core",
   githubTokenSource := TokenSource.GitConfig("github.token") || TokenSource
