@@ -1823,7 +1823,8 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
 
         externalCallValue
           .getEndDate(executionResult)
-          .getOrThrow() shouldBe Some(
+          .getOrThrow()
+          .map(_.getEpochSecond) shouldBe Some(
           ZonedDateTime
             .ofInstant(
               executionResult.info.now,
@@ -1831,6 +1832,7 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
             )
             .plus(100, ChronoUnit.DAYS)
             .toInstant
+            .getEpochSecond
         )
         externalCallValue.getEvery(executionResult).getOrThrow() shouldBe Some(
           PeriodType.cast("1 hour 30 minute").getOrThrow()
