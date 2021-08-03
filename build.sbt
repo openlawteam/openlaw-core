@@ -1,7 +1,7 @@
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
 import sbtrelease.ReleasePlugin.autoImport.releaseCrossBuild
 import ReleaseTransformations._
-import sbt.Keys.name
+import sbt.Keys.{name, publishTo}
 
 import scala.language.postfixOps
 import sbt.{file, _}
@@ -51,7 +51,20 @@ lazy val commonSettings = Seq(
     "-feature",
     "-language:implicitConversions"
   ),
-  javacOptions ++= Seq("-source", "1.8", "-target", "1.8")
+  javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
+  publishTo := Some(
+    "GitHub Packages OpenLaw Core" at "https://maven.pkg.github.com/openlawteam/openlaw-core"
+  ),
+  publishMavenStyle := true,
+  parallelExecution in Test := false,
+  releaseCrossBuild := true,
+  publishArtifact in (Test, packageBin) := false,
+  publishArtifact in (Test, packageDoc) := false,
+  githubOwner := "openlawteam",
+  githubRepository := "openlaw-core",
+  githubTokenSource := TokenSource.GitConfig("github.token") || TokenSource
+    .Environment("GITHUB_TOKEN") || TokenSource
+    .Environment("TOKEN")
 )
 
 lazy val releaseSettings = releaseProcess := Seq[ReleaseStep](
@@ -126,10 +139,6 @@ val rules = Seq(
         when this file is modified.
  */
 
-publishTo in ThisBuild := Some(
-  "GitHub Packages OpenLaw Core" at "https://maven.pkg.github.com/openlawteam/openlaw-core"
-)
-
 lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
   .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Pure) // the project does not have separate sources for JVM and JS
@@ -159,17 +168,7 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       "org.scalatest" %% "scalatest" % scalaTestV % Test,
       //Play json is used in tests to make it easier to prepare json in the tests. It shouldn't be used in the library
       "com.typesafe.play" %% "play-json" % playJsonV % Test
-    ),
-    publishMavenStyle := true,
-    parallelExecution in Test := false,
-    releaseCrossBuild := true,
-    publishArtifact in (Test, packageBin) := false,
-    publishArtifact in (Test, packageDoc) := false,
-    githubOwner := "openlawteam",
-    githubRepository := "openlaw-core",
-    githubTokenSource := TokenSource.GitConfig("github.token") || TokenSource
-      .Environment("GITHUB_TOKEN") || TokenSource
-      .Environment("TOKEN")
+    )
   )
   .jsSettings(
     libraryDependencies ++= Seq(
