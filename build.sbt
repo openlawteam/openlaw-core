@@ -40,6 +40,11 @@ lazy val repositories = Seq(
   "maven central" at "https://mvnrepository.com/repos/central",
   Resolver.mavenLocal
 )
+
+publishTo in ThisBuild := Some(
+  "GitHub Packages OpenLaw Core" at "https://maven.pkg.github.com/openlawteam/openlaw-core"
+)
+
 lazy val commonSettings = Seq(
   organization := "org.openlaw",
   name := "openlaw-core",
@@ -52,9 +57,6 @@ lazy val commonSettings = Seq(
     "-language:implicitConversions"
   ),
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
-  publishTo := Some(
-    "GitHub Packages OpenLaw Core" at "https://maven.pkg.github.com/openlawteam/openlaw-core"
-  ),
   publishMavenStyle := true,
   parallelExecution in Test := false,
   releaseCrossBuild := true,
