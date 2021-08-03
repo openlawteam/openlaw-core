@@ -1816,8 +1816,9 @@ class OpenlawExecutionEngineSpec extends FlatSpec with Matchers {
         arguments(VariableName("param2")).underlying shouldBe "test2"
         externalCallValue
           .getStartDate(executionResult)
-          .getOrThrow() shouldBe Some(
-          executionResult.info.now
+          .getOrThrow()
+          .map(_.getEpochSecond) shouldBe Some(
+          executionResult.info.now.getEpochSecond
         )
 
         externalCallValue
