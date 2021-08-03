@@ -228,7 +228,7 @@ lazy val openlawCoreJs = openlawCore.js
 
 git.useGitDescribe := true
 val root = (project in file("."))
-  .settings(skip in publish := true)
-  .dependsOn(openlawCoreJvm)
-  .aggregate(openlawCoreJvm)
+  .settings(Seq(skip in publish := true))
+  .dependsOn(openlawCoreJvm, openlawCoreJs)
+  .aggregate(openlawCoreJvm, openlawCoreJs)
   .enablePlugins(GitVersioning)
