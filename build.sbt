@@ -1,7 +1,7 @@
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
 import sbtrelease.ReleasePlugin.autoImport.releaseCrossBuild
 import ReleaseTransformations._
-import sbt.Keys.name
+import sbt.Keys.{name, publishTo}
 
 import scala.language.postfixOps
 import sbt.{file, _}
@@ -40,6 +40,11 @@ lazy val repositories = Seq(
   "maven central" at "https://mvnrepository.com/repos/central",
   Resolver.mavenLocal
 )
+
+ThisBuild / publishTo := Some(
+  "GitHub Packages OpenLaw Core" at "https://maven.pkg.github.com/openlawteam/openlaw-core"
+)
+
 lazy val commonSettings = Seq(
   organization := "org.openlaw",
   name := "openlaw-core",
@@ -51,7 +56,17 @@ lazy val commonSettings = Seq(
     "-feature",
     "-language:implicitConversions"
   ),
-  javacOptions ++= Seq("-source", "1.8", "-target", "1.8")
+  javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
+  publishMavenStyle := true,
+  Test / parallelExecution := false,
+  releaseCrossBuild := true,
+  Test / packageBin / publishArtifact := false,
+  Test / packageDoc / publishArtifact := false,
+  githubOwner := "openlawteam",
+  githubRepository := "openlaw-core",
+  githubTokenSource := TokenSource.GitConfig("github.token") || TokenSource
+    .Environment("GITHUB_TOKEN") || TokenSource
+    .Environment("TOKEN")
 )
 
 lazy val releaseSettings = releaseProcess := Seq[ReleaseStep](
@@ -155,20 +170,7 @@ lazy val openlawCore = crossProject(JSPlatform, JVMPlatform)
       "org.scalatest" %% "scalatest" % scalaTestV % Test,
       //Play json is used in tests to make it easier to prepare json in the tests. It shouldn't be used in the library
       "com.typesafe.play" %% "play-json" % playJsonV % Test
-    ),
-    publishTo := Some(
-      "GitHub Packages OpenLaw Core" at "https://maven.pkg.github.com/openlawteam/openlaw-core"
-    ),
-    publishMavenStyle := true,
-    parallelExecution in Test := false,
-    releaseCrossBuild := true,
-    publishArtifact in (Test, packageBin) := false,
-    publishArtifact in (Test, packageDoc) := false,
-    githubOwner := "openlawteam",
-    githubRepository := "openlaw-core",
-    githubTokenSource := TokenSource.GitConfig("github.token") || TokenSource
-      .Environment("GITHUB_TOKEN") || TokenSource
-      .Environment("TOKEN")
+    )
   )
   .jsSettings(
     libraryDependencies ++= Seq(
@@ -207,27 +209,12 @@ lazy val version = git.gitDescribedVersion
 
 // need commands for releasing both Scala & ScalaJS to avoid issue where release-with-defaults only releases Scala lib
 
-// the next-version flag is to silence SBT's interactive release shell prompt - it doesn't actually alter the version
-// confirmed via running `sbt version` after release.
-addCommandAlias(
-  "releaseCore",
-  ";project openlawCore ;release release-version ${version} next-version ${version-SNAPSHOT} with-defaults"
-)
-addCommandAlias(
-  "publishCore",
-  ";project openlawCore ;publish"
-)
-addCommandAlias(
-  "releaseCoreJS",
-  ";project openlawCoreJS ;release release-version ${version} next-version ${version-SNAPSHOT} with-defaults"
-)
-addCommandAlias("releaseBoth", ";releaseCore ;releaseCoreJS")
-
 lazy val openlawCoreJvm = openlawCore.jvm
 lazy val openlawCoreJs = openlawCore.js
 
 git.useGitDescribe := true
 val root = (project in file("."))
-  .dependsOn(openlawCoreJvm)
-  .aggregate(openlawCoreJvm)
+  .settings(Seq(publish / skip := true))
+  .dependsOn(openlawCoreJvm, openlawCoreJs)
+  .aggregate(openlawCoreJvm, openlawCoreJs)
   .enablePlugins(GitVersioning)

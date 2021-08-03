@@ -61,3 +61,4 @@ owasp/
 .metals/
 .bloop/
 project/metals.sbt
+/.bsp/
